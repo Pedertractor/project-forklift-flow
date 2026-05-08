@@ -1,0 +1,30 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "card": "2287",
+    "unit": "TRACTOR",
+    "password": "134"
+  }
+  
+}
+
+vars:pre-request {
+  baseUrl: http://127.0.0.1:3131/api
+}
+
+docs {
+  # Publica.
+  # unit: PEDERTRACTOR | TRACTOR
+  # Copie o token retornado para vars.token no environment local.
+}

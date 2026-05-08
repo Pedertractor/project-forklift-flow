@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Healthcheck {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+}
+
+enum Unit {
+  PEDERTRACTOR
+  TRACTOR
+}
+
+model User {
+  id         String   @id @default(uuid())
+  name       String
+  employeeId Int
+  isLogged   Boolean  @default(false)
+  card       String
+  unit       Unit
+  password   String
+  role       RoleUser
+
+  machineReplenishmentRequests MachineReplenishmentRequest[] @relation("UserMachineRequests")
+  forkliftTasks                ForkliftTask[]                @relation("UserForkliftTasks")
+  machines                     Machine[]                     @relation("MachineOperator")
+  forklifts                    Forklift[]                    @relation("ForkliftOperator")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([card, unit])
+}
+
+model MachineReplenishmentRequest {
+  id String @id @default(uuid())
+
+  requestedBy   User   @relation("UserMachineRequests", fields: [requestedById], references: [id])
+  requestedById String
+
+  movementCube   MovementCube @relation(fields: [movementCubeId], references: [id])
+  movementCubeId String
+
+  destination   Machine @relation(fields: [destinationId], references: [id])
+  destinationId String
+
+  status        RequestStatus @default(CREATED)
+  priorityLevel PriorityLevel @default(NORMAL)
+
+  forkliftTasks ForkliftTask[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+}
+
+model ForkliftTask {
+  id String @id @default(uuid())
+
+  request   MachineReplenishmentRequest @relation(fields: [requestId], references: [id])
+  requestId String
+
+  type   ForkliftTaskType
+  status ForkliftTaskStatus @default(CREATED)
+
+  assignedForklift   Forklift? @relation(fields: [assignedForkliftId], references: [id])
+  assignedForkliftId String?
+
+  requestedBy   User   @relation("UserForkliftTasks", fields: [requestedById], references: [id])
+  requestedById String
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+}
+
+model Machine {
+  id       String @id @default(uuid())
+  name     String
+  position String
+
+  typeMachine   TypeMachine @relation(fields: [typeMachineId], references: [id])
+  typeMachineId String
+
+  sector   Sector @relation(fields: [sectorId], references: [id])
+  sectorId String
+
+  user   User?   @relation("MachineOperator", fields: [userId], references: [id])
+  userId String?
+
+  machineReplenishmentRequests MachineReplenishmentRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TypeMachine {
+  id       String @id @default(uuid())
+  name     String
+  urlImage String
+
+  machines Machine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sector {
+  id          String @id @default(uuid())
+  sectorIdAPI Int    @unique
+  nameSector  String
+
+  forklifts     Forklift[]
+  movementCubes MovementCube[]
+  machines      Machine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Forklift {
+  id   String @id @default(uuid())
+  code String @unique
+
+  operator   User?   @relation("ForkliftOperator", fields: [operatorId], references: [id])
+  operatorId String?
+
+  sector   Sector? @relation(fields: [sectorId], references: [id])
+  sectorId String?
+
+  forkliftTasks ForkliftTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MovementCube {
+  id   String @id @default(uuid())
+  code String @unique
+
+  sector   Sector? @relation(fields: [sectorId], references: [id])
+  sectorId String?
+
+  machineReplenishmentRequests MachineReplenishmentRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RoleUser {
+  OPERATOR_MACHINE
+  FORKLIFT_OPERATOR
+  SUPPLY_OPERATOR
+  LEADER
+  SUPERVISOR
+  MANAGER
+  ADMIN
+}
+
+enum RequestStatus {
+  CREATED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum ForkliftTaskStatus {
+  CREATED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum ForkliftTaskType {
+  DELIVER_TO_MACHINE
+  ON_MACHINE
+  PICKUP_TO_EXPEDITION
+}
+
+enum PriorityLevel {
+  VERY_HIGH
+  HIGH
+  NORMAL
+}

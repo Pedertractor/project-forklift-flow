@@ -1,0 +1,20 @@
+meta {
+  name: Get employee info
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/users/employee-info?card=2287&unit=TRACTOR
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+  # Query params obrigatorios: card e unit (PEDERTRACTOR | TRACTOR).
+}
