@@ -13,6 +13,8 @@ const envSchema = z.object({
   URL_VERIFY_EMPLOYEES: z.string().min(1),
   APPNAME: z.string().default('ForkLift'),
   APPKEY: z.string().default('forklift-api-key'),
+  /** Pasta de uploads (relativa ao cwd ou caminho absoluto). Montada em Docker em /usr/src/app/uploads */
+  UPLOAD_DIR: z.string().default('uploads'),
 });
 
 export const env = envSchema.parse(process.env);

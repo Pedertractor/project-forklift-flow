@@ -1,0 +1,38 @@
+meta {
+  name: Update type machine
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/type-machines/{{typeMachineId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Empilhadeira frontal (atualizado)"
+  }
+}
+
+body:multipart-form {
+  name: Empilhadeira frontal (atualizado)
+  ~image: @file(./sample-upload.png)
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  #
+  # --- JSON ---
+  # Ao menos um campo: `name` ou `urlImage`.
+  #
+  # --- Multipart ---
+  # Ao menos um entre `name`, `urlImage` (texto) ou `image` (arquivo).
+  # Apenas imagem: prefixe `~` em `name` e remova `~` de `image`.
+  # Nova imagem substitui a anterior; arquivos antigos em /uploads/type-machines/ sao removidos pela API quando aplicavel.
+}

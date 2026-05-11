@@ -1,0 +1,20 @@
+meta {
+  name: List machines by sector
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/machines?sectorId={{sectorId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Filtra maquinas pelo sectorId informado no environment.
+}
