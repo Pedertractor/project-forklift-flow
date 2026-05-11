@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { RoleUser } from '../generated/prisma/enums.js'
+import { RoleUser } from '../generated/prisma/enums.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
 
 export function requireRoles(...allowed: RoleUser[]) {
@@ -9,4 +9,9 @@ export function requireRoles(...allowed: RoleUser[]) {
       return reply.status(403).send({ error: 'Sem permissao para este recurso.' })
     }
   }
+}
+
+/** Tipos de maquina e maquinas: apenas LEADER, SUPPLY_OPERATOR ou ADMIN. */
+export function requireMachineDomainRoles() {
+  return requireRoles(RoleUser.LEADER, RoleUser.SUPPLY_OPERATOR, RoleUser.ADMIN)
 }

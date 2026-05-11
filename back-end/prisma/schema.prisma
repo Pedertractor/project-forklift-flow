@@ -111,10 +111,20 @@ model TypeMachine {
   updatedAt DateTime @updatedAt
 }
 
+model CostCenter {
+  id              String  @id @default(uuid())
+  costCenterAPI   String  @unique
+  costCenterValue String
+  sector          Sector? @relation(fields: [sectorId], references: [id])
+  sectorId        String?
+}
+
 model Sector {
   id          String @id @default(uuid())
   sectorIdAPI Int    @unique
-  nameSector  String
+  typeSector  String
+
+  costCenters CostCenter[]
 
   forklifts     Forklift[]
   movementCubes MovementCube[]

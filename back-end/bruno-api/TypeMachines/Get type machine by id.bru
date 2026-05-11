@@ -1,0 +1,20 @@
+meta {
+  name: Get type machine by id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/type-machines/{{typeMachineId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Parametro de path: typeMachineId (variavel de ambiente typeMachineId).
+}
