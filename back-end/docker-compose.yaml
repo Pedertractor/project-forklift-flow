@@ -7,6 +7,9 @@ services:
       - 3131:3131
     env_file:
       - .env
+    # Inside Docker, 127.0.0.1 is this container — use the service name and internal port 5432.
+    environment:
+      DATABASE_URL: postgresql://docker:docker@postgresql-forklift:5432/forklift_db?schema=public
     depends_on:
       - postgresql-forklift
     networks:
