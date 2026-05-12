@@ -18,6 +18,7 @@ const requestListInclude = {
       id: true,
       name: true,
       position: true,
+      userId: true,
       typeMachine: { select: { id: true, name: true } },
       sector: { select: { id: true, typeSector: true } },
     },
@@ -54,6 +55,23 @@ export const machineReplenishmentRequestRepository = {
     }
     if (filters?.destinationId !== undefined) {
       where.destinationId = filters.destinationId
+    }
+    return prisma.machineReplenishmentRequest.findMany({
+      where,
+      include: requestListInclude,
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  findManyForDestinationOperator(
+    operatorUserId: string,
+    filters?: { status?: RequestStatus },
+  ) {
+    const where: Prisma.MachineReplenishmentRequestWhereInput = {
+      destination: { userId: operatorUserId },
+    }
+    if (filters?.status !== undefined) {
+      where.status = filters.status
     }
     return prisma.machineReplenishmentRequest.findMany({
       where,

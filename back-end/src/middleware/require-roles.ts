@@ -20,3 +20,8 @@ export function requireMachineDomainRoles() {
 export function requireMachineReplenishmentRequestRoles() {
   return requireRoles(RoleUser.SUPPLY_OPERATOR, RoleUser.LEADER, RoleUser.ADMIN)
 }
+
+/** Operador de maquina: vinculo a maquina, requisicoes da maquina e pedido de retirada. */
+export function requireOperatorMachineRole() {
+  return requireRoles(RoleUser.OPERATOR_MACHINE)
+}

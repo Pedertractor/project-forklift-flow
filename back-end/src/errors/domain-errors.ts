@@ -101,3 +101,48 @@ export class MachineReplenishmentRequestDeleteBlockedError extends Error {
     this.name = 'MachineReplenishmentRequestDeleteBlockedError'
   }
 }
+
+export class ReplenishmentRequestNotOnMachineStatusError extends Error {
+  constructor(
+    message = 'Retirada so pode ser solicitada com a requisicao em status ON_MACHINE.',
+  ) {
+    super(message)
+    this.name = 'ReplenishmentRequestNotOnMachineStatusError'
+  }
+}
+
+export class ReplenishmentRequestNotForOperatorMachineError extends Error {
+  constructor(
+    message = 'Esta requisicao nao e da sua maquina de operacao vinculada.',
+  ) {
+    super(message)
+    this.name = 'ReplenishmentRequestNotForOperatorMachineError'
+  }
+}
+
+export class PickupTaskAlreadyOpenError extends Error {
+  constructor(
+    message = 'Ja existe uma solicitacao de retirada (PICKUP) em aberto para esta requisicao.',
+  ) {
+    super(message)
+    this.name = 'PickupTaskAlreadyOpenError'
+  }
+}
+
+export class OperatorWithoutSectorError extends Error {
+  constructor(
+    message = 'Usuario sem setor vinculado; e necessario um setor para escolher maquina de operacao.',
+  ) {
+    super(message)
+    this.name = 'OperatorWithoutSectorError'
+  }
+}
+
+export class MachineNotInOperatorSectorError extends Error {
+  constructor(
+    message = 'So e possivel vincular maquinas do mesmo setor do usuario.',
+  ) {
+    super(message)
+    this.name = 'MachineNotInOperatorSectorError'
+  }
+}

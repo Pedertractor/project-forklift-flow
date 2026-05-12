@@ -1,0 +1,20 @@
+meta {
+  name: Unbind my operation machine
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/operator-machine/my-machine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: role OPERATOR_MACHINE.
+  # Remove o vinculo do operador de qualquer maquina (fim de turno / trocar depois).
+}
