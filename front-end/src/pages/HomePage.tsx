@@ -21,12 +21,26 @@ export function HomePage() {
               empilhadeira serão adicionados aqui conforme o roadmap.
             </p>
           </div>
-          <Link
-            to="/dashboard"
-            className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-transparent bg-[#005fb8] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#004a94] focus-visible:border-[#005fb8] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/40 sm:self-end"
-          >
-            Abrir painel
-          </Link>
+          <div className="flex flex-wrap gap-2 sm:self-end">
+            <Link
+              to="/dashboard"
+              className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-transparent bg-[#005fb8] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#004a94] focus-visible:border-[#005fb8] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/40"
+            >
+              Abrir painel
+            </Link>
+            <Link
+              to="/cadastro/tipos-maquina"
+              className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25"
+            >
+              Tipos de máquina
+            </Link>
+            <Link
+              to="/cadastro/maquinas"
+              className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25"
+            >
+              Máquinas
+            </Link>
+          </div>
         </header>
 
         <div className="grid gap-4 lg:grid-cols-2">

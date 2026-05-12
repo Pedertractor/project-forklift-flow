@@ -7,4 +7,15 @@ export const sectorRepository = {
       select: { id: true },
     })
   },
+
+  findManyForList() {
+    return prisma.sector.findMany({
+      select: {
+        id: true,
+        sectorIdAPI: true,
+        typeSector: true,
+      },
+      orderBy: { typeSector: 'asc' },
+    })
+  },
 }

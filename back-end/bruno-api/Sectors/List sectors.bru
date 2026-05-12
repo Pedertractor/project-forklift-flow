@@ -1,0 +1,20 @@
+meta {
+  name: List sectors
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/sectors
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN (mesmo escopo de máquinas).
+  # Retorna { sectors: [{ id, sectorIdAPI, typeSector }] }.
+}

@@ -15,6 +15,12 @@ const LoginPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
+const TypeMachinesPage = lazy(() =>
+  import('@/pages/TypeMachinesPage').then((m) => ({ default: m.TypeMachinesPage })),
+);
+const MachinesPage = lazy(() =>
+  import('@/pages/MachinesPage').then((m) => ({ default: m.MachinesPage })),
+);
 
 export function App() {
   return (
@@ -27,6 +33,8 @@ export function App() {
               <Route element={<MainLayout />}>
                 <Route index element={<HomePage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />
+                <Route path="cadastro/maquinas" element={<MachinesPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

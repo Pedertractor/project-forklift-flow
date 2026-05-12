@@ -4,12 +4,12 @@ import { useAuthStore } from '@/store/auth.store';
 import type { LoginPayload } from '@/schemas/auth.schema';
 
 export function useLogin() {
-  const setUser = useAuthStore((s) => s.setUser);
+  const setSession = useAuthStore((s) => s.setSession);
 
   return useMutation({
     mutationFn: (payload: LoginPayload) => loginWithPassword(payload),
-    onSuccess: (user) => {
-      setUser(user);
+    onSuccess: ({ token, user }) => {
+      setSession(token, user);
     },
   });
 }

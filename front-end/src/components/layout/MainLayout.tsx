@@ -118,6 +118,12 @@ export function MainLayout() {
           <NavLink to="/dashboard" className={navLinkClass} onClick={closeSidebar}>
             <span>Painel</span>
           </NavLink>
+          <NavLink to="/cadastro/tipos-maquina" className={navLinkClass} onClick={closeSidebar}>
+            <span>Tipos de máquina</span>
+          </NavLink>
+          <NavLink to="/cadastro/maquinas" className={navLinkClass} onClick={closeSidebar}>
+            <span>Máquinas</span>
+          </NavLink>
         </nav>
 
         <div className="border-t border-zinc-200 bg-zinc-50/90 p-2">
