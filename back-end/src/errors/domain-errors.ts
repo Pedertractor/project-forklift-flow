@@ -76,3 +76,28 @@ export class AssignMachineUserError extends Error {
     this.name = 'AssignMachineUserError'
   }
 }
+
+export class MachineReplenishmentRequestNotFoundError extends Error {
+  constructor(message = 'Solicitacao de reposicao nao encontrada.') {
+    super(message)
+    this.name = 'MachineReplenishmentRequestNotFoundError'
+  }
+}
+
+export class MachineReplenishmentRequestNotEditableError extends Error {
+  constructor(
+    message = 'Solicitacao concluida ou cancelada; nao e possivel alterar.',
+  ) {
+    super(message)
+    this.name = 'MachineReplenishmentRequestNotEditableError'
+  }
+}
+
+export class MachineReplenishmentRequestDeleteBlockedError extends Error {
+  constructor(
+    message = 'So e possivel excluir solicitacoes em CREATED sem tarefas vinculadas.',
+  ) {
+    super(message)
+    this.name = 'MachineReplenishmentRequestDeleteBlockedError'
+  }
+}

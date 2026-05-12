@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { registerAuthRoutes } from './auth.routes.js'
+import { registerMachineReplenishmentRequestRoutes } from './machine-replenishment-request.routes.js'
 import { registerMachineRoutes } from './machine.routes.js'
 import { registerSectorRoutes } from './sector.routes.js'
 import { registerTypeMachineRoutes } from './type-machine.routes.js'
@@ -11,6 +12,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await registerSectorRoutes(fastify)
   await registerTypeMachineRoutes(fastify)
   await registerMachineRoutes(fastify)
+  await registerMachineReplenishmentRequestRoutes(fastify)
 
   fastify.get('/health', async () => {
     return { ok: true, service: 'forklift-back-end' }

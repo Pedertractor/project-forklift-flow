@@ -71,7 +71,7 @@ model ForkliftTask {
   request   MachineReplenishmentRequest @relation(fields: [requestId], references: [id])
   requestId String
 
-  type   ForkliftTaskType @default(DELIVER_TO_MACHINE)
+  type   ForkliftTaskType   @default(DELIVER_TO_MACHINE)
   status ForkliftTaskStatus @default(CREATED)
 
   assignedForklift   Forklift? @relation(fields: [assignedForkliftId], references: [id])
@@ -125,8 +125,8 @@ model CostCenter {
 }
 
 model Sector {
-  id          String @id @default(uuid())
-  typeSector  String
+  id         String @id @default(uuid())
+  typeSector String
 
   costCenters CostCenter[]
 
@@ -172,6 +172,7 @@ model Forklift {
 enum RoleUser {
   OPERATOR_MACHINE
   FORKLIFT_OPERATOR
+  FOLLOW_UP_OPERATOR
   SUPPLY_OPERATOR
   LEADER
   SUPERVISOR

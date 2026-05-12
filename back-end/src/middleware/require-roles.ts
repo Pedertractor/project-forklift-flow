@@ -15,3 +15,8 @@ export function requireRoles(...allowed: RoleUser[]) {
 export function requireMachineDomainRoles() {
   return requireRoles(RoleUser.LEADER, RoleUser.SUPPLY_OPERATOR, RoleUser.ADMIN)
 }
+
+/** Solicitacoes de reposicao para o empilhadeirista: SUPPLY_OPERATOR, LEADER ou ADMIN. */
+export function requireMachineReplenishmentRequestRoles() {
+  return requireRoles(RoleUser.SUPPLY_OPERATOR, RoleUser.LEADER, RoleUser.ADMIN)
+}

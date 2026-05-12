@@ -20,7 +20,7 @@ const machineListSelect = {
 
 const machineDetailInclude = {
   typeMachine: { select: { id: true, name: true, urlImage: true } },
-  sector: { select: { id: true, typeSector: true, sectorIdAPI: true } },
+  sector: { select: { id: true, typeSector: true } },
   user: {
     select: {
       id: true,
