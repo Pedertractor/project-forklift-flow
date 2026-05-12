@@ -1,0 +1,26 @@
+meta {
+  name: List trip route suggestions
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/trip-suggestions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Retorna sugestoes quando, para a MESMA maquina de destino, ha retirada (PICKUP)
+  # em aberto com requisicao ON_MACHINE e entrega (DELIVER) em aberto (outra requisicao).
+  # Usuario precisa ter sectorId; filtro por setor e typeMovimentPallet do perfil.
+  # Resposta: { "suggestions", "priorityContext" }.
+  # Cada sugestao: effectivePriority (mais urgente entre retirada e entrega), deferRecommended,
+  # ordenacao VERY_HIGH > HIGH > NORMAL; se houver VERY_HIGH no setor, hint global orienta priorizar.
+  # Cada item inclui tripSuggestion (id, status, etc.) persistido; aceite via POST .../trip-suggestions/:id/accept.
+}

@@ -214,3 +214,28 @@ export class ReplenishmentRequestAlreadyAssignedError extends Error {
     this.name = 'ReplenishmentRequestAlreadyAssignedError'
   }
 }
+
+export class TripRouteSuggestionNotFoundError extends Error {
+  constructor(message = 'Sugestao de viagem nao encontrada.') {
+    super(message)
+    this.name = 'TripRouteSuggestionNotFoundError'
+  }
+}
+
+export class TripRouteSuggestionNotOpenError extends Error {
+  constructor(
+    message = 'Sugestao nao esta aberta ou ja foi aceita por outro operador.',
+  ) {
+    super(message)
+    this.name = 'TripRouteSuggestionNotOpenError'
+  }
+}
+
+export class TripRouteSuggestionAcceptForbiddenError extends Error {
+  constructor(
+    message = 'Voce nao pode aceitar esta sugestao: tarefas ja vinculadas a outro equipamento ou situacao invalida.',
+  ) {
+    super(message)
+    this.name = 'TripRouteSuggestionAcceptForbiddenError'
+  }
+}

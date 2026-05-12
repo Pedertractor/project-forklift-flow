@@ -1,7 +1,9 @@
 import type { Prisma } from '../generated/prisma/client.js'
+import type { TypeMovimentPallet } from '../generated/prisma/enums.js'
 import {
   ForkliftTaskStatus,
   ForkliftTaskType,
+  RequestStatus,
 } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
 
@@ -37,6 +39,12 @@ const taskWithRequestInclude = {
 } as const
 
 const openPickupStatuses: ForkliftTaskStatus[] = [
+  ForkliftTaskStatus.CREATED,
+  ForkliftTaskStatus.ASSIGNED,
+  ForkliftTaskStatus.IN_PROGRESS,
+]
+
+const openDeliverStatuses: ForkliftTaskStatus[] = [
   ForkliftTaskStatus.CREATED,
   ForkliftTaskStatus.ASSIGNED,
   ForkliftTaskStatus.IN_PROGRESS,
@@ -91,6 +99,45 @@ export const movimentPalletTaskRepository = {
     return prisma.movimentPalletTask.create({
       data,
       select: movimentPalletTaskPickupSelect,
+    })
+  },
+
+  /** Pickups em aberto no setor (ex.: apos operador de maquina pedir retirada). */
+  findManyOpenPickupTasksForSectorAndMovimentType(
+    sectorId: string,
+    typeMovimentPallet: TypeMovimentPallet,
+  ) {
+    return prisma.movimentPalletTask.findMany({
+      where: {
+        type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+        status: { in: openPickupStatuses },
+        request: {
+          typeMovimentPallet,
+          status: RequestStatus.ON_MACHINE,
+          destination: { sectorId },
+        },
+      },
+      include: taskWithRequestInclude,
+      orderBy: { createdAt: 'asc' },
+    })
+  },
+
+  /** Entregas em aberto no setor (pallet no recebimento / em rota para a maquina). */
+  findManyOpenDeliverTasksForSectorAndMovimentType(
+    sectorId: string,
+    typeMovimentPallet: TypeMovimentPallet,
+  ) {
+    return prisma.movimentPalletTask.findMany({
+      where: {
+        type: ForkliftTaskType.DELIVER_TO_MACHINE,
+        status: { in: openDeliverStatuses },
+        request: {
+          typeMovimentPallet,
+          destination: { sectorId },
+        },
+      },
+      include: taskWithRequestInclude,
+      orderBy: { createdAt: 'asc' },
     })
   },
 }

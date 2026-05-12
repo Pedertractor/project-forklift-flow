@@ -145,8 +145,24 @@ O operador **só enxerga solicitações em aberto e tarefas** alinhadas ao **tip
 - **`GET /operator-moviment-pallet/my-tasks`**
 - Lista **`MovimentPalletTask`** com **`assignedMovimentPalletId`** = id do equipamento vinculado ao operador.
 - Como o vínculo é a um único tipo de equipamento, **só aparecem tarefas daquele tipo de movimentação** (indiretamente: tarefas atribuídas àquele `MovimentPallet`).
+- **Ordenação:** por **`priorityLevel`** da requisição vinculada (mais urgente primeiro: `VERY_HIGH` > `HIGH` > `NORMAL`); em empate, por data de criação da tarefa (mais antiga primeiro).
 
-### 5.8 Aceitar uma solicitação (criar atividade de entrega)
+### 5.8 Sugestões de viagem (economia de trajeto)
+
+- **`GET /operator-moviment-pallet/trip-suggestions`**
+- **Cenário:** o **operador de máquina** já pediu **retirada** (`PICKUP_TO_EXPEDITION` em aberto) enquanto existe, para a **mesma máquina de destino**, uma **entrega** em aberto (`DELIVER_TO_MACHINE`) — por exemplo cubo no recebimento destinado àquela máquina.
+- **Regra de detecção (API):** no **setor do usuário logado** e para cada **`typeMovimentPallet`** permitido ao papel, busca-se pares de tarefas em que:
+  - **PICKUP:** tipo `PICKUP_TO_EXPEDITION`, status em aberto, requisição em **`ON_MACHINE`** (retirada solicitada com cubo na máquina).
+  - **DELIVER:** tipo `DELIVER_TO_MACHINE`, status em aberto, **mesmo `destinationId`** que o pickup.
+  - As duas tarefas são de **requisições diferentes** (`requestId` distintos).
+- **Emparelhamento:** entregas e retiradas ordenadas por **prioridade** da requisição (`VERY_HIGH` > `HIGH` > `NORMAL`) e, em empate, por data de criação da tarefa; cada entrega só entra em **uma** sugestão (evita reuso na mesma resposta).
+- **Prioridade da sugestão (`effectivePriority`):** é a **mais urgente** entre a requisição da retirada e a da entrega (ex.: retirada `NORMAL` + entrega `HIGH` ⇒ a sugestão é tratada como `HIGH`).
+- **Prioridade global no setor:** entre todas as tarefas de entrega/retirada em aberto consideradas no cálculo, calcula-se a mais urgente (`mostUrgentOpenInSector`). Se existir **qualquer** `VERY_HIGH`, o cliente recebe `priorityContext.hint` orientando a **atender antes** todas as demais — inclusive sugestões de viagem só `HIGH`/`NORMAL`. Cada sugestão traz `deferRecommended: true` quando a prioridade efetiva dela é **menos urgente** que a mais urgente do setor (ex.: sugestão `NORMAL` enquanto há `VERY_HIGH` em outro ponto).
+- **Ordenação da lista:** `suggestions` vem ordenada por `effectivePriority` (mais urgente primeiro), depois por máquina.
+- **Resposta:** `{ "suggestions": [ ... ], "priorityContext": { "mostUrgentOpenInSector", "hint?" } }` — cada item com `machine`, `message`, `effectivePriority`, `deferRecommended`, `suggestedOrder`, `deliverTask`, `pickupTask`.
+- **Observação:** é **sugestão** (read-only); o operador continua executando as tarefas pelos fluxos já existentes. Não exige vínculo prévio ao `MovimentPallet` — basta **usuário com `sectorId`** e papel permitido (o filtro usa o setor do token).
+
+### 5.9 Aceitar uma solicitação (criar atividade de entrega)
 
 - **`POST /operator-moviment-pallet/replenishment-requests/:requestId/accept`**
 - **Pré-condições:**
@@ -160,7 +176,7 @@ O operador **só enxerga solicitações em aberto e tarefas** alinhadas ao **tip
 - **201:** `{ "task": { ... }, "request": { ... } }`.
 - **409** se a requisição já tiver sido aceita por outro (não está mais em `CREATED` na condição atômica).
 
-### 5.9 Cadastro dos equipamentos (`MovimentPallet`) — supply / líder
+### 5.10 Cadastro dos equipamentos (`MovimentPallet`) — supply / líder
 
 - CRUD em **`/api/moviment-pallets`** (roles **LEADER**, **SUPPLY_OPERATOR**, **ADMIN**), alinhado ao cadastro de máquinas.
 - Para o operador conseguir vincular-se, o equipamento deve ter **`sectorId`** coerente com o do operador.
@@ -203,7 +219,8 @@ Demais CRUDs de requisição permanecem nas rotas já existentes sob **`/api/mac
 2. **FORKLIFT_OPERATOR** ou **FOLLOW_UP_OPERATOR** faz login → **`GET /operator-moviment-pallet/moviment-pallets`** → **`POST /operator-moviment-pallet/my-moviment-pallet`**.
 3. **`GET /operator-moviment-pallet/replenishment-requests`** — só requisições **do mesmo tipo** do equipamento vinculado.
 4. **`POST /operator-moviment-pallet/replenishment-requests/:id/accept`** — cria tarefa **DELIVER_TO_MACHINE** e passa a requisição para **`IN_PROGRESS`**.
-5. **`GET /operator-moviment-pallet/my-tasks`** — acompanha atividades no **seu** equipamento.
+5. **`GET /operator-moviment-pallet/my-tasks`** — tarefas atribuídas ao **seu** equipamento (entregar / outras).
+6. **`GET /operator-moviment-pallet/trip-suggestions`** — dicas de **ida única** quando entrega e retirada caem na **mesma máquina** (mesmo setor e tipo de movimentação).
 
 ---
 
@@ -212,7 +229,7 @@ Demais CRUDs de requisição permanecem nas rotas já existentes sob **`/api/mac
 - Operador de máquina — rotas: `src/routes/operator-machine.routes.ts`; serviço: `src/services/operator-machine.service.ts`; middleware: `requireOperatorMachineRole` em `src/middleware/require-roles.ts`.
 - Operador de movimentação — rotas: `src/routes/operator-moviment-pallet.routes.ts`; serviço: `src/services/operator-moviment-pallet.service.ts`; middleware: `requireForkliftOrFollowUpOperatorRole` em `src/middleware/require-roles.ts`.
 - CRUD equipamento — `src/routes/moviment-pallet.routes.ts`, `src/services/moviment-pallet.service.ts`, `src/repositories/moviment-pallet.repository.ts`.
-- Fila por tipo — `findManyOpenPoolForMovimentType` em `src/repositories/machine-replenishment-request.repository.ts`.
+- Fila por tipo e sugestões de viagem — `findManyOpenPoolForMovimentType` e leituras em `src/repositories/moviment-pallet-task.repository.ts` (`findManyOpenPickupTasksForSectorAndMovimentType`, `findManyOpenDeliverTasksForSectorAndMovimentType`); lógica em `listTripRouteSuggestionsForOperator` em `src/services/operator-moviment-pallet.service.ts`.
 - Enum `RequestStatus` com **`ON_MACHINE`**: `prisma/schema.prisma` + migrações em `prisma/migrations/`.
 
 Este arquivo pode ser atualizado sempre que novos passos (por exemplo transição automática para `ON_MACHINE` ou conclusão para `COMPLETED`) forem adicionados à API.

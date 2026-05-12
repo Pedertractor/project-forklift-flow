@@ -1,0 +1,22 @@
+meta {
+  name: Accept trip route suggestion
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/operator-moviment-pallet/trip-suggestions/{{tripSuggestionId}}/accept
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Operador deve estar vinculado a um MovimentPallet do mesmo tipo e setor da sugestao.
+  # Marca MovimentPalletTripSuggestion como ACCEPTED e atribui as duas tasks ao mesmo pallet.
+  # Defina tripSuggestionId (id em tripSuggestion na resposta de List trip route suggestions).
+}
