@@ -1,0 +1,21 @@
+meta {
+  name: List moviment pallets for operator
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/moviment-pallets
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Lista equipamentos do mesmo setor do usuario que pode vincular
+  # (tipo conforme perfil: FORKLIFT ou PALLET_TRUCK).
+}

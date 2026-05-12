@@ -146,3 +146,71 @@ export class MachineNotInOperatorSectorError extends Error {
     this.name = 'MachineNotInOperatorSectorError'
   }
 }
+
+export class MovimentPalletNotFoundError extends Error {
+  constructor(message = 'Equipamento de movimentacao nao encontrado.') {
+    super(message)
+    this.name = 'MovimentPalletNotFoundError'
+  }
+}
+
+export class MovimentPalletCodeConflictError extends Error {
+  constructor(message = 'Ja existe um equipamento com este codigo.') {
+    super(message)
+    this.name = 'MovimentPalletCodeConflictError'
+  }
+}
+
+export class MovimentPalletDeleteBlockedError extends Error {
+  constructor(
+    message = 'Nao e possivel excluir: ha tarefas vinculadas ou operador atribuido.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletDeleteBlockedError'
+  }
+}
+
+export class MovimentPalletNotInOperatorSectorError extends Error {
+  constructor(
+    message = 'So e possivel vincular equipamentos do mesmo setor do usuario.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletNotInOperatorSectorError'
+  }
+}
+
+export class MovimentPalletTypeNotAllowedForRoleError extends Error {
+  constructor(
+    message = 'Este perfil so pode operar empilhadeira (FORKLIFT) ou transpaleteira (PALLET_TRUCK) conforme a funcao.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletTypeNotAllowedForRoleError'
+  }
+}
+
+export class OperatorWithoutBoundMovimentPalletError extends Error {
+  constructor(
+    message = 'Nenhum equipamento de movimentacao vinculado; selecione um antes.',
+  ) {
+    super(message)
+    this.name = 'OperatorWithoutBoundMovimentPalletError'
+  }
+}
+
+export class ReplenishmentRequestTypeMismatchError extends Error {
+  constructor(
+    message = 'Esta solicitacao nao e do tipo do equipamento que voce esta operando.',
+  ) {
+    super(message)
+    this.name = 'ReplenishmentRequestTypeMismatchError'
+  }
+}
+
+export class ReplenishmentRequestAlreadyAssignedError extends Error {
+  constructor(
+    message = 'Esta solicitacao ja foi aceita por outro operador ou nao esta disponivel.',
+  ) {
+    super(message)
+    this.name = 'ReplenishmentRequestAlreadyAssignedError'
+  }
+}

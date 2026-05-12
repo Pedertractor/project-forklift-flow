@@ -1,0 +1,20 @@
+meta {
+  name: Unbind my moviment pallet
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/operator-moviment-pallet/my-moviment-pallet
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Remove o vinculo do usuario com o equipamento de movimentacao.
+}

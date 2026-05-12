@@ -1,0 +1,22 @@
+meta {
+  name: Accept replenishment request
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/operator-moviment-pallet/replenishment-requests/{{requestId}}/accept
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Aceita uma MachineReplenishmentRequest em CREATED (mesmo tipo do equipamento).
+  # Cria MovimentPalletTask DELIVER_TO_MACHINE e passa a requisicao para IN_PROGRESS.
+  # Ajuste requestId no environment (id retornado ao criar solicitacao).
+}

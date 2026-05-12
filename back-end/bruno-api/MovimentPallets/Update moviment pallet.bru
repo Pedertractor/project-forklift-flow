@@ -1,0 +1,26 @@
+meta {
+  name: Update moviment pallet
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/moviment-pallets/{{movimentPalletId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "code": "EMP-001-A"
+  }
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Envie ao menos um campo: code, type ou sectorId (null remove o setor).
+}

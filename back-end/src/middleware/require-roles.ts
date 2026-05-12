@@ -31,6 +31,15 @@ export function requireMachineReplenishmentRequestRoles() {
   );
 }
 
+/** Operador de empilhadeira ou transpaleteira: vinculo ao equipamento e fila de reposicao. */
+export function requireForkliftOrFollowUpOperatorRole() {
+  return requireRoles(
+    RoleUser.FORKLIFT_OPERATOR,
+    RoleUser.FOLLOW_UP_OPERATOR,
+    RoleUser.ADMIN,
+  )
+}
+
 /** Operador de maquina: vinculo a maquina, requisicoes da maquina e pedido de retirada. */
 export function requireOperatorMachineRole() {
   return requireRoles(RoleUser.OPERATOR_MACHINE, RoleUser.ADMIN);
