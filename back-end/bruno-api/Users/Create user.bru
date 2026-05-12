@@ -16,9 +16,10 @@ auth:bearer {
 
 body:json {
   {
-    "card": "2287",
+    "card": "2282",
     "unit": "TRACTOR",
-    "role": "ADMIN"
+    "role": "OPERATOR_MACHINE",
+    "sectorId": "{{sectorId}}"
   }  
   
 }
@@ -28,6 +29,12 @@ vars:pre-request {
 }
 
 docs {
-  # Requer JWT com role ADMIN.
+  # Requer JWT com role ADMIN ou LEADER.
+  #
+  # ADMIN: pode enviar `sectorId` (UUID) de qualquer setor existente, ou omitir / null para usuario sem setor.
+  #
+  # LEADER: deve estar vinculado a um setor. Se `sectorId` for omitido, o novo usuario recebe o mesmo setor do lider.
+  # Se `sectorId` for informado, o setor deve existir e ter o mesmo `typeSector` do setor do lider (permite trocar entre setores do mesmo tipo).
+  #
   # role aceito: OPERATOR_MACHINE | FORKLIFT_OPERATOR | SUPPLY_OPERATOR | LEADER | SUPERVISOR | MANAGER | ADMIN
 }

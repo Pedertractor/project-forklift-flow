@@ -1,0 +1,26 @@
+meta {
+  name: Update sector
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/sectors/{{sectorId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "typeSector": "Dobra"
+  }
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+  # Body: `typeSector` (string nao vazio).
+}

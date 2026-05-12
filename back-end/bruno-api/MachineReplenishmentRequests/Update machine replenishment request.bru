@@ -1,0 +1,29 @@
+meta {
+  name: Update machine replenishment request
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/machine-replenishment-requests/{{requestId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "movementCube": "CUBO-002",
+    "priorityLevel": "HIGH"
+  }
+}
+
+docs {
+  # Requer JWT: roles SUPPLY_OPERATOR, LEADER ou ADMIN.
+  # Envie ao menos um campo: destinationId, movementCube, typeMovimentPallet ou priorityLevel.
+  # typeMovimentPallet (opcional no PATCH): PALLET_TRUCK | FORKLIFT
+  # Bloqueado se status for COMPLETED ou CANCELED (409).
+}

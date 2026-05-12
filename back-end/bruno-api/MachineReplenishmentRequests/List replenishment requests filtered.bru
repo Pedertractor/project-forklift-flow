@@ -1,0 +1,20 @@
+meta {
+  name: List replenishment requests filtered
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/machine-replenishment-requests?status=CREATED&destinationId={{machineId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles SUPPLY_OPERATOR, LEADER ou ADMIN.
+  # Exemplo com status e destinationId; requestedById tambem e suportado.
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Get my operation machine
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/operator-machine/my-machine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: role OPERATOR_MACHINE.
+  # Retorna { machine: null } se nao houver maquina vinculada.
+}

@@ -1,0 +1,18 @@
+meta {
+  name: List sectors
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/sectors
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+}

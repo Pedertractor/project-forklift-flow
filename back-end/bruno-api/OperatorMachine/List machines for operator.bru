@@ -1,0 +1,21 @@
+meta {
+  name: List machines for operator
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/operator-machine/machines
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: role OPERATOR_MACHINE.
+  # So aparecem maquinas do MESMO setor do usuario (User.sectorId = Machine.sectorId).
+  # Sem sectorId no usuario: lista vazia.
+}

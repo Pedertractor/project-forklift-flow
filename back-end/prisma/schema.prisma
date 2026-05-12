@@ -27,10 +27,13 @@ model User {
   password   String
   role       RoleUser
 
+  sector   Sector? @relation(fields: [sectorId], references: [id])
+  sectorId String?
+
   machineReplenishmentRequests MachineReplenishmentRequest[] @relation("UserMachineRequests")
-  forkliftTasks                ForkliftTask[]                @relation("UserForkliftTasks")
+  movimentPalletTasks          MovimentPalletTask[]          @relation("UserMovimentPalletTasks")
   machines                     Machine[]                     @relation("MachineOperator")
-  forklifts                    Forklift[]                    @relation("ForkliftOperator")
+  movimentPallets              MovimentPallet[]              @relation("MovimentPalletOperator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -44,35 +47,36 @@ model MachineReplenishmentRequest {
   requestedBy   User   @relation("UserMachineRequests", fields: [requestedById], references: [id])
   requestedById String
 
-  movementCube   MovementCube @relation(fields: [movementCubeId], references: [id])
-  movementCubeId String
+  movementCube String
 
   destination   Machine @relation(fields: [destinationId], references: [id])
   destinationId String
 
+  typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
+
   status        RequestStatus @default(CREATED)
   priorityLevel PriorityLevel @default(NORMAL)
 
-  forkliftTasks ForkliftTask[]
+  movimentPalletTasks MovimentPalletTask[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
 }
 
-model ForkliftTask {
+model MovimentPalletTask {
   id String @id @default(uuid())
 
   request   MachineReplenishmentRequest @relation(fields: [requestId], references: [id])
   requestId String
 
-  type   ForkliftTaskType
+  type   ForkliftTaskType   @default(DELIVER_TO_MACHINE)
   status ForkliftTaskStatus @default(CREATED)
 
-  assignedForklift   Forklift? @relation(fields: [assignedForkliftId], references: [id])
-  assignedForkliftId String?
+  assignedMovimentPallet   MovimentPallet? @relation(fields: [assignedMovimentPalletId], references: [id])
+  assignedMovimentPalletId String?
 
-  requestedBy   User   @relation("UserForkliftTasks", fields: [requestedById], references: [id])
+  requestedBy   User   @relation("UserMovimentPalletTasks", fields: [requestedById], references: [id])
   requestedById String
 
   createdAt   DateTime  @default(now())
@@ -120,52 +124,46 @@ model CostCenter {
 }
 
 model Sector {
-  id          String @id @default(uuid())
-  sectorIdAPI Int    @unique
-  typeSector  String
+  id         String @id @default(uuid())
+  typeSector String
 
   costCenters CostCenter[]
 
-  forklifts     Forklift[]
-  movementCubes MovementCube[]
-  machines      Machine[]
+  movimentPallets MovimentPallet[]
+  machines        Machine[]
+
+  users User[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Forklift {
-  id   String @id @default(uuid())
-  code String @unique
+model MovimentPallet {
+  id   String             @id @default(uuid())
+  code String             @unique
+  type TypeMovimentPallet
 
-  operator   User?   @relation("ForkliftOperator", fields: [operatorId], references: [id])
+  operator   User?   @relation("MovimentPalletOperator", fields: [operatorId], references: [id])
   operatorId String?
 
   sector   Sector? @relation(fields: [sectorId], references: [id])
   sectorId String?
 
-  forkliftTasks ForkliftTask[]
+  movimentPalletTasks MovimentPalletTask[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model MovementCube {
-  id   String @id @default(uuid())
-  code String @unique
-
-  sector   Sector? @relation(fields: [sectorId], references: [id])
-  sectorId String?
-
-  machineReplenishmentRequests MachineReplenishmentRequest[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum TypeMovimentPallet {
+  PALLET_TRUCK
+  FORKLIFT
 }
 
 enum RoleUser {
   OPERATOR_MACHINE
   FORKLIFT_OPERATOR
+  FOLLOW_UP_OPERATOR
   SUPPLY_OPERATOR
   LEADER
   SUPERVISOR
@@ -176,6 +174,7 @@ enum RoleUser {
 enum RequestStatus {
   CREATED
   IN_PROGRESS
+  ON_MACHINE
   COMPLETED
   CANCELED
 }

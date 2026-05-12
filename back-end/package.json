@@ -9,7 +9,9 @@
     "dev": "tsx --watch ./src/server.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "test": "node --import tsx/esm --test",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:migrate:reset": "prisma migrate reset && prisma db seed",
+    "db:migrate:reset:force": "prisma migrate reset --force && prisma db seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

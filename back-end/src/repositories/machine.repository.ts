@@ -20,7 +20,7 @@ const machineListSelect = {
 
 const machineDetailInclude = {
   typeMachine: { select: { id: true, name: true, urlImage: true } },
-  sector: { select: { id: true, typeSector: true, sectorIdAPI: true } },
+  sector: { select: { id: true, typeSector: true } },
   user: {
     select: {
       id: true,
@@ -46,6 +46,34 @@ export const machineRepository = {
         : {}),
       select: machineListSelect,
       orderBy: { name: 'asc' },
+    })
+  },
+
+  findFirstByOperatorUserId(userId: string) {
+    return prisma.machine.findFirst({
+      where: { userId },
+      select: machineListSelect,
+    })
+  },
+
+  assignOperatorExclusive(machineId: string, operatorUserId: string) {
+    return prisma.$transaction(async (tx) => {
+      await tx.machine.updateMany({
+        where: { userId: operatorUserId },
+        data: { userId: null },
+      })
+      return tx.machine.update({
+        where: { id: machineId },
+        data: { user: { connect: { id: operatorUserId } } },
+        include: machineDetailInclude,
+      })
+    })
+  },
+
+  disconnectOperatorFromAllMachines(operatorUserId: string) {
+    return prisma.machine.updateMany({
+      where: { userId: operatorUserId },
+      data: { userId: null },
     })
   },
 
