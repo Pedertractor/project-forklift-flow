@@ -16,5 +16,6 @@ auth:bearer {
 
 docs {
   # Requer JWT com role ADMIN.
-  # Retorna lista de usuarios.
+  # Retorna { users: [...] }; cada usuario inclui sectorId e sector (objeto ou null):
+  # sector: { id, typeSector, createdAt, updatedAt } quando vinculado a um setor.
 }

@@ -52,7 +52,7 @@ model MachineReplenishmentRequest {
   destination   Machine @relation(fields: [destinationId], references: [id])
   destinationId String
 
-  typeMovimentPallet TypeMovimentPallet
+  typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
 
   status        RequestStatus @default(CREATED)
   priorityLevel PriorityLevel @default(NORMAL)

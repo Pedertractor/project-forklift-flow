@@ -46,6 +46,15 @@ export const userRepository = {
         unit: true,
         employeeId: true,
         isLogged: true,
+        sectorId: true,
+        sector: {
+          select: {
+            id: true,
+            typeSector: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
       },
