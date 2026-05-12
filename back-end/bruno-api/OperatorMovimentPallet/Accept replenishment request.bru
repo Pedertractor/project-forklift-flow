@@ -16,7 +16,8 @@ auth:bearer {
 
 docs {
   # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Operador vinculado a MovimentPallet; requestId no path (variavel {{requestId}} no environment).
   # Aceita uma MachineReplenishmentRequest em CREATED (mesmo tipo do equipamento).
   # Cria MovimentPalletTask DELIVER_TO_MACHINE e passa a requisicao para IN_PROGRESS.
-  # Ajuste requestId no environment (id retornado ao criar solicitacao).
+  # Para rota entrega+retirada na mesma maquina, depois use List trip route suggestions e Accept trip.
 }

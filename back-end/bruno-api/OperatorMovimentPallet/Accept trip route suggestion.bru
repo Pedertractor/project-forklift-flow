@@ -18,5 +18,9 @@ docs {
   # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
   # Operador deve estar vinculado a um MovimentPallet do mesmo tipo e setor da sugestao.
   # Marca MovimentPalletTripSuggestion como ACCEPTED e atribui as duas tasks ao mesmo pallet.
-  # Defina tripSuggestionId (id em tripSuggestion na resposta de List trip route suggestions).
+  # tripSuggestionId: use {{tripSuggestionId}} no environment (campo tripSuggestion.id na listagem).
+  #
+  # Respostas tipicas: 201 { tripSuggestion, deliverTask, pickupTask, ... }; 404 sugestao inexistente;
+  # 409 sugestao nao esta OPEN (ja aceita/expirada); 403 setor/tipo/pallet ou tarefa nao permitida;
+  # 400 sem pallet vinculado ou sem setor no usuario.
 }
