@@ -36,9 +36,12 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
       );
       userRouter.post(
         "/",
-        // {
-        //   preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
-        // },
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireRoles(RoleUser.ADMIN, RoleUser.LEADER),
+          ],
+        },
         postCreateUser,
       );
       userRouter.patch(

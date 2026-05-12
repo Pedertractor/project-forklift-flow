@@ -13,6 +13,13 @@ export const userRepository = {
     return prisma.user.findUnique({ where: { id } })
   },
 
+  findUniqueByIdWithSector(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+      include: { sector: true },
+    })
+  },
+
   findProfileById(id: string) {
     return prisma.user.findUnique({
       where: { id },

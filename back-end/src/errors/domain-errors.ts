@@ -61,6 +61,15 @@ export class SectorNotFoundError extends Error {
   }
 }
 
+export class SectorInUseError extends Error {
+  constructor(
+    message = 'Existem registros vinculados a este setor; nao e possivel excluir.',
+  ) {
+    super(message)
+    this.name = 'SectorInUseError'
+  }
+}
+
 export class AssignMachineUserError extends Error {
   constructor(message = 'Usuario informado nao existe.') {
     super(message)

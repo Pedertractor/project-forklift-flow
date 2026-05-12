@@ -1,0 +1,19 @@
+meta {
+  name: Get sector by id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/sectors/{{sectorId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+  # Path: `sectorId` (UUID). Use variavel `sectorId` do environment.
+}

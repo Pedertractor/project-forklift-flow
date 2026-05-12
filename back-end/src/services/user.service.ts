@@ -7,8 +7,14 @@ import {
   UserPasswordError,
 } from '../errors/domain-errors.js'
 import { infoByCardAndUnit } from '../external-api/employee-verify/index.js'
+import { sectorRepository } from '../repositories/sector.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { hashPassword } from '../shared/password.js'
+
+export type CreateUserActor = {
+  userId: string
+  role: RoleUser
+}
 
 export type CreateUserInput = {
   card: string
@@ -16,6 +22,8 @@ export type CreateUserInput = {
   password?: string
   role: RoleUser
   isLogged?: boolean
+  /** Omitido: ADMIN sem setor; LEADER usa o setor do proprio lider. */
+  sectorId?: string | null
 }
 
 function defaultFirstPasswordForCreate(): string {
@@ -34,7 +42,63 @@ function defaultFirstPasswordForReset(): string {
   return value
 }
 
-export async function createUser(input: CreateUserInput): Promise<UserModel> {
+async function resolveSectorIdForNewUser(
+  input: CreateUserInput,
+  actor: CreateUserActor,
+): Promise<string | null> {
+  if (actor.role === RoleUser.ADMIN) {
+    if (
+      input.sectorId === undefined ||
+      input.sectorId === null ||
+      String(input.sectorId).trim() === ''
+    ) {
+      return null
+    }
+    const sector = await sectorRepository.findUniqueById(
+      String(input.sectorId).trim(),
+    )
+    if (!sector) {
+      throw new CreateUserError('Setor informado nao existe.')
+    }
+    return sector.id
+  }
+
+  if (actor.role === RoleUser.LEADER) {
+    const leader = await userRepository.findUniqueByIdWithSector(actor.userId)
+    if (!leader) {
+      throw new CreateUserError('Usuario autenticado nao encontrado.')
+    }
+    if (!leader.sectorId || !leader.sector) {
+      throw new CreateUserError(
+        'Lider sem setor vinculado nao pode criar usuarios.',
+      )
+    }
+    const requestedRaw = input.sectorId
+    const requestedId =
+      requestedRaw === undefined ||
+      requestedRaw === null ||
+      String(requestedRaw).trim() === ''
+        ? leader.sectorId
+        : String(requestedRaw).trim()
+    const target = await sectorRepository.findUniqueById(requestedId)
+    if (!target) {
+      throw new CreateUserError('Setor informado nao existe.')
+    }
+    if (target.typeSector !== leader.sector.typeSector) {
+      throw new CreateUserError(
+        'Lider so pode vincular usuarios a setores do mesmo tipo que o seu.',
+      )
+    }
+    return target.id
+  }
+
+  throw new CreateUserError('Sem permissao para criar usuario.')
+}
+
+export async function createUser(
+  input: CreateUserInput,
+  actor: CreateUserActor,
+): Promise<UserModel> {
   const card = input.card.trim()
   const employee = await infoByCardAndUnit(input.unit, card)
   if (!employee) {
@@ -57,6 +121,7 @@ export async function createUser(input: CreateUserInput): Promise<UserModel> {
   }
 
   const plainPassword = input.password ?? defaultFirstPasswordForCreate()
+  const sectorId = await resolveSectorIdForNewUser(input, actor)
 
   return userRepository.create({
     name: employee.name,
@@ -66,6 +131,9 @@ export async function createUser(input: CreateUserInput): Promise<UserModel> {
     card,
     unit: input.unit,
     employeeId: employee.id,
+    ...(sectorId !== null
+      ? { sector: { connect: { id: sectorId } } }
+      : {}),
   })
 }
 

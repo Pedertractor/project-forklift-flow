@@ -15,7 +15,26 @@ import {
 import type { AppJwtPayload } from '../types/auth.types.js'
 import { isRole, isUnit } from '../utils/unit-role.js'
 
+function parseSectorIdFromBody(body: unknown): string | null | undefined {
+  if (body === null || typeof body !== 'object') {
+    return undefined
+  }
+  const raw = (body as { sectorId?: unknown }).sectorId
+  if (raw === undefined) {
+    return undefined
+  }
+  if (raw === null) {
+    return null
+  }
+  if (typeof raw !== 'string') {
+    return undefined
+  }
+  const t = raw.trim()
+  return t === '' ? undefined : t
+}
+
 export const postCreateUser: RouteHandlerMethod = async (request, reply) => {
+  const jwtUser = request.user as AppJwtPayload
   const { card, unit: unitRaw, role: roleRaw } = (request.body ?? {}) as {
     card?: string
     unit?: string
@@ -33,13 +52,19 @@ export const postCreateUser: RouteHandlerMethod = async (request, reply) => {
     return reply.status(400).send({ error: 'Informe um role valido para criacao.' })
   }
 
+  const sectorId = parseSectorIdFromBody(request.body)
+
   try {
-    const user = await createUser({
-      card,
-      unit: unitRaw,
-      role: roleRaw,
-      isLogged: false,
-    })
+    const user = await createUser(
+      {
+        card,
+        unit: unitRaw,
+        role: roleRaw,
+        isLogged: false,
+        ...(sectorId !== undefined ? { sectorId } : {}),
+      },
+      { userId: jwtUser.sub, role: jwtUser.role },
+    )
     return {
       id: user.id,
       name: user.name,
@@ -47,6 +72,7 @@ export const postCreateUser: RouteHandlerMethod = async (request, reply) => {
       card: user.card,
       unit: user.unit,
       employeeId: user.employeeId,
+      sectorId: user.sectorId ?? null,
     }
   } catch (error) {
     if (error instanceof CreateUserError) {
