@@ -11,43 +11,40 @@ const openPickupStatuses: ForkliftTaskStatus[] = [
   ForkliftTaskStatus.IN_PROGRESS,
 ]
 
-const forkliftTaskPickupSelect = {
+const movimentPalletTaskPickupSelect = {
   id: true,
   requestId: true,
   type: true,
   status: true,
-  assignedForkliftId: true,
+  assignedMovimentPalletId: true,
   requestedById: true,
   createdAt: true,
   updatedAt: true,
   completedAt: true,
 } as const
 
-export const forkliftTaskRepository = {
+export const movimentPalletTaskRepository = {
   findOpenPickupForRequest(requestId: string) {
-    return prisma.forkliftTask.findFirst({
+    return prisma.movimentPalletTask.findFirst({
       where: {
         requestId,
         type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
         status: { in: openPickupStatuses },
       },
-      select: forkliftTaskPickupSelect,
+      select: movimentPalletTaskPickupSelect,
     })
   },
 
-  createPickupForRequest(
-    requestId: string,
-    requestedById: string,
-  ) {
-    const data: Prisma.ForkliftTaskCreateInput = {
+  createPickupForRequest(requestId: string, requestedById: string) {
+    const data: Prisma.MovimentPalletTaskCreateInput = {
       type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
       status: ForkliftTaskStatus.CREATED,
       request: { connect: { id: requestId } },
       requestedBy: { connect: { id: requestedById } },
     }
-    return prisma.forkliftTask.create({
+    return prisma.movimentPalletTask.create({
       data,
-      select: forkliftTaskPickupSelect,
+      select: movimentPalletTaskPickupSelect,
     })
   },
 }

@@ -23,7 +23,7 @@ const requestListInclude = {
       sector: { select: { id: true, typeSector: true } },
     },
   },
-  _count: { select: { forkliftTasks: true } },
+  _count: { select: { movimentPalletTasks: true } },
 } as const
 
 export const machineReplenishmentRequestRepository = {

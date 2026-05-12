@@ -1,5 +1,5 @@
 import type { RouteHandlerMethod } from 'fastify'
-import { PriorityLevel, RequestStatus } from '../generated/prisma/enums.js'
+import { PriorityLevel, RequestStatus, TypeMovimentPallet } from '../generated/prisma/enums.js'
 import {
   MachineNotFoundError,
   MachineReplenishmentRequestDeleteBlockedError,
@@ -14,6 +14,10 @@ import {
   updateMachineReplenishmentRequest,
 } from '../services/machine-replenishment-request.service.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
+
+function isTypeMovimentPallet(value: string): value is TypeMovimentPallet {
+  return (Object.values(TypeMovimentPallet) as string[]).includes(value)
+}
 
 function isPriorityLevel(value: string): value is PriorityLevel {
   return (Object.values(PriorityLevel) as string[]).includes(value)
@@ -42,6 +46,7 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
   const body = (request.body ?? {}) as {
     destinationId?: string
     movementCube?: string
+    typeMovimentPallet?: string
     priorityLevel?: string
   }
 
@@ -59,6 +64,21 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
       .status(400)
       .send({ error: 'Informe movementCube (codigo do cubo).' })
   }
+  if (
+    typeof body.typeMovimentPallet !== 'string' ||
+    body.typeMovimentPallet.trim() === ''
+  ) {
+    return reply
+      .status(400)
+      .send({ error: 'Informe typeMovimentPallet (PALLET_TRUCK ou FORKLIFT).' })
+  }
+  const typeMovimentPalletRaw = body.typeMovimentPallet.trim()
+  if (!isTypeMovimentPallet(typeMovimentPalletRaw)) {
+    return reply.status(400).send({
+      error: 'typeMovimentPallet invalido. Use PALLET_TRUCK ou FORKLIFT.',
+    })
+  }
+  const typeMovimentPallet = typeMovimentPalletRaw
 
   let priority: PriorityLevel | undefined
   if (body.priorityLevel !== undefined) {
@@ -75,6 +95,7 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
       requestedById: user.sub,
       destinationId: body.destinationId.trim(),
       movementCube: body.movementCube,
+      typeMovimentPallet,
       ...(priority !== undefined ? { priorityLevel: priority } : {}),
     })
     return reply.status(201).send(row)
@@ -143,6 +164,7 @@ export const patchUpdateMachineReplenishmentRequest: RouteHandlerMethod =
     const body = (request.body ?? {}) as {
       destinationId?: string
       movementCube?: string
+      typeMovimentPallet?: string
       priorityLevel?: string
     }
 
@@ -153,6 +175,7 @@ export const patchUpdateMachineReplenishmentRequest: RouteHandlerMethod =
     const patch: {
       destinationId?: string
       movementCube?: string
+      typeMovimentPallet?: TypeMovimentPallet
       priorityLevel?: PriorityLevel
     } = {}
 
@@ -178,11 +201,28 @@ export const patchUpdateMachineReplenishmentRequest: RouteHandlerMethod =
       }
       patch.priorityLevel = body.priorityLevel
     }
+    if (body.typeMovimentPallet !== undefined) {
+      if (typeof body.typeMovimentPallet !== 'string') {
+        return reply.status(400).send({ error: 'typeMovimentPallet invalido.' })
+      }
+      const raw = body.typeMovimentPallet.trim()
+      if (raw === '') {
+        return reply
+          .status(400)
+          .send({ error: 'typeMovimentPallet nao pode ser vazio.' })
+      }
+      if (!isTypeMovimentPallet(raw)) {
+        return reply.status(400).send({
+          error: 'typeMovimentPallet invalido. Use PALLET_TRUCK ou FORKLIFT.',
+        })
+      }
+      patch.typeMovimentPallet = raw
+    }
 
     if (Object.keys(patch).length === 0) {
       return reply.status(400).send({
         error:
-          'Envie ao menos um campo: destinationId, movementCube ou priorityLevel.',
+          'Envie ao menos um campo: destinationId, movementCube, typeMovimentPallet ou priorityLevel.',
       })
     }
 

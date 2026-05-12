@@ -8,7 +8,7 @@ import {
   ReplenishmentRequestNotForOperatorMachineError,
   ReplenishmentRequestNotOnMachineStatusError,
 } from '../errors/domain-errors.js'
-import { forkliftTaskRepository } from '../repositories/forklift-task.repository.js'
+import { movimentPalletTaskRepository } from '../repositories/moviment-pallet-task.repository.js'
 import { machineReplenishmentRequestRepository } from '../repositories/machine-replenishment-request.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
@@ -78,14 +78,14 @@ export async function requestPalletPickupFromMachine(
     throw new ReplenishmentRequestNotOnMachineStatusError()
   }
 
-  const openPickup = await forkliftTaskRepository.findOpenPickupForRequest(
+  const openPickup = await movimentPalletTaskRepository.findOpenPickupForRequest(
     requestId,
   )
   if (openPickup) {
     throw new PickupTaskAlreadyOpenError()
   }
 
-  const task = await forkliftTaskRepository.createPickupForRequest(
+  const task = await movimentPalletTaskRepository.createPickupForRequest(
     requestId,
     operatorUserId,
   )

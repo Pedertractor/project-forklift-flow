@@ -31,7 +31,7 @@ model User {
   sectorId String?
 
   machineReplenishmentRequests MachineReplenishmentRequest[] @relation("UserMachineRequests")
-  movimentPalletTasks MovimentPalletTask[] @relation("UserMovimentPalletTasks")
+  movimentPalletTasks          MovimentPalletTask[]          @relation("UserMovimentPalletTasks")
   machines                     Machine[]                     @relation("MachineOperator")
   movimentPallets              MovimentPallet[]              @relation("MovimentPalletOperator")
 
@@ -52,12 +52,12 @@ model MachineReplenishmentRequest {
   destination   Machine @relation(fields: [destinationId], references: [id])
   destinationId String
 
+  typeMovimentPallet TypeMovimentPallet
+
   status        RequestStatus @default(CREATED)
   priorityLevel PriorityLevel @default(NORMAL)
 
   movimentPalletTasks MovimentPalletTask[]
-
-  typeMovimentPallet TypeMovimentPallet
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -151,8 +151,8 @@ model MovimentPallet {
 
   movimentPalletTasks MovimentPalletTask[]
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum TypeMovimentPallet {

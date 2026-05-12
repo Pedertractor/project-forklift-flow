@@ -2,6 +2,7 @@ import type { Prisma } from '../generated/prisma/client.js'
 import {
   PriorityLevel,
   RequestStatus,
+  TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 import {
   MachineNotFoundError,
@@ -21,12 +22,14 @@ export type CreateMachineReplenishmentRequestInput = {
   requestedById: string
   destinationId: string
   movementCube: string
+  typeMovimentPallet: TypeMovimentPallet
   priorityLevel?: PriorityLevel
 }
 
 export type UpdateMachineReplenishmentRequestInput = {
   destinationId?: string
   movementCube?: string
+  typeMovimentPallet?: TypeMovimentPallet
   priorityLevel?: PriorityLevel
 }
 
@@ -58,6 +61,7 @@ export async function createMachineReplenishmentRequest(
 
   const data: Prisma.MachineReplenishmentRequestCreateInput = {
     movementCube: input.movementCube.trim(),
+    typeMovimentPallet: input.typeMovimentPallet,
     priorityLevel: input.priorityLevel ?? PriorityLevel.NORMAL,
     requestedBy: { connect: { id: input.requestedById } },
     destination: { connect: { id: input.destinationId } },
@@ -96,6 +100,9 @@ export async function updateMachineReplenishmentRequest(
   if (input.priorityLevel !== undefined) {
     data.priorityLevel = input.priorityLevel
   }
+  if (input.typeMovimentPallet !== undefined) {
+    data.typeMovimentPallet = input.typeMovimentPallet
+  }
 
   if (Object.keys(data).length === 0) {
     return current
@@ -109,7 +116,7 @@ export async function deleteMachineReplenishmentRequest(id: string) {
   if (current.status !== RequestStatus.CREATED) {
     throw new MachineReplenishmentRequestDeleteBlockedError()
   }
-  if (current._count.forkliftTasks > 0) {
+  if (current._count.movimentPalletTasks > 0) {
     throw new MachineReplenishmentRequestDeleteBlockedError()
   }
   await machineReplenishmentRequestRepository.delete(id)
