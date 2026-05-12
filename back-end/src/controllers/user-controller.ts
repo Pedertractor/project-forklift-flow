@@ -1,10 +1,16 @@
 import type { RouteHandlerMethod } from 'fastify'
-import { CreateUserError, UserPasswordError } from '../errors/domain-errors.js'
+import {
+  CreateUserError,
+  UserNotFoundError,
+  UserPasswordError,
+} from '../errors/domain-errors.js'
 import { infoByCardAndUnit } from '../external-api/employee-verify/index.js'
 import {
   createUser,
+  listRoleUserEnumValues,
   listUsers,
   resetUserPasswordToDefault,
+  updateUserRole,
 } from '../services/user.service.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
 import { isRole, isUnit } from '../utils/unit-role.js'
@@ -77,6 +83,37 @@ export const getEmployeeInfo: RouteHandlerMethod = async (request, reply) => {
       .send({ error: 'Colaborador nao encontrado na API de verificacao.' })
   }
   return reply.send(employee)
+}
+
+export const getListRoles: RouteHandlerMethod = async (_request, reply) => {
+  return reply.send({ roles: listRoleUserEnumValues() })
+}
+
+export const patchUserRole: RouteHandlerMethod = async (request, reply) => {
+  const { userId } = request.params as { userId?: string }
+  const { role: roleRaw } = (request.body ?? {}) as { role?: string }
+  if (!userId) {
+    return reply.status(400).send({ error: 'userId invalido.' })
+  }
+  if (!isRole(roleRaw)) {
+    return reply.status(400).send({ error: 'Informe um role valido.' })
+  }
+  try {
+    const user = await updateUserRole(userId, roleRaw)
+    return reply.send({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      card: user.card,
+      unit: user.unit,
+      employeeId: user.employeeId,
+    })
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    throw error
+  }
 }
 
 export const postResetUserPassword: RouteHandlerMethod = async (

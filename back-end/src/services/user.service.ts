@@ -1,7 +1,11 @@
 import { RoleUser, type Unit } from '../generated/prisma/enums.js'
 import type { UserModel } from '../generated/prisma/models/User.js'
 import { env } from '../env/index.js'
-import { CreateUserError, UserPasswordError } from '../errors/domain-errors.js'
+import {
+  CreateUserError,
+  UserNotFoundError,
+  UserPasswordError,
+} from '../errors/domain-errors.js'
 import { infoByCardAndUnit } from '../external-api/employee-verify/index.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { hashPassword } from '../shared/password.js'
@@ -67,6 +71,21 @@ export async function createUser(input: CreateUserInput): Promise<UserModel> {
 
 export async function listUsers(_viewerRole: RoleUser) {
   return userRepository.findManyForList()
+}
+
+export function listRoleUserEnumValues(): RoleUser[] {
+  return Object.values(RoleUser)
+}
+
+export async function updateUserRole(
+  targetUserId: string,
+  role: RoleUser,
+): Promise<UserModel> {
+  const user = await userRepository.findUniqueById(targetUserId)
+  if (!user) {
+    throw new UserNotFoundError()
+  }
+  return userRepository.update(targetUserId, { role })
 }
 
 export async function resetUserPasswordToDefault(targetUserId: string) {

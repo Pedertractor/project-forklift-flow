@@ -19,6 +19,13 @@ export class CreateUserError extends Error {
   }
 }
 
+export class UserNotFoundError extends Error {
+  constructor(message = 'Usuario nao encontrado.') {
+    super(message)
+    this.name = 'UserNotFoundError'
+  }
+}
+
 export class TypeMachineNotFoundError extends Error {
   constructor(message = 'Tipo de maquina nao encontrado.') {
     super(message)

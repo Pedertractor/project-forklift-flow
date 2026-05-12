@@ -2,7 +2,9 @@ import type { FastifyInstance } from "fastify";
 import { RoleUser } from "../generated/prisma/enums.js";
 import {
   getEmployeeInfo,
+  getListRoles,
   getListUsers,
+  patchUserRole,
   postCreateUser,
   postResetUserPassword,
 } from "../controllers/user-controller.js";
@@ -25,12 +27,26 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
         },
         getListUsers,
       );
+      userRouter.get(
+        "/roles",
+        {
+          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+        },
+        getListRoles,
+      );
       userRouter.post(
         "/",
         // {
         //   preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
         // },
         postCreateUser,
+      );
+      userRouter.patch(
+        "/:userId/role",
+        {
+          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+        },
+        patchUserRole,
       );
       userRouter.post(
         "/:userId/reset-password",
