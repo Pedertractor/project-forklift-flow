@@ -1,0 +1,27 @@
+meta {
+  name: Update user role
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/users/{{userId}}/role
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "role": "OPERATOR_MACHINE"
+  }
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+  # Ajuste vars.userId no environment (ou use o valor padrao de env.bru).
+  # role: OPERATOR_MACHINE | FORKLIFT_OPERATOR | SUPPLY_OPERATOR | LEADER | SUPERVISOR | MANAGER | ADMIN
+}

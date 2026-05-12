@@ -1,0 +1,22 @@
+meta {
+  name: OperatorMovimentPallet
+  seq: 9
+}
+
+docs {
+  # Prefixo da API: {{baseUrl}}/operator-moviment-pallet
+  # Roles: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN (JWT bearer {{token}}).
+  #
+  # Endpoints (ordem sugerida de teste):
+  # 1. List moviment pallets for operator — GET .../moviment-pallets
+  # 2. Get my moviment pallet — GET .../my-moviment-pallet
+  # 3. Bind my moviment pallet — POST .../my-moviment-pallet (body movimentPalletId)
+  # 4. List open replenishment requests — GET .../replenishment-requests
+  # 5. Accept replenishment request — POST .../replenishment-requests/{{requestId}}/accept
+  # 6. List trip route suggestions — GET .../trip-suggestions (pares entrega+retirada persistidos)
+  # 7. Accept trip route suggestion — POST .../trip-suggestions/{{tripSuggestionId}}/accept
+  # 8. List my moviment pallet tasks — GET .../my-tasks
+  # 9. Unbind my moviment pallet — DELETE .../my-moviment-pallet
+  #
+  # Variaveis no environment: movimentPalletId, requestId, tripSuggestionId (preencha apos listagens).
+}

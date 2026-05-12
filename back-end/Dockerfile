@@ -4,9 +4,11 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
+RUN npm set strict-ssl false
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 RUN npm install
 
-ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
+ENV DATABASE_URL=postgresql://docker:docker@127.0.0.1:5432/forklift_db
 
 COPY . .
 

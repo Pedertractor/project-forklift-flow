@@ -1,0 +1,22 @@
+meta {
+  name: Request pallet pickup ON_MACHINE
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/operator-machine/replenishment-requests/{{requestId}}/pickup
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: role OPERATOR_MACHINE.
+  # So permitido se a requisicao estiver em status ON_MACHINE e for da maquina do operador.
+  # Cria ForkliftTask tipo PICKUP_TO_EXPEDITION (retirada do pallet).
+  # 409 se ja existir pickup em aberto (CREATED/ASSIGNED/IN_PROGRESS).
+}

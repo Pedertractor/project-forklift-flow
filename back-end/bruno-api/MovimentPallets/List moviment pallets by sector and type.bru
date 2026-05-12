@@ -1,0 +1,20 @@
+meta {
+  name: List moviment pallets by sector and type
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/moviment-pallets?sectorId={{sectorId}}&type=FORKLIFT
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Exemplo com filtro por setor e tipo (ajuste type se necessario).
+}

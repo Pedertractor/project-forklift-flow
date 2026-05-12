@@ -1,0 +1,26 @@
+meta {
+  name: Create sector
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/sectors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "typeSector": "Dobra"
+  }
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+  # Campo obrigatorio: `typeSector` (string nao vazio).
+}

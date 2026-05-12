@@ -1,0 +1,21 @@
+meta {
+  name: List replenishment requests for my machine
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/operator-machine/replenishment-requests
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: role OPERATOR_MACHINE.
+  # Apenas requisicoes cuja maquina de destino (destination) esta vinculada a este operador (userId na maquina).
+  # Query opcional: ?status=ON_MACHINE (ou CREATED, IN_PROGRESS, etc.).
+}

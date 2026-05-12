@@ -1,0 +1,27 @@
+meta {
+  name: Bind my moviment pallet
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/operator-moviment-pallet/my-moviment-pallet
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "movimentPalletId": "{{movimentPalletId}}"
+  }
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # movimentPalletId: mesmo setor do usuario; tipo compativel com o perfil.
+  # Desvincula o usuario de outros equipamentos de movimentacao.
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Delete machine replenishment request
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/machine-replenishment-requests/{{requestId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles SUPPLY_OPERATOR, LEADER ou ADMIN.
+  # So permitido com status CREATED e sem tarefas de empilhadeira vinculadas (409 caso contrario).
+}

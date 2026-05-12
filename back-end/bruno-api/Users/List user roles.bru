@@ -1,0 +1,20 @@
+meta {
+  name: List user roles
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/users/roles
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+  # Retorna os valores do enum RoleUser (ex.: OPERATOR_MACHINE, ADMIN).
+}

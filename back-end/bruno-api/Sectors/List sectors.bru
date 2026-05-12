@@ -1,7 +1,7 @@
 meta {
   name: List sectors
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
@@ -15,6 +15,6 @@ auth:bearer {
 }
 
 docs {
-  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN (mesmo escopo de máquinas).
-  # Retorna { sectors: [{ id, sectorIdAPI, typeSector }] }.
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN (mesmo escopo de maquinas).
+  # Retorna { sectors: [{ id, sectorIdAPI, typeSector, createdAt, updatedAt }] }.
 }

@@ -1,0 +1,28 @@
+meta {
+  name: Bind my operation machine
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/operator-machine/my-machine
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "machineId": "{{machineId}}"
+  }
+}
+
+docs {
+  # Requer JWT: role OPERATOR_MACHINE.
+  # machineId deve ser de uma maquina do MESMO setor do usuario; senao 403.
+  # Sem sectorId no usuario: 400.
+  # Se outro operador estava na mesma maquina, e substituido.
+}
