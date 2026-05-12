@@ -29,6 +29,9 @@ DROP TABLE "Forklift";
 -- DropTable
 DROP TABLE "ForkliftTask";
 
+-- CreateEnum (must exist before MovimentPallet; later migration only adds column on MachineReplenishmentRequest)
+CREATE TYPE "TypeMovimentPallet" AS ENUM ('PALLET_TRUCK', 'FORKLIFT');
+
 -- CreateTable
 CREATE TABLE "MovimentPalletTask" (
     "id" TEXT NOT NULL,
