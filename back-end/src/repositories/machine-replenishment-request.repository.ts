@@ -1,5 +1,10 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type { RequestStatus } from '../generated/prisma/enums.js'
+import {
+  ForkliftTaskStatus,
+  ForkliftTaskType,
+  RequestStatus,
+  TypeMovimentPallet,
+} from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
 
 const requestListInclude = {
@@ -77,6 +82,30 @@ export const machineReplenishmentRequestRepository = {
       where,
       include: requestListInclude,
       orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  /** Fila para operador de empilhadeira / transpaleteira aceitar entrega. */
+  findManyOpenPoolForMovimentType(typeMovimentPallet: TypeMovimentPallet) {
+    return prisma.machineReplenishmentRequest.findMany({
+      where: {
+        typeMovimentPallet,
+        status: RequestStatus.CREATED,
+        movimentPalletTasks: {
+          none: {
+            type: ForkliftTaskType.DELIVER_TO_MACHINE,
+            status: {
+              in: [
+                ForkliftTaskStatus.CREATED,
+                ForkliftTaskStatus.ASSIGNED,
+                ForkliftTaskStatus.IN_PROGRESS,
+              ],
+            },
+          },
+        },
+      },
+      include: requestListInclude,
+      orderBy: [{ priorityLevel: 'asc' }, { createdAt: 'asc' }],
     })
   },
 

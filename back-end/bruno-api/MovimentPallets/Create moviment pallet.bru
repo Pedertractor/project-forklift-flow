@@ -1,0 +1,31 @@
+meta {
+  name: Create moviment pallet
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/moviment-pallets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "code": "EMP-001",
+    "type": "FORKLIFT",
+    "sectorId": "{{sectorId}}"
+  }
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Campos obrigatorios: code, type.
+  # type: FORKLIFT (empilhadeira) | PALLET_TRUCK (transpaleteira).
+  # sectorId: opcional (UUID); recomendado para o fluxo do operador no mesmo setor.
+  # Guarde o id retornado em movimentPalletId no environment.
+}

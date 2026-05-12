@@ -1,0 +1,20 @@
+meta {
+  name: List moviment pallets
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/moviment-pallets
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Query opcional: ?sectorId=<uuid>&type=FORKLIFT|type=PALLET_TRUCK
+}

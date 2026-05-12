@@ -1,0 +1,20 @@
+meta {
+  name: List my moviment pallet tasks
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/my-tasks
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Atividades (MovimentPalletTask) atribuidas ao equipamento vinculado ao usuario.
+}

@@ -34,6 +34,7 @@ model User {
   movimentPalletTasks          MovimentPalletTask[]          @relation("UserMovimentPalletTasks")
   machines                     Machine[]                     @relation("MachineOperator")
   movimentPallets              MovimentPallet[]              @relation("MovimentPalletOperator")
+  tripSuggestionsAccepted      MovimentPalletTripSuggestion[] @relation("TripSuggestionAcceptedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,9 +80,38 @@ model MovimentPalletTask {
   requestedBy   User   @relation("UserMovimentPalletTasks", fields: [requestedById], references: [id])
   requestedById String
 
+  tripSuggestionAsDeliver MovimentPalletTripSuggestion? @relation("TripSuggestionDeliverTask")
+  tripSuggestionAsPickup MovimentPalletTripSuggestion? @relation("TripSuggestionPickupTask")
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
+}
+
+model MovimentPalletTripSuggestion {
+  id     String @id @default(uuid())
+  status MovimentPalletTripSuggestionStatus @default(OPEN)
+
+  deliverTask   MovimentPalletTask @relation("TripSuggestionDeliverTask", fields: [deliverTaskId], references: [id], onDelete: Cascade)
+  deliverTaskId String             @unique
+  pickupTask   MovimentPalletTask @relation("TripSuggestionPickupTask", fields: [pickupTaskId], references: [id], onDelete: Cascade)
+  pickupTaskId String             @unique
+
+  machine   Machine @relation(fields: [machineId], references: [id])
+  machineId String
+
+  typeMovimentPallet TypeMovimentPallet
+
+  acceptedBy   User?   @relation("TripSuggestionAcceptedBy", fields: [acceptedByUserId], references: [id])
+  acceptedByUserId String?
+
+  assignedMovimentPallet   MovimentPallet? @relation("TripSuggestionAssignedPallet", fields: [assignedMovimentPalletId], references: [id])
+  assignedMovimentPalletId String?
+
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Machine {
@@ -99,6 +129,8 @@ model Machine {
   userId String?
 
   machineReplenishmentRequests MachineReplenishmentRequest[]
+
+  movimentPalletTripSuggestions MovimentPalletTripSuggestion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -151,6 +183,8 @@ model MovimentPallet {
 
   movimentPalletTasks MovimentPalletTask[]
 
+  tripSuggestions MovimentPalletTripSuggestion[] @relation("TripSuggestionAssignedPallet")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -191,6 +225,14 @@ enum ForkliftTaskType {
   DELIVER_TO_MACHINE
   ON_MACHINE
   PICKUP_TO_EXPEDITION
+}
+
+enum MovimentPalletTripSuggestionStatus {
+  OPEN
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+  EXPIRED
 }
 
 enum PriorityLevel {

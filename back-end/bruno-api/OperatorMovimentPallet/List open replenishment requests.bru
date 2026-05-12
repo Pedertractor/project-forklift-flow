@@ -1,0 +1,21 @@
+meta {
+  name: List open replenishment requests
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/replenishment-requests
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Precisa estar vinculado a um MovimentPallet (POST my-moviment-pallet).
+  # Lista apenas solicitacoes CREATED do mesmo typeMovimentPallet do equipamento.
+}
