@@ -197,6 +197,16 @@ export class OperatorWithoutBoundMovimentPalletError extends Error {
   }
 }
 
+/** Equipamento ja tem tarefa em aberto; nao aceitar outra ate concluir ou cancelar. */
+export class MovimentOperatorHasIncompleteTasksError extends Error {
+  constructor(
+    message = 'Este equipamento ja possui atividade em aberto. Conclua ou cancele antes de aceitar outra.',
+  ) {
+    super(message)
+    this.name = 'MovimentOperatorHasIncompleteTasksError'
+  }
+}
+
 export class ReplenishmentRequestTypeMismatchError extends Error {
   constructor(
     message = 'Esta solicitacao nao e do tipo do equipamento que voce esta operando.',
@@ -237,5 +247,39 @@ export class TripRouteSuggestionAcceptForbiddenError extends Error {
   ) {
     super(message)
     this.name = 'TripRouteSuggestionAcceptForbiddenError'
+  }
+}
+
+export class MovimentPalletTaskNotFoundError extends Error {
+  constructor(message = 'Tarefa nao encontrada.') {
+    super(message)
+    this.name = 'MovimentPalletTaskNotFoundError'
+  }
+}
+
+export class MovimentPalletDeliverTaskCompletionError extends Error {
+  constructor(
+    message = 'Nao e possivel concluir esta entrega: verifique tipo da tarefa, equipamento vinculado e status da solicitacao.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletDeliverTaskCompletionError'
+  }
+}
+
+export class MovimentPalletPickupTaskCompletionError extends Error {
+  constructor(
+    message = 'Nao e possivel concluir esta retirada: verifique tipo da tarefa, equipamento vinculado e status da solicitacao.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletPickupTaskCompletionError'
+  }
+}
+
+export class MovimentPalletPickupTaskAcceptError extends Error {
+  constructor(
+    message = 'Nao e possivel aceitar esta retirada: verifique tipo da tarefa, setor, equipamento vinculado e status da solicitacao.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletPickupTaskAcceptError'
   }
 }

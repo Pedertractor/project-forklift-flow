@@ -12,7 +12,11 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: databaseUrl }),
 });
 
-const seedPassword = hashPassword('TRACTOR');
+const firstPlain = process.env.FIRST_PASSWORD?.trim()
+if (!firstPlain) {
+  throw new Error('Seed: FIRST_PASSWORD nao esta definido no ambiente.')
+}
+const seedPassword = hashPassword(firstPlain)
 
 async function upsertUserFromEmployeeApi(input: {
   card: string;
@@ -54,10 +58,6 @@ async function upsertUserFromEmployeeApi(input: {
 }
 
 async function main() {
-  await prisma.healthcheck.create({
-    data: {},
-  });
-
   await upsertUserFromEmployeeApi({
     card: '2287',
     unit: 'TRACTOR',

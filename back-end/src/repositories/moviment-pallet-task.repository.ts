@@ -50,6 +50,13 @@ const openDeliverStatuses: ForkliftTaskStatus[] = [
   ForkliftTaskStatus.IN_PROGRESS,
 ]
 
+/** Tarefas ainda nao finalizadas no equipamento (bloqueiam novo aceite). */
+const incompleteAssignedTaskStatuses: ForkliftTaskStatus[] = [
+  ForkliftTaskStatus.CREATED,
+  ForkliftTaskStatus.ASSIGNED,
+  ForkliftTaskStatus.IN_PROGRESS,
+]
+
 const movimentPalletTaskPickupSelect = {
   id: true,
   requestId: true,
@@ -75,6 +82,22 @@ export const movimentPalletTaskRepository = {
       where: { assignedMovimentPalletId: palletId },
       include: taskWithRequestInclude,
       orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  /** Quantidade de tarefas nao concluidas/canceladas ja vinculadas ao equipamento. */
+  countIncompleteTasksAssignedToPallet(
+    palletId: string,
+    excludeTaskIds?: string[],
+  ) {
+    return prisma.movimentPalletTask.count({
+      where: {
+        assignedMovimentPalletId: palletId,
+        status: { in: incompleteAssignedTaskStatuses },
+        ...(excludeTaskIds && excludeTaskIds.length > 0
+          ? { id: { notIn: excludeTaskIds } }
+          : {}),
+      },
     })
   },
 

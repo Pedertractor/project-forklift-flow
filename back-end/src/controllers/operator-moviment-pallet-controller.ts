@@ -1,9 +1,14 @@
 import type { RouteHandlerMethod } from 'fastify'
 import {
   MachineReplenishmentRequestNotFoundError,
+  MovimentPalletDeliverTaskCompletionError,
   MovimentPalletNotFoundError,
   MovimentPalletNotInOperatorSectorError,
+  MovimentPalletPickupTaskAcceptError,
+  MovimentPalletPickupTaskCompletionError,
+  MovimentPalletTaskNotFoundError,
   MovimentPalletTypeNotAllowedForRoleError,
+  MovimentOperatorHasIncompleteTasksError,
   OperatorWithoutBoundMovimentPalletError,
   OperatorWithoutSectorError,
   ReplenishmentRequestAlreadyAssignedError,
@@ -13,10 +18,14 @@ import {
   TripRouteSuggestionNotOpenError,
 } from '../errors/domain-errors.js'
 import {
+  acceptOpenPickupTaskForMovimentOperator,
   acceptReplenishmentRequestAsMovimentOperator,
   acceptTripRouteSuggestion,
   bindOperatorToMovimentPallet,
+  completeDeliverTaskToMachine,
+  completePickupTaskToExpedition,
   getOperatorCurrentMovimentPallet,
+  getOperatorMovimentPalletActiveFlow,
   listMovimentPalletsForOperatorPicker,
   listMyMovimentPalletTasks,
   listOpenReplenishmentRequestsForMyMovimentType,
@@ -92,10 +101,10 @@ export const getListMovimentPalletsForOperator: RouteHandlerMethod = async (
 export const getListOpenReplenishmentRequestsForMovimentOperator: RouteHandlerMethod =
   async (request, reply) => {
     const user = request.user as AppJwtPayload
-    const requests = await listOpenReplenishmentRequestsForMyMovimentType(
+    const result = await listOpenReplenishmentRequestsForMyMovimentType(
       user.sub,
     )
-    return reply.send({ requests })
+    return reply.send(result)
   }
 
 export const getListMyMovimentPalletTasks: RouteHandlerMethod = async (
@@ -106,6 +115,13 @@ export const getListMyMovimentPalletTasks: RouteHandlerMethod = async (
   const tasks = await listMyMovimentPalletTasks(user.sub)
   return reply.send({ tasks })
 }
+
+export const getOperatorMovimentPalletActiveFlowHandler: RouteHandlerMethod =
+  async (request, reply) => {
+    const user = request.user as AppJwtPayload
+    const payload = await getOperatorMovimentPalletActiveFlow(user.sub)
+    return reply.send(payload)
+  }
 
 export const getListTripRouteSuggestions: RouteHandlerMethod = async (
   request,
@@ -154,6 +170,51 @@ export const postAcceptTripRouteSuggestion: RouteHandlerMethod = async (
     if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
       return reply.status(403).send({ error: error.message })
     }
+    if (error instanceof MovimentOperatorHasIncompleteTasksError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const postAcceptOpenPickupTask: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const { taskId } = request.params as { taskId?: string }
+  if (!taskId || taskId.trim() === '') {
+    return reply.status(400).send({ error: 'taskId invalido.' })
+  }
+  try {
+    const result = await acceptOpenPickupTaskForMovimentOperator(
+      user.sub,
+      user.role,
+      taskId.trim(),
+    )
+    return reply.status(201).send(result)
+  } catch (error) {
+    if (error instanceof MovimentPalletTaskNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MovimentPalletPickupTaskAcceptError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof OperatorWithoutBoundMovimentPalletError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof OperatorWithoutSectorError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ReplenishmentRequestTypeMismatchError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    if (error instanceof MovimentOperatorHasIncompleteTasksError) {
+      return reply.status(409).send({ error: error.message })
+    }
     throw error
   }
 }
@@ -188,6 +249,81 @@ export const postAcceptReplenishmentRequestForMovimentOperator: RouteHandlerMeth
       if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
         return reply.status(403).send({ error: error.message })
       }
+      if (error instanceof MovimentOperatorHasIncompleteTasksError) {
+        return reply.status(409).send({ error: error.message })
+      }
       throw error
     }
   }
+
+export const postCompleteDeliverTask: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const { taskId } = request.params as { taskId?: string }
+  if (!taskId || taskId.trim() === '') {
+    return reply.status(400).send({ error: 'taskId invalido.' })
+  }
+  try {
+    const result = await completeDeliverTaskToMachine(
+      user.sub,
+      user.role,
+      taskId.trim(),
+    )
+    return reply.send(result)
+  } catch (error) {
+    if (error instanceof MovimentPalletTaskNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MovimentPalletDeliverTaskCompletionError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof OperatorWithoutBoundMovimentPalletError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ReplenishmentRequestTypeMismatchError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const postCompletePickupTask: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const { taskId } = request.params as { taskId?: string }
+  if (!taskId || taskId.trim() === '') {
+    return reply.status(400).send({ error: 'taskId invalido.' })
+  }
+  try {
+    const result = await completePickupTaskToExpedition(
+      user.sub,
+      user.role,
+      taskId.trim(),
+    )
+    return reply.send(result)
+  } catch (error) {
+    if (error instanceof MovimentPalletTaskNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MovimentPalletPickupTaskCompletionError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof OperatorWithoutBoundMovimentPalletError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ReplenishmentRequestTypeMismatchError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    throw error
+  }
+}

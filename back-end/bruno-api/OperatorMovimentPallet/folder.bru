@@ -16,7 +16,10 @@ docs {
   # 6. List trip route suggestions — GET .../trip-suggestions (pares entrega+retirada persistidos)
   # 7. Accept trip route suggestion — POST .../trip-suggestions/{{tripSuggestionId}}/accept
   # 8. List my moviment pallet tasks — GET .../my-tasks
-  # 9. Unbind my moviment pallet — DELETE .../my-moviment-pallet
+  # 9. Complete deliver task — POST .../tasks/{{taskId}}/complete-deliver (entrega na maquina -> requisicao ON_MACHINE)
+  # 10. Accept open pickup — POST .../tasks/{{pickupTaskId}}/accept-pickup (retirada ON_MACHINE -> ASSIGNED ao equipamento)
+  # 11. Complete pickup — POST .../tasks/{{pickupTaskId}}/complete-pickup (retirada concluida -> solicitacao COMPLETED)
+  # 12. Unbind my moviment pallet — DELETE .../my-moviment-pallet
   #
-  # Variaveis no environment: movimentPalletId, requestId, tripSuggestionId (preencha apos listagens).
+  # Variaveis no environment: movimentPalletId, requestId, tripSuggestionId, taskId (DELIVER), pickupTaskId (PICKUP) — preencha apos listagens.
 }

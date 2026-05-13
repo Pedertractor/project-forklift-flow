@@ -17,11 +17,11 @@ auth:bearer {
 docs {
   # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
   # Precisa estar vinculado a um MovimentPallet (POST my-moviment-pallet).
-  # Retorna sugestoes quando, para a MESMA maquina de destino, ha retirada (PICKUP)
-  # em aberto com requisicao ON_MACHINE e entrega (DELIVER) em aberto (outra requisicao).
+  # suggestions: quando, para a MESMA maquina, ha retirada (PICKUP) ON_MACHINE e entrega (DELIVER)
+  # em aberto de OUTRA requisicao (viagem combinada).
+  # standalonePickupTasks: retiradas PICKUP em aberto sem entrega DELIVER em aberto na mesma maquina
+  # (ex.: cubo ja entregue, requisicao ON_MACHINE, operador da maquina pediu retirada).
   # Usuario precisa ter sectorId; filtro por setor e typeMovimentPallet do perfil.
-  # Resposta: { "suggestions", "priorityContext" }.
-  # Cada sugestao: effectivePriority, deferRecommended, deliverTask, pickupTask, machine,
-  # tripSuggestion { id, status, deliverTaskId, pickupTaskId, machineId, acceptedAt, ... }.
-  # OPEN no setor ou ACCEPTED pelo proprio usuario aparecem na lista; aceite: Accept trip route suggestion.
+  # Resposta: { "suggestions", "standalonePickupTasks", "priorityContext" }.
+  # Aceite combinada: POST trip-suggestions/:id/accept. Aceite so retirada: POST tasks/:taskId/accept-pickup.
 }

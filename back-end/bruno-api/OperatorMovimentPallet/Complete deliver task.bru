@@ -1,0 +1,26 @@
+meta {
+  name: Complete deliver task
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/operator-moviment-pallet/tasks/{{taskId}}/complete-deliver
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Apos entregar o cubo na maquina: conclui MovimentPalletTask DELIVER_TO_MACHINE (COMPLETED)
+  # e atualiza MachineReplenishmentRequest de IN_PROGRESS para ON_MACHINE.
+  # taskId: use {{taskId}} no environment (id da tarefa type DELIVER_TO_MACHINE em GET .../my-tasks).
+  #
+  # Respostas tipicas: 200 { task, request }; 404 tarefa inexistente; 409 tipo errado, nao atribuida
+  # ao seu equipamento, solicitacao nao IN_PROGRESS, ou entrega ja concluida/cancelada;
+  # 403 tipo de solicitacao diferente do equipamento; 400 sem MovimentPallet vinculado.
+}
