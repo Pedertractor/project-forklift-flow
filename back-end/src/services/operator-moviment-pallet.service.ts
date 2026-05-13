@@ -16,6 +16,7 @@ import {
   MovimentPalletPickupTaskCompletionError,
   MovimentPalletTaskNotFoundError,
   MovimentPalletTypeNotAllowedForRoleError,
+  MovimentOperatorHasIncompleteTasksError,
   OperatorWithoutBoundMovimentPalletError,
   OperatorWithoutSectorError,
   ReplenishmentRequestAlreadyAssignedError,
@@ -59,6 +60,20 @@ function mostUrgentPriority(
   b: PriorityLevel,
 ): PriorityLevel {
   return priorityRank[a] <= priorityRank[b] ? a : b
+}
+
+async function assertNoIncompleteTasksBlockingNewAccept(
+  palletId: string,
+  excludeTaskIds?: string[],
+) {
+  const count =
+    await movimentPalletTaskRepository.countIncompleteTasksAssignedToPallet(
+      palletId,
+      excludeTaskIds,
+    )
+  if (count > 0) {
+    throw new MovimentOperatorHasIncompleteTasksError()
+  }
 }
 
 export async function listMovimentPalletsForOperatorPicker(
@@ -155,17 +170,21 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
   return { requests, onMachinePickupTasks }
 }
 
-export async function listMyMovimentPalletTasks(operatorUserId: string) {
-  const pallet = await movimentPalletRepository.findFirstByOperatorUserId(
-    operatorUserId,
-  )
-  if (!pallet) {
-    return []
+/**
+ * Equipamento vinculado ao operador + tarefas atribuídas a esse equipamento
+ * (mesma ordenação que `listMyMovimentPalletTasks`). Útil para montar linha do
+ * tempo no front após aceitar sugestão, retirada avulsa ou pedido de entrega.
+ */
+export async function getOperatorMovimentPalletActiveFlow(operatorUserId: string) {
+  const movimentPallet =
+    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!movimentPallet) {
+    return { movimentPallet: null, tasks: [] }
   }
   const tasks = await movimentPalletTaskRepository.findManyForAssignedPallet(
-    pallet.id,
+    movimentPallet.id,
   )
-  return [...tasks].sort((a, b) => {
+  const sorted = [...tasks].sort((a, b) => {
     const pa = priorityRank[a.request.priorityLevel]
     const pb = priorityRank[b.request.priorityLevel]
     if (pa !== pb) {
@@ -175,6 +194,12 @@ export async function listMyMovimentPalletTasks(operatorUserId: string) {
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     )
   })
+  return { movimentPallet, tasks: sorted }
+}
+
+export async function listMyMovimentPalletTasks(operatorUserId: string) {
+  const { tasks } = await getOperatorMovimentPalletActiveFlow(operatorUserId)
+  return tasks
 }
 
 type TaskWithReq = Awaited<
@@ -714,6 +739,8 @@ export async function acceptTripRouteSuggestion(
     )
   }
 
+  await assertNoIncompleteTasksBlockingNewAccept(pallet.id)
+
   await prisma.$transaction(async (tx) => {
     const claimed = await tx.movimentPalletTripSuggestion.updateMany({
       where: {
@@ -861,6 +888,8 @@ export async function acceptOpenPickupTaskForMovimentOperator(
     return { task: reloaded }
   }
 
+  await assertNoIncompleteTasksBlockingNewAccept(pallet.id, [taskId])
+
   const claimed = await prisma.movimentPalletTask.updateMany({
     where: {
       id: taskId,
@@ -933,6 +962,8 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
   if (request.typeMovimentPallet !== pallet.type) {
     throw new ReplenishmentRequestTypeMismatchError()
   }
+
+  await assertNoIncompleteTasksBlockingNewAccept(pallet.id)
 
   const created = await prisma.$transaction(async (tx) => {
     const claimed = await tx.machineReplenishmentRequest.updateMany({

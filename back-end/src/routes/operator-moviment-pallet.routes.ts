@@ -6,6 +6,7 @@ import {
   getListOpenReplenishmentRequestsForMovimentOperator,
   getListTripRouteSuggestions,
   getOperatorCurrentMovimentPalletHandler,
+  getOperatorMovimentPalletActiveFlowHandler,
   postAcceptReplenishmentRequestForMovimentOperator,
   postAcceptTripRouteSuggestion,
   postAcceptOpenPickupTask,
@@ -79,6 +80,16 @@ export async function registerOperatorMovimentPalletRoutes(
           ],
         },
         getListMyMovimentPalletTasks,
+      )
+      router.get(
+        '/active-flow',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireForkliftOrFollowUpOperatorRole(),
+          ],
+        },
+        getOperatorMovimentPalletActiveFlowHandler,
       )
       router.get(
         '/trip-suggestions',

@@ -8,6 +8,7 @@ import {
   MovimentPalletPickupTaskCompletionError,
   MovimentPalletTaskNotFoundError,
   MovimentPalletTypeNotAllowedForRoleError,
+  MovimentOperatorHasIncompleteTasksError,
   OperatorWithoutBoundMovimentPalletError,
   OperatorWithoutSectorError,
   ReplenishmentRequestAlreadyAssignedError,
@@ -24,6 +25,7 @@ import {
   completeDeliverTaskToMachine,
   completePickupTaskToExpedition,
   getOperatorCurrentMovimentPallet,
+  getOperatorMovimentPalletActiveFlow,
   listMovimentPalletsForOperatorPicker,
   listMyMovimentPalletTasks,
   listOpenReplenishmentRequestsForMyMovimentType,
@@ -114,6 +116,13 @@ export const getListMyMovimentPalletTasks: RouteHandlerMethod = async (
   return reply.send({ tasks })
 }
 
+export const getOperatorMovimentPalletActiveFlowHandler: RouteHandlerMethod =
+  async (request, reply) => {
+    const user = request.user as AppJwtPayload
+    const payload = await getOperatorMovimentPalletActiveFlow(user.sub)
+    return reply.send(payload)
+  }
+
 export const getListTripRouteSuggestions: RouteHandlerMethod = async (
   request,
   reply,
@@ -161,6 +170,9 @@ export const postAcceptTripRouteSuggestion: RouteHandlerMethod = async (
     if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
       return reply.status(403).send({ error: error.message })
     }
+    if (error instanceof MovimentOperatorHasIncompleteTasksError) {
+      return reply.status(409).send({ error: error.message })
+    }
     throw error
   }
 }
@@ -200,6 +212,9 @@ export const postAcceptOpenPickupTask: RouteHandlerMethod = async (
     if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
       return reply.status(403).send({ error: error.message })
     }
+    if (error instanceof MovimentOperatorHasIncompleteTasksError) {
+      return reply.status(409).send({ error: error.message })
+    }
     throw error
   }
 }
@@ -233,6 +248,9 @@ export const postAcceptReplenishmentRequestForMovimentOperator: RouteHandlerMeth
       }
       if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
         return reply.status(403).send({ error: error.message })
+      }
+      if (error instanceof MovimentOperatorHasIncompleteTasksError) {
+        return reply.status(409).send({ error: error.message })
       }
       throw error
     }

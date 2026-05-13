@@ -197,6 +197,16 @@ export class OperatorWithoutBoundMovimentPalletError extends Error {
   }
 }
 
+/** Equipamento ja tem tarefa em aberto; nao aceitar outra ate concluir ou cancelar. */
+export class MovimentOperatorHasIncompleteTasksError extends Error {
+  constructor(
+    message = 'Este equipamento ja possui atividade em aberto. Conclua ou cancele antes de aceitar outra.',
+  ) {
+    super(message)
+    this.name = 'MovimentOperatorHasIncompleteTasksError'
+  }
+}
+
 export class ReplenishmentRequestTypeMismatchError extends Error {
   constructor(
     message = 'Esta solicitacao nao e do tipo do equipamento que voce esta operando.',
