@@ -13,6 +13,7 @@ import {
   MovimentPalletNotFoundError,
   MovimentPalletNotInOperatorSectorError,
   MovimentPalletPickupTaskAcceptError,
+  MovimentPalletPickupTaskCompletionError,
   MovimentPalletTaskNotFoundError,
   MovimentPalletTypeNotAllowedForRoleError,
   OperatorWithoutBoundMovimentPalletError,
@@ -1079,6 +1080,116 @@ export async function completeDeliverTaskToMachine(
     await machineReplenishmentRequestRepository.findUniqueById(task.requestId)
   if (!updatedTask || !updatedRequest) {
     throw new Error('Inconsistencia ao carregar dados apos entrega.')
+  }
+
+  return { task: updatedTask, request: updatedRequest }
+}
+
+/**
+ * Operador confirma que retirou o cubo da maquina (expedicao): conclui PICKUP_TO_EXPEDITION
+ * e encerra a solicitacao (COMPLETED).
+ */
+export async function completePickupTaskToExpedition(
+  operatorUserId: string,
+  role: RoleUser,
+  taskId: string,
+) {
+  const allowed = typesAllowedForRole(role)
+  if (allowed.length === 0) {
+    throw new MovimentPalletTypeNotAllowedForRoleError()
+  }
+
+  const pallet = await movimentPalletRepository.findFirstByOperatorUserId(
+    operatorUserId,
+  )
+  if (!pallet) {
+    throw new OperatorWithoutBoundMovimentPalletError()
+  }
+  if (!allowed.includes(pallet.type)) {
+    throw new MovimentPalletTypeNotAllowedForRoleError()
+  }
+
+  const task = await movimentPalletTaskRepository.findByIdWithRequest(taskId)
+  if (!task) {
+    throw new MovimentPalletTaskNotFoundError()
+  }
+
+  if (task.type !== ForkliftTaskType.PICKUP_TO_EXPEDITION) {
+    throw new MovimentPalletPickupTaskCompletionError(
+      'Somente tarefas de retirada (PICKUP_TO_EXPEDITION) podem ser concluidas aqui.',
+    )
+  }
+
+  if (task.request.typeMovimentPallet !== pallet.type) {
+    throw new ReplenishmentRequestTypeMismatchError()
+  }
+
+  if (task.assignedMovimentPalletId !== pallet.id) {
+    throw new MovimentPalletPickupTaskCompletionError(
+      'Esta retirada nao esta atribuida ao equipamento que voce esta operando.',
+    )
+  }
+
+  if (!openPickupTaskStatusesAccept.includes(task.status)) {
+    if (
+      task.status === ForkliftTaskStatus.COMPLETED &&
+      task.request.status === RequestStatus.COMPLETED
+    ) {
+      const request = await machineReplenishmentRequestRepository.findUniqueById(
+        task.requestId,
+      )
+      if (!request) {
+        throw new MovimentPalletTaskNotFoundError()
+      }
+      return { task, request }
+    }
+    throw new MovimentPalletPickupTaskCompletionError(
+      'Esta retirada ja foi concluida ou esta cancelada.',
+    )
+  }
+
+  if (task.request.status !== RequestStatus.ON_MACHINE) {
+    throw new MovimentPalletPickupTaskCompletionError(
+      'A solicitacao precisa estar em ON_MACHINE para registrar a retirada na expedicao.',
+    )
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const taskUpdate = await tx.movimentPalletTask.updateMany({
+      where: {
+        id: taskId,
+        assignedMovimentPalletId: pallet.id,
+        type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+        status: { in: openPickupTaskStatusesAccept },
+      },
+      data: {
+        status: ForkliftTaskStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+    })
+    if (taskUpdate.count !== 1) {
+      throw new MovimentPalletPickupTaskCompletionError()
+    }
+
+    const requestUpdate = await tx.machineReplenishmentRequest.updateMany({
+      where: {
+        id: task.requestId,
+        status: RequestStatus.ON_MACHINE,
+      },
+      data: { status: RequestStatus.COMPLETED },
+    })
+    if (requestUpdate.count !== 1) {
+      throw new Error(
+        'Inconsistencia ao atualizar solicitacao apos retirada; tente novamente ou contate o suporte.',
+      )
+    }
+  })
+
+  const updatedTask = await movimentPalletTaskRepository.findByIdWithRequest(taskId)
+  const updatedRequest =
+    await machineReplenishmentRequestRepository.findUniqueById(task.requestId)
+  if (!updatedTask || !updatedRequest) {
+    throw new Error('Inconsistencia ao carregar dados apos retirada.')
   }
 
   return { task: updatedTask, request: updatedRequest }

@@ -34,6 +34,7 @@ test(
       acceptReplenishmentRequestAsMovimentOperator,
       bindOperatorToMovimentPallet,
       completeDeliverTaskToMachine,
+      completePickupTaskToExpedition,
       listOpenReplenishmentRequestsForMyMovimentType,
       listTripRouteSuggestionsForOperator,
     } = await import('../services/operator-moviment-pallet.service.js')
@@ -182,6 +183,15 @@ test(
       )
       assert.equal(claimed.assignedMovimentPalletId, palletId)
       assert.equal(claimed.status, ForkliftTaskStatus.ASSIGNED)
+
+      const { task: completedPickup, request: reqAfterPickup } =
+        await completePickupTaskToExpedition(
+          userForkliftId,
+          RoleUser.FORKLIFT_OPERATOR,
+          pickupTask.id,
+        )
+      assert.equal(completedPickup.status, ForkliftTaskStatus.COMPLETED)
+      assert.equal(reqAfterPickup?.status, RequestStatus.COMPLETED)
     } finally {
       if (requestId) {
         await prisma.movimentPalletTripSuggestion.deleteMany({

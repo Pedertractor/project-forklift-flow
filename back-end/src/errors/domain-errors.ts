@@ -256,6 +256,15 @@ export class MovimentPalletDeliverTaskCompletionError extends Error {
   }
 }
 
+export class MovimentPalletPickupTaskCompletionError extends Error {
+  constructor(
+    message = 'Nao e possivel concluir esta retirada: verifique tipo da tarefa, equipamento vinculado e status da solicitacao.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletPickupTaskCompletionError'
+  }
+}
+
 export class MovimentPalletPickupTaskAcceptError extends Error {
   constructor(
     message = 'Nao e possivel aceitar esta retirada: verifique tipo da tarefa, setor, equipamento vinculado e status da solicitacao.',
