@@ -1,3 +1,5 @@
+name: forklift-back-end
+
 services:
   api-forklift:
     build: .
@@ -7,9 +9,6 @@ services:
       - 3131:3131
     env_file:
       - .env
-    # Inside Docker, 127.0.0.1 is this container — use the service name and internal port 5432.
-    environment:
-      DATABASE_URL: postgresql://docker:docker@postgresql-forklift:5432/forklift_db?schema=public
     depends_on:
       - postgresql-forklift
     networks:
@@ -20,12 +19,13 @@ services:
   postgresql-forklift:
     image: postgres:16
     container_name: postgresql-forklift
+    restart: always
     ports:
-      - 5436:5432
+      - ${POSTGRES_PORT}:5432
     environment:
-      - POSTGRES_USER=docker
-      - POSTGRES_PASSWORD=docker
-      - POSTGRES_DB=forklift_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     networks:
       - forklift-network
     volumes:
