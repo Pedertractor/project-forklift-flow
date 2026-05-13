@@ -239,3 +239,28 @@ export class TripRouteSuggestionAcceptForbiddenError extends Error {
     this.name = 'TripRouteSuggestionAcceptForbiddenError'
   }
 }
+
+export class MovimentPalletTaskNotFoundError extends Error {
+  constructor(message = 'Tarefa nao encontrada.') {
+    super(message)
+    this.name = 'MovimentPalletTaskNotFoundError'
+  }
+}
+
+export class MovimentPalletDeliverTaskCompletionError extends Error {
+  constructor(
+    message = 'Nao e possivel concluir esta entrega: verifique tipo da tarefa, equipamento vinculado e status da solicitacao.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletDeliverTaskCompletionError'
+  }
+}
+
+export class MovimentPalletPickupTaskAcceptError extends Error {
+  constructor(
+    message = 'Nao e possivel aceitar esta retirada: verifique tipo da tarefa, setor, equipamento vinculado e status da solicitacao.',
+  ) {
+    super(message)
+    this.name = 'MovimentPalletPickupTaskAcceptError'
+  }
+}

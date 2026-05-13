@@ -26,5 +26,4 @@ COPY --from=build /usr/src/app/prisma.config.ts ./prisma.config.ts
 COPY --from=build /usr/src/app/src ./src
 
 EXPOSE 3131
-
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run start"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npm run start"]

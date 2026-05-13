@@ -8,7 +8,9 @@ import {
   getOperatorCurrentMovimentPalletHandler,
   postAcceptReplenishmentRequestForMovimentOperator,
   postAcceptTripRouteSuggestion,
+  postAcceptOpenPickupTask,
   postBindOperatorMovimentPallet,
+  postCompleteDeliverTask,
 } from '../controllers/operator-moviment-pallet-controller.js'
 import { requireForkliftOrFollowUpOperatorRole } from '../middleware/require-roles.js'
 
@@ -98,6 +100,16 @@ export async function registerOperatorMovimentPalletRoutes(
         postAcceptTripRouteSuggestion,
       )
       router.post(
+        '/tasks/:taskId/accept-pickup',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireForkliftOrFollowUpOperatorRole(),
+          ],
+        },
+        postAcceptOpenPickupTask,
+      )
+      router.post(
         '/replenishment-requests/:requestId/accept',
         {
           preHandler: [
@@ -106,6 +118,16 @@ export async function registerOperatorMovimentPalletRoutes(
           ],
         },
         postAcceptReplenishmentRequestForMovimentOperator,
+      )
+      router.post(
+        '/tasks/:taskId/complete-deliver',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireForkliftOrFollowUpOperatorRole(),
+          ],
+        },
+        postCompleteDeliverTask,
       )
     },
     { prefix: '/operator-moviment-pallet' },

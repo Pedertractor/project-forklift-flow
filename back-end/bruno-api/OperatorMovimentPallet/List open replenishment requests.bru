@@ -17,5 +17,8 @@ auth:bearer {
 docs {
   # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
   # Precisa estar vinculado a um MovimentPallet (POST my-moviment-pallet).
-  # Lista apenas solicitacoes CREATED do mesmo typeMovimentPallet do equipamento.
+  # Resposta:
+  # - requests: fila para ACEITAR entrega (solicitacoes CREATED do mesmo typeMovimentPallet, sem DELIVER em aberto).
+  # - onMachinePickupTasks: tarefas PICKUP_TO_EXPEDITION em aberto com requisicao ON_MACHINE no seu setor
+  #   (retirada pedida pelo operador da maquina) — use POST .../tasks/{id}/accept-pickup para pegar.
 }

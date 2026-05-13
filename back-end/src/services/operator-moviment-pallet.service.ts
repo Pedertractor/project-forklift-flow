@@ -9,8 +9,11 @@ import {
 } from '../generated/prisma/enums.js'
 import {
   MachineReplenishmentRequestNotFoundError,
+  MovimentPalletDeliverTaskCompletionError,
   MovimentPalletNotFoundError,
   MovimentPalletNotInOperatorSectorError,
+  MovimentPalletPickupTaskAcceptError,
+  MovimentPalletTaskNotFoundError,
   MovimentPalletTypeNotAllowedForRoleError,
   OperatorWithoutBoundMovimentPalletError,
   OperatorWithoutSectorError,
@@ -127,11 +130,28 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
     operatorUserId,
   )
   if (!pallet) {
-    return []
+    return { requests: [], onMachinePickupTasks: [] }
   }
-  return machineReplenishmentRequestRepository.findManyOpenPoolForMovimentType(
-    pallet.type,
-  )
+
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId)
+  const sectorId = user?.sectorId
+
+  const requests =
+    await machineReplenishmentRequestRepository.findManyOpenPoolForMovimentType(
+      pallet.type,
+    )
+
+  if (sectorId == null || sectorId === '') {
+    return { requests, onMachinePickupTasks: [] }
+  }
+
+  const onMachinePickupTasks =
+    await movimentPalletTaskRepository.findManyOpenPickupTasksForSectorAndMovimentType(
+      sectorId,
+      pallet.type,
+    )
+
+  return { requests, onMachinePickupTasks }
 }
 
 export async function listMyMovimentPalletTasks(operatorUserId: string) {
@@ -195,6 +215,28 @@ type TripRouteSuggestionRow = {
   }
 }
 
+type StandalonePickupRow = {
+  kind: 'PICKUP_ONLY_AT_MACHINE'
+  typeMovimentPallet: TypeMovimentPallet
+  effectivePriority: PriorityLevel
+  deferRecommended: boolean
+  machine: { id: string; name: string; position: string }
+  message: string
+  suggestedOrder: Array<{
+    step: number
+    taskType: ForkliftTaskType
+    taskId: string
+    requestId: string
+    movementCube: string
+  }>
+  pickupTask: TaskWithReq
+}
+
+type StandalonePickupEntry = {
+  pickupTask: TaskWithReq
+  typeMovimentPallet: TypeMovimentPallet
+}
+
 function emptyPriorityContext() {
   return {
     mostUrgentOpenInSector: null as PriorityLevel | null,
@@ -233,10 +275,12 @@ async function computeTripPairsAndSectorUrgency(
   types: TypeMovimentPallet[],
 ): Promise<{
   pairs: ComputedTripPair[]
+  standalonePickups: StandalonePickupEntry[]
   mostUrgentOpenInSector: PriorityLevel | null
 }> {
   let mostUrgentOpenInSector: PriorityLevel | null = null
   const pairs: ComputedTripPair[] = []
+  const standalonePickups: StandalonePickupEntry[] = []
 
   for (const type of types) {
     const [pickups, delivers] = await Promise.all([
@@ -263,71 +307,78 @@ async function computeTripPairsAndSectorUrgency(
           : mostUrgentPriority(mostUrgentOpenInSector, t.request.priorityLevel)
     }
 
-    if (pickups.length === 0 || delivers.length === 0) {
-      continue
-    }
+    const pairedPickupIds = new Set<string>()
 
-    const pickupsByMachine = new Map<string, TaskWithReq[]>()
-    for (const t of pickups) {
-      const mid = t.request.destinationId
-      const list = pickupsByMachine.get(mid) ?? []
-      list.push(t)
-      pickupsByMachine.set(mid, list)
-    }
-
-    const deliversByMachine = new Map<string, TaskWithReq[]>()
-    for (const t of delivers) {
-      const mid = t.request.destinationId
-      const list = deliversByMachine.get(mid) ?? []
-      list.push(t)
-      deliversByMachine.set(mid, list)
-    }
-
-    for (const [machineId, machinePickups] of pickupsByMachine) {
-      const machineDelivers = deliversByMachine.get(machineId)
-      if (!machineDelivers?.length) {
-        continue
+    if (pickups.length > 0 && delivers.length > 0) {
+      const pickupsByMachine = new Map<string, TaskWithReq[]>()
+      for (const t of pickups) {
+        const mid = t.request.destinationId
+        const list = pickupsByMachine.get(mid) ?? []
+        list.push(t)
+        pickupsByMachine.set(mid, list)
       }
 
-      const sortedDeliver = [...machineDelivers].sort((a, b) => {
-        const pa = priorityRank[a.request.priorityLevel]
-        const pb = priorityRank[b.request.priorityLevel]
-        if (pa !== pb) {
-          return pa - pb
-        }
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        )
-      })
+      const deliversByMachine = new Map<string, TaskWithReq[]>()
+      for (const t of delivers) {
+        const mid = t.request.destinationId
+        const list = deliversByMachine.get(mid) ?? []
+        list.push(t)
+        deliversByMachine.set(mid, list)
+      }
 
-      const sortedPickups = [...machinePickups].sort((a, b) => {
-        const pa = priorityRank[a.request.priorityLevel]
-        const pb = priorityRank[b.request.priorityLevel]
-        if (pa !== pb) {
-          return pa - pb
-        }
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        )
-      })
-
-      const usedDeliverIds = new Set<string>()
-      for (const pickupTask of sortedPickups) {
-        const deliverTask = sortedDeliver.find(
-          (d) =>
-            d.requestId !== pickupTask.requestId &&
-            !usedDeliverIds.has(d.id),
-        )
-        if (!deliverTask) {
+      for (const [machineId, machinePickups] of pickupsByMachine) {
+        const machineDelivers = deliversByMachine.get(machineId)
+        if (!machineDelivers?.length) {
           continue
         }
-        usedDeliverIds.add(deliverTask.id)
-        pairs.push({ deliverTask, pickupTask, typeMovimentPallet: type })
+
+        const sortedDeliver = [...machineDelivers].sort((a, b) => {
+          const pa = priorityRank[a.request.priorityLevel]
+          const pb = priorityRank[b.request.priorityLevel]
+          if (pa !== pb) {
+            return pa - pb
+          }
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+        })
+
+        const sortedPickups = [...machinePickups].sort((a, b) => {
+          const pa = priorityRank[a.request.priorityLevel]
+          const pb = priorityRank[b.request.priorityLevel]
+          if (pa !== pb) {
+            return pa - pb
+          }
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+        })
+
+        const usedDeliverIds = new Set<string>()
+        for (const pickupTask of sortedPickups) {
+          const deliverTask = sortedDeliver.find(
+            (d) =>
+              d.requestId !== pickupTask.requestId &&
+              !usedDeliverIds.has(d.id),
+          )
+          if (!deliverTask) {
+            continue
+          }
+          usedDeliverIds.add(deliverTask.id)
+          pairedPickupIds.add(pickupTask.id)
+          pairs.push({ deliverTask, pickupTask, typeMovimentPallet: type })
+        }
+      }
+    }
+
+    for (const pickupTask of pickups) {
+      if (!pairedPickupIds.has(pickupTask.id)) {
+        standalonePickups.push({ pickupTask, typeMovimentPallet: type })
       }
     }
   }
 
-  return { pairs, mostUrgentOpenInSector }
+  return { pairs, standalonePickups, mostUrgentOpenInSector }
 }
 
 async function syncTripSuggestionsToDb(
@@ -451,6 +502,49 @@ function mapDbRowToTripRouteSuggestion(
   }
 }
 
+function mapStandalonePickupToRow(
+  entry: StandalonePickupEntry,
+  mostUrgentOpenInSector: PriorityLevel | null,
+): StandalonePickupRow {
+  const { pickupTask, typeMovimentPallet } = entry
+  const effectivePriority = pickupTask.request.priorityLevel
+  const deferRecommended =
+    mostUrgentOpenInSector !== null &&
+    priorityRank[effectivePriority] > priorityRank[mostUrgentOpenInSector]
+
+  const machine = pickupTask.request.destination
+  const baseMessage =
+    `Na maquina ${machine.name} (${machine.position}): retirada ja solicitada pelo operador da maquina (cubo em ON_MACHINE). ` +
+    `Aceite esta retirada para ir buscar o pallet na maquina (PICKUP_TO_EXPEDITION).`
+
+  const prioritySuffix = deferRecommended
+    ? ` Prioridade: ${effectivePriority}; ha itens mais urgentes em aberto no setor (${mostUrgentOpenInSector}).`
+    : ''
+
+  return {
+    kind: 'PICKUP_ONLY_AT_MACHINE',
+    typeMovimentPallet,
+    effectivePriority,
+    deferRecommended,
+    machine: {
+      id: machine.id,
+      name: machine.name,
+      position: machine.position,
+    },
+    message: baseMessage + prioritySuffix,
+    suggestedOrder: [
+      {
+        step: 1,
+        taskType: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+        taskId: pickupTask.id,
+        requestId: pickupTask.requestId,
+        movementCube: pickupTask.request.movementCube,
+      },
+    ],
+    pickupTask,
+  }
+}
+
 /**
  * Sugestoes de viagem persistidas em `MovimentPalletTripSuggestion`, sincronizadas
  * a partir do par entrega+retirada na mesma maquina.
@@ -463,6 +557,7 @@ export async function listTripRouteSuggestionsForOperator(
   if (types.length === 0) {
     return {
       suggestions: [] as TripRouteSuggestionRow[],
+      standalonePickupTasks: [] as StandalonePickupRow[],
       priorityContext: emptyPriorityContext(),
     }
   }
@@ -471,11 +566,12 @@ export async function listTripRouteSuggestionsForOperator(
   if (!user?.sectorId) {
     return {
       suggestions: [],
+      standalonePickupTasks: [],
       priorityContext: emptyPriorityContext(),
     }
   }
 
-  const { pairs, mostUrgentOpenInSector } =
+  const { pairs, standalonePickups, mostUrgentOpenInSector } =
     await computeTripPairsAndSectorUrgency(user.sectorId, types)
 
   await syncTripSuggestionsToDb(user.sectorId, types, pairs)
@@ -520,9 +616,21 @@ export async function listTripRouteSuggestionsForOperator(
     return a.machine.id.localeCompare(b.machine.id)
   })
 
+  const standalonePickupTasks: StandalonePickupRow[] = standalonePickups.map(
+    (s) => mapStandalonePickupToRow(s, mostUrgentOpenInSector),
+  )
+  standalonePickupTasks.sort((a, b) => {
+    const ra = priorityRank[a.effectivePriority]
+    const rb = priorityRank[b.effectivePriority]
+    if (ra !== rb) {
+      return ra - rb
+    }
+    return a.machine.id.localeCompare(b.machine.id)
+  })
+
   const priorityContext = buildTripPriorityContext(mostUrgentOpenInSector)
 
-  return { suggestions, priorityContext }
+  return { suggestions, standalonePickupTasks, priorityContext }
 }
 
 export async function acceptTripRouteSuggestion(
@@ -661,6 +769,140 @@ export async function acceptTripRouteSuggestion(
   }
 }
 
+const openPickupTaskStatusesAccept: ForkliftTaskStatus[] = [
+  ForkliftTaskStatus.CREATED,
+  ForkliftTaskStatus.ASSIGNED,
+  ForkliftTaskStatus.IN_PROGRESS,
+]
+
+/**
+ * Operador de empilhadeira aceita retirada ja solicitada (ON_MACHINE) quando
+ * nao ha sugestao de viagem combinada — tarefa fica vinculada ao equipamento.
+ */
+export async function acceptOpenPickupTaskForMovimentOperator(
+  operatorUserId: string,
+  role: RoleUser,
+  taskId: string,
+) {
+  const allowed = typesAllowedForRole(role)
+  if (allowed.length === 0) {
+    throw new MovimentPalletTypeNotAllowedForRoleError()
+  }
+
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId)
+  if (!user?.sectorId) {
+    throw new OperatorWithoutSectorError()
+  }
+
+  const pallet = await movimentPalletRepository.findFirstByOperatorUserId(
+    operatorUserId,
+  )
+  if (!pallet) {
+    throw new OperatorWithoutBoundMovimentPalletError()
+  }
+  if (!allowed.includes(pallet.type)) {
+    throw new MovimentPalletTypeNotAllowedForRoleError()
+  }
+
+  const task = await movimentPalletTaskRepository.findByIdWithRequest(taskId)
+  if (!task) {
+    throw new MovimentPalletTaskNotFoundError()
+  }
+
+  if (task.type !== ForkliftTaskType.PICKUP_TO_EXPEDITION) {
+    throw new MovimentPalletPickupTaskAcceptError(
+      'Somente tarefas de retirada (PICKUP_TO_EXPEDITION) podem ser aceitas por este endpoint.',
+    )
+  }
+
+  if (!openPickupTaskStatusesAccept.includes(task.status)) {
+    throw new MovimentPalletPickupTaskAcceptError(
+      'Esta retirada nao esta mais disponivel (ja concluida ou cancelada).',
+    )
+  }
+
+  if (task.request.typeMovimentPallet !== pallet.type) {
+    throw new ReplenishmentRequestTypeMismatchError()
+  }
+
+  if (task.request.status !== RequestStatus.ON_MACHINE) {
+    throw new MovimentPalletPickupTaskAcceptError(
+      'A solicitacao precisa estar em ON_MACHINE para aceitar a retirada.',
+    )
+  }
+
+  const destSectorId = task.request.destination.sector?.id
+  if (!destSectorId || destSectorId !== user.sectorId) {
+    throw new MovimentPalletPickupTaskAcceptError(
+      'Esta retirada nao pertence ao seu setor.',
+    )
+  }
+
+  if (
+    task.assignedMovimentPalletId &&
+    task.assignedMovimentPalletId !== pallet.id
+  ) {
+    throw new MovimentPalletPickupTaskAcceptError(
+      'Esta retirada ja esta vinculada a outro equipamento.',
+    )
+  }
+
+  if (
+    task.assignedMovimentPalletId === pallet.id &&
+    task.status !== ForkliftTaskStatus.CREATED
+  ) {
+    const reloaded = await movimentPalletTaskRepository.findByIdWithRequest(
+      taskId,
+    )
+    if (!reloaded) {
+      throw new MovimentPalletTaskNotFoundError()
+    }
+    return { task: reloaded }
+  }
+
+  const claimed = await prisma.movimentPalletTask.updateMany({
+    where: {
+      id: taskId,
+      type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+      status: ForkliftTaskStatus.CREATED,
+      assignedMovimentPalletId: null,
+      request: {
+        status: RequestStatus.ON_MACHINE,
+        typeMovimentPallet: pallet.type,
+        destination: { sectorId: user.sectorId },
+      },
+    },
+    data: {
+      assignedMovimentPalletId: pallet.id,
+      status: ForkliftTaskStatus.ASSIGNED,
+    },
+  })
+
+  if (claimed.count !== 1) {
+    const reloaded = await movimentPalletTaskRepository.findByIdWithRequest(
+      taskId,
+    )
+    if (
+      reloaded &&
+      reloaded.type === ForkliftTaskType.PICKUP_TO_EXPEDITION &&
+      reloaded.assignedMovimentPalletId === pallet.id &&
+      openPickupTaskStatusesAccept.includes(reloaded.status)
+    ) {
+      return { task: reloaded }
+    }
+    throw new MovimentPalletPickupTaskAcceptError(
+      'Esta retirada nao esta mais disponivel ou foi aceita por outro operador.',
+    )
+  }
+
+  const updated = await movimentPalletTaskRepository.findByIdWithRequest(taskId)
+  if (!updated) {
+    throw new MovimentPalletTaskNotFoundError()
+  }
+
+  return { task: updated }
+}
+
 export async function acceptReplenishmentRequestAsMovimentOperator(
   operatorUserId: string,
   role: RoleUser,
@@ -723,4 +965,121 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
     await machineReplenishmentRequestRepository.findUniqueById(requestId)
 
   return { task, request: updatedRequest }
+}
+
+const openDeliverTaskStatuses: ForkliftTaskStatus[] = [
+  ForkliftTaskStatus.CREATED,
+  ForkliftTaskStatus.ASSIGNED,
+  ForkliftTaskStatus.IN_PROGRESS,
+]
+
+/**
+ * Operador de empilhadeira / transpaleteira confirma que entregou o cubo na maquina:
+ * conclui a tarefa DELIVER_TO_MACHINE e coloca a solicitacao em ON_MACHINE
+ * (habilita retirada pelo operador de maquina).
+ */
+export async function completeDeliverTaskToMachine(
+  operatorUserId: string,
+  role: RoleUser,
+  taskId: string,
+) {
+  const allowed = typesAllowedForRole(role)
+  if (allowed.length === 0) {
+    throw new MovimentPalletTypeNotAllowedForRoleError()
+  }
+
+  const pallet = await movimentPalletRepository.findFirstByOperatorUserId(
+    operatorUserId,
+  )
+  if (!pallet) {
+    throw new OperatorWithoutBoundMovimentPalletError()
+  }
+  if (!allowed.includes(pallet.type)) {
+    throw new MovimentPalletTypeNotAllowedForRoleError()
+  }
+
+  const task = await movimentPalletTaskRepository.findByIdWithRequest(taskId)
+  if (!task) {
+    throw new MovimentPalletTaskNotFoundError()
+  }
+
+  if (task.type !== ForkliftTaskType.DELIVER_TO_MACHINE) {
+    throw new MovimentPalletDeliverTaskCompletionError(
+      'Somente tarefas de entrega (DELIVER_TO_MACHINE) podem ser concluidas aqui.',
+    )
+  }
+
+  if (task.request.typeMovimentPallet !== pallet.type) {
+    throw new ReplenishmentRequestTypeMismatchError()
+  }
+
+  if (task.assignedMovimentPalletId !== pallet.id) {
+    throw new MovimentPalletDeliverTaskCompletionError(
+      'Esta entrega nao esta atribuida ao equipamento que voce esta operando.',
+    )
+  }
+
+  if (!openDeliverTaskStatuses.includes(task.status)) {
+    if (
+      task.status === ForkliftTaskStatus.COMPLETED &&
+      task.request.status === RequestStatus.ON_MACHINE
+    ) {
+      const request = await machineReplenishmentRequestRepository.findUniqueById(
+        task.requestId,
+      )
+      if (!request) {
+        throw new MovimentPalletTaskNotFoundError()
+      }
+      return { task, request }
+    }
+    throw new MovimentPalletDeliverTaskCompletionError(
+      'Esta entrega ja foi concluida ou esta cancelada.',
+    )
+  }
+
+  if (task.request.status !== RequestStatus.IN_PROGRESS) {
+    throw new MovimentPalletDeliverTaskCompletionError(
+      'A solicitacao precisa estar em andamento (IN_PROGRESS) para registrar a entrega na maquina.',
+    )
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const taskUpdate = await tx.movimentPalletTask.updateMany({
+      where: {
+        id: taskId,
+        assignedMovimentPalletId: pallet.id,
+        type: ForkliftTaskType.DELIVER_TO_MACHINE,
+        status: { in: openDeliverTaskStatuses },
+      },
+      data: {
+        status: ForkliftTaskStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+    })
+    if (taskUpdate.count !== 1) {
+      throw new MovimentPalletDeliverTaskCompletionError()
+    }
+
+    const requestUpdate = await tx.machineReplenishmentRequest.updateMany({
+      where: {
+        id: task.requestId,
+        status: RequestStatus.IN_PROGRESS,
+      },
+      data: { status: RequestStatus.ON_MACHINE },
+    })
+    if (requestUpdate.count !== 1) {
+      throw new Error(
+        'Inconsistencia ao atualizar solicitacao apos entrega; tente novamente ou contate o suporte.',
+      )
+    }
+  })
+
+  const updatedTask = await movimentPalletTaskRepository.findByIdWithRequest(taskId)
+  const updatedRequest =
+    await machineReplenishmentRequestRepository.findUniqueById(task.requestId)
+  if (!updatedTask || !updatedRequest) {
+    throw new Error('Inconsistencia ao carregar dados apos entrega.')
+  }
+
+  return { task: updatedTask, request: updatedRequest }
 }
