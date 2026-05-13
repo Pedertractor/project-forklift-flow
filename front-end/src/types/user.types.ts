@@ -6,4 +6,6 @@ export interface User {
   name: string;
   cardNumber: string;
   unit: AppUnit;
+  /** Preenchido quando o login vem da API (`RoleUser` no backend). */
+  role?: string;
 }

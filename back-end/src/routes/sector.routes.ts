@@ -7,7 +7,10 @@ import {
   patchUpdateSector,
   postCreateSector,
 } from '../controllers/sector-controller.js'
-import { requireRoles } from '../middleware/require-roles.js'
+import {
+  requireMachineDomainRoles,
+  requireRoles,
+} from '../middleware/require-roles.js'
 
 export async function registerSectorRoutes(fastify: FastifyInstance) {
   await fastify.register(
@@ -22,7 +25,7 @@ export async function registerSectorRoutes(fastify: FastifyInstance) {
       router.get(
         '/',
         {
-          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
         },
         getListSectors,
       )

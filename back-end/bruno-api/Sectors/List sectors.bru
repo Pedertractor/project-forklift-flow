@@ -6,6 +6,7 @@ meta {
 
 get {
   url: {{baseUrl}}/sectors
+  body: none
   auth: bearer
 }
 
@@ -14,5 +15,6 @@ auth:bearer {
 }
 
 docs {
-  # Requer JWT com role ADMIN.
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN (mesmo escopo de maquinas).
+  # Retorna { sectors: [{ id, sectorIdAPI, typeSector, createdAt, updatedAt }] }.
 }

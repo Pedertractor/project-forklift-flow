@@ -6,18 +6,6 @@ export const sectorRepository = {
     return prisma.sector.findUnique({ where: { id } })
   },
 
-  findManyForList() {
-    return prisma.sector.findMany({
-      select: {
-        id: true,
-        typeSector: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { typeSector: 'asc' },
-    })
-  },
-
   create(data: Prisma.SectorCreateInput) {
     return prisma.sector.create({ data })
   },
@@ -38,6 +26,19 @@ export const sectorRepository = {
       prisma.costCenter.count({ where: { sectorId } }),
     ]).then(([machines, users, movimentPallets, costCenters]) => {
       return machines + users + movimentPallets + costCenters
+    })
+  },
+
+  findManyForList() {
+    return prisma.sector.findMany({
+      select: {
+        id: true,
+        sectorIdAPI: true,
+        typeSector: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { typeSector: 'asc' },
     })
   },
 }
