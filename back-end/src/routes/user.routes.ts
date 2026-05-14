@@ -16,7 +16,10 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
       userRouter.get(
         "/employee-info",
         {
-          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+          preHandler: [
+            fastify.authenticate,
+            requireRoles(RoleUser.ADMIN, RoleUser.LEADER),
+          ],
         },
         getEmployeeInfo,
       );

@@ -1,9 +1,7 @@
-import { formatDate } from '@/utils/formatDate';
 import { Card } from '@/components/ui/card';
+import type { DashboardPageViewModel } from './useDashboardPage';
 
-export function DashboardPage() {
-  const today = new Date().toISOString();
-
+export function DashboardPageView({ formattedToday }: DashboardPageViewModel) {
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-5xl">
@@ -11,7 +9,7 @@ export function DashboardPage() {
           <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">Painel</h1>
           <p className="m-0 text-sm text-zinc-600">
             Área para indicadores e fluxos operacionais. Hoje:{' '}
-            <span className="font-medium text-zinc-800">{formatDate(today)}</span>.
+            <span className="font-medium text-zinc-800">{formattedToday}</span>.
           </p>
         </header>
 

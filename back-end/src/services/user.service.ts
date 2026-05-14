@@ -95,10 +95,23 @@ async function resolveSectorIdForNewUser(
   throw new CreateUserError('Sem permissao para criar usuario.')
 }
 
+const LEADER_CREATABLE_ROLES: RoleUser[] = [
+  RoleUser.OPERATOR_MACHINE,
+  RoleUser.FORKLIFT_OPERATOR,
+  RoleUser.FOLLOW_UP_OPERATOR,
+  RoleUser.SUPPLY_OPERATOR,
+]
+
 export async function createUser(
   input: CreateUserInput,
   actor: CreateUserActor,
 ): Promise<UserModel> {
+  if (actor.role === RoleUser.LEADER && !LEADER_CREATABLE_ROLES.includes(input.role)) {
+    throw new CreateUserError(
+      'Lider so pode criar usuarios com perfil OPERATOR_MACHINE, FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou SUPPLY_OPERATOR.',
+    )
+  }
+
   const card = input.card.trim()
   const employee = await infoByCardAndUnit(input.unit, card)
   if (!employee) {

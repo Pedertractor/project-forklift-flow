@@ -22,6 +22,16 @@ front-end/
       ui/
       layout/
     pages/
+      HomePage/
+        index.tsx
+        HomePageView.tsx
+        useHomePage.ts
+      LoginPage/
+        index.tsx
+        LoginPageView.tsx
+        useLoginPage.ts
+        LoginFormPanel.tsx
+        LoginBrandingPanel.tsx
     hooks/
     services/
     store/
@@ -49,7 +59,7 @@ front-end/
 
 ### Camada de visualizacao
 
-- `src/pages/`: paginas da aplicacao, uma por rota. Responsavel apenas por compor componentes e consumir hooks — sem logica de negocio, sem chamadas diretas de API.
+- `src/pages/`: **uma pasta por rota** (ex.: `HomePage/`, `MachinesPage/`). Padrao obrigatorio: hook `use<NomeDaPagina>Page` concentra estado, efeitos, TanStack Query e handlers; componente `*PageView` contem apenas JSX (marcacao + classes). Entrada da rota: `index.tsx`. Detalhes na secao **Padrao de pagina (View + hook)**.
 - `src/components/ui/`: componentes visuais atomicos e reutilizaveis (ex.: `Button`, `Input`, `Badge`, `Modal`). Inclui componentes gerados pelo shadcn/ui.
 - `src/components/layout/`: componentes estruturais de pagina (ex.: `Header`, `Sidebar`, `Footer`, `PageWrapper`).
 - `src/styles/`: estilos globais, tokens de design e extensoes do tema Tailwind.
@@ -58,7 +68,7 @@ front-end/
 
 ### Camada de estado e dados
 
-- `src/hooks/`: custom hooks que encapsulam logica de estado, efeitos, integracao com TanStack Query e acesso aos services.
+- `src/hooks/`: hooks **reutilizaveis entre varias paginas** (ex.: `useLogin.ts`). Logica usada so em uma rota fica em `use<NomeDaPagina>Page.ts` dentro da pasta da pagina.
 - `src/store/`: estado global com Zustand. Um arquivo por slice de dominio (ex.: `auth.store.ts`, `ui.store.ts`).
 - `src/services/`: funcoes de chamada HTTP com `fetch` nativo, organizadas por dominio (ex.: `users.service.ts`, `auth.service.ts`). Toda comunicacao com o backend passa por aqui.
 - `src/lib/`: configuracoes e instancias compartilhadas de infraestrutura (ex.: cliente fetch configurado, instancia do QueryClient).
@@ -83,7 +93,9 @@ Nomes de **arquivos, pastas, simbolos TypeScript/JavaScript** (variaveis, funcoe
 | Tipo             | Convencao             | Exemplo            |
 | ---------------- | --------------------- | ------------------ |
 | Componente React | PascalCase            | `UserCard.tsx`     |
-| Pagina           | PascalCase com sufixo | `LoginPage.tsx`    |
+| Pagina (pasta de rota) | PascalCase + pasta | `MachinesPage/index.tsx` |
+| View da pagina         | PascalCase + sufixo `View` | `MachinesPageView.tsx` |
+| Hook da pagina         | camelCase `use` + `Page` | `useMachinesPage.ts` |
 | Hook customizado | camelCase com `use`   | `useAuth.ts`       |
 | Service          | camelCase com sufixo  | `users.service.ts` |
 | Store Zustand    | camelCase com sufixo  | `auth.store.ts`    |
@@ -91,6 +103,13 @@ Nomes de **arquivos, pastas, simbolos TypeScript/JavaScript** (variaveis, funcoe
 | Tipo / Interface | PascalCase            | `UserPayload.ts`   |
 | Utilitario       | camelCase             | `formatDate.ts`    |
 | Constante        | SCREAMING_SNAKE_CASE  | `API_ENDPOINTS.ts` |
+
+## TypeScript: proibido `any` e `unknown`
+
+- **Nao use o tipo `any`.** Prefira interfaces em `src/types/`, generics (`<T>`), inferencia do Zod (`z.infer<typeof schema>`) ou afirmacoes (`as T`) apenas em limites claros (ex.: resposta JSON ja validada ou contrato fixo com o backend).
+- **Nao use o tipo `unknown` em anotacoes** (parametros, retornos, props, generics, `Record<string, unknown>`). Prefira tipos explicitos, unioes discriminadas, `Error`, interfaces de payload ou *narrowing* com `instanceof` / *type guards*. Em `catch`, evite anotar o parametro com `unknown`; use inferencia e checagens (`e instanceof Error`, etc.).
+- **Excecao de nome (nao e o tipo `any`):** APIs do runtime como **`AbortSignal.any()`** sao metodos do browser e podem ser usadas normalmente.
+- O ESLint do projeto inclui `@typescript-eslint/no-explicit-any` e restricao a `unknown` em anotacoes de tipo; ver `eslint.config.js`.
 
 ## Organizacao de componentes
 
@@ -106,6 +125,20 @@ components/ui/UserCard/
 Componentes simples e atomicos podem ser arquivos avulsos dentro de `ui/` sem pasta propria.
 
 Componentes gerados pelo shadcn/ui ficam em `src/components/ui/` e **nao devem ser editados manualmente**. Customizacoes vao em componentes wrapper separados.
+
+## Padrao de pagina (View + hook)
+
+Cada tela ligada a uma rota vive em **`src/pages/<NomeDaPagina>/`** (pasta com o mesmo nome do componente exportado pela rota, ex.: `TypeMachinesPage/`).
+
+| Arquivo | Responsabilidade |
+| ------- | ------------------ |
+| `use<NomeDaPagina>Page.ts` | Toda a parte "JS": `useState`, `useCallback`, `useQuery`, `useMutation`, `useQueryClient`, leitura de stores, chamadas indiretas via services (sempre atraves de hooks de dominio quando ja existirem em `src/hooks/`). Sem JSX de pagina. Exporta o hook e, se util, `export type <Nome>PageViewModel = ReturnType<typeof use...>` para tipar a View. |
+| `<NomeDaPagina>View.tsx` | Toda a parte "HTML" da tela: apenas composicao JSX, props vindas do hook, texto de interface em pt-BR. Sem `useQuery` / `useMutation` / chamadas a API. Pode importar componentes de `@/components/...`. |
+| `index.tsx` | Orquestracao minima: exporta o componente de rota (`export function HomePage() { ... }`) que chama o hook e repassa o resultado para a View (`return <HomePageView {...useHomePage()} />`) ou chama o hook por efeito e renderiza a View sem props, quando a View nao precisa de dados do hook no JSX. |
+
+**Sub-blocos** (ex.: painel de login) podem permanecer na mesma pasta da pagina como `.tsx` auxiliares quando forem especificos dessa rota. Se um bloco tiver muita logica propria, pode ter seu proprio `use...` no mesmo diretorio, mas a pagina continua orquestrada pelo `use<NomeDaPagina>Page`.
+
+**Lazy load:** `lazy(() => import('@/pages/HomePage/index').then((m) => ({ default: m.HomePage })))` — use o `index` explicitamente para o Vite nao tentar `HomePage.tsx` na raiz de `pages/`.
 
 ## Padrao de chamada de API (services)
 
@@ -234,39 +267,16 @@ export type CreateUserPayload = z.infer<typeof createUserSchema>;
 ```
 
 ```tsx
-// src/pages/CreateUserPage.tsx
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  createUserSchema,
-  type CreateUserPayload,
-} from '@/schemas/user.schema';
-import { useCreateUser } from '@/hooks/useUsers';
+// src/pages/CreateUserPage/index.tsx
+import { CreateUserPageView } from './CreateUserPageView';
+import { useCreateUserPage } from './useCreateUserPage';
 
 export function CreateUserPage() {
-  const { mutate: createUser } = useCreateUser();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<CreateUserPayload>({
-    resolver: zodResolver(createUserSchema),
-  });
-
-  function onSubmit(data: CreateUserPayload) {
-    createUser(data);
-  }
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <input {...register('name')} />
-      {errors.name && <span>{errors.name.message}</span>}
-      {/* ... */}
-    </form>
-  );
+  return <CreateUserPageView {...useCreateUserPage()} />;
 }
 ```
+
+O formulario (`useForm`, `handleSubmit`, etc.) fica em `useCreateUserPage.ts`; o JSX do formulario em `CreateUserPageView.tsx`.
 
 ## Padrao de rotas (React Router)
 
@@ -350,7 +360,7 @@ export const ENV = {
 4. Criar/ajustar hook com TanStack Query em `src/hooks/`.
 5. Atualizar store Zustand em `src/store/` (se houver estado global envolvido).
 6. Compor componentes em `src/components/`.
-7. Montar a pagina em `src/pages/`.
+7. Montar a pasta da pagina em `src/pages/<Nome>/` (`use*Page`, `*PageView`, `index.tsx`).
 8. Registrar a rota em `src/App.tsx`.
 
 ## Checklist de PR (obrigatorio)
@@ -365,6 +375,8 @@ export const ENV = {
 - [ ] Variaveis de ambiente acessadas via `src/constants/env.ts`.
 - [ ] Nenhum `console.log` de debug commitado.
 - [ ] ESLint e Prettier rodados antes de abrir o PR.
+- [ ] Sem `any` e sem `unknown` em anotacoes de tipo no codigo (ver secao TypeScript neste documento e `eslint.config.js`).
+- [ ] Pagina de rota no padrao pasta + `use*Page` + `*PageView` + `index.tsx` (ver secao **Padrao de pagina**).
 - [ ] Textos de interface, validacao e acessibilidade em **portugues (Brasil)**; identificadores de codigo em **ingles**.
 
 ## Ferramentas base padronizadas

@@ -3,28 +3,41 @@ import type { User } from '@/types/user.types';
 
 const STORAGE_KEY = 'forklift_flow_auth';
 
+export type SetSessionPayload =
+  | { token: string; user: User; requiresPasswordChange: boolean }
+  | { token: null; user: null };
+
 interface PersistedSession {
   token: string;
   user: User;
+  requiresPasswordChange?: boolean;
 }
 
-function readPersisted(): { token: string | null; user: User | null } {
+function readPersisted(): {
+  token: string | null;
+  user: User | null;
+  requiresPasswordChange: boolean;
+} {
   if (typeof sessionStorage === 'undefined') {
-    return { token: null, user: null };
+    return { token: null, user: null, requiresPasswordChange: false };
   }
   const raw = sessionStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    return { token: null, user: null };
+    return { token: null, user: null, requiresPasswordChange: false };
   }
   try {
     const parsed = JSON.parse(raw) as Partial<PersistedSession>;
     if (typeof parsed.token === 'string' && parsed.user && typeof parsed.user.id === 'string') {
-      return { token: parsed.token, user: parsed.user as User };
+      return {
+        token: parsed.token,
+        user: parsed.user as User,
+        requiresPasswordChange: parsed.requiresPasswordChange === true,
+      };
     }
   } catch {
     sessionStorage.removeItem(STORAGE_KEY);
   }
-  return { token: null, user: null };
+  return { token: null, user: null, requiresPasswordChange: false };
 }
 
 const initial = readPersisted();
@@ -33,7 +46,9 @@ interface AuthState {
   user: User | null;
   /** JWT retornado pelo login na API. */
   token: string | null;
-  setSession: (token: string | null, user: User | null) => void;
+  /** Quando `true`, bloqueia o app até `POST /auth/password` (primeiro acesso). */
+  requiresPasswordChange: boolean;
+  setSession: (payload: SetSessionPayload) => void;
   setUser: (user: User | null) => void;
   logout: () => void;
 }
@@ -41,21 +56,31 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: initial.user,
   token: initial.token,
-  setSession: (token, user) => {
-    if (typeof sessionStorage !== 'undefined') {
-      if (token && user) {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user } satisfies PersistedSession));
-      } else {
+  requiresPasswordChange: initial.requiresPasswordChange,
+  setSession: (payload) => {
+    if (payload.token && payload.user) {
+      const { token, user, requiresPasswordChange } = payload;
+      if (typeof sessionStorage !== 'undefined') {
+        const toSave: PersistedSession = {
+          token,
+          user,
+          ...(requiresPasswordChange ? { requiresPasswordChange: true } : {}),
+        };
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      }
+      set({ token, user, requiresPasswordChange });
+    } else {
+      if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem(STORAGE_KEY);
       }
+      set({ user: null, token: null, requiresPasswordChange: false });
     }
-    set({ token, user });
   },
   setUser: (user) => set({ user }),
   logout: () => {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(STORAGE_KEY);
     }
-    set({ user: null, token: null });
+    set({ user: null, token: null, requiresPasswordChange: false });
   },
 }));

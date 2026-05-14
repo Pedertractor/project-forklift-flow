@@ -1,6 +1,10 @@
 import { API_ENDPOINTS } from '@/constants/API_ENDPOINTS';
 import { apiAuthFetch } from '@/lib/api';
-import type { MachineDetail, MachineListItem } from '@/types/machine.types';
+import type {
+  CreateMachinePostBody,
+  MachineDetail,
+  MachineListItem,
+} from '@/types/machine.types';
 
 export async function fetchMachines(sectorId?: string): Promise<MachineListItem[]> {
   const q =
@@ -29,7 +33,7 @@ export async function createMachine(input: {
   sectorId: string;
   userId?: string | null;
 }): Promise<MachineDetail> {
-  const body: Record<string, unknown> = {
+  const body: CreateMachinePostBody = {
     name: input.name.trim(),
     position: input.position.trim(),
     typeMachineId: input.typeMachineId.trim(),

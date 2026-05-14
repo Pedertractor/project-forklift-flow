@@ -7,6 +7,8 @@ export interface LoginApiUser {
   card: string;
   unit: 'PEDERTRACTOR' | 'TRACTOR';
   employeeId: number;
+  sectorId?: string | null;
+  sector?: { id: string; typeSector: string } | null;
 }
 
 export interface LoginApiResponse {
@@ -26,5 +28,7 @@ export function mapLoginUserToAppUser(u: LoginApiUser): User {
     cardNumber: u.card,
     unit: unitFromApi(u.unit),
     role: u.role,
+    sectorId: u.sectorId ?? null,
+    sector: u.sector ?? null,
   };
 }

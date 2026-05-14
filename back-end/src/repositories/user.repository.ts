@@ -6,6 +6,9 @@ export const userRepository = {
   findFirstByCardAndUnit(card: string, unit: Unit) {
     return prisma.user.findFirst({
       where: { card: card.trim(), unit },
+      include: {
+        sector: { select: { id: true, typeSector: true } },
+      },
     })
   },
 
@@ -31,6 +34,8 @@ export const userRepository = {
         unit: true,
         employeeId: true,
         isLogged: true,
+        sectorId: true,
+        sector: { select: { id: true, typeSector: true } },
       },
     })
   },

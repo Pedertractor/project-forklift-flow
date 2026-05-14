@@ -8,14 +8,13 @@ export async function loginWithCardUnitPassword(
   unit: Unit,
   password: string,
 ) {
-  console.log(password);
-
   const user = await userRepository.findFirstByCardAndUnit(card, unit);
   if (!user || !verifyPassword(password, user.password)) {
     throw new AuthError("Cartao, unidade ou senha invalidos.");
   }
   return user;
 }
+
 
 export async function updateOwnPassword(input: {
   userId: string;
