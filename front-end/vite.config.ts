@@ -8,6 +8,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Carrega `.env` da raiz do monorepo (mesmo arquivo usado pelo docker-compose).
+  envDir: path.resolve(__dirname, '..'),
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

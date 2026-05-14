@@ -31,7 +31,7 @@ const initial = readPersisted();
 
 interface AuthState {
   user: User | null;
-  /** JWT da API; ausente no login demo sem `VITE_API_URL`. */
+  /** JWT retornado pelo login na API. */
   token: string | null;
   setSession: (token: string | null, user: User | null) => void;
   setUser: (user: User | null) => void;
