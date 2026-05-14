@@ -2,8 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { changeOwnPassword } from '@/services/auth.service';
+import { toast } from '@/lib/toast';
+import { toastApiError } from '@/lib/toast-helpers';
 import { firstPasswordSchema, type FirstPasswordForm } from '@/schemas/first-password.schema';
+import { changeOwnPassword } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 
 export function useFirstPasswordPage() {
@@ -24,8 +26,10 @@ export function useFirstPasswordPage() {
       if (u) {
         setSession({ token: newToken, user: u, requiresPasswordChange: false });
       }
+      toast.success('Senha atualizada com sucesso.');
       navigate('/', { replace: true });
     },
+    onError: toastApiError,
   });
 
   function onSubmit(data: FirstPasswordForm) {

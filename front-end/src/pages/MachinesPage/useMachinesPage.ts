@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
+import { toastApiError } from '@/lib/toast-helpers';
 import {
   createMachine,
   deleteMachine,
@@ -111,7 +113,9 @@ export function useMachinesPage() {
       void queryClient.invalidateQueries({ queryKey: ['machines'] });
       setCreateOpen(false);
       resetForm();
+      toast.success('Máquina cadastrada.');
     },
+    onError: toastApiError,
   });
 
   const updateMut = useMutation({
@@ -144,7 +148,9 @@ export function useMachinesPage() {
       void queryClient.invalidateQueries({ queryKey: ['machines'] });
       setEditRow(null);
       resetForm();
+      toast.success('Máquina atualizada.');
     },
+    onError: toastApiError,
   });
 
   const deleteMut = useMutation({
@@ -152,7 +158,9 @@ export function useMachinesPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['machines'] });
       setDeleteRow(null);
+      toast.success('Máquina excluída.');
     },
+    onError: toastApiError,
   });
 
   const busy =

@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
+import { toastApiError } from '@/lib/toast-helpers';
 import { fetchSectors } from '@/services/sectors-api';
 import {
   createUserRequest,
@@ -114,10 +116,12 @@ export function useUsersPage() {
     onSuccess: (data) => {
       setVerifiedEmployee(data);
       setVerifyState('ok');
+      toast.success('Colaborador encontrado na API de verificação.');
     },
-    onError: () => {
+    onError: (err) => {
       setVerifiedEmployee(null);
       setVerifyState('fail');
+      toastApiError(err);
     },
   });
 
@@ -140,7 +144,9 @@ export function useUsersPage() {
       void queryClient.invalidateQueries({ queryKey: ['users'] });
       setCreateOpen(false);
       resetCreateForm();
+      toast.success('Usuário criado com sucesso.');
     },
+    onError: toastApiError,
   });
 
   const rolePatchMut = useMutation({
@@ -148,7 +154,9 @@ export function useUsersPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] });
       setRoleEditUser(null);
+      toast.success('Perfil do usuário atualizado.');
     },
+    onError: toastApiError,
   });
 
   const resetMut = useMutation({
@@ -156,7 +164,9 @@ export function useUsersPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['users'] });
       setResetTarget(null);
+      toast.success('Senha redefinida para o padrão do ambiente.');
     },
+    onError: toastApiError,
   });
 
   const openRoleEdit = (row: UserListRow) => {

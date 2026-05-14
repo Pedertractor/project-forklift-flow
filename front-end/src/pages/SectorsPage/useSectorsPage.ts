@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
+import { toastApiError } from '@/lib/toast-helpers';
 import {
   createSector,
   deleteSector,
@@ -57,7 +59,9 @@ export function useSectorsPage() {
       void queryClient.invalidateQueries({ queryKey: ['sectors'] });
       setCreateOpen(false);
       resetForm();
+      toast.success('Setor criado.');
     },
+    onError: toastApiError,
   });
 
   const updateMut = useMutation({
@@ -75,7 +79,9 @@ export function useSectorsPage() {
       void queryClient.invalidateQueries({ queryKey: ['sectors'] });
       setEditRow(null);
       resetForm();
+      toast.success('Setor atualizado.');
     },
+    onError: toastApiError,
   });
 
   const deleteMut = useMutation({
@@ -88,7 +94,9 @@ export function useSectorsPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['sectors'] });
       setDeleteRow(null);
+      toast.success('Setor excluído.');
     },
+    onError: toastApiError,
   });
 
   const busy = createMut.isPending || updateMut.isPending || deleteMut.isPending;

@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { Toaster } from '@/components/ui/sonner';
 import { PrivateRoute } from '@/components/layout/PrivateRoute';
 import { RequireRoles } from '@/components/layout/RequireRoles';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -39,6 +40,7 @@ const UsersPage = lazy(() =>
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster />
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>

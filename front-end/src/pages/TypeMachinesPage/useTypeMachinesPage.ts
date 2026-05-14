@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
 import { apiServerOrigin } from '@/lib/api';
+import { toastApiError } from '@/lib/toast-helpers';
 import {
   createTypeMachineMultipart,
   deleteTypeMachine,
@@ -101,7 +103,9 @@ export function useTypeMachinesPage() {
       void queryClient.invalidateQueries({ queryKey: ['type-machines'] });
       setCreateOpen(false);
       resetForm();
+      toast.success('Tipo de máquina criado.');
     },
+    onError: toastApiError,
   });
 
   const updateMut = useMutation({
@@ -125,7 +129,9 @@ export function useTypeMachinesPage() {
       void queryClient.invalidateQueries({ queryKey: ['type-machines'] });
       setEditRow(null);
       resetForm();
+      toast.success('Tipo de máquina atualizado.');
     },
+    onError: toastApiError,
   });
 
   const deleteMut = useMutation({
@@ -133,7 +139,9 @@ export function useTypeMachinesPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['type-machines'] });
       setDeleteRow(null);
+      toast.success('Tipo de máquina excluído.');
     },
+    onError: toastApiError,
   });
 
   const busy =
