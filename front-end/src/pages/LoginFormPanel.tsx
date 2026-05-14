@@ -6,6 +6,7 @@ import { EyeOffIcon } from '@/components/icons/EyeOffIcon';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ENV } from '@/constants/env';
 import { loginSchema, type LoginPayload } from '@/schemas/auth.schema';
 import { useLogin } from '@/hooks/useLogin';
 
@@ -39,10 +40,16 @@ export function LoginFormPanel() {
       <header className="mb-6">
         <h2 className="m-0 text-xl font-bold tracking-tight text-zinc-900">Fazer login</h2>
         <p className="mt-2 text-sm text-zinc-500">Insira suas credenciais abaixo.</p>
-        <p className="mt-1 text-xs text-zinc-400">
-          Sem <code className="rounded bg-zinc-100 px-1 py-0.5 text-[0.7rem]">VITE_API_URL</code>, o acesso usa
-          usuário demo local.
-        </p>
+        {!ENV.API_URL ? (
+          <p className="mt-1 text-xs text-amber-800">
+            Defina <code className="rounded bg-amber-100 px-1 py-0.5 text-[0.7rem]">VITE_API_URL</code> no{' '}
+            <code className="rounded bg-amber-100 px-1 py-0.5 text-[0.7rem]">.env</code> da raiz (ex.:{' '}
+            <code className="rounded bg-amber-100 px-1 py-0.5 text-[0.7rem]">http://localhost:3131/api</code>) e
+            reinicie o servidor.
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-zinc-400">As credenciais são validadas na API em {ENV.API_URL}.</p>
+        )}
       </header>
 
       <form className="flex max-w-md flex-col gap-5" onSubmit={handleSubmit(onSubmit)} noValidate>
