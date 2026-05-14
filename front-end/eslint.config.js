@@ -18,5 +18,16 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSTypeAnnotation > TSUnknownKeyword',
+          message:
+            'Nao use o tipo `unknown` em anotacoes; prefira tipos explicitos ou narrowing (ver front-end/FRONTEND_PADRONIZACAO.md).',
+        },
+      ],
+    },
   },
 ])

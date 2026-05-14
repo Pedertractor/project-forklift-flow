@@ -33,7 +33,6 @@ export const sectorRepository = {
     return prisma.sector.findMany({
       select: {
         id: true,
-        sectorIdAPI: true,
         typeSector: true,
         createdAt: true,
         updatedAt: true,

@@ -1,185 +1,80 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
-import {
-  createMachine,
-  deleteMachine,
-  fetchMachines,
-  updateMachine,
-} from '@/services/machines-api';
-import { fetchSectors } from '@/services/sectors-api';
-import { fetchTypeMachines } from '@/services/type-machines-api';
-import { useAuthStore } from '@/store/auth.store';
-import type { MachineListItem } from '@/types/machine.types';
-
-function useApiReady(): boolean {
-  const token = useAuthStore((s) => s.token);
-  return Boolean(ENV.API_URL && token);
-}
+import { type MachinesPageViewModel } from './useMachinesPage';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
 
-export function MachinesPage() {
-  const queryClient = useQueryClient();
-  const apiReady = useApiReady();
-  const token = useAuthStore((s) => s.token);
-
-  const sectorsQuery = useQuery({
-    queryKey: ['sectors'],
-    queryFn: fetchSectors,
-    enabled: apiReady,
-  });
-
-  const typesQuery = useQuery({
-    queryKey: ['type-machines'],
-    queryFn: fetchTypeMachines,
-    enabled: apiReady,
-  });
-
-  const [sectorFilter, setSectorFilter] = useState('');
-
-  const machinesQuery = useQuery({
-    queryKey: ['machines', sectorFilter],
-    queryFn: () => fetchMachines(sectorFilter || undefined),
-    enabled: apiReady,
-  });
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editRow, setEditRow] = useState<MachineListItem | null>(null);
-  const [deleteRow, setDeleteRow] = useState<MachineListItem | null>(null);
-
-  const [name, setName] = useState('');
-  const [position, setPosition] = useState('');
-  const [typeMachineId, setTypeMachineId] = useState('');
-  const [sectorId, setSectorId] = useState('');
-  const [userId, setUserId] = useState('');
-  const [clearOperator, setClearOperator] = useState(false);
-
-  const resetForm = useCallback(() => {
-    setName('');
-    setPosition('');
-    setTypeMachineId('');
-    setSectorId('');
-    setUserId('');
-    setClearOperator(false);
-  }, []);
-
-  const openCreate = () => {
-    resetForm();
-    if (sectorsQuery.data?.length === 1) {
-      setSectorId(sectorsQuery.data[0].id);
-    }
-    if (typesQuery.data?.length === 1) {
-      setTypeMachineId(typesQuery.data[0].id);
-    }
-    setCreateOpen(true);
-  };
-
-  const openEdit = (row: MachineListItem) => {
-    setName(row.name);
-    setPosition(row.position);
-    setTypeMachineId(row.typeMachineId);
-    setSectorId(row.sectorId);
-    setUserId(row.userId ?? '');
-    setClearOperator(false);
-    setEditRow(row);
-  };
-
-  const createMut = useMutation({
-    mutationFn: async () => {
-      const n = name.trim();
-      const p = position.trim();
-      if (!n || !p) {
-        throw new Error('Nome e posição são obrigatórios.');
-      }
-      if (!typeMachineId || !sectorId) {
-        throw new Error('Selecione o tipo e o setor.');
-      }
-      return createMachine({
-        name: n,
-        position: p,
-        typeMachineId,
-        sectorId,
-        userId: userId.trim() === '' ? undefined : userId.trim(),
-      });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['machines'] });
-      setCreateOpen(false);
-      resetForm();
-    },
-  });
-
-  const updateMut = useMutation({
-    mutationFn: async () => {
-      if (!editRow) {
-        throw new Error('Sem registro.');
-      }
-      const n = name.trim();
-      const p = position.trim();
-      if (!n || !p) {
-        throw new Error('Nome e posição são obrigatórios.');
-      }
-      if (!typeMachineId || !sectorId) {
-        throw new Error('Selecione o tipo e o setor.');
-      }
-      const patch: Parameters<typeof updateMachine>[1] = {
-        name: n,
-        position: p,
-        typeMachineId,
-        sectorId,
-      };
-      if (clearOperator) {
-        patch.userId = null;
-      } else if (userId.trim() !== '') {
-        patch.userId = userId.trim();
-      }
-      return updateMachine(editRow.id, patch);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['machines'] });
-      setEditRow(null);
-      resetForm();
-    },
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: async (id: string) => deleteMachine(id),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['machines'] });
-      setDeleteRow(null);
-    },
-  });
-
-  const busy = createMut.isPending || updateMut.isPending || deleteMut.isPending;
-  const createError = createMut.error instanceof Error ? createMut.error.message : null;
-  const updateError = updateMut.error instanceof Error ? updateMut.error.message : null;
+export function MachinesPageView(vm: MachinesPageViewModel) {
+  const {
+    apiReady,
+    token,
+    sectorsQuery,
+    typesQuery,
+    sectorFilter,
+    setSectorFilter,
+    machinesQuery,
+    sectorsEmpty,
+    typesEmpty,
+    cannotCreateMachine,
+    createOpen,
+    setCreateOpen,
+    editRow,
+    setEditRow,
+    deleteRow,
+    setDeleteRow,
+    name,
+    setName,
+    position,
+    setPosition,
+    typeMachineId,
+    setTypeMachineId,
+    sectorId,
+    setSectorId,
+    userId,
+    setUserId,
+    clearOperator,
+    setClearOperator,
+    openCreate,
+    openEdit,
+    createMut,
+    updateMut,
+    deleteMut,
+    busy,
+    createError,
+    updateError,
+  } = vm;
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
-            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">Máquinas</h1>
+            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
+              Máquinas
+            </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
-              Cadastro de máquinas (nome, posição, tipo, setor e operador opcional). Endpoint{' '}
-              <code className="rounded bg-zinc-100 px-1 font-mono text-xs">/api/machines</code>.
+              Cadastre as máquinas que farão parte da plataforma.
             </p>
           </div>
-          <Button type="button" onClick={openCreate} disabled={!apiReady || busy}>
+          <Button
+            type="button"
+            onClick={openCreate}
+            disabled={!apiReady || busy}
+          >
             Nova máquina
           </Button>
         </header>
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_API_URL</code> e faça login para gerenciar máquinas.
+            Defina <code className="font-mono">VITE_API_URL</code> e faça login
+            para gerenciar máquinas.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -187,8 +82,33 @@ export function MachinesPage() {
           </p>
         ) : null}
 
+        {apiReady && token && (sectorsEmpty || typesEmpty) ? (
+          <div className="mt-4 space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            {typesEmpty ? (
+              <p className="m-0">
+                Não há tipos de máquina cadastrados. Cadastre ao menos um tipo
+                com nome e imagem em{' '}
+                <Link
+                  to="/cadastro/tipos-maquina"
+                  className="font-semibold text-[#005fb8] underline underline-offset-2 hover:text-[#004a8f]"
+                >
+                  Tipos de máquina
+                </Link>{' '}
+                antes de criar uma máquina.
+              </p>
+            ) : null}
+            {sectorsEmpty ? (
+              <p className="m-0">
+                Não há setores retornados pela API. É necessário existir setor
+                no sistema para vincular a máquina; verifique dados e permissões
+                no back-end.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="min-w-[12rem] space-y-2">
+          <div className="min-w-48 space-y-2">
             <Label htmlFor="machine-sector-filter">Filtrar por setor</Label>
             <select
               id="machine-sector-filter"
@@ -200,7 +120,10 @@ export function MachinesPage() {
               <option value="">Todos</option>
               {sectorsQuery.data?.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.typeSector} (#{s.sectorIdAPI})
+                  {s.typeSector}
+                  {typeof s.sectorIdAPI === 'number'
+                    ? ` (#${s.sectorIdAPI})`
+                    : ''}
                 </option>
               ))}
             </select>
@@ -209,7 +132,9 @@ export function MachinesPage() {
 
         {machinesQuery.isError ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            {machinesQuery.error instanceof Error ? machinesQuery.error.message : 'Erro ao carregar máquinas.'}
+            {machinesQuery.error instanceof Error
+              ? machinesQuery.error.message
+              : 'Erro ao carregar máquinas.'}
           </p>
         ) : null}
 
@@ -218,32 +143,53 @@ export function MachinesPage() {
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
                 <th className="px-4 py-3 font-semibold text-zinc-700">Nome</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Posição</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Posição
+                </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Tipo</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
-                <th className="px-4 py-3 text-right font-semibold text-zinc-700">Ações</th>
+                <th className="px-4 py-3 text-right font-semibold text-zinc-700">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
               {machinesQuery.isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     Carregando…
                   </td>
                 </tr>
               ) : machinesQuery.data?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     Nenhuma máquina neste filtro.
                   </td>
                 </tr>
               ) : (
                 machinesQuery.data?.map((row) => (
-                  <tr key={row.id} className="border-b border-zinc-100 last:border-0">
-                    <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
-                    <td className="px-4 py-3 font-mono text-zinc-700">{row.position}</td>
-                    <td className="px-4 py-3 text-zinc-700">{row.typeMachine.name}</td>
-                    <td className="px-4 py-3 text-zinc-700">{row.sector.typeSector}</td>
+                  <tr
+                    key={row.id}
+                    className="border-b border-zinc-100 last:border-0"
+                  >
+                    <td className="px-4 py-3 font-medium text-zinc-900">
+                      {row.name}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-zinc-700">
+                      {row.position}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {row.typeMachine.name}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {row.sector.typeSector}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -279,28 +225,63 @@ export function MachinesPage() {
       <SimpleModal
         open={createOpen}
         title="Nova máquina"
-        description="Operador: informe o UUID do usuário apenas se souber o id (opcional)."
+        description="Preencha nome, posição, tipo e setor. O operador é opcional (informe o UUID do usuário somente se souber o identificador)."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions
             onCancel={() => !busy && setCreateOpen(false)}
             submitLabel={busy ? 'Salvando…' : 'Criar'}
-            disabled={busy}
+            disabled={busy || cannotCreateMachine}
             onSubmit={() => createMut.mutate()}
           />
         }
       >
         {createError ? (
-          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{createError}</p>
+          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {createError}
+          </p>
+        ) : null}
+        {cannotCreateMachine ? (
+          <div className="mb-4 space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+            {typesEmpty ? (
+              <p className="m-0">
+                Cadastre um tipo em{' '}
+                <Link
+                  to="/cadastro/tipos-maquina"
+                  className="font-semibold text-[#005fb8] underline underline-offset-2"
+                  onClick={() => !busy && setCreateOpen(false)}
+                >
+                  Tipos de máquina
+                </Link>
+                .
+              </p>
+            ) : null}
+            {sectorsEmpty ? (
+              <p className="m-0">
+                Sem setores disponíveis: não é possível salvar até a API
+                retornar setores.
+              </p>
+            ) : null}
+          </div>
         ) : null}
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="m-name">Nome</Label>
-            <Input id="m-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Máquina linha A-01" />
+            <Input
+              id="m-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex.: Máquina linha A-01"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-pos">Posição</Label>
-            <Input id="m-pos" value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Ex.: A1" />
+            <Input
+              id="m-pos"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              placeholder="Ex.: A1"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-type">Tipo de máquina</Label>
@@ -329,7 +310,10 @@ export function MachinesPage() {
               <option value="">Selecione…</option>
               {sectorsQuery.data?.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.typeSector} (#{s.sectorIdAPI})
+                  {s.typeSector}
+                  {typeof s.sectorIdAPI === 'number'
+                    ? ` (#${s.sectorIdAPI})`
+                    : ''}
                 </option>
               ))}
             </select>
@@ -361,16 +345,26 @@ export function MachinesPage() {
         }
       >
         {updateError ? (
-          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{updateError}</p>
+          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {updateError}
+          </p>
         ) : null}
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="m-edit-name">Nome</Label>
-            <Input id="m-edit-name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              id="m-edit-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-pos">Posição</Label>
-            <Input id="m-edit-pos" value={position} onChange={(e) => setPosition(e.target.value)} />
+            <Input
+              id="m-edit-pos"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-type">Tipo de máquina</Label>
@@ -397,7 +391,10 @@ export function MachinesPage() {
             >
               {sectorsQuery.data?.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.typeSector} (#{s.sectorIdAPI})
+                  {s.typeSector}
+                  {typeof s.sectorIdAPI === 'number'
+                    ? ` (#${s.sectorIdAPI})`
+                    : ''}
                 </option>
               ))}
             </select>
@@ -427,7 +424,9 @@ export function MachinesPage() {
       <SimpleModal
         open={Boolean(deleteRow)}
         title="Excluir máquina"
-        description={deleteRow ? `Confirma a exclusão de «${deleteRow.name}»?` : undefined}
+        description={
+          deleteRow ? `Confirma a exclusão de «${deleteRow.name}»?` : undefined
+        }
         onClose={() => (!busy ? setDeleteRow(null) : undefined)}
         footer={
           <ModalActions

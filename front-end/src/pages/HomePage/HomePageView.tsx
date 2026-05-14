@@ -1,16 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { ENV } from '@/constants/env';
-import { useAuthStore } from '@/store/auth.store';
-import type { AppUnit } from '@/types/user.types';
+import type { HomePageViewModel } from './useHomePage';
 
-function unitLabel(unit: AppUnit): string {
-  return unit === 'pedertractor' ? 'PEDERTRACTOR' : 'TRACTOR';
-}
-
-export function HomePage() {
-  const user = useAuthStore((s) => s.user);
-
+export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) {
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-5xl">
@@ -79,9 +71,10 @@ export function HomePage() {
                 VITE_API_URL
               </code>{' '}
               no <code className="font-mono text-xs">.env</code> da raiz do repositório (inclua{' '}
-              <code className="font-mono text-xs">/api</code>, ex.: <code className="font-mono text-xs">http://localhost:3131/api</code>
+              <code className="font-mono text-xs">/api</code>, ex.:{' '}
+              <code className="font-mono text-xs">http://localhost:3131/api</code>
               ). Reinicie o Vite após alterar. Valor atual:{' '}
-              <code className="font-mono text-xs text-zinc-800">{ENV.API_URL || '(não definido)'}</code>.
+              <code className="font-mono text-xs text-zinc-800">{envApiUrl || '(não definido)'}</code>.
             </p>
           </Card>
         </div>

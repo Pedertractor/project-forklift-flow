@@ -35,14 +35,58 @@ function resolveUrl(path: string): string {
   return `${base}${p}`;
 }
 
+/** Evita `fetch` pendente indefinidamente (multipart costuma ir para outro host / proxy). */
+function signalWithOptionalTimeout(
+  existing: AbortSignal | undefined,
+  timeoutMs: number | undefined,
+): AbortSignal | undefined {
+  if (timeoutMs === undefined || timeoutMs <= 0) {
+    return existing;
+  }
+  if (typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') {
+    return existing;
+  }
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  if (!existing) {
+    return timeoutSignal;
+  }
+  if (typeof AbortSignal.any === 'function') {
+    return AbortSignal.any([existing, timeoutSignal]);
+  }
+  return existing;
+}
+
+/** Fastify rejeita `Content-Type: application/json` sem corpo (ex.: DELETE). */
+function shouldSetJsonContentType(fetchInit: RequestInit, isForm: boolean): boolean {
+  if (isForm) {
+    return false;
+  }
+  const b = fetchInit.body;
+  if (b === undefined || b === null) {
+    return false;
+  }
+  if (typeof b === 'string' && b.length === 0) {
+    return false;
+  }
+  return true;
+}
+
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const url = resolveUrl(path);
+  const { headers: optionHeaders, ...fetchInit } = options ?? {};
+  const isForm =
+    typeof FormData !== 'undefined' && fetchInit.body instanceof FormData;
+  const headers: Record<string, string> = {
+    ...(optionHeaders && typeof optionHeaders === 'object' && !Array.isArray(optionHeaders)
+      ? (optionHeaders as Record<string, string>)
+      : {}),
+  };
+  if (shouldSetJsonContentType(fetchInit, isForm)) {
+    headers['Content-Type'] = 'application/json';
+  }
   const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-    ...options,
+    ...fetchInit,
+    headers,
   });
 
   if (!response.ok) {
@@ -58,7 +102,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
  */
 export async function apiAuthFetch<T>(
   path: string,
-  options?: RequestInit & { skipJsonContentType?: boolean },
+  options?: RequestInit & { skipJsonContentType?: boolean; timeoutMs?: number },
 ): Promise<T | undefined> {
   const token = useAuthStore.getState().token;
   if (!token) {
@@ -66,19 +110,51 @@ export async function apiAuthFetch<T>(
   }
 
   const url = resolveUrl(path);
-  const isForm = typeof FormData !== 'undefined' && options?.body instanceof FormData;
-  const headers: HeadersInit = {
-    Authorization: `Bearer ${token}`,
-    ...(options?.headers as Record<string, string>),
+  const {
+    skipJsonContentType = false,
+    timeoutMs: timeoutMsOption,
+    headers: optionHeaders,
+    ...fetchInit
+  } = (options ?? {}) as RequestInit & {
+    skipJsonContentType?: boolean;
+    timeoutMs?: number;
   };
-  if (!isForm && !options?.skipJsonContentType) {
-    (headers as Record<string, string>)['Content-Type'] = 'application/json';
+
+  const isForm =
+    typeof FormData !== 'undefined' && fetchInit.body instanceof FormData;
+  /** Upload multipart: limite para não ficar preso em "Salvando…" se a rede/servidor não responder. */
+  const timeoutMs = timeoutMsOption ?? (isForm ? 90_000 : undefined);
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    ...(optionHeaders && typeof optionHeaders === 'object' && !Array.isArray(optionHeaders)
+      ? (optionHeaders as Record<string, string>)
+      : {}),
+  };
+  if (!skipJsonContentType && shouldSetJsonContentType(fetchInit, isForm)) {
+    headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  const signal = signalWithOptionalTimeout(fetchInit.signal ?? undefined, timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...fetchInit,
+      headers,
+      ...(signal ? { signal } : {}),
+    });
+  } catch (e) {
+    const abortedByTimeout =
+      (e instanceof DOMException && e.name === 'AbortError') ||
+      (e instanceof Error && e.name === 'AbortError');
+    if (abortedByTimeout) {
+      throw new Error(
+        'Tempo esgotado ao enviar ou receber resposta da API. Verifique se o back-end está acessível, a URL em VITE_API_URL e a rede.',
+        { cause: e },
+      );
+    }
+    throw e;
+  }
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response));

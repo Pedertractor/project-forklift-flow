@@ -8,8 +8,10 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (payload: LoginPayload) => loginWithPassword(payload),
-    onSuccess: ({ token, user }) => {
-      setSession(token, user);
+    onSuccess: ({ token, user, requiresPasswordChange }) => {
+      if (token) {
+        setSession({ token, user, requiresPasswordChange });
+      }
     },
   });
 }

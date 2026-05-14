@@ -11,7 +11,14 @@ type SimpleModalProps = {
   footer?: ReactNode;
 };
 
-export function SimpleModal({ open, title, description, onClose, children, footer }: SimpleModalProps) {
+export function SimpleModal({
+  open,
+  title,
+  description,
+  onClose,
+  children,
+  footer,
+}: SimpleModalProps) {
   if (!open) {
     return null;
   }
@@ -26,11 +33,21 @@ export function SimpleModal({ open, title, description, onClose, children, foote
       />
       <Card className="relative z-10 flex max-h-[min(90vh,40rem)] w-full max-w-lg flex-col overflow-hidden border border-zinc-200 p-0 shadow-xl">
         <div className="shrink-0 border-b border-zinc-100 px-5 py-4">
-          <h2 className="m-0 text-lg font-semibold tracking-tight text-zinc-900">{title}</h2>
-          {description ? <p className="mt-2 mb-0 text-sm text-zinc-600">{description}</p> : null}
+          <h2 className="m-0 text-lg font-semibold tracking-tight text-zinc-900">
+            {title}
+          </h2>
+          {description ? (
+            <p className="mt-2 mb-0 text-sm text-zinc-600">{description}</p>
+          ) : null}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer ? <div className="shrink-0 border-t border-zinc-100 bg-zinc-50/80 px-5 py-3">{footer}</div> : null}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {children}
+        </div>
+        {footer ? (
+          <div className="shrink-0 border-t border-zinc-100 bg-zinc-50/80 px-5 py-3">
+            {footer}
+          </div>
+        ) : null}
       </Card>
     </div>
   );
@@ -51,7 +68,12 @@ export function ModalActions({
 }) {
   return (
     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
-      <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onCancel}>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full sm:w-auto"
+        onClick={onCancel}
+      >
         Cancelar
       </Button>
       <Button

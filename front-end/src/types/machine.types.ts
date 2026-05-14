@@ -21,9 +21,18 @@ export interface MachineListItem {
   sector: { id: string; typeSector: string }
 }
 
+/** Corpo JSON de POST /machines (operador opcional). */
+export interface CreateMachinePostBody {
+  name: string
+  position: string
+  typeMachineId: string
+  sectorId: string
+  userId?: string
+}
+
 /** GET /machines/:id (detalhe) */
 export interface MachineDetail extends MachineListItem {
-  sector: { id: string; typeSector: string; sectorIdAPI: number }
+  sector: { id: string; typeSector: string; sectorIdAPI?: number }
   user: {
     id: string
     name: string
@@ -34,6 +43,9 @@ export interface MachineDetail extends MachineListItem {
 
 export interface SectorListItem {
   id: string
-  sectorIdAPI: number
+  /** Pode existir conforme migração / API legada. */
+  sectorIdAPI?: number
   typeSector: string
+  createdAt?: string
+  updatedAt?: string
 }
