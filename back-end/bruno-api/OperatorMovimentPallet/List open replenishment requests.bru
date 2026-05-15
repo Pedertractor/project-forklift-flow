@@ -18,7 +18,7 @@ docs {
   # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
   # Precisa estar vinculado a um MovimentPallet (POST my-moviment-pallet).
   # Resposta:
-  # - requests: fila para ACEITAR entrega (solicitacoes CREATED do mesmo typeMovimentPallet, sem DELIVER em aberto).
+  # - requests: fila para ACEITAR entrega (PALLET_READY ou CREATED legado, mesmo typeMovimentPallet, sem DELIVER em aberto).
   # - onMachinePickupTasks: tarefas PICKUP_TO_EXPEDITION em aberto com requisicao ON_MACHINE no seu setor
   #   (retirada pedida pelo operador da maquina) — use POST .../tasks/{id}/accept-pickup para pegar.
 }

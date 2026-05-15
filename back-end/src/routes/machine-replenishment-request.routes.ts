@@ -3,8 +3,10 @@ import {
   deleteMachineReplenishmentRequestHandler,
   getListMachineReplenishmentRequests,
   getMachineReplenishmentRequestByIdHandler,
+  getPendingPreparationRequests,
   patchUpdateMachineReplenishmentRequest,
   postCreateMachineReplenishmentRequest,
+  postMarkPalletReady,
 } from '../controllers/machine-replenishment-request-controller.js'
 import { requireMachineReplenishmentRequestRoles } from '../middleware/require-roles.js'
 
@@ -32,6 +34,26 @@ export async function registerMachineReplenishmentRequestRoutes(
           ],
         },
         getListMachineReplenishmentRequests,
+      )
+      router.get(
+        '/pending-preparation',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireMachineReplenishmentRequestRoles(),
+          ],
+        },
+        getPendingPreparationRequests,
+      )
+      router.post(
+        '/:requestId/mark-pallet-ready',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireMachineReplenishmentRequestRoles(),
+          ],
+        },
+        postMarkPalletReady,
       )
       router.get(
         '/:requestId',

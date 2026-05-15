@@ -95,7 +95,7 @@ export class MachineReplenishmentRequestNotEditableError extends Error {
 
 export class MachineReplenishmentRequestDeleteBlockedError extends Error {
   constructor(
-    message = 'So e possivel excluir solicitacoes em CREATED sem tarefas vinculadas.',
+    message = 'So e possivel excluir solicitacoes aguardando preparo ou pallet pronto, sem tarefas vinculadas.',
   ) {
     super(message)
     this.name = 'MachineReplenishmentRequestDeleteBlockedError'
@@ -117,6 +117,33 @@ export class ReplenishmentRequestNotForOperatorMachineError extends Error {
   ) {
     super(message)
     this.name = 'ReplenishmentRequestNotForOperatorMachineError'
+  }
+}
+
+export class OperatorMachineNotBoundError extends Error {
+  constructor(
+    message = 'Nenhuma maquina vinculada; selecione a maquina de operacao antes.',
+  ) {
+    super(message)
+    this.name = 'OperatorMachineNotBoundError'
+  }
+}
+
+export class ReplenishmentFinalizeMissingFieldsError extends Error {
+  constructor(
+    message = 'Informe movementCube e typeMovimentPallet para abrir preparo de novo pallet.',
+  ) {
+    super(message)
+    this.name = 'ReplenishmentFinalizeMissingFieldsError'
+  }
+}
+
+export class ReplenishmentNotAwaitingPreparationError extends Error {
+  constructor(
+    message = 'So e possivel marcar pallet pronto em solicitacoes aguardando preparo.',
+  ) {
+    super(message)
+    this.name = 'ReplenishmentNotAwaitingPreparationError'
   }
 }
 

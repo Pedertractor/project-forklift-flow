@@ -1,9 +1,11 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuthMe } from '@/hooks/useAuthMe';
 import { useAuthStore } from '@/store/auth.store';
 
 const FIRST_PASSWORD_PATH = '/definir-senha';
 
 export function PrivateRoute() {
+  useAuthMe();
   const user = useAuthStore((s) => s.user);
   const requiresPasswordChange = useAuthStore((s) => s.requiresPasswordChange);
   const location = useLocation();

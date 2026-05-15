@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
 import { useAuthStore } from '@/store/auth.store';
-import { sidebarItemsForRole } from '@/config/sidebar-nav';
+import { sidebarSectionsForRole } from '@/config/sidebar-nav';
 import { cn } from '@/lib/utils';
 import type { AppUnit } from '@/types/user.types';
 
@@ -13,6 +13,24 @@ function userInitials(name: string): string {
 
 function unitLabel(unit: AppUnit): string {
   return unit === 'pedertractor' ? 'PEDERTRACTOR' : 'TRACTOR';
+}
+
+/** Rótulo amigável do papel JWT (pt-BR) para o rodapé do menu. */
+function roleMenuLabel(role: string | undefined): string {
+  if (!role) {
+    return '—';
+  }
+  const map: Record<string, string> = {
+    OPERATOR_MACHINE: 'Operador de máquina',
+    FORKLIFT_OPERATOR: 'Operador de empilhadeira',
+    FOLLOW_UP_OPERATOR: 'Operador de transpaleteira',
+    SUPPLY_OPERATOR: 'Abastecimento',
+    LEADER: 'Líder',
+    SUPERVISOR: 'Supervisor',
+    MANAGER: 'Gerente',
+    ADMIN: 'Administrador',
+  };
+  return map[role] ?? role;
 }
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -35,8 +53,8 @@ export function AppSidebar({
   onRequestLogout,
 }: AppSidebarProps) {
   const user = useAuthStore((s) => s.user);
-  const navItems = sidebarItemsForRole(user?.role);
   const { enabled: movimentWorkEnabled, incompleteTaskCount } = useOperatorMovimentWork();
+  const navSections = sidebarSectionsForRole(user?.role);
 
   return (
     <aside
@@ -52,14 +70,13 @@ export function AppSidebar({
         </p>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={navLinkClass}
-            onClick={onCloseSidebar}
+      <nav className="flex flex-1 flex-col gap-0 overflow-y-auto p-2" aria-label="Navegação por módulo">
+        {navSections.map(({ section, items }, sectionIndex) => (
+          <div
+            key={section.id}
+            className={cn(
+              sectionIndex > 0 && 'mt-3 border-t border-zinc-200 pt-3',
+            )}
           >
             <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
               <span className="truncate">{item.label}</span>
@@ -105,6 +122,12 @@ export function AppSidebar({
                   '—'
                 )}
               </p>
+              {user?.role ? (
+                <p className="mt-1 truncate text-[10px] text-zinc-400" title={user.role}>
+                  Papel: <span className="font-medium text-zinc-600">{roleMenuLabel(user.role)}</span>
+                  <span className="font-mono text-zinc-400"> ({user.role})</span>
+                </p>
+              ) : null}
             </div>
           </div>
         </button>

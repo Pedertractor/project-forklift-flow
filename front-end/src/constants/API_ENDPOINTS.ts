@@ -1,6 +1,7 @@
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    ME: '/auth/me',
     PASSWORD: '/auth/password',
   },
   USERS: {
@@ -38,5 +39,6 @@ export const API_ENDPOINTS = {
       `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/complete-deliver`,
     COMPLETE_PICKUP: (taskId: string) =>
       `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/complete-pickup`,
+
   },
 } as const;

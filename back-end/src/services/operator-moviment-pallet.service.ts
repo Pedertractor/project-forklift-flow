@@ -139,6 +139,20 @@ export async function unbindOperatorFromMovimentPallets(operatorUserId: string) 
   )
 }
 
+/** Itens na fila de entrega do tipo do equipamento (substituto leve de push). */
+export async function listMovimentOperatorTransportNotifications(
+  operatorUserId: string,
+) {
+  const { requests, onMachinePickupTasks } =
+    await listOpenReplenishmentRequestsForMyMovimentType(operatorUserId)
+  return {
+    deliverRequestsAvailable: requests.length,
+    onMachinePickupTasksAvailable: onMachinePickupTasks.length,
+    deliverRequests: requests,
+    onMachinePickupTasks,
+  }
+}
+
 export async function listOpenReplenishmentRequestsForMyMovimentType(
   operatorUserId: string,
 ) {
@@ -1152,7 +1166,9 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
     const claimed = await tx.machineReplenishmentRequest.updateMany({
       where: {
         id: requestId,
-        status: RequestStatus.CREATED,
+        status: {
+          in: [RequestStatus.PALLET_READY, RequestStatus.CREATED],
+        },
         typeMovimentPallet: pallet.type,
       },
       data: { status: RequestStatus.IN_PROGRESS },

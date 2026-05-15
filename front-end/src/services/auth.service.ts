@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from '@/constants/API_ENDPOINTS';
 import { ENV } from '@/constants/env';
 import { apiFetch, apiAuthFetch } from '@/lib/api';
 import type { LoginPayload } from '@/schemas/auth.schema';
-import type { LoginApiResponse } from '@/types/auth-api.types';
+import type { AuthMeApiResponse, LoginApiResponse } from '@/types/auth-api.types';
 import { mapLoginUserToAppUser } from '@/types/auth-api.types';
 import type { User } from '@/types/user.types';
 
@@ -39,6 +39,17 @@ export async function loginWithPassword(payload: LoginPayload): Promise<LoginRes
     user: mapLoginUserToAppUser(data.user),
     requiresPasswordChange: data.firstAccess,
   };
+}
+
+/** Perfil atual do usuário autenticado (`GET /api/auth/me`). */
+export async function fetchAuthMe(): Promise<AuthMeApiResponse> {
+  const data = await apiAuthFetch<AuthMeApiResponse>(API_ENDPOINTS.AUTH.ME, {
+    method: 'GET',
+  });
+  if (!data) {
+    throw new Error('Resposta vazia ao carregar perfil.');
+  }
+  return data;
 }
 
 /** Define nova senha (`POST /api/auth/password`). No primeiro acesso não envie `currentPassword`. */

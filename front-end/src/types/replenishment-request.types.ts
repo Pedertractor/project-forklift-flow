@@ -1,0 +1,48 @@
+import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
+
+export type RequestStatusValue =
+  | 'CREATED'
+  | 'IN_PROGRESS'
+  | 'ON_MACHINE'
+  | 'COMPLETED'
+  | 'CANCELED'
+  | 'AWAITING_PREPARATION'
+  | 'PALLET_READY';
+
+export type PriorityLevelValue = 'VERY_HIGH' | 'HIGH' | 'NORMAL';
+
+export interface ReplenishmentRequestListItem {
+  id: string;
+  destinationId: string;
+  movementCube: string;
+  typeMovimentPallet: MovimentPalletEquipmentType;
+  priorityLevel: PriorityLevelValue;
+  status: RequestStatusValue;
+  preparedAt: string | null;
+  awaitingPreparationSince: string | null;
+  createdAt: string;
+  updatedAt: string;
+  requestedById: string;
+  requestedBy: {
+    id: string;
+    name: string;
+    employeeId: number | null;
+    card: string;
+    unit: string;
+    role: string;
+  };
+  destination: {
+    id: string;
+    name: string;
+    position: string;
+    userId: string | null;
+    typeMachine: { id: string; name: string };
+    sector: { id: string; typeSector: string };
+  };
+  _count: { movimentPalletTasks: number };
+}
+
+export interface MarkPalletReadyResponse {
+  message: string;
+  request: ReplenishmentRequestListItem;
+}

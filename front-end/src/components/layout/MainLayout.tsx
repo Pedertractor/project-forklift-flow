@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { queryClient } from '@/lib/queryClient';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { OperatorMovimentWorkProvider } from '@/components/layout/OperatorMovimentWorkProvider';
+import { authMeQueryKeyBase } from '@/hooks/useAuthMe';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
@@ -66,6 +68,7 @@ export function MainLayout() {
 
   function confirmLogout() {
     setLogoutOpen(false);
+    queryClient.removeQueries({ queryKey: [...authMeQueryKeyBase] });
     logoutStore();
     navigate('/login', { replace: true });
   }

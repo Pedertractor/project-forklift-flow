@@ -7,6 +7,17 @@ import {
 } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
 
+const openDeliverTaskStatuses: ForkliftTaskStatus[] = [
+  ForkliftTaskStatus.CREATED,
+  ForkliftTaskStatus.ASSIGNED,
+  ForkliftTaskStatus.IN_PROGRESS,
+]
+
+const openDeliverTaskWhere = {
+  type: ForkliftTaskType.DELIVER_TO_MACHINE,
+  status: { in: openDeliverTaskStatuses },
+}
+
 const requestListInclude = {
   requestedBy: {
     select: {
@@ -85,58 +96,62 @@ export const machineReplenishmentRequestRepository = {
     })
   },
 
-  /** Fila para operador de empilhadeira / transpaleteira aceitar entrega. */
+  /** Fila para operador de empilhadeira / transpaleteira aceitar entrega (pallet pronto). */
   findManyOpenPoolForMovimentType(typeMovimentPallet: TypeMovimentPallet) {
     return prisma.machineReplenishmentRequest.findMany({
       where: {
         typeMovimentPallet,
-        status: RequestStatus.CREATED,
+        status: { in: [RequestStatus.PALLET_READY, RequestStatus.CREATED] },
         movimentPalletTasks: {
-          none: {
-            type: ForkliftTaskType.DELIVER_TO_MACHINE,
-            status: {
-              in: [
-                ForkliftTaskStatus.CREATED,
-                ForkliftTaskStatus.ASSIGNED,
-                ForkliftTaskStatus.IN_PROGRESS,
-              ],
-            },
-          },
+          none: openDeliverTaskWhere,
         },
       },
       include: requestListInclude,
       orderBy: [{ priorityLevel: 'asc' }, { createdAt: 'asc' }],
     })
   },
-
-  /**
-   * Solicitacoes CREATED no recebimento (sem entrega em aberto) do setor —
-   * candidatas a emparelhar com retirada ON_MACHINE na mesma maquina.
-   */
-  findManyOpenPoolForSectorAndMovimentType(
-    sectorId: string,
-    typeMovimentPallet: TypeMovimentPallet,
-  ) {
-    return prisma.machineReplenishmentRequest.findMany({
+  findPalletReadyForDestination(destinationId: string) {
+    return prisma.machineReplenishmentRequest.findFirst({
       where: {
-        typeMovimentPallet,
-        status: RequestStatus.CREATED,
-        destination: { sectorId },
-        movimentPalletTasks: {
-          none: {
-            type: ForkliftTaskType.DELIVER_TO_MACHINE,
-            status: {
-              in: [
-                ForkliftTaskStatus.CREATED,
-                ForkliftTaskStatus.ASSIGNED,
-                ForkliftTaskStatus.IN_PROGRESS,
-              ],
-            },
-          },
-        },
+        destinationId,
+        status: { in: [RequestStatus.PALLET_READY, RequestStatus.CREATED] },
+        movimentPalletTasks: { none: openDeliverTaskWhere },
       },
       include: requestListInclude,
       orderBy: [{ priorityLevel: 'asc' }, { createdAt: 'asc' }],
+    })
+  },
+
+  findOpenAwaitingPreparationForDestination(destinationId: string) {
+    return prisma.machineReplenishmentRequest.findFirst({
+      where: {
+        destinationId,
+        status: RequestStatus.AWAITING_PREPARATION,
+      },
+      include: requestListInclude,
+      orderBy: { awaitingPreparationSince: 'desc' },
+    })
+  },
+
+  findManyAwaitingPreparationForSector(sectorId: string) {
+    return prisma.machineReplenishmentRequest.findMany({
+      where: {
+        status: RequestStatus.AWAITING_PREPARATION,
+        destination: { sectorId },
+      },
+      include: requestListInclude,
+      orderBy: [
+        { priorityLevel: 'asc' },
+        { awaitingPreparationSince: 'asc' },
+        { createdAt: 'asc' },
+      ],
+    })
+  },
+
+  findLatestByDestinationId(destinationId: string) {
+    return prisma.machineReplenishmentRequest.findFirst({
+      where: { destinationId },
+      orderBy: { createdAt: 'desc' },
     })
   },
 

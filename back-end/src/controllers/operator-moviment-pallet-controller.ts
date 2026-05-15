@@ -28,6 +28,7 @@ import {
   getOperatorMovimentPalletActiveFlow,
   listMovimentPalletsForOperatorPicker,
   listMyMovimentPalletTasks,
+  listMovimentOperatorTransportNotifications,
   listOpenReplenishmentRequestsForMyMovimentType,
   listTripRouteSuggestionsForOperator,
   unbindOperatorFromMovimentPallets,
@@ -96,6 +97,15 @@ export const getListMovimentPalletsForOperator: RouteHandlerMethod = async (
     user.role,
   )
   return reply.send({ movimentPallets })
+}
+
+export const getMovimentOperatorNotifications: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const payload = await listMovimentOperatorTransportNotifications(user.sub)
+  return reply.send(payload)
 }
 
 export const getListOpenReplenishmentRequestsForMovimentOperator: RouteHandlerMethod =

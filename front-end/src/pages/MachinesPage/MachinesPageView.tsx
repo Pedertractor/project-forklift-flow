@@ -15,7 +15,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
   const {
     apiReady,
     token,
-    sectorsQuery,
+    sectorsForSelect,
     typesQuery,
     sectorFilter,
     setSectorFilter,
@@ -57,10 +57,18 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
-              Máquinas
+              Máquinas de produção
             </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
-              Cadastre as máquinas que farão parte da plataforma.
+              Postos na linha (incluindo dobra): destino de reposição e tela do operador de máquina.
+              Não confundir com transporte — empilhadeiras e transpaleteiras ficam em{' '}
+              <Link
+                to="/abastecimento/equipamentos"
+                className="font-semibold text-[#005fb8] underline underline-offset-2 hover:text-[#004a8f]"
+              >
+                Equipamentos de movimentação
+              </Link>
+              .
             </p>
           </div>
           <Button
@@ -68,14 +76,14 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             onClick={openCreate}
             disabled={!apiReady || busy}
           >
-            Nova máquina
+            Nova máquina de produção
           </Button>
         </header>
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Defina <code className="font-mono">VITE_API_URL</code> e faça login
-            para gerenciar máquinas.
+            para gerenciar máquinas de produção.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -95,7 +103,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 >
                   Tipos de máquina
                 </Link>{' '}
-                antes de criar uma máquina.
+                antes de criar uma máquina de produção.
               </p>
             ) : null}
             {sectorsEmpty ? (
@@ -119,7 +127,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               disabled={!apiReady}
             >
               <option value="">Todos</option>
-              {sectorsQuery.data?.map((s) => (
+              {sectorsForSelect.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.typeSector}
                   {typeof s.sectorIdAPI === 'number'
@@ -131,11 +139,21 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
         </div>
 
+        {apiReady && token ? (
+          <p className="mt-4 rounded-xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-950">
+            <span className="font-semibold">Lembrete:</span> tudo nesta lista são{' '}
+            <span className="font-semibold">máquinas de produção</span>, não equipamento de
+            transporte. O nome na coluna «Tipo (produção)» é o{' '}
+            <span className="font-semibold">modelo cadastrado em Tipos de máquina</span>, não
+            empilhadeira ou transpaleteira.
+          </p>
+        ) : null}
+
         {machinesQuery.isError ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {machinesQuery.error instanceof Error
               ? machinesQuery.error.message
-              : 'Erro ao carregar máquinas.'}
+              : 'Erro ao carregar máquinas de produção.'}
           </p>
         ) : null}
 
@@ -148,7 +166,9 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Posição
                 </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Tipo</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Tipo (produção)
+                </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
                 <th className="px-4 py-3 text-right font-semibold text-zinc-700">
                   Ações
@@ -171,7 +191,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     colSpan={5}
                     className="px-4 py-8 text-center text-zinc-500"
                   >
-                    Nenhuma máquina neste filtro.
+                    Nenhuma máquina de produção neste filtro.
                   </td>
                 </tr>
               ) : (
@@ -195,7 +215,10 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                       {row.position}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
-                      {row.typeMachine.name}
+                      <span className="text-zinc-900">{row.typeMachine.name}</span>
+                      <span className="mt-0.5 block text-xs font-normal text-zinc-500">
+                        modelo de máquina de produção
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {row.sector.typeSector}
@@ -234,8 +257,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
 
       <SimpleModal
         open={createOpen}
-        title="Nova máquina"
-        description="Preencha nome, posição, tipo e setor. O operador é opcional (informe o UUID do usuário somente se souber o identificador)."
+        title="Nova máquina de produção"
+        description="Máquina de linha de produção (não é empilhadeira). Preencha nome, posição, tipo de máquina (modelo) e setor. O operador é opcional (UUID do usuário, se souber o identificador)."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions
@@ -294,7 +317,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-type">Tipo de máquina</Label>
+            <Label htmlFor="m-type">Tipo de máquina (modelo de produção)</Label>
             <select
               id="m-type"
               className={selectClass}
@@ -318,7 +341,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               onChange={(e) => setSectorId(e.target.value)}
             >
               <option value="">Selecione…</option>
-              {sectorsQuery.data?.map((s) => (
+              {sectorsForSelect.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.typeSector}
                   {typeof s.sectorIdAPI === 'number'
@@ -343,7 +366,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
 
       <SimpleModal
         open={Boolean(editRow)}
-        title="Editar máquina"
+        title="Editar máquina de produção"
+        description="Máquina de linha de produção. Transporte (empilhadeira / transpaleteira) cadastra-se em Equipamentos de movimentação."
         onClose={() => (!busy ? setEditRow(null) : undefined)}
         footer={
           <ModalActions
@@ -377,7 +401,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-edit-type">Tipo de máquina</Label>
+            <Label htmlFor="m-edit-type">Tipo de máquina (modelo de produção)</Label>
             <select
               id="m-edit-type"
               className={selectClass}
@@ -399,7 +423,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               value={sectorId}
               onChange={(e) => setSectorId(e.target.value)}
             >
-              {sectorsQuery.data?.map((s) => (
+              {sectorsForSelect.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.typeSector}
                   {typeof s.sectorIdAPI === 'number'
@@ -433,7 +457,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
 
       <SimpleModal
         open={Boolean(deleteRow)}
-        title="Excluir máquina"
+        title="Excluir máquina de produção"
         description={
           deleteRow ? `Confirma a exclusão de «${deleteRow.name}»?` : undefined
         }

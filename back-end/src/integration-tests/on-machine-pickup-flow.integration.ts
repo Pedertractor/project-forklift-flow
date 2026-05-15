@@ -122,6 +122,8 @@ test(
           requestedById: userForkliftId,
           destinationId: machineId,
           typeMovimentPallet: TypeMovimentPallet.FORKLIFT,
+          status: RequestStatus.PALLET_READY,
+          preparedAt: new Date(),
         },
       })
       requestId = request.id

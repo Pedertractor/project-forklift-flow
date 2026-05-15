@@ -4,19 +4,34 @@ import { useAuthStore } from '@/store/auth.store';
 
 type LoginLocationState = { from?: { pathname?: string } } | null | undefined;
 
+function defaultHomeForRole(role: string | undefined): string {
+  if (role === 'SUPPLY_OPERATOR') {
+    return '/abastecimento/preparo-pendente';
+  }
+  if (role === 'OPERATOR_MACHINE') {
+    return '/dobra';
+  }
+  return '/';
+}
+
 export function useLoginPage(): void {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const requiresPasswordChange = useAuthStore((s) => s.requiresPasswordChange);
 
-  const fromPath =
-    (location.state as LoginLocationState)?.from?.pathname ?? '/';
+  const fromState = (location.state as LoginLocationState)?.from?.pathname;
+  const fromPath = fromState ?? '/';
 
   useEffect(() => {
     if (user) {
-      const target = requiresPasswordChange ? '/definir-senha' : fromPath;
-      navigate(target, { replace: true });
+      if (requiresPasswordChange) {
+        navigate('/definir-senha', { replace: true });
+        return;
+      }
+      const resolvedFrom =
+        fromPath === '/' ? defaultHomeForRole(user.role) : fromPath;
+      navigate(resolvedFrom, { replace: true });
     }
   }, [user, requiresPasswordChange, navigate, fromPath]);
 }
