@@ -1,5 +1,9 @@
 import type { AppRole } from '@/types/role.types';
-import { ADMIN_OR_LEADER_ROLES, MACHINE_DOMAIN_ROLES } from '@/types/role.types';
+import {
+  ADMIN_OR_LEADER_ROLES,
+  MACHINE_DOMAIN_ROLES,
+  OPERATOR_MACHINE_ROLES,
+} from '@/types/role.types';
 
 export interface SidebarNavItem {
   to: string;
@@ -8,43 +12,133 @@ export interface SidebarNavItem {
   allowedRoles: readonly AppRole[] | null;
 }
 
+export interface SidebarNavSection {
+  id: string;
+  /** Título da seção no menu (pt-BR). */
+  title: string;
+  /**
+   * Quem enxerga esta seção (pt-BR), alinhado a `ROTAS_POR_ROLE.md`.
+   * Reflete os papéis dos itens agrupados; itens sem permissão somem, a seção some se ficar vazia.
+   */
+  rolesDescription: string;
+  items: readonly SidebarNavItem[];
+}
+
+function itemVisibleForRole(item: SidebarNavItem, role: string | undefined): boolean {
+  if (item.allowedRoles === null) {
+    return true;
+  }
+  if (!role) {
+    return false;
+  }
+  return item.allowedRoles.includes(role as AppRole);
+}
+
 /**
- * Itens do menu lateral alinhados a `ROTAS_POR_ROLE.md` (recurso → papéis).
- * Rotas não listadas aqui não aparecem no menu; o guard `RequireRoles` bloqueia acesso direto.
+ * Seções do menu lateral: agrupamento visual + texto de quais papéis usam cada bloco.
+ * Rotas não listadas não aparecem; `RequireRoles` continua bloqueando URL direta.
  */
-export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
-  { to: '/', label: 'Início', allowedRoles: null },
-  { to: '/dashboard', label: 'Painel', allowedRoles: null },
+export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   {
-    to: '/cadastro/tipos-maquina',
-    label: 'Tipos de máquina',
-    allowedRoles: MACHINE_DOMAIN_ROLES,
+    id: 'geral',
+    title: 'Geral',
+    rolesDescription:
+      'Todos os papéis autenticados (OPERATOR_MACHINE, empilhadeirista, abastecimento, líder, admin, etc.).',
+    items: [
+      { to: '/', label: 'Início', allowedRoles: null },
+      { to: '/dashboard', label: 'Painel', allowedRoles: null },
+    ],
   },
   {
-    to: '/cadastro/maquinas',
-    label: 'Máquinas',
-    allowedRoles: MACHINE_DOMAIN_ROLES,
+    id: 'dobra',
+    title: 'Operação — máquina de dobra',
+    rolesDescription:
+      'Papel «operador de máquina» (OPERATOR_MACHINE) e administrador (ADMIN) para testes.',
+    items: [
+      {
+        to: '/dobra',
+        label: 'Máquina de dobra',
+        allowedRoles: OPERATOR_MACHINE_ROLES,
+      },
+    ],
   },
   {
-    to: '/administracao/setores',
-    label: 'Setores',
-    allowedRoles: ['ADMIN'],
+    id: 'supply-cadastros',
+    title: 'Abastecimento e cadastros de chão',
+    rolesDescription:
+      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — tipos, máquinas, equipamentos e solicitações.',
+    items: [
+      {
+        to: '/cadastro/tipos-maquina',
+        label: 'Tipos de máquina',
+        allowedRoles: MACHINE_DOMAIN_ROLES,
+      },
+      {
+        to: '/cadastro/maquinas',
+        label: 'Máquinas de produção',
+        allowedRoles: MACHINE_DOMAIN_ROLES,
+      },
+      {
+        to: '/abastecimento/equipamentos',
+        label: 'Equipamentos de movimentação',
+        allowedRoles: MACHINE_DOMAIN_ROLES,
+      },
+      {
+        to: '/abastecimento/solicitacoes',
+        label: 'Solicitações de reposição',
+        allowedRoles: MACHINE_DOMAIN_ROLES,
+      },
+      {
+        to: '/abastecimento/preparo-pendente',
+        label: 'Preparo pendente',
+        allowedRoles: MACHINE_DOMAIN_ROLES,
+      },
+    ],
   },
   {
-    to: '/administracao/usuarios',
-    label: 'Usuários',
-    allowedRoles: ADMIN_OR_LEADER_ROLES,
+    id: 'admin-setores',
+    title: 'Administração — setores',
+    rolesDescription: 'Somente administrador (ADMIN).',
+    items: [
+      {
+        to: '/administracao/setores',
+        label: 'Setores',
+        allowedRoles: ['ADMIN'],
+      },
+    ],
+  },
+  {
+    id: 'admin-usuarios',
+    title: 'Administração — usuários',
+    rolesDescription: 'Líder (LEADER), para criar usuário no setor, e administrador (ADMIN).',
+    items: [
+      {
+        to: '/administracao/usuarios',
+        label: 'Usuários',
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
+      },
+    ],
   },
 ];
 
-export function sidebarItemsForRole(role: string | undefined): SidebarNavItem[] {
-  if (!role) {
-    return SIDEBAR_NAV_ITEMS.filter((item) => item.allowedRoles === null);
-  }
-  return SIDEBAR_NAV_ITEMS.filter((item) => {
-    if (item.allowedRoles === null) {
-      return true;
+/** Itens achatados (ex.: testes ou breadcrumbs). Preferir `sidebarSectionsForRole` no menu. */
+export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] =
+  SIDEBAR_NAV_SECTIONS.flatMap((s) => s.items);
+
+export function sidebarSectionsForRole(
+  role: string | undefined,
+): { section: SidebarNavSection; items: SidebarNavItem[] }[] {
+  const result: { section: SidebarNavSection; items: SidebarNavItem[] }[] = [];
+  for (const section of SIDEBAR_NAV_SECTIONS) {
+    const items = section.items.filter((item) => itemVisibleForRole(item, role));
+    if (items.length > 0) {
+      result.push({ section, items });
     }
-    return item.allowedRoles.includes(role as AppRole);
-  });
+  }
+  return result;
+}
+
+/** Lista achatada de todos os itens (útil para testes). */
+export function sidebarItemsForRole(role: string | undefined): SidebarNavItem[] {
+  return sidebarSectionsForRole(role).flatMap((b) => b.items);
 }

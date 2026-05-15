@@ -92,3 +92,6 @@ export async function requestPalletPickupFromMachine(
 
   return { request, pickupTask: task }
 }
+
+export type { FinalizeMachineCycleInput } from './replenishment-orchestration.service.js'
+export { finalizeMachineProductionCycle } from './replenishment-orchestration.service.js'

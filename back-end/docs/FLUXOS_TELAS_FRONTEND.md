@@ -3,7 +3,24 @@
 Este documento descreve **o que cada usuário faz**, em **que ordem**, e **como quebrar em telas** no app.  
 Complementa [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md) (permissões HTTP) e [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md) (regras e pré-condições da API).
 
+**Matriz implementado vs pendente (back-end + front):** [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md)
+
 **Base da API:** prefixo `/api`. Todas as chamadas autenticadas usam JWT no header `Authorization`.
+
+**Legenda nas tabelas de telas:** **✅** pode ser construída hoje (API existe) · **❌** depende de rota/regra ainda não implementada · **⚠️** tela parcial (parte da API pronta).
+
+---
+
+## Status das telas (resumo)
+
+| Papel | ✅ API pronta (telas possíveis) | ❌ API ainda não (não chamar rota inexistente) |
+|-------|--------------------------------|-----------------------------------------------|
+| **SUPPLY_OPERATOR** | CRUD tipos, máquinas; solicitações; `pending-preparation`; marcar pallet pronto | Push em tempo real (opcional) |
+| **OPERATOR_MACHINE** | Turno/máquina; **Finalizei** (`POST .../finalize`, corpo vazio na UI); pedidos; retirada | Push em tempo real (opcional) |
+| **FORKLIFT / FOLLOW_UP** | Equipamento, fila, aceitar, tarefas, sugestões, concluir entrega/retirada | Notificações §9 (opcional) |
+| **Front-end geral** | Login, guards, páginas cadastro máquinas/tipos | Módulos operador, supply completo, transporte |
+
+Diagrama abaixo: fluxo **§9** já coberto pela API; itens **❌** no back-end referem-se sobretudo a **push** em tempo real (opcional).
 
 ---
 
@@ -12,26 +29,40 @@ Complementa [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md) (permissões HTTP) e [`RE
 Várias pessoas participam do mesmo **pedido** (`MachineReplenishmentRequest`), cada uma com **rotas e telas diferentes**.
 
 ```mermaid
-flowchart LR
+flowchart TD
+  subgraph mach["Operador de máquina (dobra)"]
+    E["Vincular máquina"]
+    F["Apontar que finalizou\nPOST .../finalize"]
+    G["Pedir retirada\nPOST .../pickup\n(só ON_MACHINE)"]
+  end
+  subgraph decision["Sistema"]
+    H{"Pallet pronto\npara a máquina?"}
+  end
   subgraph supply["Supply / Líder / Admin"]
-    A["Abrir solicitação\nPOST machine-replenishment-requests"]
+    A["Preparar pallet / abrir solicitação"]
+    I["Notificado: preparar\n(sem pallet pronto)"]
+    J["Marcar pallet pronto"]
   end
   subgraph mov["Empilhadeira / Transpaleteira"]
     B["Vincular equipamento"]
     C["Fila: aceitar pedido\nPOST .../accept"]
-    D["Minhas tarefas / sugestões de viagem"]
+    D["Minhas tarefas / sugestões"]
+    K["Notificado automaticamente\napós pallet pronto"]
   end
-  subgraph mach["Operador de máquina"]
-    E["Vincular máquina"]
-    F["Ver pedidos da máquina"]
-    G["Pedir retirada\nPOST .../pickup\n(só ON_MACHINE)"]
-  end
-  A --> C
-  C --> F
-  F --> G
+  E --> F
+  F --> H
+  H -->|Sim| C
+  H -->|Não| I
+  I --> A
+  A --> J
+  J --> K
+  K --> C
+  C --> G
 ```
 
-**Importante para o front:** hoje a API **não** muda sozinha o status da requisição para `ON_MACHINE` após a entrega (ver regras de negócio). Em ambiente real, o fluxo “cubo chegou na máquina” pode depender de **evolução futura** da API ou de dados já corretos no banco para testes.
+**Orquestração “finalizei na dobra” (✅):** regra em §9 de `REGRAS_NEGOCIO_*`; rotas em [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md).
+
+**Entrega na máquina (✅):** transporte usa `POST .../complete-deliver` → requisição vai para `ON_MACHINE`; operador de máquina pode então usar `pickup`.
 
 ---
 
@@ -53,30 +84,52 @@ flowchart LR
 
 ---
 
+## Fluxo transversal: dobra finalizou → pallet pronto ou preparo (planejado)
+
+Referência completa: **§9** em [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md).
+
+| Etapa | Status | Quem | O que o app deve mostrar |
+|-------|--------|------|---------------------------|
+| 1 | ✅ | **OPERATOR_MACHINE** | Botão **“Finalizei na dobra”** — chama `POST /api/operator-machine/my-machine/finalize` com **`{}`**. Cubo, tipo e prioridade vêm do vínculo com a máquina e do **histórico de pedidos** dessa máquina (API); **sem** campos manuais na tela. |
+| 2 | ✅ | Sistema | Verificar **pallet pronto** para a máquina |
+| 3a | ✅ | Transporte | Se sim: fila `replenishment-requests` + `accept` |
+| 3b | ✅ | **SUPPLY_OPERATOR** | Lista `pending-preparation` / preparar pallet |
+| 4 | ✅ | **SUPPLY_OPERATOR** | Ação **“Pallet pronto”** (`mark-pallet-ready`) |
+| 5 | ⚠️ | Transporte | Polling `GET .../notifications` (**✅**); push automático **❌** (opcional futuro) |
+
+**Pallet antecipado:** o supply pode marcar pallet pronto **antes** do operador de dobra finalizar; nesse caso, no passo 2 o sistema já encaminha direto para a fila de transporte (3a).
+
+---
+
 ## `SUPPLY_OPERATOR` — fluxo e telas
 
-**Objetivo:** manter cadastros do setor e **abrir/acompanhar** solicitações de reposição.
+**Objetivo:** manter cadastros do setor, **preparar pallets**, **abrir/acompanhar** solicitações e **atender avisos** quando a dobra finalizou sem cubo pronto.
 
 ### Telas sugeridas (módulo “Supply”)
 
-| # | Tela (nome sugerido) | O que faz na API |
-|---|----------------------|------------------|
-| 1 | **Início / dashboard** (opcional) | `GET /api/auth/me` (validar `sectorId` para mensagens) |
-| 2 | **Tipos de máquina** (lista + form CRUD) | `/api/type-machines` |
-| 3 | **Máquinas** (lista + form CRUD) | `/api/machines` |
-| 4 | **Equipamentos de movimentação** (lista + form CRUD) | `/api/moviment-pallets` |
-| 5 | **Nova solicitação de reposição** | `POST /api/machine-replenishment-requests` |
-| 6 | **Lista de solicitações** | `GET /api/machine-replenishment-requests` |
-| 7 | **Detalhe da solicitação** | `GET /api/machine-replenishment-requests/:requestId` |
-| 8 | **Editar / cancelar** (se aplicável) | `PATCH`, `DELETE` no mesmo recurso |
+| # | Status | Tela (nome sugerido) | O que faz na API |
+|---|--------|----------------------|------------------|
+| 1 | ✅ | **Início / dashboard** (opcional) | `GET /api/auth/me` |
+| 2 | ✅ | **Tipos de máquina** | `/api/type-machines` |
+| 3 | ✅ | **Máquinas** | `/api/machines` |
+| 4 | ✅ | **Equipamentos de movimentação** | `/api/moviment-pallets` |
+| 5 | ✅ | **Nova solicitação de reposição** | `POST /api/machine-replenishment-requests` |
+| 6 | ✅ | **Lista de solicitações** | `GET /api/machine-replenishment-requests` |
+| 7 | ✅ | **Detalhe da solicitação** | `GET /api/machine-replenishment-requests/:requestId` |
+| 8 | ✅ | **Editar / cancelar** | `PATCH`, `DELETE` |
+| 9 | ❌ | **Preparar pallet** | `GET .../pending-preparation` (não existe) |
+| 10 | ❌ | **Marcar pallet pronto** | `POST .../mark-pallet-ready` (não existe) |
 
 ### Ordem típica do dia
 
 1. (Opcional) Conferir cadastros: máquinas e equipamentos com `sectorId` coerente com os operadores.
-2. Abrir solicitações com **tipo de movimentação** correto (`FORKLIFT` ou `PALLET_TRUCK`) — define quem pode pegar na fila.
-3. Acompanhar lista/detalhe até status final ou cancelamento.
+2. **Antecipar** pallets: preparar e marcar **pronto** para máquinas de dobra com alta rotatividade (evita espera no ramo “sem pallet”).
+3. Atender **notificações** “máquina X finalizou — preparar pallet” (fluxo §9 ramo B).
+4. Abrir solicitações manuais quando necessário, com **tipo de movimentação** correto (`FORKLIFT` ou `PALLET_TRUCK`).
+5. Ao concluir preparo, **marcar pallet pronto** — o transporte é informado sem passo manual extra.
+6. Acompanhar lista/detalhe até status final ou cancelamento.
 
-**Separação:** cadastros (telas 2–4) vs. operação de pedidos (telas 5–8) — pode ser menu em duas seções.
+**Separação:** cadastros (telas 2–4) vs. operação de pedidos e preparo (telas 5–10) — pode ser menu em duas seções; notificações de preparo podem ser badge na área “Operação”.
 
 ---
 
@@ -111,7 +164,7 @@ flowchart LR
 
 ## `OPERATOR_MACHINE` — fluxo e telas
 
-**Objetivo:** escolher **uma máquina** no turno, ver **pedidos dessa máquina**, solicitar **retirada** quando o pedido estiver `ON_MACHINE`.
+**Objetivo:** escolher **uma máquina** no turno (dobra), **apontar finalização** do ciclo para disparar a próxima reposição (§9), ver **pedidos dessa máquina** e solicitar **retirada** quando o pedido estiver `ON_MACHINE`.
 
 ### Fluxo em sequência
 
@@ -124,31 +177,36 @@ sequenceDiagram
     T->>API: GET /operator-machine/machines
     T->>API: POST /operator-machine/my-machine
   end
+  T->>API: POST /operator-machine/my-machine/finalize
+  Note over T,API: Corpo vazio na UI — cubo/tipo inferidos da máquina + último pedido
   T->>API: GET /operator-machine/replenishment-requests
   Note over T,API: Opcional ?status=ON_MACHINE
   T->>API: POST .../replenishment-requests/:id/pickup
-  Note over T,API: Só se status ON_MACHINE
+  Note over T,API: Só se status ON_MACHINE — retirada do cubo atual
 ```
 
 ### Telas sugeridas
 
-| # | Tela | Chamadas principais |
-|---|------|---------------------|
-| 1 | **Turno: minha máquina** | `GET /api/operator-machine/my-machine` |
-| 2 | **Escolher máquina** (se `machine === null`) | `GET /api/operator-machine/machines` → `POST /api/operator-machine/my-machine` |
-| 3 | **Pedidos da minha máquina** | `GET /api/operator-machine/replenishment-requests` (filtro `status` opcional) |
-| 4 | **Confirmar retirada** (ação na lista ou detalhe) | `POST /api/operator-machine/replenishment-requests/:requestId/pickup` |
-| 5 | **Fim de turno / trocar máquina** | `DELETE /api/operator-machine/my-machine` |
+| # | Status | Tela | Chamadas principais |
+|---|--------|------|---------------------|
+| 1 | ✅ | **Turno: minha máquina** | `GET /api/operator-machine/my-machine` |
+| 2 | ✅ | **Escolher máquina** | `GET .../machines` → `POST .../my-machine` |
+| 3 | ✅ | **Produção — finalizei na dobra** | `POST .../my-machine/finalize` (corpo `{}` na tela) |
+| 4 | ✅ | **Pedidos da minha máquina** | `GET .../replenishment-requests` |
+| 5 | ✅ | **Confirmar retirada** | `POST .../pickup` (requer `ON_MACHINE`) |
+| 6 | ✅ | **Fim de turno** | `DELETE .../my-machine` |
 
 **UX:** se `user.sectorId` for nulo, a lista de máquinas vem vazia — a tela deve avisar que o cadastro precisa de setor.
 
-**Separação:** uma área “Turno” (telas 1–2) e outra “Pedidos” (3–4); desvincular (5) no cabeçalho ou menu de turno.
+**UX “Finalizei”:** tela com **apenas o botão** (sem cubo, tipo ou prioridade). Após sucesso, mostrar feedback conforme resposta da API — *“Pallet já pronto — transporte acionado”* vs *“Abastecimento notificado para preparar pallet”* (§9). Erro **400** por campos faltantes só ocorre se a API não tiver **nenhum** pedido anterior para inferir cubo/tipo (fluxo normal já deixa histórico na máquina).
+
+**Separação:** área “Turno” (1–2, 6); área “Produção” com **Finalizei** (3); área “Pedidos / retirada” (4–5). Não confundir **finalizei** (próximo cubo) com **retirada** (cubo atual em `ON_MACHINE`).
 
 ---
 
 ## `FORKLIFT_OPERATOR` e `FOLLOW_UP_OPERATOR` — fluxo e telas
 
-**Objetivo:** vincular **um equipamento** (`MovimentPallet`), ver **fila** de solicitações compatíveis, **aceitar** pedidos, executar/atender via **minhas tarefas** e opcionalmente **sugestões de viagem**.
+**Objetivo:** vincular **um equipamento** (`MovimentPallet`), ver **fila** de solicitações compatíveis (incluindo pedidos liberados após **pallet pronto** no supply ou após **finalizei** na dobra com pallet antecipado — §9), **aceitar** pedidos, executar/atender via **minhas tarefas** e opcionalmente **sugestões de viagem**.
 
 A API **diferencia** empilhadeira vs transpaleteira pelo **tipo do equipamento** e pelo `role`; o fluxo de telas é o **mesmo**, mudando só o tipo de equipamento listado.
 
@@ -175,16 +233,18 @@ sequenceDiagram
 
 ### Telas sugeridas
 
-| # | Tela | Chamadas principais |
-|---|------|---------------------|
-| 1 | **Turno: meu equipamento** | `GET /api/operator-moviment-pallet/my-moviment-pallet` |
-| 2 | **Escolher equipamento** | `GET /api/operator-moviment-pallet/moviment-pallets` → `POST /api/operator-moviment-pallet/my-moviment-pallet` |
-| 3 | **Fila (pedidos para aceitar)** | `GET /api/operator-moviment-pallet/replenishment-requests` |
-| 4 | **Aceitar pedido** (ação) | `POST /api/operator-moviment-pallet/replenishment-requests/:requestId/accept` |
-| 5 | **Minhas tarefas** | `GET /api/operator-moviment-pallet/my-tasks` |
-| 6 | **Sugestões de viagem** (economia de trajeto) | `GET /api/operator-moviment-pallet/trip-suggestions` |
-| 7 | **Aceitar sugestão** (se o produto usar) | `POST /api/operator-moviment-pallet/trip-suggestions/:tripSuggestionId/accept` |
-| 8 | **Fim de turno** | `DELETE /api/operator-moviment-pallet/my-moviment-pallet` |
+| # | Status | Tela | Chamadas principais |
+|---|--------|------|---------------------|
+| 1 | ✅ | **Turno: meu equipamento** | `GET .../my-moviment-pallet` |
+| 2 | ✅ | **Escolher equipamento** | `GET .../moviment-pallets` → `POST .../my-moviment-pallet` |
+| 3 | ✅ | **Fila** | `GET .../replenishment-requests` |
+| 4 | ✅ | **Aceitar pedido** | `POST .../replenishment-requests/:id/accept` |
+| 4b | ❌ | **Notificações** | `GET .../notifications` (opcional §9) |
+| 5 | ✅ | **Minhas tarefas** | `GET .../my-tasks`, `GET .../active-flow` |
+| 5b | ✅ | **Concluir entrega / retirada** | `POST .../complete-deliver`, `complete-pickup`, `accept-pickup` |
+| 6 | ✅ | **Sugestões de viagem** | `GET .../trip-suggestions` |
+| 7 | ✅ | **Aceitar sugestão** | `POST .../trip-suggestions/:id/accept` |
+| 8 | ✅ | **Fim de turno** | `DELETE .../my-moviment-pallet` |
 
 **Separação recomendada no app:**
 
@@ -215,10 +275,11 @@ Hoje **não há** rotas de negócio específicas: após login, use apenas telas 
 ## Checklist rápido para o time de front
 
 1. **Router guard** por `role` alinhado a [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md).
-2. **Operadores:** sempre tratar `sectorId` ausente (listas vazias ou erro 400 ao vincular).
-3. **Operador de máquina:** ação de retirada só para itens com `status === ON_MACHINE` (e tratamento de **409**).
-4. **Operador de movimentação:** fila e tipo de equipamento coerentes com `REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`.
-5. **Roadmap:** quando existir endpoint para marcar entrega / `ON_MACHINE`, incluir tela no fluxo do empilhadeirista e ajustar este documento.
+2. Consultar [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md) antes de integrar telas **❌**.
+3. **Operadores:** tratar `sectorId` ausente (listas vazias ou **400** ao vincular).
+4. **Operador de máquina:** retirada só com `ON_MACHINE`; **Finalizei** com `POST .../finalize` e corpo vazio na UI (dados inferidos na API — ver `FLUXOS_TELAS_FRONTEND.md` § OPERATOR_MACHINE).
+5. **Transporte:** incluir telas para `complete-deliver` e retirada (**✅** na API).
+6. **§9:** implementado — ver [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md); falta apenas push/WebSocket se desejado.
 
 ---
 

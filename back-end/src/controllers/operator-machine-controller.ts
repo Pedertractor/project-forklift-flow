@@ -1,16 +1,23 @@
 import type { RouteHandlerMethod } from 'fastify'
-import { RequestStatus } from '../generated/prisma/enums.js'
+import {
+  PriorityLevel,
+  RequestStatus,
+  TypeMovimentPallet,
+} from '../generated/prisma/enums.js'
 import {
   MachineNotFoundError,
   MachineNotInOperatorSectorError,
   MachineReplenishmentRequestNotFoundError,
+  OperatorMachineNotBoundError,
   OperatorWithoutSectorError,
   PickupTaskAlreadyOpenError,
+  ReplenishmentFinalizeMissingFieldsError,
   ReplenishmentRequestNotForOperatorMachineError,
   ReplenishmentRequestNotOnMachineStatusError,
 } from '../errors/domain-errors.js'
 import {
   bindOperatorToMachine,
+  finalizeMachineProductionCycle,
   getOperatorCurrentMachine,
   listMachinesForOperatorPicker,
   listReplenishmentRequestsForOperatorMachine,
@@ -101,6 +108,71 @@ export const getListReplenishmentRequestsForOperator: RouteHandlerMethod =
     )
     return reply.send({ requests })
   }
+
+function isTypeMovimentPallet(value: string): value is TypeMovimentPallet {
+  return (Object.values(TypeMovimentPallet) as string[]).includes(value)
+}
+
+function isPriorityLevel(value: string): value is PriorityLevel {
+  return (Object.values(PriorityLevel) as string[]).includes(value)
+}
+
+export const postFinalizeMachineCycle: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const body = (request.body ?? {}) as {
+    movementCube?: string
+    typeMovimentPallet?: string
+    priorityLevel?: string
+  }
+
+  const input: {
+    movementCube?: string
+    typeMovimentPallet?: TypeMovimentPallet
+    priorityLevel?: PriorityLevel
+  } = {}
+
+  if (typeof body.movementCube === 'string' && body.movementCube.trim() !== '') {
+    input.movementCube = body.movementCube.trim()
+  }
+  if (body.typeMovimentPallet !== undefined) {
+    if (typeof body.typeMovimentPallet !== 'string') {
+      return reply.status(400).send({ error: 'typeMovimentPallet invalido.' })
+    }
+    const raw = body.typeMovimentPallet.trim()
+    if (raw !== '' && !isTypeMovimentPallet(raw)) {
+      return reply.status(400).send({
+        error: 'typeMovimentPallet invalido. Use PALLET_TRUCK ou FORKLIFT.',
+      })
+    }
+    if (raw !== '') {
+      input.typeMovimentPallet = raw
+    }
+  }
+  if (body.priorityLevel !== undefined) {
+    if (!isPriorityLevel(body.priorityLevel)) {
+      return reply.status(400).send({
+        error: 'priorityLevel invalido. Use VERY_HIGH, HIGH ou NORMAL.',
+      })
+    }
+    input.priorityLevel = body.priorityLevel
+  }
+
+  try {
+    const result = await finalizeMachineProductionCycle(user.sub, input)
+    return reply.status(200).send(result)
+  } catch (error) {
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ReplenishmentFinalizeMissingFieldsError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
+}
 
 export const postRequestPalletPickup: RouteHandlerMethod = async (
   request,

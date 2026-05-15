@@ -5,7 +5,22 @@ Todas as rotas abaixo (exceto as marcadas como **públicas**) exigem header `Aut
 
 Papéis definidos no Prisma: `OPERATOR_MACHINE`, `FORKLIFT_OPERATOR`, `FOLLOW_UP_OPERATOR`, `SUPPLY_OPERATOR`, `LEADER`, `SUPERVISOR`, `MANAGER`, `ADMIN`.
 
-> **Regras de negócio** (fluxo reposição / operadores): ver `REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`.
+> **Regras de negócio:** [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md)  
+> **O que existe vs o que falta (matriz única):** [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md)  
+> **Telas sugeridas:** [`FLUXOS_TELAS_FRONTEND.md`](./FLUXOS_TELAS_FRONTEND.md)
+
+**Legenda nas tabelas abaixo:** coluna **Status** — ✅ rota registrada no código · ❌ ainda não existe.
+
+---
+
+## Índice rápido
+
+| Seção | Conteúdo |
+|-------|----------|
+| [Rotas públicas / autenticadas](#rotas-públicas-sem-jwt) | Login, `me`, senha |
+| [Por papel](#admin) | Permissões por `RoleUser` |
+| [❌ Rotas planejadas (§9)](#rotas-planejadas--orquestração-dobra-finalizou-9) | Finalizei, pallet pronto, pending-preparation |
+| [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md) | Lista completa implementada vs pendente |
 
 ---
 
@@ -72,28 +87,34 @@ Acesso a **todas** as rotas autenticadas deste documento, inclusive as de operad
 
 ### Operador de máquina — `/api/operator-machine`
 
-| Método | Caminho |
-|--------|---------|
-| `GET` | `/api/operator-machine/machines` |
-| `GET` | `/api/operator-machine/my-machine` |
-| `POST` | `/api/operator-machine/my-machine` |
-| `DELETE` | `/api/operator-machine/my-machine` |
-| `GET` | `/api/operator-machine/replenishment-requests` |
-| `POST` | `/api/operator-machine/replenishment-requests/:requestId/pickup` |
+| Status | Método | Caminho |
+|--------|--------|---------|
+| ✅ | `GET` | `/api/operator-machine/machines` |
+| ✅ | `GET` | `/api/operator-machine/my-machine` |
+| ✅ | `POST` | `/api/operator-machine/my-machine` |
+| ✅ | `DELETE` | `/api/operator-machine/my-machine` |
+| ✅ | `GET` | `/api/operator-machine/replenishment-requests` |
+| ✅ | `POST` | `/api/operator-machine/replenishment-requests/:requestId/pickup` |
+| ✅ | `POST` | `/api/operator-machine/my-machine/finalize` |
 
 ### Operador de movimentação — `/api/operator-moviment-pallet`
 
-| Método | Caminho |
-|--------|---------|
-| `GET` | `/api/operator-moviment-pallet/moviment-pallets` |
-| `GET` | `/api/operator-moviment-pallet/my-moviment-pallet` |
-| `POST` | `/api/operator-moviment-pallet/my-moviment-pallet` |
-| `DELETE` | `/api/operator-moviment-pallet/my-moviment-pallet` |
-| `GET` | `/api/operator-moviment-pallet/replenishment-requests` |
-| `GET` | `/api/operator-moviment-pallet/my-tasks` |
-| `GET` | `/api/operator-moviment-pallet/trip-suggestions` |
-| `POST` | `/api/operator-moviment-pallet/trip-suggestions/:tripSuggestionId/accept` |
-| `POST` | `/api/operator-moviment-pallet/replenishment-requests/:requestId/accept` |
+| Status | Método | Caminho |
+|--------|--------|---------|
+| ✅ | `GET` | `/api/operator-moviment-pallet/moviment-pallets` |
+| ✅ | `GET` | `/api/operator-moviment-pallet/my-moviment-pallet` |
+| ✅ | `POST` | `/api/operator-moviment-pallet/my-moviment-pallet` |
+| ✅ | `DELETE` | `/api/operator-moviment-pallet/my-moviment-pallet` |
+| ✅ | `GET` | `/api/operator-moviment-pallet/replenishment-requests` |
+| ✅ | `GET` | `/api/operator-moviment-pallet/my-tasks` |
+| ✅ | `GET` | `/api/operator-moviment-pallet/active-flow` |
+| ✅ | `GET` | `/api/operator-moviment-pallet/trip-suggestions` |
+| ✅ | `POST` | `/api/operator-moviment-pallet/trip-suggestions/:tripSuggestionId/accept` |
+| ✅ | `POST` | `/api/operator-moviment-pallet/replenishment-requests/:requestId/accept` |
+| ✅ | `POST` | `/api/operator-moviment-pallet/tasks/:taskId/accept-pickup` |
+| ✅ | `POST` | `/api/operator-moviment-pallet/tasks/:taskId/complete-deliver` |
+| ✅ | `POST` | `/api/operator-moviment-pallet/tasks/:taskId/complete-pickup` |
+| ✅ | `GET` | `/api/operator-moviment-pallet/notifications` |
 
 ---
 
@@ -133,7 +154,9 @@ Igual `LEADER` / `ADMIN` (CRUD completo em cada prefixo).
 
 ### Solicitações de reposição — `/api/machine-replenishment-requests`
 
-Igual `LEADER` / `ADMIN`.
+Igual `LEADER` / `ADMIN` — **✅** CRUD completo (`POST`, `GET`, `GET/:id`, `PATCH`, `DELETE`).
+
+**✅ (§9):** `GET .../pending-preparation`, `POST .../:requestId/mark-pallet-ready`.
 
 ---
 
@@ -141,15 +164,8 @@ Igual `LEADER` / `ADMIN`.
 
 - Rotas **“qualquer autenticado”** + **públicas**.
 - Apenas prefixo **`/api/operator-machine`** (além de `ADMIN`, que também entra).
-
-| Método | Caminho |
-|--------|---------|
-| `GET` | `/api/operator-machine/machines` |
-| `GET` | `/api/operator-machine/my-machine` |
-| `POST` | `/api/operator-machine/my-machine` |
-| `DELETE` | `/api/operator-machine/my-machine` |
-| `GET` | `/api/operator-machine/replenishment-requests` |
-| `POST` | `/api/operator-machine/replenishment-requests/:requestId/pickup` |
+- Tabela completa com coluna **Status** na seção [`ADMIN`](#admin) (operador de máquina).
+- **✅** `POST .../my-machine/finalize` (§9).
 
 ---
 
@@ -157,20 +173,10 @@ Igual `LEADER` / `ADMIN`.
 
 - Rotas **“qualquer autenticado”** + **públicas**.
 - Apenas prefixo **`/api/operator-moviment-pallet`** (além de `ADMIN`).
+- Tabela completa com **Status** na seção [`ADMIN`](#admin) (operador de movimentação), incluindo `complete-deliver`, `complete-pickup`, `active-flow`.
+- **✅** `GET .../notifications` (§9).
 
-| Método | Caminho |
-|--------|---------|
-| `GET` | `/api/operator-moviment-pallet/moviment-pallets` |
-| `GET` | `/api/operator-moviment-pallet/my-moviment-pallet` |
-| `POST` | `/api/operator-moviment-pallet/my-moviment-pallet` |
-| `DELETE` | `/api/operator-moviment-pallet/my-moviment-pallet` |
-| `GET` | `/api/operator-moviment-pallet/replenishment-requests` |
-| `GET` | `/api/operator-moviment-pallet/my-tasks` |
-| `GET` | `/api/operator-moviment-pallet/trip-suggestions` |
-| `POST` | `/api/operator-moviment-pallet/trip-suggestions/:tripSuggestionId/accept` |
-| `POST` | `/api/operator-moviment-pallet/replenishment-requests/:requestId/accept` |
-
-**Nota:** na API, empilhadeirista vs transpaleteiro é filtrado pelo **tipo do equipamento** vinculado e pelo papel; detalhes em `REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`.
+**Nota:** empilhadeirista vs transpaleteiro é filtrado pelo **tipo do equipamento** vinculado; detalhes em `REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`.
 
 ---
 
@@ -201,6 +207,24 @@ Demais rotas da API retornam **403** até existir permissão explícita no back-
 | `/api/machine-replenishment-requests` | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR` |
 | `/api/operator-machine` | `ADMIN`, `OPERATOR_MACHINE` |
 | `/api/operator-moviment-pallet` | `ADMIN`, `FORKLIFT_OPERATOR`, `FOLLOW_UP_OPERATOR` |
+| Orquestração §9 | ✅ — [Rotas §9](#rotas-orquestração-dobra-finalizou-9) |
+
+---
+
+## Rotas orquestração “dobra finalizou” (§9)
+
+**Status: ✅** registradas em `back-end/src/routes/`. Ver [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md).
+
+| Status | Método | Caminho | Papel | Descrição |
+|--------|--------|---------|-------|-----------|
+| ✅ | `POST` | `/api/operator-machine/my-machine/finalize` | `OPERATOR_MACHINE`, `ADMIN` | **Finalizei** — verifica pallet pronto ou notifica supply |
+| ✅ | `GET` | `/api/machine-replenishment-requests/pending-preparation` | `SUPPLY_OPERATOR`, `LEADER`, `ADMIN` | Lista aguardando preparo |
+| ✅ | `POST` | `/api/machine-replenishment-requests/:requestId/mark-pallet-ready` | `SUPPLY_OPERATOR`, `LEADER`, `ADMIN` | Marca **pallet pronto** → fila do transporte |
+| ✅ | `GET` | `/api/operator-moviment-pallet/notifications` | Transporte, `ADMIN` | Resumo da fila (polling) |
+
+**Corpo opcional em `POST .../finalize`:** `movementCube`, `typeMovimentPallet`, `priorityLevel`. Sem esses campos, a API infere cubo e tipo do **último pedido** da máquina vinculada ao operador; a **UI do app** do operador de dobra chama o endpoint com **`{}`** (somente o botão “Finalizei”). Campos no body ainda são necessários na API se **não existir** nenhum pedido anterior para aquela máquina (caso raro; testes via Bruno).
+
+**`POST` criar solicitação:** campo opcional `palletReady: true` para antecipar cubo sem passar por preparo pendente.
 
 ---
 

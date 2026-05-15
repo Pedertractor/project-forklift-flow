@@ -1,0 +1,22 @@
+meta {
+  name: Mark pallet ready
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/machine-replenishment-requests/{{requestId}}/mark-pallet-ready
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: SUPPLY_OPERATOR, LEADER ou ADMIN.
+  # requestId: UUID da solicitacao em AWAITING_PREPARATION (variavel {{requestId}} no environment).
+  # Passa para PALLET_READY e libera na fila GET operator-moviment-pallet/replenishment-requests.
+  # 409 se status nao for AWAITING_PREPARATION.
+}

@@ -24,6 +24,8 @@ export type CreateMachineReplenishmentRequestInput = {
   movementCube: string
   typeMovimentPallet: TypeMovimentPallet
   priorityLevel?: PriorityLevel
+  /** Se true, cubo ja preparado — entra direto na fila do transporte. */
+  palletReady?: boolean
 }
 
 export type UpdateMachineReplenishmentRequestInput = {
@@ -59,10 +61,18 @@ export async function createMachineReplenishmentRequest(
 ) {
   await requireMachineExists(input.destinationId)
 
+  const ready = input.palletReady === true
+  const now = new Date()
   const data: Prisma.MachineReplenishmentRequestCreateInput = {
     movementCube: input.movementCube.trim(),
     typeMovimentPallet: input.typeMovimentPallet,
     priorityLevel: input.priorityLevel ?? PriorityLevel.NORMAL,
+    status: ready
+      ? RequestStatus.PALLET_READY
+      : RequestStatus.AWAITING_PREPARATION,
+    ...(ready
+      ? { preparedAt: now }
+      : { awaitingPreparationSince: now }),
     requestedBy: { connect: { id: input.requestedById } },
     destination: { connect: { id: input.destinationId } },
   }
@@ -113,7 +123,12 @@ export async function updateMachineReplenishmentRequest(
 
 export async function deleteMachineReplenishmentRequest(id: string) {
   const current = await requireRequestById(id)
-  if (current.status !== RequestStatus.CREATED) {
+  const deletableStatuses: RequestStatus[] = [
+    RequestStatus.CREATED,
+    RequestStatus.AWAITING_PREPARATION,
+    RequestStatus.PALLET_READY,
+  ]
+  if (!deletableStatuses.includes(current.status)) {
     throw new MachineReplenishmentRequestDeleteBlockedError()
   }
   if (current._count.movimentPalletTasks > 0) {
