@@ -78,21 +78,38 @@ export function AppSidebar({
               sectionIndex > 0 && 'mt-3 border-t border-zinc-200 pt-3',
             )}
           >
-            <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-              <span className="truncate">{item.label}</span>
-              {item.to === '/operacao/minhas-tarefas' &&
-              movimentWorkEnabled &&
-              incompleteTaskCount > 0 ? (
-                <span
-                  className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[0.625rem] font-bold leading-none text-white tabular-nums"
-                  title={`${incompleteTaskCount} tarefa(s) em aberto`}
-                  aria-label={`${incompleteTaskCount} tarefas em aberto`}
-                >
-                  {incompleteTaskCount > 9 ? '9+' : incompleteTaskCount}
-                </span>
-              ) : null}
-            </span>
-          </NavLink>
+            <p className="mb-1.5 px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-500">
+              {section.title}
+            </p>
+            <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+              {items.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    className={navLinkClass}
+                    onClick={() => {
+                      onCloseSidebar();
+                    }}
+                  >
+                    <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                      <span className="truncate">{item.label}</span>
+                      {item.to === '/operacao/minhas-tarefas' &&
+                      movimentWorkEnabled &&
+                      incompleteTaskCount > 0 ? (
+                        <span
+                          className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[0.625rem] font-bold leading-none text-white tabular-nums"
+                          title={`${incompleteTaskCount} tarefa(s) em aberto`}
+                          aria-label={`${incompleteTaskCount} tarefas em aberto`}
+                        >
+                          {incompleteTaskCount > 9 ? '9+' : incompleteTaskCount}
+                        </span>
+                      ) : null}
+                    </span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
       </nav>
 

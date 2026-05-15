@@ -3,6 +3,7 @@ import {
   ADMIN_OR_LEADER_ROLES,
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
+  OPERATOR_MACHINE_ROLES,
 } from '@/types/role.types';
 import {
   OPERATOR_MOVIMENT_EQUIPMENT_PATH,
@@ -126,19 +127,27 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     ],
   },
   {
-    to: OPERATOR_MOVIMENT_EQUIPMENT_PATH,
-    label: 'Meu equipamento',
-    allowedRoles: MOVIMENT_OPERATOR_ROLES,
-  },
-  {
-    to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
-    label: 'Tarefas disponíveis',
-    allowedRoles: MOVIMENT_OPERATOR_ROLES,
-  },
-  {
-    to: OPERATOR_MOVIMENT_MY_TASKS_PATH,
-    label: 'Minhas tarefas',
-    allowedRoles: MOVIMENT_OPERATOR_ROLES,
+    id: 'operacao-movimentacao',
+    title: 'Operação — movimentação',
+    rolesDescription:
+      'Empilhadeirista (FORKLIFT_OPERATOR) e transpaleteira / follow-up (FOLLOW_UP_OPERATOR).',
+    items: [
+      {
+        to: OPERATOR_MOVIMENT_EQUIPMENT_PATH,
+        label: 'Meu equipamento',
+        allowedRoles: MOVIMENT_OPERATOR_ROLES,
+      },
+      {
+        to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
+        label: 'Tarefas disponíveis',
+        allowedRoles: MOVIMENT_OPERATOR_ROLES,
+      },
+      {
+        to: OPERATOR_MOVIMENT_MY_TASKS_PATH,
+        label: 'Minhas tarefas',
+        allowedRoles: MOVIMENT_OPERATOR_ROLES,
+      },
+    ],
   },
 ];
 

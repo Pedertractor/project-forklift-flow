@@ -110,6 +110,25 @@ export const machineReplenishmentRequestRepository = {
       orderBy: [{ priorityLevel: 'asc' }, { createdAt: 'asc' }],
     })
   },
+
+  /** Mesma regra de `findManyOpenPoolForMovimentType`, restrita ao setor da máquina de destino. */
+  findManyOpenPoolForSectorAndMovimentType(
+    sectorId: string,
+    typeMovimentPallet: TypeMovimentPallet,
+  ) {
+    return prisma.machineReplenishmentRequest.findMany({
+      where: {
+        typeMovimentPallet,
+        status: { in: [RequestStatus.PALLET_READY, RequestStatus.CREATED] },
+        movimentPalletTasks: {
+          none: openDeliverTaskWhere,
+        },
+        destination: { sectorId },
+      },
+      include: requestListInclude,
+      orderBy: [{ priorityLevel: 'asc' }, { createdAt: 'asc' }],
+    })
+  },
   findPalletReadyForDestination(destinationId: string) {
     return prisma.machineReplenishmentRequest.findFirst({
       where: {
