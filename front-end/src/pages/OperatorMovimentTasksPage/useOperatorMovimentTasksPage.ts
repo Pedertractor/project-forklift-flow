@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
@@ -19,6 +21,7 @@ function useApiReady(): boolean {
 
 export function useOperatorMovimentTasksPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
 
@@ -34,24 +37,28 @@ export function useOperatorMovimentTasksPage() {
     enabled: apiReady,
   });
 
-  const invalidateOperator = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-  }, [queryClient]);
+  const goToAvailableTasksAfterComplete = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
+    await queryClient.refetchQueries({ queryKey: ['operator-moviment', 'my-tasks'] });
+    navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
+      state: { fromTaskCompletion: true },
+    });
+  }, [queryClient, navigate]);
 
   const completeDeliverMut = useMutation({
     mutationFn: (taskId: string) => postCompleteDeliverTask(taskId),
-    onSuccess: () => {
-      invalidateOperator();
+    onSuccess: async () => {
       toast.success('Entrega na máquina registrada.');
+      await goToAvailableTasksAfterComplete();
     },
     onError: toastApiError,
   });
 
   const completePickupMut = useMutation({
     mutationFn: (taskId: string) => postCompletePickupTask(taskId),
-    onSuccess: () => {
-      invalidateOperator();
+    onSuccess: async () => {
       toast.success('Retirada para expedição registrada.');
+      await goToAvailableTasksAfterComplete();
     },
     onError: toastApiError,
   });

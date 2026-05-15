@@ -115,13 +115,13 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     return [
       {
         id: 'receiving',
-        label: 'Pallet no recebimento',
+        label: 'Pegue o pallet no recebimento',
         subtitle: deliverCube ? `Cubo ${deliverCube}` : 'Buscar cubo',
         state: deliverOpen ? 'current' : 'done',
       },
       {
         id: 'machine',
-        label: 'Entrega na máquina',
+        label: 'Entregue o pallet na máquina',
         subtitle: machineLine,
         state: deliverOpen ? 'current' : pickupOpen ? 'current' : 'done',
       },
@@ -144,13 +144,19 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     return [
       {
         id: 'receiving',
-        label: 'Pallet no recebimento',
-        subtitle: deliverCube ? `Cubo ${deliverCube}` : 'Origem',
+        label: 'Se movimente até o recebimento',
+        subtitle: 'Recebimento',
+        state: deliverOpen ? 'current' : 'done',
+      },
+      {
+        id: 'receiving',
+        label: 'Pegue o pallet no recebimento',
+        subtitle: deliverCube ? `${deliverCube}` : 'Origem',
         state: deliverOpen ? 'current' : 'done',
       },
       {
         id: 'machine',
-        label: 'Entrega na máquina',
+        label: 'Entregue o pallet na máquina',
         subtitle: machineLine,
         state: deliverOpen ? 'current' : 'done',
       },
@@ -445,20 +451,6 @@ export function OpenTasksFlowSection({
 
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
-      <div className="mb-4 border-b border-zinc-200 pb-4">
-        <h2
-          id="open-tasks-flow-heading"
-          className="m-0 text-lg font-bold tracking-tight text-zinc-900"
-        >
-          Tarefas em aberto
-        </h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Siga o trajeto da esquerda para a direita. Use o botão logo abaixo de
-          cada etapa para confirmar quando concluir o deslocamento — a barra
-          azul indica o envio ao servidor.
-        </p>
-      </div>
-
       {isLoading ? (
         <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-600">
           Carregando tarefas…

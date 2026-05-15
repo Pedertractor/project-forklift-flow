@@ -205,8 +205,21 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
     if (!onTasksQueue) {
       return;
     }
+    const fromTaskCompletion = Boolean(
+      (location.state as { fromTaskCompletion?: boolean } | null)?.fromTaskCompletion,
+    );
+    if (fromTaskCompletion) {
+      return;
+    }
     navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH, { replace: true });
-  }, [enabled, incompleteTaskCount, location.pathname, myTasksQuery.isSuccess, navigate]);
+  }, [
+    enabled,
+    incompleteTaskCount,
+    location.pathname,
+    location.state,
+    myTasksQuery.isSuccess,
+    navigate,
+  ]);
 
   const value = useMemo<OperatorMovimentWorkContextValue>(
     () => ({
