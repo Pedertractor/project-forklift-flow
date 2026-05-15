@@ -12,7 +12,7 @@ import {
   ADMIN_OR_LEADER_ROLES,
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
-
+  OPERATOR_MACHINE_ROLES,
 } from '@/types/role.types';
 
 const HomePage = lazy(() =>
@@ -61,6 +61,21 @@ const OperatorMachinePage = lazy(() =>
     default: m.OperatorMachinePage,
   })),
 );
+const OperatorMovimentEquipmentPage = lazy(() =>
+  import('@/pages/OperatorMovimentEquipmentPage/index').then((m) => ({
+    default: m.OperatorMovimentEquipmentPage,
+  })),
+);
+const OperatorMovimentQueuePage = lazy(() =>
+  import('@/pages/OperatorMovimentQueuePage/index').then((m) => ({
+    default: m.OperatorMovimentQueuePage,
+  })),
+);
+const OperatorMovimentTasksPage = lazy(() =>
+  import('@/pages/OperatorMovimentTasksPage/index').then((m) => ({
+    default: m.OperatorMovimentTasksPage,
+  })),
+);
 
 export function App() {
   return (
@@ -102,6 +117,7 @@ export function App() {
                     <Route path="operacao/tarefas" element={<OperatorMovimentQueuePage />} />
                     <Route path="operacao/minhas-tarefas" element={<OperatorMovimentTasksPage />} />
                   </Route>
+                </Route>
                 <Route element={<RequireRoles roles={OPERATOR_MACHINE_ROLES} />}>
                   <Route path="dobra" element={<OperatorMachinePage />} />
                 </Route>

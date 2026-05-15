@@ -23,6 +23,26 @@ export const API_ENDPOINTS = {
     LIST: '/machines',
     BY_ID: (id: string) => `/machines/${id}`,
   },
+  MOVIMENT_PALLETS: {
+    LIST: '/moviment-pallets',
+    BY_ID: (id: string) => `/moviment-pallets/${encodeURIComponent(id)}`,
+  },
+  MACHINE_REPLENISHMENT_REQUESTS: {
+    LIST: '/machine-replenishment-requests',
+    PENDING_PREPARATION: '/machine-replenishment-requests/pending-preparation',
+    BY_ID: (requestId: string) =>
+      `/machine-replenishment-requests/${encodeURIComponent(requestId)}`,
+    MARK_PALLET_READY: (requestId: string) =>
+      `/machine-replenishment-requests/${encodeURIComponent(requestId)}/mark-pallet-ready`,
+  },
+  OPERATOR_MACHINE: {
+    MY_MACHINE: '/operator-machine/my-machine',
+    MACHINES: '/operator-machine/machines',
+    REPLENISHMENT_REQUESTS: '/operator-machine/replenishment-requests',
+    FINALIZE: '/operator-machine/my-machine/finalize',
+    PICKUP: (requestId: string) =>
+      `/operator-machine/replenishment-requests/${encodeURIComponent(requestId)}/pickup`,
+  },
   OPERATOR_MOVIMENT_PALLET: {
     MOVIMENT_PALLETS: '/operator-moviment-pallet/moviment-pallets',
     MY_MOVIMENT_PALLET: '/operator-moviment-pallet/my-moviment-pallet',

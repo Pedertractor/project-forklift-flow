@@ -38,3 +38,8 @@ export const ADMIN_OR_LEADER_ROLES: readonly AppRole[] = ['ADMIN', 'LEADER'];
 
 export const OPERATOR_MACHINE_ROLES: readonly AppRole[] = ['OPERATOR_MACHINE', 'ADMIN'];
 
+/** Empilhadeirista e transpaleteira (fluxo moviment-pallet). */
+export const MOVIMENT_OPERATOR_ROLES: readonly AppRole[] = [
+  'FORKLIFT_OPERATOR',
+  'FOLLOW_UP_OPERATOR',
+];
