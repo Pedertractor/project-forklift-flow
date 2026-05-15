@@ -7,7 +7,12 @@ import { PrivateRoute } from '@/components/layout/PrivateRoute';
 import { RequireRoles } from '@/components/layout/RequireRoles';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageLoader } from '@/components/layout/PageLoader';
-import { MACHINE_DOMAIN_ROLES, ADMIN_OR_LEADER_ROLES } from '@/types/role.types';
+import { RequireBoundMovimentPallet } from '@/components/layout/RequireBoundMovimentPallet';
+import {
+  ADMIN_OR_LEADER_ROLES,
+  MACHINE_DOMAIN_ROLES,
+  MOVIMENT_OPERATOR_ROLES,
+} from '@/types/role.types';
 
 const HomePage = lazy(() =>
   import('@/pages/HomePage/index').then((m) => ({ default: m.HomePage })),
@@ -36,6 +41,21 @@ const FirstPasswordPage = lazy(() =>
 const UsersPage = lazy(() =>
   import('@/pages/UsersPage/index').then((m) => ({ default: m.UsersPage })),
 );
+const OperatorMovimentEquipmentPage = lazy(() =>
+  import('@/pages/OperatorMovimentEquipmentPage/index').then((m) => ({
+    default: m.OperatorMovimentEquipmentPage,
+  })),
+);
+const OperatorMovimentQueuePage = lazy(() =>
+  import('@/pages/OperatorMovimentQueuePage/index').then((m) => ({
+    default: m.OperatorMovimentQueuePage,
+  })),
+);
+const OperatorMovimentTasksPage = lazy(() =>
+  import('@/pages/OperatorMovimentTasksPage/index').then((m) => ({
+    default: m.OperatorMovimentTasksPage,
+  })),
+);
 
 export function App() {
   return (
@@ -60,6 +80,14 @@ export function App() {
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
                   <Route path="administracao/usuarios" element={<UsersPage />} />
+                </Route>
+                <Route element={<RequireRoles roles={MOVIMENT_OPERATOR_ROLES} />}>
+                  <Route path="operacao/equipamento" element={<OperatorMovimentEquipmentPage />} />
+                  <Route path="operacao/aceitar-tarefas" element={<OperatorMovimentQueuePage />} />
+                  <Route element={<RequireBoundMovimentPallet />}>
+                    <Route path="operacao/tarefas" element={<OperatorMovimentQueuePage />} />
+                    <Route path="operacao/minhas-tarefas" element={<OperatorMovimentTasksPage />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>

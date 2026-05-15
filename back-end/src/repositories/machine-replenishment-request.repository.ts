@@ -109,6 +109,37 @@ export const machineReplenishmentRequestRepository = {
     })
   },
 
+  /**
+   * Solicitacoes CREATED no recebimento (sem entrega em aberto) do setor —
+   * candidatas a emparelhar com retirada ON_MACHINE na mesma maquina.
+   */
+  findManyOpenPoolForSectorAndMovimentType(
+    sectorId: string,
+    typeMovimentPallet: TypeMovimentPallet,
+  ) {
+    return prisma.machineReplenishmentRequest.findMany({
+      where: {
+        typeMovimentPallet,
+        status: RequestStatus.CREATED,
+        destination: { sectorId },
+        movimentPalletTasks: {
+          none: {
+            type: ForkliftTaskType.DELIVER_TO_MACHINE,
+            status: {
+              in: [
+                ForkliftTaskStatus.CREATED,
+                ForkliftTaskStatus.ASSIGNED,
+                ForkliftTaskStatus.IN_PROGRESS,
+              ],
+            },
+          },
+        },
+      },
+      include: requestListInclude,
+      orderBy: [{ priorityLevel: 'asc' }, { createdAt: 'asc' }],
+    })
+  },
+
   update(id: string, data: Prisma.MachineReplenishmentRequestUpdateInput) {
     return prisma.machineReplenishmentRequest.update({
       where: { id },

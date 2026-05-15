@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
 import { useAuthStore } from '@/store/auth.store';
 import { sidebarItemsForRole } from '@/config/sidebar-nav';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const user = useAuthStore((s) => s.user);
   const navItems = sidebarItemsForRole(user?.role);
+  const { enabled: movimentWorkEnabled, incompleteTaskCount } = useOperatorMovimentWork();
 
   return (
     <aside
@@ -59,7 +61,20 @@ export function AppSidebar({
             className={navLinkClass}
             onClick={onCloseSidebar}
           >
-            <span>{item.label}</span>
+            <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+              <span className="truncate">{item.label}</span>
+              {item.to === '/operacao/minhas-tarefas' &&
+              movimentWorkEnabled &&
+              incompleteTaskCount > 0 ? (
+                <span
+                  className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[0.625rem] font-bold leading-none text-white tabular-nums"
+                  title={`${incompleteTaskCount} tarefa(s) em aberto`}
+                  aria-label={`${incompleteTaskCount} tarefas em aberto`}
+                >
+                  {incompleteTaskCount > 9 ? '9+' : incompleteTaskCount}
+                </span>
+              ) : null}
+            </span>
           </NavLink>
         ))}
       </nav>

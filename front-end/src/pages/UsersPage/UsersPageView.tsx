@@ -450,14 +450,14 @@ export function UsersPageView(vm: UsersPageViewModel) {
           title="Redefinir senha inicial"
           description={
             resetTarget
-              ? `Confirma reset da senha de «${resetTarget.name}» para a senha padrão do ambiente (FIRST_PASSWORD)? O usuário precisará trocar a senha no próximo fluxo de primeiro acesso.`
+              ? `Confirma redefinição da senha de «${resetTarget.name}» para a senha padrão do ambiente? O usuário precisará trocar a senha no próximo fluxo de primeiro acesso.`
               : undefined
           }
           onClose={() => (!busyAdmin ? setResetTarget(null) : undefined)}
           footer={
             <ModalActions
               onCancel={() => !busyAdmin && setResetTarget(null)}
-              submitLabel={busyAdmin ? 'Enviando…' : 'Confirmar reset'}
+              submitLabel={busyAdmin ? 'Enviando…' : 'Confirmar redefinição'}
               disabled={busyAdmin}
               danger
               onSubmit={() => {

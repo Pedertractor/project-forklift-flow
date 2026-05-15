@@ -1,0 +1,310 @@
+import type { UseQueryResult } from '@tanstack/react-query';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/card';
+import {
+  SuggestionFlowConnector,
+  SuggestionFlowStep,
+} from '@/components/operator-moviment/route-flow-icons';
+import type {
+  TripCombinedSuggestionApi,
+  TripStandalonePickupApi,
+  TripSuggestionsResponse,
+} from '@/types/operator-moviment-pallet.types';
+import { priorityLabel } from '@/utils/operator-moviment-display';
+
+function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
+  const d1 = row.deliverTask.request.movementCube;
+  const d2 = row.pickupTask.request.movementCube;
+  const machine = row.machine;
+
+  return (
+    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
+      <SuggestionFlowStep
+        stepId="receiving"
+        label="Recebimento"
+        subtitle={`Cubo ${d1}`}
+        accent="start"
+      />
+      <SuggestionFlowConnector />
+      <SuggestionFlowStep
+        stepId="machine"
+        label="Máquina"
+        subtitle={`${machine.name} · ${machine.position}`}
+        accent="mid"
+      />
+      <SuggestionFlowConnector />
+      <SuggestionFlowStep
+        stepId="pallet"
+        label="Pallet na máquina"
+        subtitle={`Cubo ${d2}`}
+        accent="mid"
+      />
+      <SuggestionFlowConnector />
+      <SuggestionFlowStep
+        stepId="expedition"
+        label="Expedição"
+        subtitle="Retirada registrada"
+        accent="end"
+      />
+    </div>
+  );
+}
+
+function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
+  const cube = row.pickupTask.request.movementCube;
+  const machine = row.machine;
+
+  return (
+    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
+      <SuggestionFlowStep
+        stepId="machine"
+        label="Máquina"
+        subtitle={`${machine.name} · ${machine.position}`}
+        accent="mid"
+      />
+      <SuggestionFlowConnector />
+      <SuggestionFlowStep
+        stepId="expedition"
+        label="Expedição"
+        subtitle={`Cubo ${cube}`}
+        accent="end"
+      />
+    </div>
+  );
+}
+
+function CombinedRouteCard({
+  row,
+  bound,
+  busy,
+  isAcceptingThisTrip,
+  onAcceptTrip,
+}: {
+  row: TripCombinedSuggestionApi;
+  bound: boolean;
+  busy: boolean;
+  isAcceptingThisTrip: boolean;
+  onAcceptTrip: (tripSuggestionId: string) => void;
+}) {
+  return (
+    <Card
+    // className={`relative overflow-hidden border-2 shadow-md ${
+    //   row.deferRecommended
+    //     ? 'border-amber-300/90 bg-gradient-to-br from-amber-50/95 via-white to-white'
+    //     : 'border-[#005fb8]/35 bg-gradient-to-br from-[#005fb8]/[0.07] via-white to-white'
+    // }`}
+    >
+      {row.deferRecommended ? (
+        <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
+          Existem itens mais urgentes no setor — avalie antes de seguir esta
+          rota.
+        </div>
+      ) : null}
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
+            Rota combinada sugerida
+          </p>
+          <span className="rounded-full bg-zinc-900/90 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-white">
+            Prioridade: {priorityLabel(row.effectivePriority)}
+          </span>
+        </div>
+        <p className="mt-2 text-sm font-semibold text-zinc-900">
+          Uma ida: recebimento → máquina → retirada → expedição.
+        </p>
+        <div className="mt-5">
+          <CombinedRouteFlow row={row} />
+        </div>
+        <p className="mt-4 text-xs leading-relaxed text-zinc-600">
+          {/* {row.message} */}
+        </p>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="m-0 text-xs text-zinc-500">
+            Ao aceitar, ambas as tarefas ficam no seu equipamento, na ordem
+            acima.
+          </p>
+          <Button
+            type="button"
+            className="shrink-0 bg-[#005fb8] text-white hover:bg-[#004a94]"
+            disabled={!bound || busy || isAcceptingThisTrip}
+            onClick={() => onAcceptTrip(row.tripSuggestion.id)}
+          >
+            {isAcceptingThisTrip ? 'Aceitando…' : 'Aceitar rota sugerida'}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function StandaloneRouteCard({
+  row,
+  bound,
+  busy,
+  taskId,
+  isAcceptingThisPickup,
+  onAcceptPickup,
+}: {
+  row: TripStandalonePickupApi;
+  bound: boolean;
+  busy: boolean;
+  taskId: string;
+  isAcceptingThisPickup: boolean;
+  onAcceptPickup: (id: string) => void;
+}) {
+  return (
+    <Card
+      className={`overflow-hidden border-2 shadow-md ${
+        row.deferRecommended
+          ? 'border-amber-300/80 bg-amber-50/40'
+          : 'border-zinc-200 bg-white'
+      }`}
+    >
+      <div className="p-4 sm:p-5">
+        <p className="m-0 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+          Sugestão de retirada
+        </p>
+        <p className="mt-2 text-sm font-semibold text-zinc-900">
+          Retirada na máquina com cubo pronto para expedição.
+        </p>
+        <div className="mt-5">
+          <StandalonePickupFlow row={row} />
+        </div>
+        <p className="mt-4 text-xs leading-relaxed text-zinc-600">
+          {row.message}
+        </p>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-zinc-800">
+            Prioridade: {priorityLabel(row.effectivePriority)}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0 border-[#005fb8] text-[#005fb8] hover:bg-[#005fb8]/10"
+            disabled={!bound || busy || isAcceptingThisPickup}
+            onClick={() => onAcceptPickup(taskId)}
+          >
+            {isAcceptingThisPickup ? 'Aceitando…' : 'Aceitar retirada sugerida'}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export interface TripSuggestionsFlowSectionProps {
+  tripQuery: UseQueryResult<TripSuggestionsResponse, Error>;
+  bound: boolean;
+  busy: boolean;
+  pendingTripSuggestionId: string | null;
+  pendingStandalonePickupTaskId: string | null;
+  onAcceptTrip: (tripSuggestionId: string) => void;
+  onAcceptStandalonePickup: (taskId: string) => void;
+}
+
+export function TripSuggestionsFlowSection({
+  tripQuery,
+  bound,
+  busy,
+  pendingTripSuggestionId,
+  pendingStandalonePickupTaskId,
+  onAcceptTrip,
+  onAcceptStandalonePickup,
+}: TripSuggestionsFlowSectionProps) {
+  if (tripQuery.isError) {
+    return (
+      <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        {tripQuery.error instanceof Error
+          ? tripQuery.error.message
+          : 'Erro ao carregar sugestões de rota.'}
+      </p>
+    );
+  }
+
+  if (tripQuery.isLoading) {
+    return (
+      <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+        Carregando sugestões de rota…
+      </p>
+    );
+  }
+
+  const data = tripQuery.data;
+  if (!data) {
+    return null;
+  }
+
+  const combined = data.suggestions;
+  const standalone = data.standalonePickupTasks;
+  const hint = data.priorityContext?.hint;
+
+  if (combined.length === 0 && standalone.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      className="mt-8 space-y-4"
+      aria-labelledby="trip-suggestions-heading"
+    >
+      <div className="flex flex-col gap-2 border-b border-zinc-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2
+            id="trip-suggestions-heading"
+            className="m-0 text-lg font-bold tracking-tight text-zinc-900"
+          >
+            Sugestões de rota
+          </h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            Economize percurso quando entrega e retirada caem na mesma máquina —
+            ou quando há retirada isolada sugerida.
+          </p>
+        </div>
+      </div>
+
+      {hint ? (
+        <div
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950"
+          role="status"
+        >
+          {hint}
+        </div>
+      ) : null}
+
+      {!bound ? (
+        <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+          Vincule-se a um equipamento para aceitar uma sugestão de rota.
+        </p>
+      ) : null}
+
+      <div className="space-y-5">
+        {combined.map((row) => (
+          <CombinedRouteCard
+            key={row.tripSuggestion.id}
+            row={row}
+            bound={bound}
+            busy={busy}
+            isAcceptingThisTrip={
+              pendingTripSuggestionId === row.tripSuggestion.id
+            }
+            onAcceptTrip={onAcceptTrip}
+          />
+        ))}
+        {standalone.map((row) => {
+          const taskId = row.suggestedOrder[0]?.taskId ?? row.pickupTask.id;
+          return (
+            <StandaloneRouteCard
+              key={`${row.machine.id}-${taskId}`}
+              row={row}
+              bound={bound}
+              busy={busy}
+              taskId={taskId}
+              isAcceptingThisPickup={pendingStandalonePickupTaskId === taskId}
+              onAcceptPickup={onAcceptStandalonePickup}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}

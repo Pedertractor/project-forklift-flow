@@ -24,6 +24,20 @@ body {
   min-height: 100svh;
 }
 
+/* Indeterminado: confirmação de tarefa em andamento */
+@keyframes task-confirm-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.animate-task-confirm-progress {
+  animation: task-confirm-progress 1.05s ease-in-out infinite;
+}
+
 button,
 input,
 textarea,

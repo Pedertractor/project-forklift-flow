@@ -9,7 +9,7 @@
     "dev": "tsx --watch ./src/server.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "test": "node --import tsx/esm --test \"src/**/*.test.ts\"",
-    "test:on-machine-flow": "node --import tsx/esm --test src/integration-tests/on-machine-pickup-flow.integration.ts",
+    "test:on-machine-flow": "node --import tsx/esm --test src/integration-tests/on-machine-pickup-flow.integration.ts src/integration-tests/trip-route-suggestion.integration.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate:reset": "prisma migrate reset && prisma db seed",
     "db:migrate:reset:force": "prisma migrate reset --force && prisma db seed"

@@ -263,6 +263,68 @@ type StandalonePickupEntry = {
   typeMovimentPallet: TypeMovimentPallet
 }
 
+/** Candidatos a um unico par 1× entrega + 1× retirada por tipo/setor — sem criar DELIVER ate escolher o melhor. */
+type TripPairCandidate =
+  | {
+      kind: 'POOL'
+      pickupTask: TaskWithReq
+      poolRequest: PoolRequestRow
+      typeMovimentPallet: TypeMovimentPallet
+    }
+  | {
+      kind: 'EXISTING_DELIVER'
+      pickupTask: TaskWithReq
+      deliverTask: TaskWithReq
+      typeMovimentPallet: TypeMovimentPallet
+    }
+
+function effectivePriorityForTripCandidate(candidate: TripPairCandidate): PriorityLevel {
+  const pickupPri = candidate.pickupTask.request.priorityLevel
+  if (candidate.kind === 'POOL') {
+    return mostUrgentPriority(pickupPri, candidate.poolRequest.priorityLevel)
+  }
+  return mostUrgentPriority(pickupPri, candidate.deliverTask.request.priorityLevel)
+}
+
+function compareTripCandidates(a: TripPairCandidate, b: TripPairCandidate): number {
+  const effA = priorityRank[effectivePriorityForTripCandidate(a)]
+  const effB = priorityRank[effectivePriorityForTripCandidate(b)]
+  if (effA !== effB) {
+    return effA - effB
+  }
+  const ta = new Date(a.pickupTask.createdAt).getTime()
+  const tb = new Date(b.pickupTask.createdAt).getTime()
+  if (ta !== tb) {
+    return ta - tb
+  }
+  /** Empate: prioriza recebimento CREATED (POOL) antes de entrega DELIVER ja aberta — alinha ao comportamento anterior. */
+  const kindPri = (c: TripPairCandidate) => (c.kind === 'POOL' ? 0 : 1)
+  const kdiff = kindPri(a) - kindPri(b)
+  if (kdiff !== 0) {
+    return kdiff
+  }
+  const destA =
+    a.kind === 'POOL' ? a.poolRequest.destinationId : a.deliverTask.request.destinationId
+  const destB =
+    b.kind === 'POOL' ? b.poolRequest.destinationId : b.deliverTask.request.destinationId
+  const dCmp = destA.localeCompare(destB)
+  if (dCmp !== 0) {
+    return dCmp
+  }
+  if (a.kind === 'POOL' && b.kind === 'POOL') {
+    return a.poolRequest.id.localeCompare(b.poolRequest.id)
+  }
+  if (a.kind === 'EXISTING_DELIVER' && b.kind === 'EXISTING_DELIVER') {
+    const dca = new Date(a.deliverTask.createdAt).getTime()
+    const dcb = new Date(b.deliverTask.createdAt).getTime()
+    if (dca !== dcb) {
+      return dca - dcb
+    }
+    return a.deliverTask.id.localeCompare(b.deliverTask.id)
+  }
+  return a.pickupTask.id.localeCompare(b.pickupTask.id)
+}
+
 function emptyPriorityContext() {
   return {
     mostUrgentOpenInSector: null as PriorityLevel | null,
@@ -296,6 +358,49 @@ function buildTripPriorityContext(
   }
 }
 
+async function ensureOpenDeliverTaskForPoolRequest(
+  requestId: string,
+  requestedById: string,
+): Promise<TaskWithReq> {
+  const existing =
+    await movimentPalletTaskRepository.findOpenDeliverForRequest(requestId)
+  if (existing) {
+    return existing
+  }
+  return movimentPalletTaskRepository.createOpenDeliverTaskForRequest(
+    requestId,
+    requestedById,
+  )
+}
+
+function sortTasksByRequestPriority(tasks: TaskWithReq[]) {
+  return [...tasks].sort((a, b) => {
+    const pa = priorityRank[a.request.priorityLevel]
+    const pb = priorityRank[b.request.priorityLevel]
+    if (pa !== pb) {
+      return pa - pb
+    }
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+}
+
+type PoolRequestRow = Awaited<
+  ReturnType<
+    typeof machineReplenishmentRequestRepository.findManyOpenPoolForSectorAndMovimentType
+  >
+>[number]
+
+function sortPoolByPriority(requests: PoolRequestRow[]) {
+  return [...requests].sort((a, b) => {
+    const pa = priorityRank[a.priorityLevel]
+    const pb = priorityRank[b.priorityLevel]
+    if (pa !== pb) {
+      return pa - pb
+    }
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+}
+
 async function computeTripPairsAndSectorUrgency(
   sectorId: string,
   types: TypeMovimentPallet[],
@@ -309,12 +414,16 @@ async function computeTripPairsAndSectorUrgency(
   const standalonePickups: StandalonePickupEntry[] = []
 
   for (const type of types) {
-    const [pickups, delivers] = await Promise.all([
+    const [pickups, delivers, poolRequests] = await Promise.all([
       movimentPalletTaskRepository.findManyOpenPickupTasksForSectorAndMovimentType(
         sectorId,
         type,
       ),
       movimentPalletTaskRepository.findManyOpenDeliverTasksForSectorAndMovimentType(
+        sectorId,
+        type,
+      ),
+      machineReplenishmentRequestRepository.findManyOpenPoolForSectorAndMovimentType(
         sectorId,
         type,
       ),
@@ -332,70 +441,107 @@ async function computeTripPairsAndSectorUrgency(
           ? t.request.priorityLevel
           : mostUrgentPriority(mostUrgentOpenInSector, t.request.priorityLevel)
     }
+    for (const r of poolRequests) {
+      mostUrgentOpenInSector =
+        mostUrgentOpenInSector === null
+          ? r.priorityLevel
+          : mostUrgentPriority(mostUrgentOpenInSector, r.priorityLevel)
+    }
 
     const pairedPickupIds = new Set<string>()
+    /** No maximo **uma** sugestao combinada por `typeMovimentPallet` neste setor (1 DELIVER + 1 PICKUP). */
+    const candidates: TripPairCandidate[] = []
 
-    if (pickups.length > 0 && delivers.length > 0) {
-      const pickupsByMachine = new Map<string, TaskWithReq[]>()
-      for (const t of pickups) {
-        const mid = t.request.destinationId
-        const list = pickupsByMachine.get(mid) ?? []
-        list.push(t)
-        pickupsByMachine.set(mid, list)
-      }
+    if (pickups.length === 0) {
+      continue
+    }
 
-      const deliversByMachine = new Map<string, TaskWithReq[]>()
-      for (const t of delivers) {
-        const mid = t.request.destinationId
-        const list = deliversByMachine.get(mid) ?? []
-        list.push(t)
-        deliversByMachine.set(mid, list)
-      }
+    const pickupsByMachine = new Map<string, TaskWithReq[]>()
+    for (const t of pickups) {
+      const mid = t.request.destinationId
+      const list = pickupsByMachine.get(mid) ?? []
+      list.push(t)
+      pickupsByMachine.set(mid, list)
+    }
 
-      for (const [machineId, machinePickups] of pickupsByMachine) {
-        const machineDelivers = deliversByMachine.get(machineId)
-        if (!machineDelivers?.length) {
-          continue
-        }
+    const deliversByMachine = new Map<string, TaskWithReq[]>()
+    for (const t of delivers) {
+      const mid = t.request.destinationId
+      const list = deliversByMachine.get(mid) ?? []
+      list.push(t)
+      deliversByMachine.set(mid, list)
+    }
 
-        const sortedDeliver = [...machineDelivers].sort((a, b) => {
-          const pa = priorityRank[a.request.priorityLevel]
-          const pb = priorityRank[b.request.priorityLevel]
-          if (pa !== pb) {
-            return pa - pb
-          }
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          )
-        })
+    const poolByMachine = new Map<string, PoolRequestRow[]>()
+    for (const r of poolRequests) {
+      const mid = r.destinationId
+      const list = poolByMachine.get(mid) ?? []
+      list.push(r)
+      poolByMachine.set(mid, list)
+    }
 
-        const sortedPickups = [...machinePickups].sort((a, b) => {
-          const pa = priorityRank[a.request.priorityLevel]
-          const pb = priorityRank[b.request.priorityLevel]
-          if (pa !== pb) {
-            return pa - pb
-          }
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          )
-        })
+    for (const [machineId, machinePickups] of pickupsByMachine) {
+      const machineDelivers = deliversByMachine.get(machineId) ?? []
+      const machinePool = poolByMachine.get(machineId) ?? []
 
-        const usedDeliverIds = new Set<string>()
-        for (const pickupTask of sortedPickups) {
-          const deliverTask = sortedDeliver.find(
-            (d) =>
-              d.requestId !== pickupTask.requestId &&
-              !usedDeliverIds.has(d.id),
-          )
-          if (!deliverTask) {
+      const sortedDeliver = sortTasksByRequestPriority(machineDelivers)
+      const sortedPickups = sortTasksByRequestPriority(machinePickups)
+      const sortedPool = sortPoolByPriority(machinePool)
+
+      for (const pickupTask of sortedPickups) {
+        for (const poolReq of sortedPool) {
+          if (poolReq.id === pickupTask.requestId) {
             continue
           }
-          usedDeliverIds.add(deliverTask.id)
-          pairedPickupIds.add(pickupTask.id)
-          pairs.push({ deliverTask, pickupTask, typeMovimentPallet: type })
+          candidates.push({
+            kind: 'POOL',
+            pickupTask,
+            poolRequest: poolReq,
+            typeMovimentPallet: type,
+          })
+        }
+        for (const deliverTask of sortedDeliver) {
+          if (deliverTask.requestId === pickupTask.requestId) {
+            continue
+          }
+          candidates.push({
+            kind: 'EXISTING_DELIVER',
+            pickupTask,
+            deliverTask,
+            typeMovimentPallet: type,
+          })
         }
       }
     }
+
+    candidates.sort(compareTripCandidates)
+
+    const pairsForType: ComputedTripPair[] = []
+    if (candidates.length > 0) {
+      const best = candidates[0]!
+      if (best.kind === 'POOL') {
+        const deliverTask = await ensureOpenDeliverTaskForPoolRequest(
+          best.poolRequest.id,
+          best.poolRequest.requestedById,
+        )
+        pairsForType.push({
+          deliverTask,
+          pickupTask: best.pickupTask,
+          typeMovimentPallet: type,
+        })
+      } else {
+        pairsForType.push({
+          deliverTask: best.deliverTask,
+          pickupTask: best.pickupTask,
+          typeMovimentPallet: type,
+        })
+      }
+    }
+
+    if (pairsForType.length > 0) {
+      pairedPickupIds.add(pairsForType[0]!.pickupTask.id)
+    }
+    pairs.push(...pairsForType)
 
     for (const pickupTask of pickups) {
       if (!pairedPickupIds.has(pickupTask.id)) {
@@ -405,6 +551,22 @@ async function computeTripPairsAndSectorUrgency(
   }
 
   return { pairs, standalonePickups, mostUrgentOpenInSector }
+}
+
+async function tryCompleteTripSuggestionForPickupTask(pickupTaskId: string) {
+  const suggestion =
+    await movimentPalletTripSuggestionRepository.findAcceptedByPickupTaskId(
+      pickupTaskId,
+    )
+  if (!suggestion) {
+    return
+  }
+  if (
+    suggestion.deliverTask.status === ForkliftTaskStatus.COMPLETED &&
+    suggestion.pickupTask.status === ForkliftTaskStatus.COMPLETED
+  ) {
+    await movimentPalletTripSuggestionRepository.markCompleted(suggestion.id)
+  }
 }
 
 async function syncTripSuggestionsToDb(
@@ -438,6 +600,7 @@ async function syncTripSuggestionsToDb(
         pickupTask.requestId,
         deliverTask.request.destinationId,
         pickupTask.request.destinationId,
+        deliverTask.request.status,
         pickupTask.request.status,
       )
     ) {
@@ -480,8 +643,8 @@ function mapDbRowToTripRouteSuggestion(
 
   const machine = row.pickupTask.request.destination
   const baseMessage =
-    `Na maquina ${machine.name} (${machine.position}): ha cubo para ENTREGAR nesta maquina e RETIRADA ja solicitada pelo operador. ` +
-    `Sugestao: uma unica ida — primeiro conclua a entrega (DELIVER_TO_MACHINE) e em seguida execute a retirada (PICKUP_TO_EXPEDITION), aproveitando o trajeto.`
+    `Na maquina ${machine.name} (${machine.position}): ha pallet no recebimento destinado a esta maquina e retirada ja solicitada pelo operador da maquina. ` +
+    `Sugestao: uma unica ida — buscar no recebimento, entregar na maquina, retirar o cubo finalizado e levar a expedicao.`
 
   const prioritySuffix = deferRecommended
     ? ` Prioridade desta sugestao: ${effectivePriority}; ha itens mais urgentes em aberto no setor (${mostUrgentOpenInSector}).`
@@ -602,11 +765,15 @@ export async function listTripRouteSuggestionsForOperator(
 
   await syncTripSuggestionsToDb(user.sectorId, types, pairs)
 
+  await movimentPalletTripSuggestionRepository.reconcileCompletedAcceptedInSector(
+    user.sectorId,
+    types,
+  )
+
   const dbRows =
-    await movimentPalletTripSuggestionRepository.findManyListableForOperator(
+    await movimentPalletTripSuggestionRepository.findManyOpenListableForOperator(
       user.sectorId,
       types,
-      operatorUserId,
     )
 
   const suggestions: TripRouteSuggestionRow[] = []
@@ -622,6 +789,7 @@ export async function listTripRouteSuggestionsForOperator(
           row.pickupTask.requestId,
           row.deliverTask.request.destinationId,
           row.pickupTask.request.destinationId,
+          row.deliverTask.request.status,
           row.pickupTask.request.status,
         )
       ) {
@@ -731,6 +899,7 @@ export async function acceptTripRouteSuggestion(
       pt.requestId,
       dt.request.destinationId,
       pt.request.destinationId,
+      dt.request.status,
       pt.request.status,
     )
   ) {
@@ -742,6 +911,20 @@ export async function acceptTripRouteSuggestion(
   await assertNoIncompleteTasksBlockingNewAccept(pallet.id)
 
   await prisma.$transaction(async (tx) => {
+    if (dt.request.status === RequestStatus.CREATED) {
+      const claimedRequest = await tx.machineReplenishmentRequest.updateMany({
+        where: {
+          id: dt.requestId,
+          status: RequestStatus.CREATED,
+          typeMovimentPallet: pallet.type,
+        },
+        data: { status: RequestStatus.IN_PROGRESS },
+      })
+      if (claimedRequest.count !== 1) {
+        throw new ReplenishmentRequestAlreadyAssignedError()
+      }
+    }
+
     const claimed = await tx.movimentPalletTripSuggestion.updateMany({
       where: {
         id: tripSuggestionId,
@@ -1222,6 +1405,8 @@ export async function completePickupTaskToExpedition(
   if (!updatedTask || !updatedRequest) {
     throw new Error('Inconsistencia ao carregar dados apos retirada.')
   }
+
+  await tryCompleteTripSuggestionForPickupTask(taskId)
 
   return { task: updatedTask, request: updatedRequest }
 }

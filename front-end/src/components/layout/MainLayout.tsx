@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { OperatorMovimentWorkProvider } from '@/components/layout/OperatorMovimentWorkProvider';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
@@ -70,7 +71,8 @@ export function MainLayout() {
   }
 
   return (
-    <div className="relative flex min-h-svh bg-zinc-100 text-zinc-900">
+    <OperatorMovimentWorkProvider>
+      <div className="relative flex min-h-svh bg-zinc-100 text-zinc-900">
       {sidebarOpen ? (
         <button
           type="button"
@@ -147,5 +149,6 @@ export function MainLayout() {
         </div>
       ) : null}
     </div>
+    </OperatorMovimentWorkProvider>
   );
 }
