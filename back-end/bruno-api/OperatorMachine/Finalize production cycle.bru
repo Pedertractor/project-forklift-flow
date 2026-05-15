@@ -1,0 +1,31 @@
+meta {
+  name: Finalize production cycle
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/operator-machine/my-machine/finalize
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "movementCube": "CUBO-FINALIZE-01",
+    "typeMovimentPallet": "FORKLIFT",
+    "priorityLevel": "NORMAL"
+  }
+}
+
+docs {
+  # Requer JWT: role OPERATOR_MACHINE ou ADMIN.
+  # Maquina de operacao deve estar vinculada (POST my-machine).
+  # Body opcional: movementCube, typeMovimentPallet, priorityLevel.
+  # Se nao houver pedido anterior na maquina, movementCube e typeMovimentPallet sao obrigatorios (400).
+  # Resposta: outcome TRANSPORT_QUEUED (ja ha pallet pronto na fila) ou SUPPLY_NOTIFIED (criou AWAITING_PREPARATION ou ja existia).
+}

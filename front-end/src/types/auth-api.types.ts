@@ -17,6 +17,11 @@ export interface LoginApiResponse {
   user: LoginApiUser;
 }
 
+/** Resposta de `GET /auth/me` (mesmo shape público do usuário + `firstAccess`). */
+export interface AuthMeApiResponse extends LoginApiUser {
+  firstAccess: boolean;
+}
+
 function unitFromApi(unit: LoginApiUser['unit']): AppUnit {
   return unit === 'PEDERTRACTOR' ? 'pedertractor' : 'tractor';
 }

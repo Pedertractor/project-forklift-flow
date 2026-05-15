@@ -50,10 +50,12 @@ interface AuthState {
   requiresPasswordChange: boolean;
   setSession: (payload: SetSessionPayload) => void;
   setUser: (user: User | null) => void;
+  /** Atualiza usuário e flag de senha a partir de `GET /auth/me`, mantendo o token atual. */
+  syncSessionFromProfile: (user: User, requiresPasswordChange: boolean) => void;
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: initial.user,
   token: initial.token,
   requiresPasswordChange: initial.requiresPasswordChange,
@@ -77,6 +79,21 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
   setUser: (user) => set({ user }),
+  syncSessionFromProfile: (user, requiresPasswordChange) => {
+    const token = get().token;
+    if (!token) {
+      return;
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      const toSave: PersistedSession = {
+        token,
+        user,
+        ...(requiresPasswordChange ? { requiresPasswordChange: true } : {}),
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    }
+    set({ user, requiresPasswordChange });
+  },
   logout: () => {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(STORAGE_KEY);

@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
+import { MACHINE_DOMAIN_ROLES } from '@/types/role.types';
 import type { HomePageViewModel } from './useHomePage';
 
+function isMachineDomainRole(role: string | undefined): boolean {
+  return Boolean(role && (MACHINE_DOMAIN_ROLES as readonly string[]).includes(role));
+}
+
 export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) {
+  const showSupplyModule = isMachineDomainRole(user?.role);
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-5xl">
@@ -31,7 +37,7 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
               to="/cadastro/maquinas"
               className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25"
             >
-              Máquinas
+              Máquinas de produção
             </Link>
           </div>
         </header>
@@ -55,6 +61,12 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
                   <dt className="text-xs font-medium text-zinc-500">Unidade</dt>
                   <dd className="mt-0.5 font-medium text-zinc-900">{unitLabel(user.unit)}</dd>
                 </div>
+                {user.role ? (
+                  <div>
+                    <dt className="text-xs font-medium text-zinc-500">Papel</dt>
+                    <dd className="mt-0.5 font-medium text-zinc-900">{user.role}</dd>
+                  </div>
+                ) : null}
               </dl>
             ) : (
               <p className="mt-4 text-sm text-zinc-600">Nenhum usuário carregado.</p>
@@ -78,6 +90,38 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
             </p>
           </Card>
         </div>
+
+        {showSupplyModule ? (
+          <Card className="mt-4 border border-zinc-200 p-5 shadow-sm">
+            <h2 className="m-0 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+              Abastecimento e cadastro de chão
+            </h2>
+            <p className="mt-2 mb-0 text-sm text-zinc-600">
+              Atalhos para o módulo do operador de abastecimento e perfis equivalentes (líder/admin
+              nos mesmos cadastros).
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                to="/abastecimento/preparo-pendente"
+                className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-transparent bg-[#005fb8] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#004a94] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/40"
+              >
+                Preparo pendente
+              </Link>
+              <Link
+                to="/abastecimento/solicitacoes"
+                className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25"
+              >
+                Solicitações
+              </Link>
+              <Link
+                to="/abastecimento/equipamentos"
+                className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25"
+              >
+                Equipamentos
+              </Link>
+            </div>
+          </Card>
+        ) : null}
       </div>
     </main>
   );

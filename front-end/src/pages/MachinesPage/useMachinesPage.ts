@@ -12,23 +12,50 @@ import {
 import { fetchSectors } from '@/services/sectors-api';
 import { fetchTypeMachines } from '@/services/type-machines-api';
 import { useAuthStore } from '@/store/auth.store';
-import type { MachineListItem } from '@/types/machine.types';
+import type { MachineListItem, SectorListItem } from '@/types/machine.types';
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
   return Boolean(ENV.API_URL && token);
 }
 
+function sectorsForForms(
+  userSectorId: string | null | undefined,
+  userSectorLabel: string | undefined,
+  apiSectors: SectorListItem[] | undefined,
+  sectorsError: boolean,
+): SectorListItem[] {
+  if (apiSectors !== undefined && apiSectors.length > 0) {
+    return apiSectors;
+  }
+  if (userSectorId && sectorsError) {
+    return [{ id: userSectorId, typeSector: userSectorLabel ?? 'Seu setor' }];
+  }
+  if (userSectorId && (apiSectors === undefined || apiSectors.length === 0)) {
+    return [{ id: userSectorId, typeSector: userSectorLabel ?? 'Seu setor' }];
+  }
+  return apiSectors ?? [];
+}
+
 export function useMachinesPage() {
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
 
   const sectorsQuery = useQuery({
     queryKey: ['sectors'],
     queryFn: fetchSectors,
     enabled: apiReady,
+    retry: false,
   });
+
+  const sectorsForSelect = sectorsForForms(
+    user?.sectorId ?? undefined,
+    user?.sector?.typeSector,
+    sectorsQuery.data,
+    sectorsQuery.isError,
+  );
 
   const typesQuery = useQuery({
     queryKey: ['type-machines'],
@@ -45,7 +72,10 @@ export function useMachinesPage() {
   });
 
   const sectorsEmpty =
-    apiReady && sectorsQuery.isSuccess && (sectorsQuery.data?.length ?? 0) === 0;
+    apiReady &&
+    sectorsQuery.isSuccess &&
+    (sectorsQuery.data?.length ?? 0) === 0 &&
+    sectorsForSelect.length === 0;
   const typesEmpty =
     apiReady && typesQuery.isSuccess && (typesQuery.data?.length ?? 0) === 0;
   const cannotCreateMachine = sectorsEmpty || typesEmpty;
@@ -72,8 +102,13 @@ export function useMachinesPage() {
 
   const openCreate = () => {
     resetForm();
-    if (sectorsQuery.data?.length === 1) {
-      setSectorId(sectorsQuery.data[0].id);
+    if (sectorsForSelect.length === 1) {
+      setSectorId(sectorsForSelect[0].id);
+    } else if (user?.sectorId) {
+      const match = sectorsForSelect.find((s) => s.id === user.sectorId);
+      if (match) {
+        setSectorId(match.id);
+      }
     }
     if (typesQuery.data?.length === 1) {
       setTypeMachineId(typesQuery.data[0].id);
@@ -174,6 +209,7 @@ export function useMachinesPage() {
     apiReady,
     token,
     sectorsQuery,
+    sectorsForSelect,
     typesQuery,
     sectorFilter,
     setSectorFilter,

@@ -5,6 +5,8 @@ import {
   MachineReplenishmentRequestDeleteBlockedError,
   MachineReplenishmentRequestNotEditableError,
   MachineReplenishmentRequestNotFoundError,
+  OperatorWithoutSectorError,
+  ReplenishmentNotAwaitingPreparationError,
 } from '../errors/domain-errors.js'
 import {
   createMachineReplenishmentRequest,
@@ -13,6 +15,10 @@ import {
   listMachineReplenishmentRequests,
   updateMachineReplenishmentRequest,
 } from '../services/machine-replenishment-request.service.js'
+import {
+  listPendingPreparationForSupplyUser,
+  markReplenishmentPalletReady,
+} from '../services/replenishment-orchestration.service.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
 
 function isTypeMovimentPallet(value: string): value is TypeMovimentPallet {
@@ -48,6 +54,7 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
     movementCube?: string
     typeMovimentPallet?: string
     priorityLevel?: string
+    palletReady?: boolean
   }
 
   if (
@@ -97,11 +104,51 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
       movementCube: body.movementCube,
       typeMovimentPallet,
       ...(priority !== undefined ? { priorityLevel: priority } : {}),
+      ...(body.palletReady === true ? { palletReady: true } : {}),
     })
     return reply.status(201).send(row)
   } catch (error) {
     if (error instanceof MachineNotFoundError) {
       return reply.status(404).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const getPendingPreparationRequests: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  try {
+    const result = await listPendingPreparationForSupplyUser(user.sub)
+    return reply.send(result)
+  } catch (error) {
+    if (error instanceof OperatorWithoutSectorError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const postMarkPalletReady: RouteHandlerMethod = async (request, reply) => {
+  const { requestId } = request.params as { requestId?: string }
+  if (!requestId) {
+    return reply.status(400).send({ error: 'requestId invalido.' })
+  }
+  try {
+    const requestRow = await markReplenishmentPalletReady(requestId)
+    return reply.send({
+      message:
+        'Pallet pronto — pedido liberado na fila da empilhadeira/transpaleteira.',
+      request: requestRow,
+    })
+  } catch (error) {
+    if (error instanceof MachineReplenishmentRequestNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof ReplenishmentNotAwaitingPreparationError) {
+      return reply.status(409).send({ error: error.message })
     }
     throw error
   }

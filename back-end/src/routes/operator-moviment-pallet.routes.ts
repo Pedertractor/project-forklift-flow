@@ -4,6 +4,7 @@ import {
   getListMovimentPalletsForOperator,
   getListMyMovimentPalletTasks,
   getListOpenReplenishmentRequestsForMovimentOperator,
+  getMovimentOperatorNotifications,
   getListTripRouteSuggestions,
   getOperatorCurrentMovimentPalletHandler,
   getOperatorMovimentPalletActiveFlowHandler,
@@ -60,6 +61,16 @@ export async function registerOperatorMovimentPalletRoutes(
           ],
         },
         deleteUnbindOperatorMovimentPallet,
+      )
+      router.get(
+        '/notifications',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireForkliftOrFollowUpOperatorRole(),
+          ],
+        },
+        getMovimentOperatorNotifications,
       )
       router.get(
         '/replenishment-requests',

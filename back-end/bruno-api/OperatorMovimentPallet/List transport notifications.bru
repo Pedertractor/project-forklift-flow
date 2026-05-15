@@ -1,0 +1,21 @@
+meta {
+  name: List transport notifications
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/notifications
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Precisa estar vinculado a um MovimentPallet (POST my-moviment-pallet).
+  # Resposta: contadores e listas deliverRequests + onMachinePickupTasks (polling leve da fila).
+}

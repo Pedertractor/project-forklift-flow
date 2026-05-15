@@ -7,7 +7,11 @@ import { PrivateRoute } from '@/components/layout/PrivateRoute';
 import { RequireRoles } from '@/components/layout/RequireRoles';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageLoader } from '@/components/layout/PageLoader';
-import { MACHINE_DOMAIN_ROLES, ADMIN_OR_LEADER_ROLES } from '@/types/role.types';
+import {
+  MACHINE_DOMAIN_ROLES,
+  ADMIN_OR_LEADER_ROLES,
+  OPERATOR_MACHINE_ROLES,
+} from '@/types/role.types';
 
 const HomePage = lazy(() =>
   import('@/pages/HomePage/index').then((m) => ({ default: m.HomePage })),
@@ -36,6 +40,24 @@ const FirstPasswordPage = lazy(() =>
 const UsersPage = lazy(() =>
   import('@/pages/UsersPage/index').then((m) => ({ default: m.UsersPage })),
 );
+const MovimentPalletsPage = lazy(() =>
+  import('@/pages/MovimentPalletsPage/index').then((m) => ({ default: m.MovimentPalletsPage })),
+);
+const ReplenishmentRequestsPage = lazy(() =>
+  import('@/pages/ReplenishmentRequestsPage/index').then((m) => ({
+    default: m.ReplenishmentRequestsPage,
+  })),
+);
+const SupplyPendingPreparationPage = lazy(() =>
+  import('@/pages/SupplyPendingPreparationPage/index').then((m) => ({
+    default: m.SupplyPendingPreparationPage,
+  })),
+);
+const OperatorMachinePage = lazy(() =>
+  import('@/pages/OperatorMachinePage/index').then((m) => ({
+    default: m.OperatorMachinePage,
+  })),
+);
 
 export function App() {
   return (
@@ -54,12 +76,24 @@ export function App() {
                 <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
                   <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />
                   <Route path="cadastro/maquinas" element={<MachinesPage />} />
+                  <Route path="abastecimento/equipamentos" element={<MovimentPalletsPage />} />
+                  <Route
+                    path="abastecimento/solicitacoes"
+                    element={<ReplenishmentRequestsPage />}
+                  />
+                  <Route
+                    path="abastecimento/preparo-pendente"
+                    element={<SupplyPendingPreparationPage />}
+                  />
                 </Route>
                 <Route element={<RequireRoles roles={['ADMIN']} />}>
                   <Route path="administracao/setores" element={<SectorsPage />} />
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
                   <Route path="administracao/usuarios" element={<UsersPage />} />
+                </Route>
+                <Route element={<RequireRoles roles={OPERATOR_MACHINE_ROLES} />}>
+                  <Route path="dobra" element={<OperatorMachinePage />} />
                 </Route>
               </Route>
             </Route>

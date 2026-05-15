@@ -5,6 +5,7 @@ import {
   getListReplenishmentRequestsForOperator,
   getOperatorCurrentMachineHandler,
   postBindOperatorMachine,
+  postFinalizeMachineCycle,
   postRequestPalletPickup,
 } from '../controllers/operator-machine-controller.js'
 import { requireOperatorMachineRole } from '../middleware/require-roles.js'
@@ -39,6 +40,13 @@ export async function registerOperatorMachineRoutes(fastify: FastifyInstance) {
           preHandler: [fastify.authenticate, requireOperatorMachineRole()],
         },
         deleteUnbindOperatorMachine,
+      )
+      router.post(
+        '/my-machine/finalize',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        postFinalizeMachineCycle,
       )
       router.get(
         '/replenishment-requests',
