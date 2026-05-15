@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { type MachinesPageViewModel } from './useMachinesPage';
+import { typeMachineImageSrc } from '../TypeMachinesPage/useTypeMachinesPage';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
@@ -160,6 +161,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
+                <th className="px-4 py-3 font-semibold text-zinc-700"></th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Nome</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Posição
@@ -198,6 +200,14 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     key={row.id}
                     className="border-b border-zinc-100 last:border-0"
                   >
+                     <td className="px-4 py-3">
+                      <img
+                        src={typeMachineImageSrc(row.typeMachine.urlImage)}
+                        alt=""
+                        className="size-12 rounded-lg border border-zinc-200 object-cover"
+                        loading="lazy"
+                      />
+                    </td>
                     <td className="px-4 py-3 font-medium text-zinc-900">
                       {row.name}
                     </td>

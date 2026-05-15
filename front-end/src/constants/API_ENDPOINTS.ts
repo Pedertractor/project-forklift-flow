@@ -23,23 +23,22 @@ export const API_ENDPOINTS = {
     LIST: '/machines',
     BY_ID: (id: string) => `/machines/${id}`,
   },
-  MOVIMENT_PALLETS: {
-    LIST: '/moviment-pallets',
-    BY_ID: (id: string) => `/moviment-pallets/${id}`,
-  },
-  MACHINE_REPLENISHMENT_REQUESTS: {
-    LIST: '/machine-replenishment-requests',
-    PENDING_PREPARATION: '/machine-replenishment-requests/pending-preparation',
-    BY_ID: (id: string) => `/machine-replenishment-requests/${id}`,
-    MARK_PALLET_READY: (id: string) =>
-      `/machine-replenishment-requests/${id}/mark-pallet-ready`,
-  },
-  OPERATOR_MACHINE: {
-    MACHINES: '/operator-machine/machines',
-    MY_MACHINE: '/operator-machine/my-machine',
-    REPLENISHMENT_REQUESTS: '/operator-machine/replenishment-requests',
-    FINALIZE: '/operator-machine/my-machine/finalize',
-    PICKUP: (requestId: string) =>
-      `/operator-machine/replenishment-requests/${requestId}/pickup`,
+  OPERATOR_MOVIMENT_PALLET: {
+    MOVIMENT_PALLETS: '/operator-moviment-pallet/moviment-pallets',
+    MY_MOVIMENT_PALLET: '/operator-moviment-pallet/my-moviment-pallet',
+    REPLENISHMENT_QUEUE: '/operator-moviment-pallet/replenishment-requests',
+    ACCEPT_REPLENISHMENT: (requestId: string) =>
+      `/operator-moviment-pallet/replenishment-requests/${encodeURIComponent(requestId)}/accept`,
+    ACCEPT_PICKUP: (taskId: string) =>
+      `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/accept-pickup`,
+    MY_TASKS: '/operator-moviment-pallet/my-tasks',
+    TRIP_SUGGESTIONS: '/operator-moviment-pallet/trip-suggestions',
+    ACCEPT_TRIP_SUGGESTION: (tripSuggestionId: string) =>
+      `/operator-moviment-pallet/trip-suggestions/${encodeURIComponent(tripSuggestionId)}/accept`,
+    COMPLETE_DELIVER: (taskId: string) =>
+      `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/complete-deliver`,
+    COMPLETE_PICKUP: (taskId: string) =>
+      `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/complete-pickup`,
+
   },
 } as const;

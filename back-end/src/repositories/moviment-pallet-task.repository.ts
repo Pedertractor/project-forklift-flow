@@ -145,6 +145,30 @@ export const movimentPalletTaskRepository = {
     })
   },
 
+  findOpenDeliverForRequest(requestId: string) {
+    return prisma.movimentPalletTask.findFirst({
+      where: {
+        requestId,
+        type: ForkliftTaskType.DELIVER_TO_MACHINE,
+        status: { in: openDeliverStatuses },
+      },
+      include: taskWithRequestInclude,
+    })
+  },
+
+  /** Tarefa de entrega em CREATED (sem equipamento) para sugestao de viagem combinada. */
+  createOpenDeliverTaskForRequest(requestId: string, requestedById: string) {
+    return prisma.movimentPalletTask.create({
+      data: {
+        type: ForkliftTaskType.DELIVER_TO_MACHINE,
+        status: ForkliftTaskStatus.CREATED,
+        request: { connect: { id: requestId } },
+        requestedBy: { connect: { id: requestedById } },
+      },
+      include: taskWithRequestInclude,
+    })
+  },
+
   /** Entregas em aberto no setor (pallet no recebimento / em rota para a maquina). */
   findManyOpenDeliverTasksForSectorAndMovimentType(
     sectorId: string,
@@ -156,6 +180,7 @@ export const movimentPalletTaskRepository = {
         status: { in: openDeliverStatuses },
         request: {
           typeMovimentPallet,
+          status: { in: [RequestStatus.CREATED, RequestStatus.IN_PROGRESS] },
           destination: { sectorId },
         },
       },

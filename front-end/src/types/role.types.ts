@@ -35,5 +35,6 @@ export const LEADER_CREATABLE_ROLES: readonly AppRole[] = [
 
 export const ADMIN_OR_LEADER_ROLES: readonly AppRole[] = ['ADMIN', 'LEADER'];
 
-/** Operador de máquina (dobra) — `ADMIN` incluso para testes (`ROTAS_POR_ROLE.md`). */
+
 export const OPERATOR_MACHINE_ROLES: readonly AppRole[] = ['OPERATOR_MACHINE', 'ADMIN'];
+

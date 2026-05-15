@@ -187,16 +187,23 @@ O operador **só enxerga solicitações em aberto e tarefas** alinhadas ao **tip
 ### 5.8 Sugestões de viagem (economia de trajeto)
 
 - **`GET /operator-moviment-pallet/trip-suggestions`**
-- **Cenário:** o **operador de máquina** já pediu **retirada** (`PICKUP_TO_EXPEDITION` em aberto) enquanto existe, para a **mesma máquina de destino**, uma **entrega** em aberto (`DELIVER_TO_MACHINE`) — por exemplo cubo no recebimento destinado àquela máquina.
-- **Regra de detecção (API):** no **setor do usuário logado** e para cada **`typeMovimentPallet`** permitido ao papel, busca-se pares de tarefas em que:
+- **Cenário:** o **operador de máquina** já pediu **retirada** (`PICKUP_TO_EXPEDITION` em aberto) enquanto existe, para a **mesma máquina de destino**, material para **entregar** nessa máquina — por exemplo pallet/cubo no **recebimento** (`MachineReplenishmentRequest` em **`CREATED`**, ainda sem operador ter aceitado a entrega) **ou** entrega já em andamento (`DELIVER_TO_MACHINE` em aberto com requisição **`IN_PROGRESS`**).
+- **Regra de detecção (API):** no **setor do usuário logado** e para cada **`typeMovimentPallet`** permitido ao papel:
   - **PICKUP:** tipo `PICKUP_TO_EXPEDITION`, status em aberto, requisição em **`ON_MACHINE`** (retirada solicitada com cubo na máquina).
-  - **DELIVER:** tipo `DELIVER_TO_MACHINE`, status em aberto, **mesmo `destinationId`** que o pickup.
+  - **Entrega (lado “recebimento → máquina”):** **mesmo `destinationId`** que o pickup e requisição de entrega em **`CREATED`** ou **`IN_PROGRESS`**, via:
+    - solicitação em **`CREATED`** na fila do recebimento (sem tarefa `DELIVER` em aberto) — a API cria tarefa `DELIVER_TO_MACHINE` em **`CREATED`** só para persistir a sugestão; ou
+    - tarefa **`DELIVER_TO_MACHINE`** já em aberto (`CREATED` / `ASSIGNED` / `IN_PROGRESS`).
   - As duas tarefas são de **requisições diferentes** (`requestId` distintos).
-- **Emparelhamento:** entregas e retiradas ordenadas por **prioridade** da requisição (`VERY_HIGH` > `HIGH` > `NORMAL`) e, em empate, por data de criação da tarefa; cada entrega só entra em **uma** sugestão (evita reuso na mesma resposta).
+- **Trajeto sugerido (uma ida):** recebimento → máquina (entrega) → máquina (retirada do cubo finalizado) → expedição.
+- **Emparelhamento:** entre **todos** os pares válidos (mesma máquina, requisições distintas, regras acima), a API escolhe **apenas o par mais urgente** (`effectivePriority` da sugestão = a mais urgente entre as duas requisições) — **no máximo uma sugestão combinada por `typeMovimentPallet` no setor** (1× `DELIVER_TO_MACHINE` + 1× `PICKUP_TO_EXPEDITION`). Demais retiradas em aberto permanecem em `standalonePickupTasks` / fila normal.
+- **Detalhe:** ainda prioriza, em empate de urgência, candidato com recebimento **`CREATED` (POOL)** em relação a tarefa de entrega já aberta; em seguida data de criação da retirada e desempate estável por ids.
+- **Aceitar sugestão (`POST .../trip-suggestions/:id/accept`):** se a requisição de entrega ainda estiver em **`CREATED`**, passa para **`IN_PROGRESS`** (como no aceite individual da fila) e as duas tarefas são atribuídas ao equipamento vinculado.
 - **Prioridade da sugestão (`effectivePriority`):** é a **mais urgente** entre a requisição da retirada e a da entrega (ex.: retirada `NORMAL` + entrega `HIGH` ⇒ a sugestão é tratada como `HIGH`).
 - **Prioridade global no setor:** entre todas as tarefas de entrega/retirada em aberto consideradas no cálculo, calcula-se a mais urgente (`mostUrgentOpenInSector`). Se existir **qualquer** `VERY_HIGH`, o cliente recebe `priorityContext.hint` orientando a **atender antes** todas as demais — inclusive sugestões de viagem só `HIGH`/`NORMAL`. Cada sugestão traz `deferRecommended: true` quando a prioridade efetiva dela é **menos urgente** que a mais urgente do setor (ex.: sugestão `NORMAL` enquanto há `VERY_HIGH` em outro ponto).
-- **Ordenação da lista:** `suggestions` vem ordenada por `effectivePriority` (mais urgente primeiro), depois por máquina.
-- **Resposta:** `{ "suggestions": [ ... ], "priorityContext": { "mostUrgentOpenInSector", "hint?" } }` — cada item com `machine`, `message`, `effectivePriority`, `deferRecommended`, `suggestedOrder`, `deliverTask`, `pickupTask`.
+- **Ordenação da lista:** com no máximo um item combinado por tipo, a lista é trivialmente ordenada; o item traz `effectivePriority` e `machine` do par escolhido.
+- **Resposta:** `{ "suggestions": [ ... ], "priorityContext": { "mostUrgentOpenInSector", "hint?" } }` — cada item com `machine`, `message`, `effectivePriority`, `deferRecommended`, `suggestedOrder`, `deliverTask`, `pickupTask`, `tripSuggestion` (`status`, etc.).
+- **Listagem:** apenas sugestões com `tripSuggestion.status = OPEN` entram em `suggestions` (após aceitar, somem da fila de sugestões e vão para minhas tarefas).
+- **Conclusão:** quando o operador conclui **entrega** e **retirada** da rota aceita, `MovimentPalletTripSuggestion` passa de `ACCEPTED` para **`COMPLETED`** e deixa de ser reaberta na fila. A reconciliação também roda ao listar sugestões.
 - **Observação:** é **sugestão** (read-only); o operador continua executando as tarefas pelos fluxos já existentes. Não exige vínculo prévio ao `MovimentPallet` — basta **usuário com `sectorId`** e papel permitido (o filtro usa o setor do token).
 
 ### 5.9 Aceitar uma solicitação (criar atividade de entrega)

@@ -86,8 +86,8 @@ export function UsersPageView(vm: UsersPageViewModel) {
             </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
               {isAdmin
-                ? 'Gestão de usuários (lista, perfil, senha inicial) e criação com validação do colaborador em /api/users/employee-info.'
-                : 'Cadastre colaboradores do seu setor com perfis de operação. O setor atribuído é sempre o mesmo do seu usuário.'}
+                ? 'Gestão de usuários.'
+                : 'Cadastre colaboradores do seu setor com perfis de operação.'}
             </p>
             {isLeader && leaderSectorLabel ? (
               <p className="mt-2 text-sm font-medium text-[#005fb8]">
@@ -450,14 +450,14 @@ export function UsersPageView(vm: UsersPageViewModel) {
           title="Redefinir senha inicial"
           description={
             resetTarget
-              ? `Confirma reset da senha de «${resetTarget.name}» para a senha padrão do ambiente (FIRST_PASSWORD)? O usuário precisará trocar a senha no próximo fluxo de primeiro acesso.`
+              ? `Confirma redefinição da senha de «${resetTarget.name}» para a senha padrão do ambiente? O usuário precisará trocar a senha no próximo fluxo de primeiro acesso.`
               : undefined
           }
           onClose={() => (!busyAdmin ? setResetTarget(null) : undefined)}
           footer={
             <ModalActions
               onCancel={() => !busyAdmin && setResetTarget(null)}
-              submitLabel={busyAdmin ? 'Enviando…' : 'Confirmar reset'}
+              submitLabel={busyAdmin ? 'Enviando…' : 'Confirmar redefinição'}
               disabled={busyAdmin}
               danger
               onSubmit={() => {

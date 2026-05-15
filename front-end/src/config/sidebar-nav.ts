@@ -2,8 +2,14 @@ import type { AppRole } from '@/types/role.types';
 import {
   ADMIN_OR_LEADER_ROLES,
   MACHINE_DOMAIN_ROLES,
-  OPERATOR_MACHINE_ROLES,
+  MOVIMENT_OPERATOR_ROLES,
 } from '@/types/role.types';
+import {
+  OPERATOR_MOVIMENT_EQUIPMENT_PATH,
+  OPERATOR_MOVIMENT_MY_TASKS_PATH,
+  OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
+} from '@/constants/operator-moviment-routes';
+
 
 export interface SidebarNavItem {
   to: string;
@@ -118,6 +124,21 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
         allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
     ],
+  },
+  {
+    to: OPERATOR_MOVIMENT_EQUIPMENT_PATH,
+    label: 'Meu equipamento',
+    allowedRoles: MOVIMENT_OPERATOR_ROLES,
+  },
+  {
+    to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
+    label: 'Tarefas disponíveis',
+    allowedRoles: MOVIMENT_OPERATOR_ROLES,
+  },
+  {
+    to: OPERATOR_MOVIMENT_MY_TASKS_PATH,
+    label: 'Minhas tarefas',
+    allowedRoles: MOVIMENT_OPERATOR_ROLES,
   },
 ];
 

@@ -110,7 +110,6 @@ export const machineReplenishmentRequestRepository = {
       orderBy: [{ priorityLevel: 'asc' }, { createdAt: 'asc' }],
     })
   },
-
   findPalletReadyForDestination(destinationId: string) {
     return prisma.machineReplenishmentRequest.findFirst({
       where: {

@@ -7,10 +7,12 @@ import { PrivateRoute } from '@/components/layout/PrivateRoute';
 import { RequireRoles } from '@/components/layout/RequireRoles';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageLoader } from '@/components/layout/PageLoader';
+import { RequireBoundMovimentPallet } from '@/components/layout/RequireBoundMovimentPallet';
 import {
-  MACHINE_DOMAIN_ROLES,
   ADMIN_OR_LEADER_ROLES,
-  OPERATOR_MACHINE_ROLES,
+  MACHINE_DOMAIN_ROLES,
+  MOVIMENT_OPERATOR_ROLES,
+
 } from '@/types/role.types';
 
 const HomePage = lazy(() =>
@@ -40,6 +42,7 @@ const FirstPasswordPage = lazy(() =>
 const UsersPage = lazy(() =>
   import('@/pages/UsersPage/index').then((m) => ({ default: m.UsersPage })),
 );
+
 const MovimentPalletsPage = lazy(() =>
   import('@/pages/MovimentPalletsPage/index').then((m) => ({ default: m.MovimentPalletsPage })),
 );
@@ -92,6 +95,13 @@ export function App() {
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
                   <Route path="administracao/usuarios" element={<UsersPage />} />
                 </Route>
+                <Route element={<RequireRoles roles={MOVIMENT_OPERATOR_ROLES} />}>
+                  <Route path="operacao/equipamento" element={<OperatorMovimentEquipmentPage />} />
+                  <Route path="operacao/aceitar-tarefas" element={<OperatorMovimentQueuePage />} />
+                  <Route element={<RequireBoundMovimentPallet />}>
+                    <Route path="operacao/tarefas" element={<OperatorMovimentQueuePage />} />
+                    <Route path="operacao/minhas-tarefas" element={<OperatorMovimentTasksPage />} />
+                  </Route>
                 <Route element={<RequireRoles roles={OPERATOR_MACHINE_ROLES} />}>
                   <Route path="dobra" element={<OperatorMachinePage />} />
                 </Route>
