@@ -10,6 +10,8 @@ import {
   updateReplenishmentRequest,
 } from '@/services/machine-replenishment-requests-api';
 import { fetchMachines } from '@/services/machines-api';
+import { fetchMovimentPallets } from '@/services/moviment-pallets-api';
+import type { MovimentPalletListItem } from '@/types/moviment-pallet.types';
 import { useAuthStore } from '@/store/auth.store';
 import type { MachineListItem } from '@/types/machine.types';
 import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
@@ -33,6 +35,27 @@ function canDeleteRequest(row: ReplenishmentRequestListItem): boolean {
 
 function canEditRequest(row: ReplenishmentRequestListItem): boolean {
   return row.status !== 'COMPLETED' && row.status !== 'CANCELED';
+}
+
+const QUEUE_STATUSES_FOR_TRANSPORT = new Set([
+  'PALLET_READY',
+  'IN_PROGRESS',
+  'CREATED',
+]);
+
+function isEquipmentAvailable(item: MovimentPalletListItem): boolean {
+  return item.operatorId === null;
+}
+
+function buildColumnStats(
+  items: MovimentPalletListItem[],
+  queuePending: number,
+) {
+  return {
+    total: items.length,
+    available: items.filter(isEquipmentAvailable).length,
+    queuePending,
+  };
 }
 
 export function useReplenishmentRequestsPage() {
@@ -69,16 +92,71 @@ export function useReplenishmentRequestsPage() {
     return rows;
   }, [listQuery.data, onlyMySector, user?.sectorId]);
 
+  const equipmentSectorId =
+    onlyMySector && user?.sectorId ? user.sectorId : undefined;
+
+  const equipmentQuery = useQuery({
+    queryKey: [
+      'moviment-pallets',
+      'replenishment-sidebar',
+      equipmentSectorId ?? 'all',
+    ],
+    queryFn: () =>
+      fetchMovimentPallets(
+        equipmentSectorId ? { sectorId: equipmentSectorId } : undefined,
+      ),
+    enabled: apiReady,
+    refetchInterval: 15_000,
+  });
+
+  const sectorEquipment = equipmentQuery.data ?? [];
+
+  const forklifts = useMemo(
+    () => sectorEquipment.filter((p) => p.type === 'FORKLIFT'),
+    [sectorEquipment],
+  );
+
+  const palletTrucks = useMemo(
+    () => sectorEquipment.filter((p) => p.type === 'PALLET_TRUCK'),
+    [sectorEquipment],
+  );
+
+  const queueByType = useMemo(() => {
+    let forklift = 0;
+    let palletTruck = 0;
+    for (const row of visibleRequests) {
+      if (!QUEUE_STATUSES_FOR_TRANSPORT.has(row.status)) continue;
+      if (row.typeMovimentPallet === 'FORKLIFT') forklift += 1;
+      else palletTruck += 1;
+    }
+    return { forklift, palletTruck };
+  }, [visibleRequests]);
+
+  const forkliftStats = useMemo(
+    () => buildColumnStats(forklifts, queueByType.forklift),
+    [forklifts, queueByType.forklift],
+  );
+
+  const palletTruckStats = useMemo(
+    () => buildColumnStats(palletTrucks, queueByType.palletTruck),
+    [palletTrucks, queueByType.palletTruck],
+  );
+
   const [createOpen, setCreateOpen] = useState(false);
-  const [editRow, setEditRow] = useState<ReplenishmentRequestListItem | null>(null);
-  const [deleteRow, setDeleteRow] = useState<ReplenishmentRequestListItem | null>(null);
-  const [detailRow, setDetailRow] = useState<ReplenishmentRequestListItem | null>(null);
+  const [editRow, setEditRow] = useState<ReplenishmentRequestListItem | null>(
+    null,
+  );
+  const [deleteRow, setDeleteRow] =
+    useState<ReplenishmentRequestListItem | null>(null);
+  const [detailRow, setDetailRow] =
+    useState<ReplenishmentRequestListItem | null>(null);
 
   const [destinationId, setDestinationId] = useState('');
   const [movementCube, setMovementCube] = useState('');
   const [typeMovimentPallet, setTypeMovimentPallet] =
     useState<MovimentPalletEquipmentType>('FORKLIFT');
-  const [priorityLevel, setPriorityLevel] = useState<PriorityLevelValue>('NORMAL');
+  const [priorityLevel, setPriorityLevel] =
+    useState<PriorityLevelValue>('NORMAL');
   const [palletReady, setPalletReady] = useState(false);
 
   const resetForm = useCallback(() => {
@@ -112,7 +190,7 @@ export function useReplenishmentRequestsPage() {
       }
       const cube = movementCube.trim();
       if (!cube) {
-        throw new Error('Informe o código do cubo / pallet.');
+        throw new Error('Informe o código do prisma / pallet.');
       }
       return createReplenishmentRequest({
         destinationId: destinationId.trim(),
@@ -123,8 +201,16 @@ export function useReplenishmentRequestsPage() {
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['machine-replenishment-requests'] });
-      void queryClient.invalidateQueries({ queryKey: ['pending-preparation-requests'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['machine-replenishment-requests'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['pending-preparation-requests'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['operator-machine', 'operator-supply-requests'],
+      });
+      void queryClient.invalidateQueries({ queryKey: ['moviment-pallets'] });
       setCreateOpen(false);
       resetForm();
       toast.success('Solicitação criada.');
@@ -139,7 +225,7 @@ export function useReplenishmentRequestsPage() {
       }
       const cube = movementCube.trim();
       if (!cube) {
-        throw new Error('Informe o código do cubo / pallet.');
+        throw new Error('Informe o código do prisma / pallet.');
       }
       if (!destinationId.trim()) {
         throw new Error('Selecione a máquina de destino.');
@@ -152,8 +238,15 @@ export function useReplenishmentRequestsPage() {
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['machine-replenishment-requests'] });
-      void queryClient.invalidateQueries({ queryKey: ['pending-preparation-requests'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['machine-replenishment-requests'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['pending-preparation-requests'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['operator-machine', 'operator-supply-requests'],
+      });
       setEditRow(null);
       resetForm();
       toast.success('Solicitação atualizada.');
@@ -164,8 +257,15 @@ export function useReplenishmentRequestsPage() {
   const deleteMut = useMutation({
     mutationFn: async (id: string) => deleteReplenishmentRequest(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['machine-replenishment-requests'] });
-      void queryClient.invalidateQueries({ queryKey: ['pending-preparation-requests'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['machine-replenishment-requests'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['pending-preparation-requests'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['operator-machine', 'operator-supply-requests'],
+      });
       setDeleteRow(null);
       toast.success('Solicitação excluída.');
     },
@@ -192,6 +292,11 @@ export function useReplenishmentRequestsPage() {
     setOnlyMySector,
     listQuery,
     visibleRequests,
+    forklifts,
+    palletTrucks,
+    forkliftStats,
+    palletTruckStats,
+    equipmentQuery,
     machinesQuery,
     machinesForSelect,
     machinesEmpty,
@@ -226,4 +331,6 @@ export function useReplenishmentRequestsPage() {
   };
 }
 
-export type ReplenishmentRequestsPageViewModel = ReturnType<typeof useReplenishmentRequestsPage>;
+export type ReplenishmentRequestsPageViewModel = ReturnType<
+  typeof useReplenishmentRequestsPage
+>;

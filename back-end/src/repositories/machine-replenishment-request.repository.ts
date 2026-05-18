@@ -1,4 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js'
+import { OPERATOR_AWAITING_SUPPLY_CUBE_MARKER } from '../constants/replenishment-operator.constants.js'
 import {
   ForkliftTaskStatus,
   ForkliftTaskType,
@@ -50,6 +51,40 @@ export const machineReplenishmentRequestRepository = {
     })
   },
 
+  createWithClient(
+    tx: Prisma.TransactionClient,
+    data: Prisma.MachineReplenishmentRequestCreateInput,
+  ) {
+    return tx.machineReplenishmentRequest.create({
+      data,
+      include: requestListInclude,
+    })
+  },
+
+  /**
+   * Solicitações «finalizei» do operador de dobra (cubo pendente), sem tarefas —
+   * são encerradas quando o abastecimento abre uma solicitação explícita na mesma máquina.
+   */
+  completeAwaitingOperatorSupplyPlaceholdersForDestination(
+    destinationId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    const now = new Date()
+    return tx.machineReplenishmentRequest.updateMany({
+      where: {
+        destinationId,
+        status: RequestStatus.AWAITING_PREPARATION,
+        movementCube: OPERATOR_AWAITING_SUPPLY_CUBE_MARKER,
+        movimentPalletTasks: { none: {} },
+      },
+      data: {
+        status: RequestStatus.COMPLETED,
+        completedAt: now,
+        awaitingPreparationSince: null,
+      },
+    })
+  },
+
   findUniqueById(id: string) {
     return prisma.machineReplenishmentRequest.findUnique({
       where: { id },
@@ -85,6 +120,13 @@ export const machineReplenishmentRequestRepository = {
   ) {
     const where: Prisma.MachineReplenishmentRequestWhereInput = {
       destination: { userId: operatorUserId },
+      NOT: {
+        AND: [
+          { status: RequestStatus.AWAITING_PREPARATION },
+          { movementCube: OPERATOR_AWAITING_SUPPLY_CUBE_MARKER },
+          { movimentPalletTasks: { none: {} } },
+        ],
+      },
     }
     if (filters?.status !== undefined) {
       where.status = filters.status
@@ -152,11 +194,35 @@ export const machineReplenishmentRequestRepository = {
     })
   },
 
+  /**
+   * Impede novo "finalizei" enquanto houver entrega em curso, pallet na máquina
+   * ou tarefa de entrega aberta (a caminho / recebimento).
+   */
+  findBlockingInboundForFinalize(destinationId: string) {
+    return prisma.machineReplenishmentRequest.findFirst({
+      where: {
+        destinationId,
+        OR: [
+          { status: { in: [RequestStatus.IN_PROGRESS, RequestStatus.ON_MACHINE] } },
+          { movimentPalletTasks: { some: openDeliverTaskWhere } },
+        ],
+      },
+      include: requestListInclude,
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+
   findManyAwaitingPreparationForSector(sectorId: string) {
     return prisma.machineReplenishmentRequest.findMany({
       where: {
         status: RequestStatus.AWAITING_PREPARATION,
         destination: { sectorId },
+        NOT: {
+          AND: [
+            { movementCube: OPERATOR_AWAITING_SUPPLY_CUBE_MARKER },
+            { movimentPalletTasks: { none: {} } },
+          ],
+        },
       },
       include: requestListInclude,
       orderBy: [

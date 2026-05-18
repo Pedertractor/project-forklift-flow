@@ -39,6 +39,9 @@ export const API_ENDPOINTS = {
     MY_MACHINE: '/operator-machine/my-machine',
     MACHINES: '/operator-machine/machines',
     REPLENISHMENT_REQUESTS: '/operator-machine/replenishment-requests',
+    OPERATOR_SUPPLY_REQUESTS: '/operator-machine/operator-supply-requests',
+    PICKUP_PROGRESS: (requestId: string) =>
+      `/operator-machine/replenishment-requests/${encodeURIComponent(requestId)}/pickup-progress`,
     FINALIZE: '/operator-machine/my-machine/finalize',
     PICKUP: (requestId: string) =>
       `/operator-machine/replenishment-requests/${encodeURIComponent(requestId)}/pickup`,

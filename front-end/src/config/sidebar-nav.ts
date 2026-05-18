@@ -15,7 +15,7 @@ import {
 export interface SidebarNavItem {
   to: string;
   label: string;
-  /** `null` = qualquer usuário autenticado (ex.: Início, Painel). */
+  /** `null` = qualquer usuário autenticado. */
   allowedRoles: readonly AppRole[] | null;
 }
 
@@ -49,11 +49,10 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   {
     id: 'geral',
     title: 'Geral',
-    rolesDescription:
-      'Todos os papéis autenticados (OPERATOR_MACHINE, empilhadeirista, abastecimento, líder, admin, etc.).',
+    rolesDescription: 'Administrador (ADMIN) e líder (LEADER) — Início e Painel.',
     items: [
-      { to: '/', label: 'Início', allowedRoles: null },
-      { to: '/dashboard', label: 'Painel', allowedRoles: null },
+      { to: '/', label: 'Início', allowedRoles: ADMIN_OR_LEADER_ROLES },
+      { to: '/dashboard', label: 'Painel', allowedRoles: ADMIN_OR_LEADER_ROLES },
     ],
   },
   {

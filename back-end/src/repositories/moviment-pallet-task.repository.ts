@@ -112,6 +112,17 @@ export const movimentPalletTaskRepository = {
     })
   },
 
+  findLatestPickupTaskForRequest(requestId: string) {
+    return prisma.movimentPalletTask.findFirst({
+      where: {
+        requestId,
+        type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: movimentPalletTaskPickupSelect,
+    })
+  },
+
   createPickupForRequest(requestId: string, requestedById: string) {
     const data: Prisma.MovimentPalletTaskCreateInput = {
       type: ForkliftTaskType.PICKUP_TO_EXPEDITION,

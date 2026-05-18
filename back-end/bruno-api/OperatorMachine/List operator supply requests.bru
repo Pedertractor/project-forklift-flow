@@ -1,0 +1,21 @@
+meta {
+  name: List operator supply requests
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/operator-machine/operator-supply-requests
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: OPERATOR_MACHINE ou ADMIN.
+  # Lista `OperatorMachineSupplyRequest` da maquina vinculada ao operador (userId na maquina).
+  # Query opcional: ?status=OPEN | FULFILLED | CANCELLED.
+}

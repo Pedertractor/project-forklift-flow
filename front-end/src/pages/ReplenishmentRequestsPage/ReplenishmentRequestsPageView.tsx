@@ -4,8 +4,13 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
-import { priorityLevelLabel, requestStatusLabel } from '@/utils/replenishment-labels';
+import {
+  priorityLevelLabel,
+  requestStatusLabel,
+} from '@/utils/replenishment-labels';
 import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentRequestsPage';
+import { ReplenishmentEquipmentPanel } from './ReplenishmentEquipmentPanel';
+import { CheckIcon } from 'lucide-react';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
@@ -14,7 +19,9 @@ function movementTypeLabel(t: string): string {
   return t === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
 }
 
-export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewModel) {
+export function ReplenishmentRequestsPageView(
+  vm: ReplenishmentRequestsPageViewModel,
+) {
   const {
     apiReady,
     token,
@@ -55,22 +62,31 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
     updateError,
     canDeleteRequest,
     canEditRequest,
+    forklifts,
+    palletTrucks,
+    forkliftStats,
+    palletTruckStats,
+    equipmentQuery,
   } = vm;
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-[90rem]">
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
               Solicitações de reposição
             </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
-              Abra pedidos para a máquina de destino, acompanhe status e edite enquanto o fluxo
-              permitir. Marque «Pallet já pronto» para liberar direto na fila do transporte.
+              Abra pedidos para a máquina de destino, acompanhe status e edite
+              enquanto o fluxo permitir.
             </p>
           </div>
-          <Button type="button" onClick={openCreate} disabled={!apiReady || busy}>
+          <Button
+            type="button"
+            onClick={openCreate}
+            disabled={!apiReady || busy}
+          >
             Nova solicitação
           </Button>
         </header>
@@ -87,8 +103,9 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
 
         {machinesEmpty ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            Não há máquinas no seu setor para selecionar como destino. Cadastre máquinas de produção
-            em «Máquinas de produção» no menu ou verifique se seu usuário tem setor vinculado.
+            Não há máquinas no seu setor para selecionar como destino. Cadastre
+            máquinas de produção em «Máquinas de produção» no menu ou verifique
+            se seu usuário tem setor vinculado.
           </p>
         ) : null}
 
@@ -133,88 +150,147 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
           </p>
         ) : null}
 
-        <Card className="mt-6 overflow-x-auto border border-zinc-200 shadow-sm">
-          <table className="w-full min-w-[960px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/90">
-                <th className="px-3 py-3 font-semibold text-zinc-700">Destino</th>
-                <th className="px-3 py-3 font-semibold text-zinc-700">Cubo</th>
-                <th className="px-3 py-3 font-semibold text-zinc-700">Tipo mov.</th>
-                <th className="px-3 py-3 font-semibold text-zinc-700">Prioridade</th>
-                <th className="px-3 py-3 font-semibold text-zinc-700">Status</th>
-                <th className="px-3 py-3 text-right font-semibold text-zinc-700">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listQuery.isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
-                    Carregando…
-                  </td>
+        <div className="mt-6 flex flex-col gap-6 xl:flex-row xl:items-start">
+          <Card className="min-w-0 flex-1 overflow-x-auto border border-zinc-200 shadow-sm">
+            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200 bg-zinc-50/90">
+                  <th className="px-3 py-3 font-semibold text-zinc-700">
+                    Destino
+                  </th>
+                  <th className="px-3 py-3 font-semibold text-zinc-700">
+                    Prisma
+                  </th>
+                  <th className="px-3 py-3 font-semibold text-zinc-700">
+                    Tipo mov.
+                  </th>
+                  <th className="px-3 py-3 font-semibold text-zinc-700">
+                    Prioridade
+                  </th>
+                  <th className="px-3 py-3 font-semibold text-zinc-700">
+                    Status
+                  </th>
+                  <th className="px-3 py-3 text-right font-semibold text-zinc-700">
+                    Ações
+                  </th>
                 </tr>
-              ) : visibleRequests.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
-                    Nenhuma solicitação neste filtro.
-                  </td>
-                </tr>
-              ) : (
-                visibleRequests.map((row) => (
-                  <tr key={row.id} className="border-b border-zinc-100 last:border-0">
-                    <td className="px-3 py-3">
-                      <div className="font-medium text-zinc-900">{row.destination.name}</div>
-                      <div className="text-xs text-zinc-500">
-                        {row.destination.sector.typeSector} · {row.destination.position}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 font-mono text-zinc-800">{row.movementCube}</td>
-                    <td className="px-3 py-3 text-zinc-700">
-                      {movementTypeLabel(row.typeMovimentPallet)}
-                    </td>
-                    <td className="px-3 py-3 text-zinc-700">
-                      {priorityLevelLabel(row.priorityLevel)}
-                    </td>
-                    <td className="px-3 py-3 text-zinc-700">{requestStatusLabel(row.status)}</td>
-                    <td className="px-3 py-3 text-right">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="default"
-                          className="h-9 min-w-0 px-2 text-xs"
-                          disabled={!apiReady || busy}
-                          onClick={() => setDetailRow(row)}
-                        >
-                          Detalhe
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="default"
-                          className="h-9 min-w-0 px-2 text-xs"
-                          disabled={!apiReady || busy || !canEditRequest(row)}
-                          onClick={() => openEdit(row)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="default"
-                          className="h-9 min-w-0 border-red-200 px-2 text-xs text-red-700 hover:bg-red-50"
-                          disabled={!apiReady || busy || !canDeleteRequest(row)}
-                          onClick={() => setDeleteRow(row)}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
+              </thead>
+              <tbody>
+                {listQuery.isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-zinc-500"
+                    >
+                      Carregando…
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </Card>
+                ) : visibleRequests.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-zinc-500"
+                    >
+                      Nenhuma solicitação neste filtro.
+                    </td>
+                  </tr>
+                ) : (
+                  visibleRequests.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border-b border-zinc-100 last:border-0"
+                    >
+                      <td className="px-3 py-3">
+                        <div className="font-medium text-zinc-900">
+                          {row.destination.name}
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          {row.destination.sector.typeSector} ·{' '}
+                          {row.destination.position}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 font-mono text-zinc-800">
+                        {row.movementCube}
+                      </td>
+                      <td className="px-3 py-3 text-zinc-700">
+                        {movementTypeLabel(row.typeMovimentPallet)}
+                      </td>
+                      <td className="px-3 py-3 text-zinc-700">
+                        <p
+                          className={`${row.priorityLevel === 'VERY_HIGH' ? 'text-red-500' : row.priorityLevel === 'HIGH' ? 'text-yellow-500' : 'text-green-500'}`}
+                        >
+                          {priorityLevelLabel(row.priorityLevel)}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3 text-zinc-700">
+                        <p
+                          className={`flex items-center gap-2 ${row.status === 'CREATED' ? 'text-green-500' : row.status === 'IN_PROGRESS' ? 'text-yellow-500' : row.status === 'ON_MACHINE' ? 'text-blue-500' : row.status === 'COMPLETED' ? 'text-green-500' : row.status === 'CANCELED' ? 'text-red-500' : 'text-gray-500'}`}
+                        >
+                          {priorityLevelLabel(row.status) === 'COMPLETED' && (
+                            <CheckIcon className="w-4 h-4" />
+                          )}
+                          {requestStatusLabel(row.status)}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="default"
+                            className="h-9 min-w-0 px-2 text-xs"
+                            disabled={!apiReady || busy}
+                            onClick={() => setDetailRow(row)}
+                          >
+                            Detalhe
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="default"
+                            className="h-9 min-w-0 px-2 text-xs"
+                            disabled={!apiReady || busy || !canEditRequest(row)}
+                            onClick={() => openEdit(row)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="default"
+                            className="h-9 min-w-0 border-red-200 px-2 text-xs text-red-700 hover:bg-red-50"
+                            disabled={
+                              !apiReady || busy || !canDeleteRequest(row)
+                            }
+                            onClick={() => setDeleteRow(row)}
+                          >
+                            Excluir
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Card>
+
+          <aside className="w-full shrink-0 xl:w-[22rem] 2xl:w-[26rem]">
+            <ReplenishmentEquipmentPanel
+              forklifts={forklifts}
+              palletTrucks={palletTrucks}
+              forkliftStats={forkliftStats}
+              palletTruckStats={palletTruckStats}
+              isLoading={equipmentQuery.isLoading}
+              isError={equipmentQuery.isError}
+              errorMessage={
+                equipmentQuery.error instanceof Error
+                  ? equipmentQuery.error.message
+                  : undefined
+              }
+            />
+          </aside>
+        </div>
       </div>
 
       <SimpleModal
@@ -254,12 +330,12 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="rr-cube">Código do cubo / pallet</Label>
+            <Label htmlFor="rr-cube">Código do prisma / pallet</Label>
             <Input
               id="rr-cube"
               value={movementCube}
               onChange={(e) => setMovementCube(e.target.value)}
-              placeholder="Identificador físico do cubo"
+              placeholder="Identificador físico do prisma"
             />
           </div>
           <div className="space-y-2">
@@ -269,7 +345,9 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
               className={selectClass}
               value={typeMovimentPallet}
               onChange={(e) =>
-                setTypeMovimentPallet(e.target.value as 'FORKLIFT' | 'PALLET_TRUCK')
+                setTypeMovimentPallet(
+                  e.target.value as 'FORKLIFT' | 'PALLET_TRUCK',
+                )
               }
             >
               <option value="FORKLIFT">Empilhadeira</option>
@@ -283,7 +361,9 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
               className={selectClass}
               value={priorityLevel}
               onChange={(e) =>
-                setPriorityLevel(e.target.value as 'VERY_HIGH' | 'HIGH' | 'NORMAL')
+                setPriorityLevel(
+                  e.target.value as 'VERY_HIGH' | 'HIGH' | 'NORMAL',
+                )
               }
             >
               <option value="NORMAL">Normal</option>
@@ -298,7 +378,8 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
               onChange={(e) => setPalletReady(e.target.checked)}
               className="size-4 rounded border-zinc-300"
             />
-            Pallet já pronto (liberar na fila do transporte sem passar por «aguardando preparo»)
+            Pallet já pronto (liberar na fila do transporte sem passar por
+            «aguardando preparo»)
           </label>
         </div>
       </SimpleModal>
@@ -338,7 +419,7 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="rr-edit-cube">Código do cubo / pallet</Label>
+            <Label htmlFor="rr-edit-cube">Código do prisma / pallet</Label>
             <Input
               id="rr-edit-cube"
               value={movementCube}
@@ -352,7 +433,9 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
               className={selectClass}
               value={typeMovimentPallet}
               onChange={(e) =>
-                setTypeMovimentPallet(e.target.value as 'FORKLIFT' | 'PALLET_TRUCK')
+                setTypeMovimentPallet(
+                  e.target.value as 'FORKLIFT' | 'PALLET_TRUCK',
+                )
               }
             >
               <option value="FORKLIFT">Empilhadeira</option>
@@ -366,7 +449,9 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
               className={selectClass}
               value={priorityLevel}
               onChange={(e) =>
-                setPriorityLevel(e.target.value as 'VERY_HIGH' | 'HIGH' | 'NORMAL')
+                setPriorityLevel(
+                  e.target.value as 'VERY_HIGH' | 'HIGH' | 'NORMAL',
+                )
               }
             >
               <option value="NORMAL">Normal</option>
@@ -382,7 +467,7 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
         title="Excluir solicitação"
         description={
           deleteRow
-            ? `Confirma a exclusão do pedido do cubo «${deleteRow.movementCube}» para ${deleteRow.destination.name}?`
+            ? `Confirma a exclusão do pedido do prisma «${deleteRow.movementCube}» para ${deleteRow.destination.name}?`
             : undefined
         }
         onClose={() => (!busy ? setDeleteRow(null) : undefined)}
@@ -409,7 +494,11 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
         onClose={() => setDetailRow(null)}
         footer={
           <div className="flex justify-end">
-            <Button type="button" variant="default" onClick={() => setDetailRow(null)}>
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => setDetailRow(null)}
+            >
               Fechar
             </Button>
           </div>
@@ -419,30 +508,42 @@ export function ReplenishmentRequestsPageView(vm: ReplenishmentRequestsPageViewM
           <dl className="space-y-3 text-sm">
             <div>
               <dt className="text-xs font-medium text-zinc-500">ID</dt>
-              <dd className="mt-0.5 break-all font-mono text-xs text-zinc-800">{detailRow.id}</dd>
+              <dd className="mt-0.5 break-all font-mono text-xs text-zinc-800">
+                {detailRow.id}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-zinc-500">Solicitante</dt>
-              <dd className="mt-0.5 text-zinc-900">{detailRow.requestedBy.name}</dd>
+              <dd className="mt-0.5 text-zinc-900">
+                {detailRow.requestedBy.name}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-zinc-500">Destino</dt>
               <dd className="mt-0.5 text-zinc-900">
-                {detailRow.destination.name} ({detailRow.destination.position}) —{' '}
-                {detailRow.destination.sector.typeSector}
+                {detailRow.destination.name} ({detailRow.destination.position})
+                — {detailRow.destination.sector.typeSector}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-zinc-500">Cubo</dt>
-              <dd className="mt-0.5 font-mono text-zinc-900">{detailRow.movementCube}</dd>
+              <dt className="text-xs font-medium text-zinc-500">Prisma</dt>
+              <dd className="mt-0.5 font-mono text-zinc-900">
+                {detailRow.movementCube}
+              </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-zinc-500">Status</dt>
-              <dd className="mt-0.5 text-zinc-900">{requestStatusLabel(detailRow.status)}</dd>
+              <dd className="mt-0.5 text-zinc-900">
+                {requestStatusLabel(detailRow.status)}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-zinc-500">Tarefas vinculadas</dt>
-              <dd className="mt-0.5 text-zinc-900">{detailRow._count.movimentPalletTasks}</dd>
+              <dt className="text-xs font-medium text-zinc-500">
+                Tarefas vinculadas
+              </dt>
+              <dd className="mt-0.5 text-zinc-900">
+                {detailRow._count.movimentPalletTasks}
+              </dd>
             </div>
           </dl>
         ) : null}

@@ -9,12 +9,12 @@ Documento de referência para os fluxos da API (`/api`): operador de máquina (`
 
 ## 0. Resumo: implementado vs pendente
 
-| Área | ✅ Já na API | ❌ Ainda não (ver §9 e `STATUS_IMPLEMENTACAO.md`) |
-|------|-------------|-----------------------------------------------------|
-| **Supply** | CRUD; `GET pending-preparation`; `POST mark-pallet-ready`; `palletReady` no `POST` | Push em tempo real (opcional) |
-| **Operador de máquina** | Vínculo, pedidos, retirada, **`POST my-machine/finalize`** | — |
-| **Transporte** | Fila (`PALLET_READY`), aceitar, entregar, retirada, **`GET notifications`** | Push (opcional) |
-| **Modelo** | `AWAITING_PREPARATION`, `PALLET_READY`, `preparedAt`, `awaitingPreparationSince` | — |
+| Área                    | ✅ Já na API                                                                       | ❌ Ainda não (ver §9 e `STATUS_IMPLEMENTACAO.md`) |
+| ----------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **Supply**              | CRUD; `GET pending-preparation`; `POST mark-pallet-ready`; `palletReady` no `POST` | Push em tempo real (opcional)                     |
+| **Operador de máquina** | Vínculo, pedidos, retirada, **`POST my-machine/finalize`**                         | —                                                 |
+| **Transporte**          | Fila (`PALLET_READY`), aceitar, entregar, retirada, **`GET notifications`**        | Push (opcional)                                   |
+| **Modelo**              | `AWAITING_PREPARATION`, `PALLET_READY`, `preparedAt`, `awaitingPreparationSince`   | —                                                 |
 
 **Fluxo §9:** **✅** implementado — ver **§9** e [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md).
 
@@ -24,12 +24,12 @@ Documento de referência para os fluxos da API (`/api`): operador de máquina (`
 
 ## 1. Papéis envolvidos
 
-| Papel | Responsabilidade neste fluxo |
-|--------|-------------------------------|
-| **SUPPLY_OPERATOR** (e **LEADER** / **ADMIN**) | **✅** Cadastros, solicitações, `pending-preparation`, `mark-pallet-ready`. |
-| **OPERATOR_MACHINE** (máquina de **dobra**) | **✅** Vínculo, retirada (§4.7), **finalizei** (§4.6). |
-| **FORKLIFT_OPERATOR** | Após login, vincula-se a um **equipamento de movimentação** do tipo **empilhadeira** (`MovimentPallet` com `type = FORKLIFT`), vê **solicitações e tarefas** apenas desse tipo e pode **aceitar** uma requisição em aberto (cria tarefa de entrega). |
-| **FOLLOW_UP_OPERATOR** | Igual ao empilhadeirista no fluxo da API, porém apenas com equipamento **transpaleteira** (`type = PALLET_TRUCK`). |
+| Papel                                          | Responsabilidade neste fluxo                                                                                                                                                                                                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SUPPLY_OPERATOR** (e **LEADER** / **ADMIN**) | **✅** Cadastros, solicitações, `pending-preparation`, `mark-pallet-ready`.                                                                                                                                                                          |
+| **OPERATOR_MACHINE** (máquina de **dobra**)    | **✅** Vínculo, retirada (§4.7), **finalizei** (§4.6).                                                                                                                                                                                               |
+| **FORKLIFT_OPERATOR**                          | Após login, vincula-se a um **equipamento de movimentação** do tipo **empilhadeira** (`MovimentPallet` com `type = FORKLIFT`), vê **solicitações e tarefas** apenas desse tipo e pode **aceitar** uma requisição em aberto (cria tarefa de entrega). |
+| **FOLLOW_UP_OPERATOR**                         | Igual ao empilhadeirista no fluxo da API, porém apenas com equipamento **transpaleteira** (`type = PALLET_TRUCK`).                                                                                                                                   |
 
 ---
 
@@ -44,17 +44,17 @@ Documento de referência para os fluxos da API (`/api`): operador de máquina (`
 
 ## 3. Status da requisição (`RequestStatus`)
 
-| Status | Significado sugerido |
-|--------|----------------------|
-| **CREATED** | Solicitação criada pelo supply; aguarda processamento / entrega. |
-| **IN_PROGRESS** | Em andamento (ex.: entrega ou outras etapas — definir no fluxo do empilhadeirista). |
-| **ON_MACHINE** | Pallet/cubo **já está na máquina de destino**; o **OPERATOR_MACHINE** pode solicitar **retirada** (criação da tarefa `PICKUP_TO_EXPEDITION`). |
-| **COMPLETED** | Fluxo encerrado com sucesso. |
-| **CANCELED** | Cancelado. |
+| Status          | Significado sugerido                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CREATED**     | Solicitação criada pelo supply; aguarda processamento / entrega.                                                                                |
+| **IN_PROGRESS** | Em andamento (ex.: entrega ou outras etapas — definir no fluxo do empilhadeirista).                                                             |
+| **ON_MACHINE**  | Pallet/prisma **já está na máquina de destino**; o **OPERATOR_MACHINE** pode solicitar **retirada** (criação da tarefa `PICKUP_TO_EXPEDITION`). |
+| **COMPLETED**   | Fluxo encerrado com sucesso.                                                                                                                    |
+| **CANCELED**    | Cancelado.                                                                                                                                      |
 
 **✅ Transição para `ON_MACHINE`:** ao concluir a entrega, o transporte chama **`POST /api/operator-moviment-pallet/tasks/:taskId/complete-deliver`** — a requisição passa para `ON_MACHINE` (serviço `completeDeliverTaskToMachine`).
 
-**❌ Ainda não existe:** transição automática para `COMPLETED` após retirada concluída (verificar código atual ao implementar); distinção *em preparo* vs *pallet pronto* para o fluxo §9 (novo enum `PALLET_READY` ou campos `preparedAt` — ver [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md)).
+**❌ Ainda não existe:** transição automática para `COMPLETED` após retirada concluída (verificar código atual ao implementar); distinção _em preparo_ vs _pallet pronto_ para o fluxo §9 (novo enum `PALLET_READY` ou campos `preparedAt` — ver [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md)).
 
 ---
 
@@ -99,12 +99,12 @@ Base URL: **`/api/operator-machine`** — rotas exigem JWT com role **OPERATOR_M
 ### 4.6 Apontar finalização na máquina de dobra (reposição antecipada) — ✅
 
 - **`POST /operator-machine/my-machine/finalize`**
-- Body opcional: `movementCube`, `typeMovimentPallet`, `priorityLevel`. Se omitidos, a API **reaproveita** cubo e tipo do **último** `MachineReplenishmentRequest` da máquina de destino (`findLatestByDestinationId`). A **tela do operador** envia corpo **vazio** (`{}`): o operador só confirma que finalizou; vínculo com a máquina e histórico bastam no fluxo normal. O body explícito continua útil para integrações / Bruno / primeiro pedido sem histórico na máquina.
+- Body opcional: `movementCube`, `typeMovimentPallet`, `priorityLevel`. Se omitidos, a API **reaproveita** prisma e tipo do **último** `MachineReplenishmentRequest` da máquina de destino (`findLatestByDestinationId`). A **tela do operador** envia corpo **vazio** (`{}`): o operador só confirma que finalizou; vínculo com a máquina e histórico bastam no fluxo normal. O body explícito continua útil para integrações / Bruno / primeiro pedido sem histórico na máquina.
 - **Resposta:** `{ outcome: 'TRANSPORT_QUEUED' | 'SUPPLY_NOTIFIED', message, request }`.
 - Implementação: `finalizeMachineProductionCycle` em `replenishment-orchestration.service.ts`.
 
-- **Gatilho:** o **OPERATOR_MACHINE** vinculado à máquina de dobra M informa que **finalizou** o processo/ciclo atual naquela máquina (ação explícita no app, distinta de “pedir retirada” do cubo que já está em `ON_MACHINE`).
-- **Efeito esperado:** o sistema avalia se já existe **pallet pronto** para a máquina M (§9.2). Não substitui o fluxo de retirada (§4.7) quando o cubo ainda está em cima da máquina.
+- **Gatilho:** o **OPERATOR_MACHINE** vinculado à máquina de dobra M informa que **finalizou** o processo/ciclo atual naquela máquina (ação explícita no app, distinta de “pedir retirada” do prisma que já está em `ON_MACHINE`).
+- **Efeito esperado:** o sistema avalia se já existe **pallet pronto** para a máquina M (§9.2). Não substitui o fluxo de retirada (§4.7) quando o prisma ainda está em cima da máquina.
 
 **Pré-condições sugeridas (implementação futura):**
 
@@ -133,11 +133,11 @@ Rotas extras implementadas (não listadas antes neste doc): `GET /active-flow`, 
 
 ### 5.1 Perfis e tipo de equipamento
 
-| Papel | Tipo de `MovimentPallet` permitido |
-|--------|-------------------------------------|
-| **FORKLIFT_OPERATOR** | Somente **`FORKLIFT`** (empilhadeira). |
+| Papel                  | Tipo de `MovimentPallet` permitido           |
+| ---------------------- | -------------------------------------------- |
+| **FORKLIFT_OPERATOR**  | Somente **`FORKLIFT`** (empilhadeira).       |
 | **FOLLOW_UP_OPERATOR** | Somente **`PALLET_TRUCK`** (transpaleteira). |
-| **ADMIN** | **Ambos** (para testes). |
+| **ADMIN**              | **Ambos** (para testes).                     |
 
 O operador **só enxerga solicitações em aberto e tarefas** alinhadas ao **tipo do equipamento** ao qual está vinculado naquele momento (regra de visibilidade por `typeMovimentPallet` ↔ `MovimentPallet.type`).
 
@@ -187,14 +187,14 @@ O operador **só enxerga solicitações em aberto e tarefas** alinhadas ao **tip
 ### 5.8 Sugestões de viagem (economia de trajeto)
 
 - **`GET /operator-moviment-pallet/trip-suggestions`**
-- **Cenário:** o **operador de máquina** já pediu **retirada** (`PICKUP_TO_EXPEDITION` em aberto) enquanto existe, para a **mesma máquina de destino**, material para **entregar** nessa máquina — por exemplo pallet/cubo no **recebimento** (`MachineReplenishmentRequest` em **`CREATED`**, ainda sem operador ter aceitado a entrega) **ou** entrega já em andamento (`DELIVER_TO_MACHINE` em aberto com requisição **`IN_PROGRESS`**).
+- **Cenário:** o **operador de máquina** já pediu **retirada** (`PICKUP_TO_EXPEDITION` em aberto) enquanto existe, para a **mesma máquina de destino**, material para **entregar** nessa máquina — por exemplo pallet/prisma no **recebimento** (`MachineReplenishmentRequest` em **`CREATED`**, ainda sem operador ter aceitado a entrega) **ou** entrega já em andamento (`DELIVER_TO_MACHINE` em aberto com requisição **`IN_PROGRESS`**).
 - **Regra de detecção (API):** no **setor do usuário logado** e para cada **`typeMovimentPallet`** permitido ao papel:
-  - **PICKUP:** tipo `PICKUP_TO_EXPEDITION`, status em aberto, requisição em **`ON_MACHINE`** (retirada solicitada com cubo na máquina).
+  - **PICKUP:** tipo `PICKUP_TO_EXPEDITION`, status em aberto, requisição em **`ON_MACHINE`** (retirada solicitada com prisma na máquina).
   - **Entrega (lado “recebimento → máquina”):** **mesmo `destinationId`** que o pickup e requisição de entrega em **`CREATED`** ou **`IN_PROGRESS`**, via:
     - solicitação em **`CREATED`** na fila do recebimento (sem tarefa `DELIVER` em aberto) — a API cria tarefa `DELIVER_TO_MACHINE` em **`CREATED`** só para persistir a sugestão; ou
     - tarefa **`DELIVER_TO_MACHINE`** já em aberto (`CREATED` / `ASSIGNED` / `IN_PROGRESS`).
   - As duas tarefas são de **requisições diferentes** (`requestId` distintos).
-- **Trajeto sugerido (uma ida):** recebimento → máquina (entrega) → máquina (retirada do cubo finalizado) → expedição.
+- **Trajeto sugerido (uma ida):** recebimento → máquina (entrega) → máquina (retirada do prisma finalizado) → expedição.
 - **Emparelhamento:** entre **todos** os pares válidos (mesma máquina, requisições distintas, regras acima), a API escolhe **apenas o par mais urgente** (`effectivePriority` da sugestão = a mais urgente entre as duas requisições) — **no máximo uma sugestão combinada por `typeMovimentPallet` no setor** (1× `DELIVER_TO_MACHINE` + 1× `PICKUP_TO_EXPEDITION`). Demais retiradas em aberto permanecem em `standalonePickupTasks` / fila normal.
 - **Detalhe:** ainda prioriza, em empate de urgência, candidato com recebimento **`CREATED` (POOL)** em relação a tarefa de entrega já aberta; em seguida data de criação da retirada e desempate estável por ids.
 - **Aceitar sugestão (`POST .../trip-suggestions/:id/accept`):** se a requisição de entrega ainda estiver em **`CREATED`**, passa para **`IN_PROGRESS`** (como no aceite individual da fila) e as duas tarefas são atribuídas ao equipamento vinculado.
@@ -242,7 +242,7 @@ Demais CRUDs de requisição permanecem nas rotas já existentes sob **`/api/mac
 - **`GET /machine-replenishment-requests/pending-preparation`** — lista `AWAITING_PREPARATION` do setor do usuário.
 - **`POST /machine-replenishment-requests/:requestId/mark-pallet-ready`** — passa para `PALLET_READY` e preenche `preparedAt`.
 
-Quando o operador de dobra finaliza e **não** há pallet pronto, o **SUPPLY_OPERATOR** recebe aviso para **preparar** um novo cubo/pallet destinado àquela máquina.
+Quando o operador de dobra finaliza e **não** há pallet pronto, o **SUPPLY_OPERATOR** recebe aviso para **preparar** um novo prisma/pallet destinado àquela máquina.
 
 - O supply executa o preparo físico e **registra a conclusão** no sistema (ação “pallet pronto” / equivalente).
 - Ao concluir, a solicitação associada passa a ser visível na **fila do empilhadeirista ou transpaleteiro** compatível com `typeMovimentPallet` — **sem** o supply precisar acionar o transporte manualmente por outro canal.
@@ -252,11 +252,11 @@ Quando o operador de dobra finaliza e **não** há pallet pronto, o **SUPPLY_OPE
 
 ## 7. Tipos de tarefa (`ForkliftTaskType` em `MovimentPalletTask`)
 
-| Tipo | Uso previsto |
-|------|----------------|
-| **DELIVER_TO_MACHINE** | Levar cubo/pallet até a máquina de destino (criada ao aceitar a solicitação em **`POST /operator-moviment-pallet/.../accept`**). |
-| **ON_MACHINE** | Etapa em máquina (se aplicável ao processo). |
-| **PICKUP_TO_EXPEDITION** | **Retirada** solicitada pelo operador quando a requisição está **ON_MACHINE** (implementado ao chamar `POST .../pickup`). |
+| Tipo                     | Uso previsto                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **DELIVER_TO_MACHINE**   | Levar prisma/pallet até a máquina de destino (criada ao aceitar a solicitação em **`POST /operator-moviment-pallet/.../accept`**). |
+| **ON_MACHINE**           | Etapa em máquina (se aplicável ao processo).                                                                                       |
+| **PICKUP_TO_EXPEDITION** | **Retirada** solicitada pelo operador quando a requisição está **ON_MACHINE** (implementado ao chamar `POST .../pickup`).          |
 
 ---
 
@@ -296,7 +296,7 @@ flowchart TD
   B{"Existe pallet pronto\npara a máquina M?"}
   C["Chamado vai direto para a fila\ndo tipo FORKLIFT ou PALLET_TRUCK\n(empilhadeirista / transpaleteiro)"]
   D["SUPPLY_OPERATOR é informado:\npreparar pallet para M"]
-  E["Supply prepara o cubo/pallet"]
+  E["Supply prepara o prisma/pallet"]
   F["Supply aponta pallet pronto\nno sistema"]
   G["Transporte é informado\n(fila / notificação)"]
   A --> B
@@ -310,16 +310,16 @@ flowchart TD
 
 ### 9.2 O que é “pallet pronto”
 
-Considera-se que há **pallet pronto** para a máquina de destino **M** quando existe, para aquela máquina, uma **`MachineReplenishmentRequest`** (ou registro equivalente de estoque de cubo preparado) que atenda **todas** as condições abaixo:
+Considera-se que há **pallet pronto** para a máquina de destino **M** quando existe, para aquela máquina, uma **`MachineReplenishmentRequest`** (ou registro equivalente de estoque de prisma preparado) que atenda **todas** as condições abaixo:
 
-| Critério | Descrição |
-|----------|-----------|
-| **Destino** | `destinationId` = máquina M (dobra que acabou de finalizar). |
-| **Preparo concluído** | O abastecimento já registrou o cubo como **pronto para coleta/entrega** (status ou flag a definir na implementação — ex.: `PALLET_READY`, ou `CREATED` com indicador `preparedAt` preenchido). |
-| **Ainda não em transporte ativo** | Não há tarefa `DELIVER_TO_MACHINE` em **ASSIGNED** ou **IN_PROGRESS** para essa requisição (evita duplicar chamado). |
-| **Tipo de movimentação** | `typeMovimentPallet` já definido (`FORKLIFT` ou `PALLET_TRUCK`), para cair na fila correta. |
+| Critério                          | Descrição                                                                                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Destino**                       | `destinationId` = máquina M (dobra que acabou de finalizar).                                                                                                                                     |
+| **Preparo concluído**             | O abastecimento já registrou o prisma como **pronto para coleta/entrega** (status ou flag a definir na implementação — ex.: `PALLET_READY`, ou `CREATED` com indicador `preparedAt` preenchido). |
+| **Ainda não em transporte ativo** | Não há tarefa `DELIVER_TO_MACHINE` em **ASSIGNED** ou **IN_PROGRESS** para essa requisição (evita duplicar chamado).                                                                             |
+| **Tipo de movimentação**          | `typeMovimentPallet` já definido (`FORKLIFT` ou `PALLET_TRUCK`), para cair na fila correta.                                                                                                      |
 
-**Pallet antecipado:** o supply pode preparar o próximo cubo **antes** do operador de dobra apontar “finalizei”. Nesse cenário, no momento do apontamento, a verificação em 9.2 já encontra pallet pronto → ramo **Sim** (§9.3).
+**Pallet antecipado:** o supply pode preparar o próximo prisma **antes** do operador de dobra apontar “finalizei”. Nesse cenário, no momento do apontamento, a verificação em 9.2 já encontra pallet pronto → ramo **Sim** (§9.3).
 
 ### 9.3 Ramo A — já existe pallet pronto
 
@@ -337,9 +337,9 @@ Considera-se que há **pallet pronto** para a máquina de destino **M** quando e
 1. O operador de dobra aponta **finalização** na máquina M.
 2. O sistema **não** encontra pallet pronto para M.
 3. **Notificação ao SUPPLY_OPERATOR** (e papéis equivalentes **LEADER** / **ADMIN** no mesmo setor, se configurado):
-   - mensagem do tipo: *“Máquina {código/nome} finalizou — preparar próximo pallet”*;
+   - mensagem do tipo: _“Máquina {código/nome} finalizou — preparar próximo pallet”_;
    - incluir `destinationId`, `typeMovimentPallet` esperado (se conhecido por cadastro da máquina ou última requisição), prioridade sugerida.
-4. O supply **inicia o preparo** do novo cubo (pode criar ou atualizar `MachineReplenishmentRequest` para M).
+4. O supply **inicia o preparo** do novo prisma (pode criar ou atualizar `MachineReplenishmentRequest` para M).
 5. Quando o supply **conclui o preparo** e registra no sistema:
    - a requisição passa ao estado **pronto para transporte**;
    - o sistema **informa automaticamente** empilhadeirista/transpaleteiro (notificação + entrada na fila §5.6), conforme `typeMovimentPallet`.
@@ -349,11 +349,11 @@ O supply **não** precisa ligar ou avisar o transporte por fora do sistema após
 
 ### 9.5 Relação com outros fluxos
 
-| Fluxo | Relação |
-|-------|---------|
-| **Retirada (`PICKUP_TO_EXPEDITION`, §4.7)** | Ocorre quando o cubo **já está** na máquina (`ON_MACHINE`). É **independente** do gatilho “finalizei na dobra”, que dispara a **próxima reposição**. |
-| **Abertura manual de solicitação (§6.1)** | Continua válida para pedidos antecipados ou exceções; o ramo B pode **criar** solicitação se ainda não existir registro para M. |
-| **Sugestões de viagem (§5.8)** | Após entrega/retirada em andamento, regras atuais permanecem. |
+| Fluxo                                       | Relação                                                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Retirada (`PICKUP_TO_EXPEDITION`, §4.7)** | Ocorre quando o prisma **já está** na máquina (`ON_MACHINE`). É **independente** do gatilho “finalizei na dobra”, que dispara a **próxima reposição**. |
+| **Abertura manual de solicitação (§6.1)**   | Continua válida para pedidos antecipados ou exceções; o ramo B pode **criar** solicitação se ainda não existir registro para M.                        |
+| **Sugestões de viagem (§5.8)**              | Após entrega/retirada em andamento, regras atuais permanecem.                                                                                          |
 
 ### 9.6 Checklist back-end
 

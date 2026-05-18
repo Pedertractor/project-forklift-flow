@@ -2,6 +2,12 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import {
+  expeditionAreaDetail,
+  machineLocationDetail,
+  prismaDetail,
+  receivingAreaDetail,
+} from '@/components/operator-moviment/route-flow-step-details';
+import {
   SuggestionFlowConnector,
   SuggestionFlowStep,
 } from '@/components/operator-moviment/route-flow-icons';
@@ -22,28 +28,40 @@ function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
       <SuggestionFlowStep
         stepId="receiving"
         label="Recebimento"
-        subtitle={`Cubo ${d1}`}
+        details={[
+          receivingAreaDetail(),
+          prismaDetail(d1, 'pick-at-receiving'),
+        ]}
         accent="start"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="machine"
-        label="Máquina"
-        subtitle={`${machine.name} · ${machine.position}`}
+        label="Entregar na máquina"
+        details={[
+          machineLocationDetail(machine.name, machine.position),
+          prismaDetail(d1, 'deliver-to-machine'),
+        ]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="pallet"
         label="Pallet na máquina"
-        subtitle={`Cubo ${d2}`}
+        details={[
+          machineLocationDetail(machine.name, machine.position),
+          prismaDetail(d2, 'pick-at-machine'),
+        ]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="expedition"
         label="Expedição"
-        subtitle="Retirada registrada"
+        details={[
+          expeditionAreaDetail(),
+          prismaDetail(d2, 'carry-to-expedition'),
+        ]}
         accent="end"
       />
     </div>
@@ -58,15 +76,21 @@ function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
     <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
       <SuggestionFlowStep
         stepId="machine"
-        label="Máquina"
-        subtitle={`${machine.name} · ${machine.position}`}
+        label="Retire na máquina"
+        details={[
+          machineLocationDetail(machine.name, machine.position),
+          prismaDetail(cube, 'pick-at-machine'),
+        ]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="expedition"
-        label="Expedição"
-        subtitle={`Cubo ${cube}`}
+        label="Leve à expedição"
+        details={[
+          expeditionAreaDetail(),
+          prismaDetail(cube, 'carry-to-expedition'),
+        ]}
         accent="end"
       />
     </div>
@@ -165,7 +189,7 @@ function StandaloneRouteCard({
           Sugestão de retirada
         </p>
         <p className="mt-2 text-sm font-semibold text-zinc-900">
-          Retirada na máquina com cubo pronto para expedição.
+          Retirada na máquina com prisma pronto para expedição.
         </p>
         <div className="mt-5">
           <StandalonePickupFlow row={row} />

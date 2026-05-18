@@ -2,11 +2,13 @@ import './types/auth.types.js'
 import multipart from '@fastify/multipart'
 import cors from '@fastify/cors'
 import fastifyStatic from '@fastify/static'
+import websocket from '@fastify/websocket'
 import Fastify from 'fastify'
 import { UPLOAD_ROOT_ABSOLUTE } from './constants/upload-paths.js'
 import { defaultErrorHandler } from './https/errors/index.js'
 import { registerJwtAuth } from './plugins/jwt-auth.js'
 import { registerRoutes } from './routes/main.js'
+import { registerOperatorMovimentPalletWebSocket } from './ws/register-operator-moviment-pallet-ws.js'
 
 export const app = Fastify({
   logger: true,
@@ -32,4 +34,6 @@ await app.register(fastifyStatic, {
 })
 
 await registerJwtAuth(app)
+await app.register(websocket)
+registerOperatorMovimentPalletWebSocket(app)
 await app.register(registerRoutes, { prefix: '/api' })

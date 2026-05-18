@@ -1,6 +1,12 @@
 import { ArrowDownLeft, ArrowUpRight, Repeat } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
+  expeditionAreaDetail,
+  machineLocationDetail,
+  prismaDetail,
+  receivingAreaDetail,
+} from '@/components/operator-moviment/route-flow-step-details';
+import {
   SuggestionFlowConnector,
   SuggestionFlowStep,
 } from '@/components/operator-moviment/route-flow-icons';
@@ -32,7 +38,10 @@ function DeliverRequestFlow({
         size="compact"
         stepId="receiving"
         label="Recebimento"
-        subtitle={`Cubo ${row.movementCube}`}
+        details={[
+          receivingAreaDetail(),
+          prismaDetail(row.movementCube, 'pick-at-receiving'),
+        ]}
         accent="start"
       />
       <SuggestionFlowConnector size="compact" />
@@ -40,7 +49,13 @@ function DeliverRequestFlow({
         size="compact"
         stepId="machine"
         label="Máquina"
-        subtitle={`${row.destination.name} · ${row.destination.position}`}
+        details={[
+          machineLocationDetail(
+            row.destination.name,
+            row.destination.position,
+          ),
+          prismaDetail(row.movementCube, 'deliver-to-machine'),
+        ]}
         accent="mid"
       />
     </div>
@@ -55,7 +70,13 @@ function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
         size="compact"
         stepId="machine"
         label="Máquina"
-        subtitle={`${req.destination.name} · ${req.destination.position}`}
+        details={[
+          machineLocationDetail(
+            req.destination.name,
+            req.destination.position,
+          ),
+          prismaDetail(req.movementCube, 'pick-at-machine'),
+        ]}
         accent="mid"
       />
       <SuggestionFlowConnector size="compact" />
@@ -63,7 +84,10 @@ function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
         size="compact"
         stepId="expedition"
         label="Expedição"
-        subtitle={`Cubo ${req.movementCube}`}
+        details={[
+          expeditionAreaDetail(),
+          prismaDetail(req.movementCube, 'carry-to-expedition'),
+        ]}
         accent="end"
       />
     </div>
@@ -181,13 +205,15 @@ export function OperatorMovimentQueuePageView(
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <Card className="overflow-hidden border border-zinc-200 shadow-sm">
             <div className="border-b border-zinc-100 bg-zinc-50/90 px-3 py-2">
-            <div className="flex items-center gap-2">
-              <ArrowUpRight className="size-4 shrink-0 bg-green-200 rounded-full" aria-hidden />
-              <h2 className="m-0 text-xs font-semibold text-zinc-800">
-                Entrega: recebimento → máquina
-              </h2>
-                    
-            </div>
+              <div className="flex items-center gap-2">
+                <ArrowUpRight
+                  className="size-4 shrink-0 bg-green-200 rounded-full"
+                  aria-hidden
+                />
+                <h2 className="m-0 text-xs font-semibold text-zinc-800">
+                  Entrega: recebimento → máquina
+                </h2>
+              </div>
             </div>
             {queueQuery.isError ? (
               <p className="p-4 text-sm text-red-700">
