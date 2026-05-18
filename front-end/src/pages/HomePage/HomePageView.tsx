@@ -42,7 +42,7 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
           </div>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className=" gap-4">
           <Card className="border border-zinc-200 p-5 shadow-sm">
             <h2 className="m-0 text-sm font-semibold uppercase tracking-wide text-zinc-500">
               Sua sessão
@@ -73,22 +73,6 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
             )}
           </Card>
 
-          <Card className="border border-zinc-200 p-5 shadow-sm">
-            <h2 className="m-0 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-              Ambiente
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-zinc-600">
-              A URL da API vem de{' '}
-              <code className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
-                VITE_API_URL
-              </code>{' '}
-              no <code className="font-mono text-xs">.env</code> da raiz do repositório (inclua{' '}
-              <code className="font-mono text-xs">/api</code>, ex.:{' '}
-              <code className="font-mono text-xs">http://localhost:3131/api</code>
-              ). Reinicie o Vite após alterar. Valor atual:{' '}
-              <code className="font-mono text-xs text-zinc-800">{envApiUrl || '(não definido)'}</code>.
-            </p>
-          </Card>
         </div>
 
         {showSupplyModule ? (

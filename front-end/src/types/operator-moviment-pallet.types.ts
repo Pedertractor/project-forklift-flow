@@ -154,6 +154,19 @@ export interface TripStandalonePickupApi {
   pickupTask: OperatorPickupTaskQueueItem;
 }
 
+/** Entrega isolada sugerida (recebimento → máquina, sem retirada combinada). */
+export interface TripStandaloneDeliverApi {
+  kind: 'DELIVER_ONLY_TO_MACHINE';
+  typeMovimentPallet: TypeMovimentPalletApi;
+  effectivePriority: PriorityLevelApi;
+  deferRecommended: boolean;
+  machine: { id: string; name: string; position: string };
+  message: string;
+  suggestedOrder: TripFlowStepApi[];
+  requestId: string;
+  deliverTask: OperatorPickupTaskQueueItem | null;
+}
+
 export interface TripSuggestionsPriorityContext {
   mostUrgentOpenInSector: PriorityLevelApi | null;
   hint?: string;
@@ -162,6 +175,7 @@ export interface TripSuggestionsPriorityContext {
 export interface TripSuggestionsResponse {
   suggestions: TripCombinedSuggestionApi[];
   standalonePickupTasks: TripStandalonePickupApi[];
+  standaloneDeliverTasks: TripStandaloneDeliverApi[];
   priorityContext: TripSuggestionsPriorityContext;
 }
 

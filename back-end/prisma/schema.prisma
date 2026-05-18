@@ -26,6 +26,7 @@ model User {
   sectorId String?
 
   machineReplenishmentRequests MachineReplenishmentRequest[]  @relation("UserMachineRequests")
+  operatorMachineSupplyRequests OperatorMachineSupplyRequest[] @relation("UserOperatorMachineSupplyRequests")
   movimentPalletTasks          MovimentPalletTask[]           @relation("UserMovimentPalletTasks")
   machines                     Machine[]                      @relation("MachineOperator")
   movimentPallets              MovimentPallet[]               @relation("MovimentPalletOperator")
@@ -54,15 +55,41 @@ model MachineReplenishmentRequest {
   priorityLevel PriorityLevel @default(NORMAL)
 
   /// Preenchido quando o abastecimento marca pallet pronto (§9).
-  preparedAt DateTime?
+  preparedAt               DateTime?
   /// Quando o operador de dobra apontou "finalizei" sem pallet pronto.
   awaitingPreparationSince DateTime?
 
   movimentPalletTasks MovimentPalletTask[]
 
+  fulfilledOperatorSupplyRequests OperatorMachineSupplyRequest[] @relation("OperatorSupplyFulfilledByReplenishment")
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
+}
+
+/// Aviso do operador da máquina ao abastecimento: «preciso de pallet» sem cubo na dobra.
+/// Encerrada (FULFILLED) quando o abastecimento registra um pedido de reposição para a mesma máquina.
+model OperatorMachineSupplyRequest {
+  id String @id @default(uuid())
+
+  machine   Machine @relation(fields: [machineId], references: [id])
+  machineId String
+
+  requestedBy   User   @relation("UserOperatorMachineSupplyRequests", fields: [requestedById], references: [id])
+  requestedById String
+
+  status OperatorMachineSupplyRequestStatus @default(OPEN)
+
+  fulfilledAt DateTime?
+
+  fulfilledByReplenishmentRequest   MachineReplenishmentRequest? @relation("OperatorSupplyFulfilledByReplenishment", fields: [fulfilledByReplenishmentRequestId], references: [id], onDelete: SetNull)
+  fulfilledByReplenishmentRequestId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([machineId, status])
 }
 
 model MovimentPalletTask {
@@ -130,6 +157,8 @@ model Machine {
 
   machineReplenishmentRequests MachineReplenishmentRequest[]
 
+  operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
+
   movimentPalletTripSuggestions MovimentPalletTripSuggestion[]
 
   createdAt DateTime @default(now())
@@ -192,6 +221,8 @@ model MovimentPallet {
 enum TypeMovimentPallet {
   PALLET_TRUCK
   FORKLIFT
+  /// Aceito por empilhadeirista ou transpaleteirista (qualquer equipamento do setor).
+  ANY
 }
 
 enum RoleUser {
@@ -208,9 +239,9 @@ enum RoleUser {
 enum RequestStatus {
   /// Legado: pedidos antigos; novos usam AWAITING_PREPARATION ou PALLET_READY.
   CREATED
-  /// Abastecimento deve preparar o cubo (ou pedido recém-criado sem marcar pronto).
+  /// Abastecimento deve preparar o prisma (ou pedido recém-criado sem marcar pronto).
   AWAITING_PREPARATION
-  /// Cubo pronto — visível na fila do transporte.
+  /// Prisma pronto — visível na fila do transporte.
   PALLET_READY
   IN_PROGRESS
   ON_MACHINE
@@ -244,4 +275,10 @@ enum PriorityLevel {
   VERY_HIGH
   HIGH
   NORMAL
+}
+
+enum OperatorMachineSupplyRequestStatus {
+  OPEN
+  FULFILLED
+  CANCELLED
 }

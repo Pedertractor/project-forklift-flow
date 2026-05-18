@@ -2,8 +2,10 @@ import type { FastifyInstance } from 'fastify'
 import {
   deleteUnbindOperatorMachine,
   getListMachinesForOperator,
+  getListOperatorSupplyRequestsForOperator,
   getListReplenishmentRequestsForOperator,
   getOperatorCurrentMachineHandler,
+  getReplenishmentPickupProgress,
   postBindOperatorMachine,
   postFinalizeMachineCycle,
   postRequestPalletPickup,
@@ -54,6 +56,20 @@ export async function registerOperatorMachineRoutes(fastify: FastifyInstance) {
           preHandler: [fastify.authenticate, requireOperatorMachineRole()],
         },
         getListReplenishmentRequestsForOperator,
+      )
+      router.get(
+        '/operator-supply-requests',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        getListOperatorSupplyRequestsForOperator,
+      )
+      router.get(
+        '/replenishment-requests/:requestId/pickup-progress',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        getReplenishmentPickupProgress,
       )
       router.post(
         '/replenishment-requests/:requestId/pickup',

@@ -13,12 +13,12 @@ Complementa [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md) (permissões HTTP) e [`RE
 
 ## Status das telas (resumo)
 
-| Papel | ✅ API pronta (telas possíveis) | ❌ API ainda não (não chamar rota inexistente) |
-|-------|--------------------------------|-----------------------------------------------|
-| **SUPPLY_OPERATOR** | CRUD tipos, máquinas; solicitações; `pending-preparation`; marcar pallet pronto | Push em tempo real (opcional) |
-| **OPERATOR_MACHINE** | Turno/máquina; **Finalizei** (`POST .../finalize`, corpo vazio na UI); pedidos; retirada | Push em tempo real (opcional) |
-| **FORKLIFT / FOLLOW_UP** | Equipamento, fila, aceitar, tarefas, sugestões, concluir entrega/retirada | Notificações §9 (opcional) |
-| **Front-end geral** | Login, guards, páginas cadastro máquinas/tipos | Módulos operador, supply completo, transporte |
+| Papel                    | ✅ API pronta (telas possíveis)                                                          | ❌ API ainda não (não chamar rota inexistente) |
+| ------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **SUPPLY_OPERATOR**      | CRUD tipos, máquinas; solicitações; `pending-preparation`; marcar pallet pronto          | Push em tempo real (opcional)                  |
+| **OPERATOR_MACHINE**     | Turno/máquina; **Finalizei** (`POST .../finalize`, corpo vazio na UI); pedidos; retirada | Push em tempo real (opcional)                  |
+| **FORKLIFT / FOLLOW_UP** | Equipamento, fila, aceitar, tarefas, sugestões, concluir entrega/retirada                | Notificações §9 (opcional)                     |
+| **Front-end geral**      | Login, guards, páginas cadastro máquinas/tipos                                           | Módulos operador, supply completo, transporte  |
 
 Diagrama abaixo: fluxo **§9** já coberto pela API; itens **❌** no back-end referem-se sobretudo a **push** em tempo real (opcional).
 
@@ -72,14 +72,14 @@ flowchart TD
 2. `GET /api/auth/me` → ler `role`, `sectorId`, nome, etc.
 3. Redirecionar para o **módulo** correspondente ao papel (abaixo). **Não** monte menus com rotas que o papel não pode chamar (retorno **403**).
 
-| `role` | Módulo principal sugerido |
-|--------|---------------------------|
-| `ADMIN` | Área administrativa completa + atalhos de teste para operadores |
-| `LEADER` | Cadastros + solicitações + criar usuário |
-| `SUPPLY_OPERATOR` | Cadastros (máquinas, tipos, equipamentos) + solicitações |
-| `OPERATOR_MACHINE` | Somente fluxo **operador de máquina** |
-| `FORKLIFT_OPERATOR` | Somente fluxo **operador de movimentação** (empilhadeira) |
-| `FOLLOW_UP_OPERATOR` | Somente fluxo **operador de movimentação** (transpaleteira) |
+| `role`                  | Módulo principal sugerido                                       |
+| ----------------------- | --------------------------------------------------------------- |
+| `ADMIN`                 | Área administrativa completa + atalhos de teste para operadores |
+| `LEADER`                | Cadastros + solicitações + criar usuário                        |
+| `SUPPLY_OPERATOR`       | Cadastros (máquinas, tipos, equipamentos) + solicitações        |
+| `OPERATOR_MACHINE`      | Somente fluxo **operador de máquina**                           |
+| `FORKLIFT_OPERATOR`     | Somente fluxo **operador de movimentação** (empilhadeira)       |
+| `FOLLOW_UP_OPERATOR`    | Somente fluxo **operador de movimentação** (transpaleteira)     |
 | `SUPERVISOR`, `MANAGER` | Hoje: apenas conta (me / senha) até existirem rotas específicas |
 
 ---
@@ -88,14 +88,14 @@ flowchart TD
 
 Referência completa: **§9** em [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md).
 
-| Etapa | Status | Quem | O que o app deve mostrar |
-|-------|--------|------|---------------------------|
-| 1 | ✅ | **OPERATOR_MACHINE** | Botão **“Finalizei na dobra”** — chama `POST /api/operator-machine/my-machine/finalize` com **`{}`**. Cubo, tipo e prioridade vêm do vínculo com a máquina e do **histórico de pedidos** dessa máquina (API); **sem** campos manuais na tela. |
-| 2 | ✅ | Sistema | Verificar **pallet pronto** para a máquina |
-| 3a | ✅ | Transporte | Se sim: fila `replenishment-requests` + `accept` |
-| 3b | ✅ | **SUPPLY_OPERATOR** | Lista `pending-preparation` / preparar pallet |
-| 4 | ✅ | **SUPPLY_OPERATOR** | Ação **“Pallet pronto”** (`mark-pallet-ready`) |
-| 5 | ⚠️ | Transporte | Polling `GET .../notifications` (**✅**); push automático **❌** (opcional futuro) |
+| Etapa | Status | Quem                 | O que o app deve mostrar                                                                                                                                                                                                                        |
+| ----- | ------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | ✅     | **OPERATOR_MACHINE** | Botão **“Finalizei na dobra”** — chama `POST /api/operator-machine/my-machine/finalize` com **`{}`**. Prisma, tipo e prioridade vêm do vínculo com a máquina e do **histórico de pedidos** dessa máquina (API); **sem** campos manuais na tela. |
+| 2     | ✅     | Sistema              | Verificar **pallet pronto** para a máquina                                                                                                                                                                                                      |
+| 3a    | ✅     | Transporte           | Se sim: fila `replenishment-requests` + `accept`                                                                                                                                                                                                |
+| 3b    | ✅     | **SUPPLY_OPERATOR**  | Lista `pending-preparation` / preparar pallet                                                                                                                                                                                                   |
+| 4     | ✅     | **SUPPLY_OPERATOR**  | Ação **“Pallet pronto”** (`mark-pallet-ready`)                                                                                                                                                                                                  |
+| 5     | ⚠️     | Transporte           | Polling `GET .../notifications` (**✅**); push automático **❌** (opcional futuro)                                                                                                                                                              |
 
 **Pallet antecipado:** o supply pode marcar pallet pronto **antes** do operador de dobra finalizar; nesse caso, no passo 2 o sistema já encaminha direto para a fila de transporte (3a).
 
@@ -103,22 +103,22 @@ Referência completa: **§9** em [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGR
 
 ## `SUPPLY_OPERATOR` — fluxo e telas
 
-**Objetivo:** manter cadastros do setor, **preparar pallets**, **abrir/acompanhar** solicitações e **atender avisos** quando a dobra finalizou sem cubo pronto.
+**Objetivo:** manter cadastros do setor, **preparar pallets**, **abrir/acompanhar** solicitações e **atender avisos** quando a dobra finalizou sem prisma pronto.
 
 ### Telas sugeridas (módulo “Supply”)
 
-| # | Status | Tela (nome sugerido) | O que faz na API |
-|---|--------|----------------------|------------------|
-| 1 | ✅ | **Início / dashboard** (opcional) | `GET /api/auth/me` |
-| 2 | ✅ | **Tipos de máquina** | `/api/type-machines` |
-| 3 | ✅ | **Máquinas** | `/api/machines` |
-| 4 | ✅ | **Equipamentos de movimentação** | `/api/moviment-pallets` |
-| 5 | ✅ | **Nova solicitação de reposição** | `POST /api/machine-replenishment-requests` |
-| 6 | ✅ | **Lista de solicitações** | `GET /api/machine-replenishment-requests` |
-| 7 | ✅ | **Detalhe da solicitação** | `GET /api/machine-replenishment-requests/:requestId` |
-| 8 | ✅ | **Editar / cancelar** | `PATCH`, `DELETE` |
-| 9 | ❌ | **Preparar pallet** | `GET .../pending-preparation` (não existe) |
-| 10 | ❌ | **Marcar pallet pronto** | `POST .../mark-pallet-ready` (não existe) |
+| #   | Status | Tela (nome sugerido)              | O que faz na API                                     |
+| --- | ------ | --------------------------------- | ---------------------------------------------------- |
+| 1   | ✅     | **Início / dashboard** (opcional) | `GET /api/auth/me`                                   |
+| 2   | ✅     | **Tipos de máquina**              | `/api/type-machines`                                 |
+| 3   | ✅     | **Máquinas**                      | `/api/machines`                                      |
+| 4   | ✅     | **Equipamentos de movimentação**  | `/api/moviment-pallets`                              |
+| 5   | ✅     | **Nova solicitação de reposição** | `POST /api/machine-replenishment-requests`           |
+| 6   | ✅     | **Lista de solicitações**         | `GET /api/machine-replenishment-requests`            |
+| 7   | ✅     | **Detalhe da solicitação**        | `GET /api/machine-replenishment-requests/:requestId` |
+| 8   | ✅     | **Editar / cancelar**             | `PATCH`, `DELETE`                                    |
+| 9   | ❌     | **Preparar pallet**               | `GET .../pending-preparation` (não existe)           |
+| 10  | ❌     | **Marcar pallet pronto**          | `POST .../mark-pallet-ready` (não existe)            |
 
 ### Ordem típica do dia
 
@@ -139,8 +139,8 @@ Referência completa: **§9** em [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGR
 
 ### Telas extras em relação ao `SUPPLY_OPERATOR`
 
-| Tela | API |
-|------|-----|
+| Tela              | API               |
+| ----------------- | ----------------- |
 | **Criar usuário** | `POST /api/users` |
 
 **Não** incluir (403): listagem geral de usuários, papéis, reset de senha, CRUD de setores — isso é **`ADMIN`**.
@@ -178,29 +178,29 @@ sequenceDiagram
     T->>API: POST /operator-machine/my-machine
   end
   T->>API: POST /operator-machine/my-machine/finalize
-  Note over T,API: Corpo vazio na UI — cubo/tipo inferidos da máquina + último pedido
+  Note over T,API: Corpo vazio na UI — prisma/tipo inferidos da máquina + último pedido
   T->>API: GET /operator-machine/replenishment-requests
   Note over T,API: Opcional ?status=ON_MACHINE
   T->>API: POST .../replenishment-requests/:id/pickup
-  Note over T,API: Só se status ON_MACHINE — retirada do cubo atual
+  Note over T,API: Só se status ON_MACHINE — retirada do prisma atual
 ```
 
 ### Telas sugeridas
 
-| # | Status | Tela | Chamadas principais |
-|---|--------|------|---------------------|
-| 1 | ✅ | **Turno: minha máquina** | `GET /api/operator-machine/my-machine` |
-| 2 | ✅ | **Escolher máquina** | `GET .../machines` → `POST .../my-machine` |
-| 3 | ✅ | **Produção — finalizei na dobra** | `POST .../my-machine/finalize` (corpo `{}` na tela) |
-| 4 | ✅ | **Pedidos da minha máquina** | `GET .../replenishment-requests` |
-| 5 | ✅ | **Confirmar retirada** | `POST .../pickup` (requer `ON_MACHINE`) |
-| 6 | ✅ | **Fim de turno** | `DELETE .../my-machine` |
+| #   | Status | Tela                              | Chamadas principais                                 |
+| --- | ------ | --------------------------------- | --------------------------------------------------- |
+| 1   | ✅     | **Turno: minha máquina**          | `GET /api/operator-machine/my-machine`              |
+| 2   | ✅     | **Escolher máquina**              | `GET .../machines` → `POST .../my-machine`          |
+| 3   | ✅     | **Produção — finalizei na dobra** | `POST .../my-machine/finalize` (corpo `{}` na tela) |
+| 4   | ✅     | **Pedidos da minha máquina**      | `GET .../replenishment-requests`                    |
+| 5   | ✅     | **Confirmar retirada**            | `POST .../pickup` (requer `ON_MACHINE`)             |
+| 6   | ✅     | **Fim de turno**                  | `DELETE .../my-machine`                             |
 
 **UX:** se `user.sectorId` for nulo, a lista de máquinas vem vazia — a tela deve avisar que o cadastro precisa de setor.
 
-**UX “Finalizei”:** tela com **apenas o botão** (sem cubo, tipo ou prioridade). Após sucesso, mostrar feedback conforme resposta da API — *“Pallet já pronto — transporte acionado”* vs *“Abastecimento notificado para preparar pallet”* (§9). Erro **400** por campos faltantes só ocorre se a API não tiver **nenhum** pedido anterior para inferir cubo/tipo (fluxo normal já deixa histórico na máquina).
+**UX “Finalizei”:** tela com **apenas o botão** (sem prisma, tipo ou prioridade). Após sucesso, mostrar feedback conforme resposta da API — _“Pallet já pronto — transporte acionado”_ vs _“Abastecimento notificado para preparar pallet”_ (§9). Erro **400** por campos faltantes só ocorre se a API não tiver **nenhum** pedido anterior para inferir prisma/tipo (fluxo normal já deixa histórico na máquina).
 
-**Separação:** área “Turno” (1–2, 6); área “Produção” com **Finalizei** (3); área “Pedidos / retirada” (4–5). Não confundir **finalizei** (próximo cubo) com **retirada** (cubo atual em `ON_MACHINE`).
+**Separação:** área “Turno” (1–2, 6); área “Produção” com **Finalizei** (3); área “Pedidos / retirada” (4–5). Não confundir **finalizei** (próximo prisma) com **retirada** (prisma atual em `ON_MACHINE`).
 
 ---
 
@@ -233,18 +233,18 @@ sequenceDiagram
 
 ### Telas sugeridas
 
-| # | Status | Tela | Chamadas principais |
-|---|--------|------|---------------------|
-| 1 | ✅ | **Turno: meu equipamento** | `GET .../my-moviment-pallet` |
-| 2 | ✅ | **Escolher equipamento** | `GET .../moviment-pallets` → `POST .../my-moviment-pallet` |
-| 3 | ✅ | **Fila** | `GET .../replenishment-requests` |
-| 4 | ✅ | **Aceitar pedido** | `POST .../replenishment-requests/:id/accept` |
-| 4b | ❌ | **Notificações** | `GET .../notifications` (opcional §9) |
-| 5 | ✅ | **Minhas tarefas** | `GET .../my-tasks`, `GET .../active-flow` |
-| 5b | ✅ | **Concluir entrega / retirada** | `POST .../complete-deliver`, `complete-pickup`, `accept-pickup` |
-| 6 | ✅ | **Sugestões de viagem** | `GET .../trip-suggestions` |
-| 7 | ✅ | **Aceitar sugestão** | `POST .../trip-suggestions/:id/accept` |
-| 8 | ✅ | **Fim de turno** | `DELETE .../my-moviment-pallet` |
+| #   | Status | Tela                            | Chamadas principais                                             |
+| --- | ------ | ------------------------------- | --------------------------------------------------------------- |
+| 1   | ✅     | **Turno: meu equipamento**      | `GET .../my-moviment-pallet`                                    |
+| 2   | ✅     | **Escolher equipamento**        | `GET .../moviment-pallets` → `POST .../my-moviment-pallet`      |
+| 3   | ✅     | **Fila**                        | `GET .../replenishment-requests`                                |
+| 4   | ✅     | **Aceitar pedido**              | `POST .../replenishment-requests/:id/accept`                    |
+| 4b  | ❌     | **Notificações**                | `GET .../notifications` (opcional §9)                           |
+| 5   | ✅     | **Minhas tarefas**              | `GET .../my-tasks`, `GET .../active-flow`                       |
+| 5b  | ✅     | **Concluir entrega / retirada** | `POST .../complete-deliver`, `complete-pickup`, `accept-pickup` |
+| 6   | ✅     | **Sugestões de viagem**         | `GET .../trip-suggestions`                                      |
+| 7   | ✅     | **Aceitar sugestão**            | `POST .../trip-suggestions/:id/accept`                          |
+| 8   | ✅     | **Fim de turno**                | `DELETE .../my-moviment-pallet`                                 |
 
 **Separação recomendada no app:**
 
@@ -265,10 +265,10 @@ Hoje **não há** rotas de negócio específicas: após login, use apenas telas 
 
 ## Telas comuns a todos os autenticados
 
-| Tela | API |
-|------|-----|
+| Tela                       | API                                           |
+| -------------------------- | --------------------------------------------- |
 | **Perfil / alterar senha** | `GET /api/auth/me`, `POST /api/auth/password` |
-| **Login** | `POST /api/auth/login` (público) |
+| **Login**                  | `POST /api/auth/login` (público)              |
 
 ---
 

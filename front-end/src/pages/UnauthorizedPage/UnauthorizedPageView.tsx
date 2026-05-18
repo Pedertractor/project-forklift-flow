@@ -11,7 +11,14 @@ const linkPrimary =
   'border-2 border-transparent bg-[#005fb8] text-white shadow-sm hover:bg-[#004a94] w-full sm:w-auto';
 
 export function UnauthorizedPageView(vm: UnauthorizedPageViewModel) {
-  const { userName, role, attemptedPath } = vm;
+  const {
+    userName,
+    role,
+    attemptedPath,
+    canUseHomeAndDashboard,
+    workspacePath,
+    hasWorkspaceLink,
+  } = vm;
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-zinc-100 px-4 py-12">
@@ -50,12 +57,25 @@ export function UnauthorizedPageView(vm: UnauthorizedPageViewModel) {
           </p>
         ) : null}
         <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Link to="/dashboard" className={cn(linkBtnBase, linkOutline)}>
-            Ir ao painel
-          </Link>
-          <Link to="/" className={cn(linkBtnBase, linkPrimary)}>
-            Ir ao início
-          </Link>
+          {canUseHomeAndDashboard ? (
+            <>
+              <Link to="/dashboard" className={cn(linkBtnBase, linkOutline)}>
+                Ir ao painel
+              </Link>
+              <Link to="/" className={cn(linkBtnBase, linkPrimary)}>
+                Ir ao início
+              </Link>
+            </>
+          ) : hasWorkspaceLink ? (
+            <Link to={workspacePath} className={cn(linkBtnBase, linkPrimary)}>
+              Ir à minha área de trabalho
+            </Link>
+          ) : (
+            <p className="m-0 text-sm text-zinc-600">
+              Se o seu papel deveria ter acesso a alguma tela do sistema, entre em contato com o
+              administrador.
+            </p>
+          )}
         </div>
       </Card>
     </div>

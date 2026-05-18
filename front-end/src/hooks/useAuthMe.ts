@@ -8,7 +8,7 @@ import { mapLoginUserToAppUser } from '@/types/auth-api.types';
 /** Prefix for `GET /auth/me` cache; full key includes the token segment. */
 export const authMeQueryKeyBase = ['auth', 'me'] as const;
 
-function shouldClearSessionAfterMeFailure(message: string): boolean {
+export function shouldClearSessionAfterMeFailure(message: string): boolean {
   return (
     message === 'Nao autorizado' ||
     message.includes('Token invalido') ||

@@ -1,0 +1,2 @@
+-- RenameForeignKey
+ALTER TABLE "OperatorMachineSupplyRequest" RENAME CONSTRAINT "OperatorMachineSupplyRequest_fulfilledByReplenishmentRequestId_" TO "OperatorMachineSupplyRequest_fulfilledByReplenishmentReque_fkey";

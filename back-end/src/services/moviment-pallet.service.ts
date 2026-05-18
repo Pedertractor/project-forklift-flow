@@ -59,10 +59,16 @@ export async function createMovimentPallet(input: CreateMovimentPalletInput) {
   return movimentPalletRepository.create(data)
 }
 
-export async function listMovimentPallets(filters?: {
-  sectorId?: string
-  type?: TypeMovimentPallet
-}) {
+export async function listMovimentPallets(
+  filters?: {
+    sectorId?: string
+    type?: TypeMovimentPallet
+  },
+  options?: { includeTaskAvailability?: boolean },
+) {
+  if (options?.includeTaskAvailability) {
+    return movimentPalletRepository.findManyForListWithTaskAvailability(filters)
+  }
   return movimentPalletRepository.findManyForList(filters)
 }
 

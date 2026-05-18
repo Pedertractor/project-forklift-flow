@@ -44,9 +44,7 @@ export function OperatorMovimentEquipmentPageView(
             Meu equipamento
           </h1>
           <p className="mt-1.5 text-sm text-zinc-600">
-            Primeiro passo do turno: escolha a empilhadeira ou transpaleteira
-            que você vai operar. Em seguida você verá a fila de tarefas e
-            sugestões de rota.
+           Selecione o equipamento que você vai operar ou está operando.
           </p>
         </header>
 

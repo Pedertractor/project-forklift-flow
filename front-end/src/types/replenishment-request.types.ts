@@ -1,4 +1,4 @@
-import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
 export type RequestStatusValue =
   | 'CREATED'
@@ -15,7 +15,7 @@ export interface ReplenishmentRequestListItem {
   id: string;
   destinationId: string;
   movementCube: string;
-  typeMovimentPallet: MovimentPalletEquipmentType;
+  typeMovimentPallet: ReplenishmentMovimentType;
   priorityLevel: PriorityLevelValue;
   status: RequestStatusValue;
   preparedAt: string | null;

@@ -53,14 +53,17 @@ export function AppSidebar({
   onRequestLogout,
 }: AppSidebarProps) {
   const user = useAuthStore((s) => s.user);
-  const { enabled: movimentWorkEnabled, incompleteTaskCount } = useOperatorMovimentWork();
+  const { enabled: movimentWorkEnabled, incompleteTaskCount } =
+    useOperatorMovimentWork();
   const navSections = sidebarSectionsForRole(user?.role);
 
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-zinc-50 shadow-lg transition-transform duration-200 ease-out lg:static lg:z-0 lg:shadow-none',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        'fixed inset-y-0 left-0 z-50 flex min-h-0 w-64 flex-col border-r border-zinc-200 bg-zinc-50 shadow-lg transition-[transform,width] duration-200 ease-out lg:static lg:z-0 lg:h-full lg:shrink-0 lg:bg-zinc-50 lg:shadow-none',
+        sidebarOpen
+          ? 'translate-x-0'
+          : '-translate-x-full lg:w-0 lg:min-w-0 lg:translate-x-0 lg:overflow-hidden lg:border-transparent lg:bg-transparent',
       )}
       aria-label="Menu da aplicação"
     >
@@ -70,7 +73,10 @@ export function AppSidebar({
         </p>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0 overflow-y-auto p-2" aria-label="Navegação por módulo">
+      <nav
+        className="flex flex-1 flex-col gap-0 overflow-y-auto p-2"
+        aria-label="Navegação por módulo"
+      >
         {navSections.map(({ section, items }, sectionIndex) => (
           <div
             key={section.id}
@@ -125,13 +131,19 @@ export function AppSidebar({
               {user ? userInitials(user.name) : '—'}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-zinc-900" title={user?.name}>
+              <p
+                className="truncate text-sm font-semibold text-zinc-900"
+                title={user?.name}
+              >
                 {user?.name ?? '—'}
               </p>
               <p className="truncate text-xs text-zinc-500">
                 {user ? (
                   <>
-                    Cartão <span className="font-mono text-zinc-700">{user.cardNumber}</span>
+                    Cartão{' '}
+                    <span className="font-mono text-zinc-700">
+                      {user.cardNumber}
+                    </span>
                     {' · '}
                     {unitLabel(user.unit)}
                   </>
@@ -140,9 +152,18 @@ export function AppSidebar({
                 )}
               </p>
               {user?.role ? (
-                <p className="mt-1 truncate text-[10px] text-zinc-400" title={user.role}>
-                  Papel: <span className="font-medium text-zinc-600">{roleMenuLabel(user.role)}</span>
-                  <span className="font-mono text-zinc-400"> ({user.role})</span>
+                <p
+                  className="mt-1 truncate text-[10px] text-zinc-400"
+                  title={user.role}
+                >
+                  Papel:{' '}
+                  <span className="font-medium text-zinc-600">
+                    {roleMenuLabel(user.role)}
+                  </span>
+                  <span className="font-mono text-zinc-400">
+                    {' '}
+                    ({user.role})
+                  </span>
                 </p>
               ) : null}
             </div>

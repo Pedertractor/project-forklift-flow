@@ -1,4 +1,5 @@
 import type { PriorityLevelApi, TypeMovimentPalletApi } from '@/types/operator-moviment-pallet.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
 export function priorityLabel(level: PriorityLevelApi): string {
   switch (level) {
@@ -13,6 +14,15 @@ export function priorityLabel(level: PriorityLevelApi): string {
 
 export function movimentTypeLabel(type: TypeMovimentPalletApi): string {
   return type === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
+}
+
+export function replenishmentMovimentTypeLabel(
+  type: ReplenishmentMovimentType,
+): string {
+  if (type === 'ANY') {
+    return 'Qualquer tipo';
+  }
+  return movimentTypeLabel(type);
 }
 
 /** Caminho em `public/` para uso em `<img src={…} />`. */

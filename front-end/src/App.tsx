@@ -56,6 +56,11 @@ const SupplyPendingPreparationPage = lazy(() =>
     default: m.SupplyPendingPreparationPage,
   })),
 );
+const OperatorMachinePickupProgressPage = lazy(() =>
+  import('@/pages/OperatorMachinePickupProgressPage/index').then((m) => ({
+    default: m.OperatorMachinePickupProgressPage,
+  })),
+);
 const OperatorMachinePage = lazy(() =>
   import('@/pages/OperatorMachinePage/index').then((m) => ({
     default: m.OperatorMachinePage,
@@ -76,6 +81,11 @@ const OperatorMovimentTasksPage = lazy(() =>
     default: m.OperatorMovimentTasksPage,
   })),
 );
+const OperatorMovimentManualQueuePage = lazy(() =>
+  import('@/pages/OperatorMovimentManualQueuePage/index').then((m) => ({
+    default: m.OperatorMovimentManualQueuePage,
+  })),
+);
 
 export function App() {
   return (
@@ -89,8 +99,10 @@ export function App() {
               <Route path="/definir-senha" element={<FirstPasswordPage />} />
               <Route path="/nao-autorizado" element={<UnauthorizedPage />} />
               <Route element={<MainLayout />}>
-                <Route index element={<HomePage />} />
-                <Route path="dashboard" element={<DashboardPage />} />
+                <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
+                  <Route index element={<HomePage />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
+                </Route>
                 <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
                   <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />
                   <Route path="cadastro/maquinas" element={<MachinesPage />} />
@@ -115,11 +127,19 @@ export function App() {
                   <Route path="operacao/aceitar-tarefas" element={<OperatorMovimentQueuePage />} />
                   <Route element={<RequireBoundMovimentPallet />}>
                     <Route path="operacao/tarefas" element={<OperatorMovimentQueuePage />} />
+                    <Route
+                      path="operacao/filas-manuais"
+                      element={<OperatorMovimentManualQueuePage />}
+                    />
                     <Route path="operacao/minhas-tarefas" element={<OperatorMovimentTasksPage />} />
                   </Route>
                 </Route>
                 <Route element={<RequireRoles roles={OPERATOR_MACHINE_ROLES} />}>
                   <Route path="dobra" element={<OperatorMachinePage />} />
+                  <Route
+                    path="dobra/retirada/:requestId"
+                    element={<OperatorMachinePickupProgressPage />}
+                  />
                 </Route>
               </Route>
             </Route>

@@ -70,7 +70,11 @@ export const getListMovimentPallets: RouteHandlerMethod = async (
   request,
   reply,
 ) => {
-  const q = (request.query ?? {}) as { sectorId?: string; type?: string }
+  const q = (request.query ?? {}) as {
+    sectorId?: string
+    type?: string
+    includeTaskAvailability?: string
+  }
   let type: TypeMovimentPallet | undefined
   if (q.type !== undefined && q.type !== '') {
     if (!isTypeMovimentPallet(q.type)) {
@@ -85,8 +89,11 @@ export const getListMovimentPallets: RouteHandlerMethod = async (
   if (type !== undefined) {
     filters.type = type
   }
+  const includeTaskAvailability =
+    q.includeTaskAvailability === 'true' || q.includeTaskAvailability === '1'
   const movimentPallets = await listMovimentPallets(
     Object.keys(filters).length > 0 ? filters : undefined,
+    { includeTaskAvailability },
   )
   return reply.send({ movimentPallets })
 }

@@ -13,15 +13,30 @@ interface PersistedSession {
   requiresPasswordChange?: boolean;
 }
 
+function migrateSessionStorageToLocalStorage(): void {
+  if (typeof localStorage === 'undefined' || typeof sessionStorage === 'undefined') {
+    return;
+  }
+  if (localStorage.getItem(STORAGE_KEY)) {
+    return;
+  }
+  const legacy = sessionStorage.getItem(STORAGE_KEY);
+  if (legacy) {
+    localStorage.setItem(STORAGE_KEY, legacy);
+    sessionStorage.removeItem(STORAGE_KEY);
+  }
+}
+
 function readPersisted(): {
   token: string | null;
   user: User | null;
   requiresPasswordChange: boolean;
 } {
-  if (typeof sessionStorage === 'undefined') {
+  if (typeof localStorage === 'undefined') {
     return { token: null, user: null, requiresPasswordChange: false };
   }
-  const raw = sessionStorage.getItem(STORAGE_KEY);
+  migrateSessionStorageToLocalStorage();
+  const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
     return { token: null, user: null, requiresPasswordChange: false };
   }
@@ -35,7 +50,7 @@ function readPersisted(): {
       };
     }
   } catch {
-    sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
   }
   return { token: null, user: null, requiresPasswordChange: false };
 }
@@ -62,16 +77,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setSession: (payload) => {
     if (payload.token && payload.user) {
       const { token, user, requiresPasswordChange } = payload;
-      if (typeof sessionStorage !== 'undefined') {
+      if (typeof localStorage !== 'undefined') {
         const toSave: PersistedSession = {
           token,
           user,
           ...(requiresPasswordChange ? { requiresPasswordChange: true } : {}),
         };
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
       }
       set({ token, user, requiresPasswordChange });
     } else {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY);
+      }
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem(STORAGE_KEY);
       }
@@ -84,17 +102,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!token) {
       return;
     }
-    if (typeof sessionStorage !== 'undefined') {
+    if (typeof localStorage !== 'undefined') {
       const toSave: PersistedSession = {
         token,
         user,
         ...(requiresPasswordChange ? { requiresPasswordChange: true } : {}),
       };
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     }
     set({ user, requiresPasswordChange });
   },
   logout: () => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+    }
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(STORAGE_KEY);
     }

@@ -1,6 +1,38 @@
 import type { MachineListItem } from '@/types/machine.types';
 import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
 
+/** Resposta de `GET /operator-machine/operator-supply-requests` (Prisma → JSON). */
+export interface OperatorMachineSupplyRequestListItem {
+  id: string;
+  machineId: string;
+  requestedById: string;
+  status: 'OPEN' | 'FULFILLED' | 'CANCELLED';
+  fulfilledAt: string | null;
+  fulfilledByReplenishmentRequestId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  machine: {
+    id: string;
+    name: string;
+    position: string;
+    sectorId: string;
+    typeMachine: { id: string; name: string };
+  };
+  requestedBy: {
+    id: string;
+    name: string;
+    employeeId: number;
+    card: string;
+    unit: string;
+    role: string;
+  };
+  fulfilledByReplenishmentRequest: {
+    id: string;
+    movementCube: string;
+    status: string;
+  } | null;
+}
+
 export interface MovimentPalletTaskPickupSummary {
   id: string;
   type: string;
@@ -17,7 +49,8 @@ export type FinalizeMachineCycleOutcome = 'TRANSPORT_QUEUED' | 'SUPPLY_NOTIFIED'
 export interface FinalizeMachineCycleResponse {
   outcome: FinalizeMachineCycleOutcome;
   message: string;
-  request: ReplenishmentRequestListItem;
+  request?: ReplenishmentRequestListItem;
+  operatorSupplyRequest?: OperatorMachineSupplyRequestListItem;
 }
 
 export interface OperatorMachineBindResponse {
@@ -34,4 +67,41 @@ export interface OperatorMachinesListResponse {
 
 export interface OperatorReplenishmentRequestsResponse {
   requests: ReplenishmentRequestListItem[];
+}
+
+export interface OperatorSupplyRequestsResponse {
+  operatorSupplyRequests: OperatorMachineSupplyRequestListItem[];
+}
+
+export type OperatorPickupProgressPhase =
+  | 'DELIVERY_IN_PROGRESS'
+  | 'AT_MACHINE_AWAITING_PICKUP'
+  | 'AWAITING_TRANSPORT_PICKUP'
+  | 'TRANSPORT_ASSIGNED'
+  | 'TRANSPORT_REMOVING'
+  | 'PICKUP_FINISHED'
+  | 'OTHER';
+
+export interface OperatorPickupProgressPickupTask {
+  id: string;
+  requestId: string;
+  type: string;
+  status: string;
+  assignedMovimentPalletId: string | null;
+  requestedById: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface OperatorPickupProgressResponse {
+  phase: OperatorPickupProgressPhase;
+  transportLabel: string;
+  request: {
+    id: string;
+    movementCube: string;
+    status: string;
+    typeMovimentPallet: string;
+  };
+  pickupTask: OperatorPickupProgressPickupTask | null;
 }

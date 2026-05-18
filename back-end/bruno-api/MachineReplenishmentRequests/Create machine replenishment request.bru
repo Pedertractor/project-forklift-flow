@@ -17,10 +17,9 @@ auth:bearer {
 body:json {
   {
     "destinationId": "{{machineId}}",
-    "movementCube": "CUBO-09",
+    "movementCube": "PRISMA-02",
     "typeMovimentPallet": "FORKLIFT",
-    "priorityLevel": "NORMAL",
-    "palletReady": false
+    "priorityLevel": "HIGH"
   }
 }
 
@@ -30,7 +29,5 @@ docs {
   # Campos obrigatorios: destinationId, movementCube, typeMovimentPallet.
   # typeMovimentPallet: PALLET_TRUCK | FORKLIFT
   # Opcional: priorityLevel (VERY_HIGH | HIGH | NORMAL; padrao NORMAL).
-  # Opcional: palletReady (boolean). true = cubo ja pronto — status PALLET_READY (entra direto na fila do transporte).
-  # Sem palletReady ou false = AWAITING_PREPARATION (supply deve marcar pronto com mark-pallet-ready).
   # Ajuste machineId no environment para um UUID de maquina existente.
 }
