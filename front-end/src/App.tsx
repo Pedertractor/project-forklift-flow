@@ -81,6 +81,11 @@ const OperatorMovimentTasksPage = lazy(() =>
     default: m.OperatorMovimentTasksPage,
   })),
 );
+const OperatorMovimentManualQueuePage = lazy(() =>
+  import('@/pages/OperatorMovimentManualQueuePage/index').then((m) => ({
+    default: m.OperatorMovimentManualQueuePage,
+  })),
+);
 
 export function App() {
   return (
@@ -122,6 +127,10 @@ export function App() {
                   <Route path="operacao/aceitar-tarefas" element={<OperatorMovimentQueuePage />} />
                   <Route element={<RequireBoundMovimentPallet />}>
                     <Route path="operacao/tarefas" element={<OperatorMovimentQueuePage />} />
+                    <Route
+                      path="operacao/filas-manuais"
+                      element={<OperatorMovimentManualQueuePage />}
+                    />
                     <Route path="operacao/minhas-tarefas" element={<OperatorMovimentTasksPage />} />
                   </Route>
                 </Route>

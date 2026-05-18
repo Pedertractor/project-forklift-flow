@@ -304,6 +304,15 @@ export class MovimentPalletTaskNotFoundError extends Error {
   }
 }
 
+export class MovimentPalletDeliverTaskAcceptError extends Error {
+  constructor(
+    message = "Nao e possivel aceitar esta entrega: verifique tipo da tarefa, setor, equipamento vinculado e status da solicitacao.",
+  ) {
+    super(message);
+    this.name = "MovimentPalletDeliverTaskAcceptError";
+  }
+}
+
 export class MovimentPalletDeliverTaskCompletionError extends Error {
   constructor(
     message = "Nao e possivel concluir esta entrega: verifique tipo da tarefa, equipamento vinculado e status da solicitacao.",

@@ -5,7 +5,12 @@ import {
   ForkliftTaskType,
   RequestStatus,
 } from '../generated/prisma/enums.js'
+import { incompleteAssignedMovimentTaskStatuses } from '../constants/moviment-pallet-task-status.js'
 import { prisma } from '../lib/prisma.js'
+import {
+  openPoolTypesForEquipment,
+  type EquipmentMovimentType,
+} from '../utils/replenishment-moviment-type.js'
 
 const requestBriefInclude = {
   requestedBy: {
@@ -50,12 +55,7 @@ const openDeliverStatuses: ForkliftTaskStatus[] = [
   ForkliftTaskStatus.IN_PROGRESS,
 ]
 
-/** Tarefas ainda nao finalizadas no equipamento (bloqueiam novo aceite). */
-const incompleteAssignedTaskStatuses: ForkliftTaskStatus[] = [
-  ForkliftTaskStatus.CREATED,
-  ForkliftTaskStatus.ASSIGNED,
-  ForkliftTaskStatus.IN_PROGRESS,
-]
+const incompleteAssignedTaskStatuses = incompleteAssignedMovimentTaskStatuses
 
 const movimentPalletTaskPickupSelect = {
   id: true,
@@ -146,7 +146,9 @@ export const movimentPalletTaskRepository = {
         type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
         status: { in: openPickupStatuses },
         request: {
-          typeMovimentPallet,
+          typeMovimentPallet: {
+            in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+          },
           status: RequestStatus.ON_MACHINE,
           destination: { sectorId },
         },
@@ -190,7 +192,9 @@ export const movimentPalletTaskRepository = {
         type: ForkliftTaskType.DELIVER_TO_MACHINE,
         status: { in: openDeliverStatuses },
         request: {
-          typeMovimentPallet,
+          typeMovimentPallet: {
+            in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+          },
           status: { in: [RequestStatus.CREATED, RequestStatus.IN_PROGRESS] },
           destination: { sectorId },
         },

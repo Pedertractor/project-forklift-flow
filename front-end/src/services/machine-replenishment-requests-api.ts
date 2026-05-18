@@ -6,7 +6,7 @@ import type {
   ReplenishmentRequestListItem,
 } from '@/types/replenishment-request.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
-import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
 export type PendingPreparationListPayload = {
   requests: ReplenishmentRequestListItem[];
@@ -52,7 +52,7 @@ export async function fetchPendingPreparationRequests(): Promise<PendingPreparat
 export async function createReplenishmentRequest(input: {
   destinationId: string;
   movementCube: string;
-  typeMovimentPallet: MovimentPalletEquipmentType;
+  typeMovimentPallet: ReplenishmentMovimentType;
   priorityLevel?: PriorityLevelValue;
   palletReady?: boolean;
 }): Promise<ReplenishmentRequestListItem> {
@@ -82,7 +82,7 @@ export async function updateReplenishmentRequest(
   patch: {
     destinationId?: string;
     movementCube?: string;
-    typeMovimentPallet?: MovimentPalletEquipmentType;
+    typeMovimentPallet?: ReplenishmentMovimentType;
     priorityLevel?: PriorityLevelValue;
   },
 ): Promise<ReplenishmentRequestListItem> {

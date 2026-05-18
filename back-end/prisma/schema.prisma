@@ -221,6 +221,8 @@ model MovimentPallet {
 enum TypeMovimentPallet {
   PALLET_TRUCK
   FORKLIFT
+  /// Aceito por empilhadeirista ou transpaleteirista (qualquer equipamento do setor).
+  ANY
 }
 
 enum RoleUser {

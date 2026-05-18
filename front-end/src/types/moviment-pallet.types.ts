@@ -17,4 +17,6 @@ export interface MovimentPalletListItem {
   } | null;
   sector: { id: string; typeSector: string } | null;
   _count: { movimentPalletTasks: number };
+  /** Tarefas CREATED/ASSIGNED/IN_PROGRESS no equipamento (quando solicitado na API). */
+  incompleteAssignedTaskCount?: number;
 }

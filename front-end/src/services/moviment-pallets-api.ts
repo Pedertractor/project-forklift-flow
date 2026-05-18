@@ -5,6 +5,8 @@ import type { MovimentPalletEquipmentType, MovimentPalletListItem } from '@/type
 export async function fetchMovimentPallets(filters?: {
   sectorId?: string;
   type?: MovimentPalletEquipmentType;
+  /** Inclui contagem de tarefas em aberto por equipamento (painel do abastecedor). */
+  includeTaskAvailability?: boolean;
 }): Promise<MovimentPalletListItem[]> {
   const params = new URLSearchParams();
   if (filters?.sectorId !== undefined && filters.sectorId.trim() !== '') {
@@ -12,6 +14,9 @@ export async function fetchMovimentPallets(filters?: {
   }
   if (filters?.type !== undefined) {
     params.set('type', filters.type);
+  }
+  if (filters?.includeTaskAvailability) {
+    params.set('includeTaskAvailability', 'true');
   }
   const q = params.toString();
   const path = q ? `${API_ENDPOINTS.MOVIMENT_PALLETS.LIST}?${q}` : API_ENDPOINTS.MOVIMENT_PALLETS.LIST;

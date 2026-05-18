@@ -8,10 +8,11 @@ import {
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
+import type { TripStandaloneDeliverApi } from '@/types/operator-moviment-pallet.types';
 import {
   fetchOperatorMyMovimentPallet,
-  fetchOperatorReplenishmentQueue,
   fetchOperatorTripSuggestions,
+  postAcceptOpenDeliverTask,
   postAcceptOpenPickupTask,
   postAcceptReplenishmentRequest,
   postAcceptTripRouteSuggestion,
@@ -43,12 +44,6 @@ export function useOperatorMovimentQueuePage() {
     enabled: apiReady,
   });
 
-  const queueQuery = useQuery({
-    queryKey: ['operator-moviment', 'replenishment-queue'],
-    queryFn: fetchOperatorReplenishmentQueue,
-    enabled: apiReady && myPalletQuery.isSuccess && myPalletQuery.data !== null,
-  });
-
   const tripSuggestionsQuery = useQuery({
     queryKey: ['operator-moviment', 'trip-suggestions'],
     queryFn: fetchOperatorTripSuggestions,
@@ -59,16 +54,6 @@ export function useOperatorMovimentQueuePage() {
   const invalidateOperator = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
   }, [queryClient]);
-
-  const acceptReplenishmentMut = useMutation({
-    mutationFn: (requestId: string) => postAcceptReplenishmentRequest(requestId),
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Tarefa de entrega aceita.');
-      goToMyTasks();
-    },
-    onError: toastApiError,
-  });
 
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
@@ -90,13 +75,25 @@ export function useOperatorMovimentQueuePage() {
     onError: toastApiError,
   });
 
+  const acceptDeliverMut = useMutation({
+    mutationFn: async (row: TripStandaloneDeliverApi) => {
+      if (row.deliverTask) {
+        return postAcceptOpenDeliverTask(row.deliverTask.id);
+      }
+      return postAcceptReplenishmentRequest(row.requestId);
+    },
+    onSuccess: () => {
+      invalidateOperator();
+      toast.success('Tarefa de entrega aceita.');
+      goToMyTasks();
+    },
+    onError: toastApiError,
+  });
+
   const busy =
-    acceptReplenishmentMut.isPending ||
-    acceptPickupMut.isPending ||
-    acceptTripMut.isPending;
+    acceptPickupMut.isPending || acceptTripMut.isPending || acceptDeliverMut.isPending;
 
   const currentPallet = myPalletQuery.data ?? null;
-  const queue = queueQuery.data ?? { requests: [], onMachinePickupTasks: [] };
 
   const pendingTripSuggestionId = useMemo(() => {
     if (!acceptTripMut.isPending || acceptTripMut.variables === undefined) {
@@ -112,19 +109,25 @@ export function useOperatorMovimentQueuePage() {
     return acceptPickupMut.variables;
   }, [acceptPickupMut.isPending, acceptPickupMut.variables]);
 
+  const pendingStandaloneDeliverKey = useMemo(() => {
+    if (!acceptDeliverMut.isPending || acceptDeliverMut.variables === undefined) {
+      return null;
+    }
+    const row = acceptDeliverMut.variables;
+    return row.deliverTask?.id ?? `pool:${row.requestId}`;
+  }, [acceptDeliverMut.isPending, acceptDeliverMut.variables]);
+
   return {
     apiReady,
     token,
     currentPallet,
-    myPalletQuery,
-    queueQuery,
     tripSuggestionsQuery,
-    queue,
-    acceptReplenishmentMut,
     acceptPickupMut,
     acceptTripMut,
+    acceptDeliverMut,
     pendingTripSuggestionId,
     pendingStandalonePickupTaskId,
+    pendingStandaloneDeliverKey,
     busy,
     goToEquipment,
   };

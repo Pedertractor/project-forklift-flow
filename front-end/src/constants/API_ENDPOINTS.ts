@@ -54,6 +54,8 @@ export const API_ENDPOINTS = {
       `/operator-moviment-pallet/replenishment-requests/${encodeURIComponent(requestId)}/accept`,
     ACCEPT_PICKUP: (taskId: string) =>
       `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/accept-pickup`,
+    ACCEPT_DELIVER: (taskId: string) =>
+      `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/accept-deliver`,
     MY_TASKS: '/operator-moviment-pallet/my-tasks',
     TRIP_SUGGESTIONS: '/operator-moviment-pallet/trip-suggestions',
     ACCEPT_TRIP_SUGGESTION: (tripSuggestionId: string) =>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 type SimpleModalProps = {
   open: boolean;
@@ -9,6 +10,8 @@ type SimpleModalProps = {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  /** Classes extras no painel (ex.: `max-w-2xl` para fluxos em etapas). */
+  panelClassName?: string;
 };
 
 export function SimpleModal({
@@ -18,6 +21,7 @@ export function SimpleModal({
   onClose,
   children,
   footer,
+  panelClassName,
 }: SimpleModalProps) {
   if (!open) {
     return null;
@@ -31,7 +35,12 @@ export function SimpleModal({
         aria-label="Fechar"
         onClick={onClose}
       />
-      <Card className="relative z-10 flex max-h-[min(90vh,40rem)] w-full max-w-lg flex-col overflow-hidden border border-zinc-200 p-0 shadow-xl">
+      <Card
+        className={cn(
+          'relative z-10 flex max-h-[min(90vh,40rem)] w-full max-w-lg flex-col overflow-hidden border border-zinc-200 p-0 shadow-xl',
+          panelClassName,
+        )}
+      >
         <div className="shrink-0 border-b border-zinc-100 px-5 py-4">
           <h2 className="m-0 text-lg font-semibold tracking-tight text-zinc-900">
             {title}

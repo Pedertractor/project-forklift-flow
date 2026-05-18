@@ -7,6 +7,10 @@ import {
   TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
+import {
+  openPoolTypesForEquipment,
+  type EquipmentMovimentType,
+} from '../utils/replenishment-moviment-type.js'
 
 const openDeliverTaskStatuses: ForkliftTaskStatus[] = [
   ForkliftTaskStatus.CREATED,
@@ -142,7 +146,9 @@ export const machineReplenishmentRequestRepository = {
   findManyOpenPoolForMovimentType(typeMovimentPallet: TypeMovimentPallet) {
     return prisma.machineReplenishmentRequest.findMany({
       where: {
-        typeMovimentPallet,
+        typeMovimentPallet: {
+          in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+        },
         status: { in: [RequestStatus.PALLET_READY, RequestStatus.CREATED] },
         movimentPalletTasks: {
           none: openDeliverTaskWhere,
@@ -160,7 +166,9 @@ export const machineReplenishmentRequestRepository = {
   ) {
     return prisma.machineReplenishmentRequest.findMany({
       where: {
-        typeMovimentPallet,
+        typeMovimentPallet: {
+          in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+        },
         status: { in: [RequestStatus.PALLET_READY, RequestStatus.CREATED] },
         movimentPalletTasks: {
           none: openDeliverTaskWhere,

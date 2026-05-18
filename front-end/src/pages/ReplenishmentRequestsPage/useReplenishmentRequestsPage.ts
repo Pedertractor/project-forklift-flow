@@ -11,10 +11,10 @@ import {
 } from '@/services/machine-replenishment-requests-api';
 import { fetchMachines } from '@/services/machines-api';
 import { fetchMovimentPallets } from '@/services/moviment-pallets-api';
-import type { MovimentPalletListItem } from '@/types/moviment-pallet.types';
 import { useAuthStore } from '@/store/auth.store';
+import { buildEquipmentColumnStats } from './replenishment-equipment-status';
 import type { MachineListItem } from '@/types/machine.types';
-import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import type {
   PriorityLevelValue,
   ReplenishmentRequestListItem,
@@ -42,21 +42,6 @@ const QUEUE_STATUSES_FOR_TRANSPORT = new Set([
   'IN_PROGRESS',
   'CREATED',
 ]);
-
-function isEquipmentAvailable(item: MovimentPalletListItem): boolean {
-  return item.operatorId === null;
-}
-
-function buildColumnStats(
-  items: MovimentPalletListItem[],
-  queuePending: number,
-) {
-  return {
-    total: items.length,
-    available: items.filter(isEquipmentAvailable).length,
-    queuePending,
-  };
-}
 
 export function useReplenishmentRequestsPage() {
   const queryClient = useQueryClient();
@@ -102,9 +87,10 @@ export function useReplenishmentRequestsPage() {
       equipmentSectorId ?? 'all',
     ],
     queryFn: () =>
-      fetchMovimentPallets(
-        equipmentSectorId ? { sectorId: equipmentSectorId } : undefined,
-      ),
+      fetchMovimentPallets({
+        ...(equipmentSectorId ? { sectorId: equipmentSectorId } : {}),
+        includeTaskAvailability: true,
+      }),
     enabled: apiReady,
     refetchInterval: 15_000,
   });
@@ -126,19 +112,29 @@ export function useReplenishmentRequestsPage() {
     let palletTruck = 0;
     for (const row of visibleRequests) {
       if (!QUEUE_STATUSES_FOR_TRANSPORT.has(row.status)) continue;
-      if (row.typeMovimentPallet === 'FORKLIFT') forklift += 1;
-      else palletTruck += 1;
+      if (
+        row.typeMovimentPallet === 'FORKLIFT' ||
+        row.typeMovimentPallet === 'ANY'
+      ) {
+        forklift += 1;
+      }
+      if (
+        row.typeMovimentPallet === 'PALLET_TRUCK' ||
+        row.typeMovimentPallet === 'ANY'
+      ) {
+        palletTruck += 1;
+      }
     }
     return { forklift, palletTruck };
   }, [visibleRequests]);
 
   const forkliftStats = useMemo(
-    () => buildColumnStats(forklifts, queueByType.forklift),
+    () => buildEquipmentColumnStats(forklifts, queueByType.forklift),
     [forklifts, queueByType.forklift],
   );
 
   const palletTruckStats = useMemo(
-    () => buildColumnStats(palletTrucks, queueByType.palletTruck),
+    () => buildEquipmentColumnStats(palletTrucks, queueByType.palletTruck),
     [palletTrucks, queueByType.palletTruck],
   );
 
@@ -154,7 +150,7 @@ export function useReplenishmentRequestsPage() {
   const [destinationId, setDestinationId] = useState('');
   const [movementCube, setMovementCube] = useState('');
   const [typeMovimentPallet, setTypeMovimentPallet] =
-    useState<MovimentPalletEquipmentType>('FORKLIFT');
+    useState<ReplenishmentMovimentType>('FORKLIFT');
   const [priorityLevel, setPriorityLevel] =
     useState<PriorityLevelValue>('NORMAL');
   const [palletReady, setPalletReady] = useState(false);

@@ -81,13 +81,13 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
     return reply
       .status(400)
       .send({
-        error: "Informe typeMovimentPallet (PALLET_TRUCK ou FORKLIFT).",
+        error: "Informe typeMovimentPallet (PALLET_TRUCK, FORKLIFT ou ANY).",
       });
   }
   const typeMovimentPalletRaw = body.typeMovimentPallet.trim();
   if (!isTypeMovimentPallet(typeMovimentPalletRaw)) {
     return reply.status(400).send({
-      error: "typeMovimentPallet invalido. Use PALLET_TRUCK ou FORKLIFT.",
+      error: "typeMovimentPallet invalido. Use PALLET_TRUCK, FORKLIFT ou ANY.",
     });
   }
   const typeMovimentPallet = typeMovimentPalletRaw;
@@ -275,7 +275,7 @@ export const patchUpdateMachineReplenishmentRequest: RouteHandlerMethod =
       }
       if (!isTypeMovimentPallet(raw)) {
         return reply.status(400).send({
-          error: "typeMovimentPallet invalido. Use PALLET_TRUCK ou FORKLIFT.",
+          error: "typeMovimentPallet invalido. Use PALLET_TRUCK, FORKLIFT ou ANY.",
         });
       }
       patch.typeMovimentPallet = raw;

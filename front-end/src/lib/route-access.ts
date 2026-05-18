@@ -21,6 +21,7 @@ const PATH_RULES: { path: string; roles: readonly AppRole[] }[] = [
   { path: '/operacao/equipamento', roles: MOVIMENT_OPERATOR_ROLES },
   { path: '/operacao/aceitar-tarefas', roles: MOVIMENT_OPERATOR_ROLES },
   { path: '/operacao/tarefas', roles: MOVIMENT_OPERATOR_ROLES },
+  { path: '/operacao/filas-manuais', roles: MOVIMENT_OPERATOR_ROLES },
   { path: '/operacao/minhas-tarefas', roles: MOVIMENT_OPERATOR_ROLES },
   { path: '/dobra', roles: OPERATOR_MACHINE_ROLES },
 ];

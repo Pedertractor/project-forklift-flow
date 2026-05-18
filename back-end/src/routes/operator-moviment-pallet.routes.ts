@@ -10,6 +10,7 @@ import {
   getOperatorMovimentPalletActiveFlowHandler,
   postAcceptReplenishmentRequestForMovimentOperator,
   postAcceptTripRouteSuggestion,
+  postAcceptOpenDeliverTask,
   postAcceptOpenPickupTask,
   postBindOperatorMovimentPallet,
   postCompleteDeliverTask,
@@ -131,6 +132,16 @@ export async function registerOperatorMovimentPalletRoutes(
           ],
         },
         postAcceptOpenPickupTask,
+      )
+      router.post(
+        '/tasks/:taskId/accept-deliver',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireForkliftOrFollowUpOperatorRole(),
+          ],
+        },
+        postAcceptOpenDeliverTask,
       )
       router.post(
         '/replenishment-requests/:requestId/accept',

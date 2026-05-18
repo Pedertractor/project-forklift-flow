@@ -1,22 +1,29 @@
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
+import { ReplenishmentCreateWizardModal } from './ReplenishmentCreateWizardModal';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { replenishmentMovimentTypeLabel } from '@/utils/operator-moviment-display';
 import { ENV } from '@/constants/env';
 import {
   priorityLevelLabel,
   requestStatusLabel,
 } from '@/utils/replenishment-labels';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentRequestsPage';
-import { ReplenishmentEquipmentPanel } from './ReplenishmentEquipmentPanel';
-import { CheckIcon } from 'lucide-react';
+import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
+import { CheckIcon, PanelRightOpen } from 'lucide-react';
+import { useState } from 'react';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
 
 function movementTypeLabel(t: string): string {
-  return t === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
+  if (t === 'FORKLIFT' || t === 'PALLET_TRUCK' || t === 'ANY') {
+    return replenishmentMovimentTypeLabel(t);
+  }
+  return t;
 }
 
 export function ReplenishmentRequestsPageView(
@@ -69,6 +76,12 @@ export function ReplenishmentRequestsPageView(
     equipmentQuery,
   } = vm;
 
+  const [equipmentSidebarOpen, setEquipmentSidebarOpen] = useState(false);
+  const equipmentQueueTotal =
+    forkliftStats.queuePending + palletTruckStats.queuePending;
+  const equipmentReadyForQueueTotal =
+    forkliftStats.readyForQueue + palletTruckStats.readyForQueue;
+
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-[90rem]">
@@ -82,13 +95,41 @@ export function ReplenishmentRequestsPageView(
               enquanto o fluxo permitir.
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={openCreate}
-            disabled={!apiReady || busy}
-          >
-            Nova solicitação
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!apiReady}
+              onClick={() => setEquipmentSidebarOpen(true)}
+              className="gap-2 border-zinc-200"
+            >
+              <PanelRightOpen className="size-4 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">Meios de locomoção</span>
+              <span className="sm:hidden">Equipamentos</span>
+              {apiReady &&
+              (equipmentQueueTotal > 0 || equipmentReadyForQueueTotal > 0) ? (
+                <span className="inline-flex items-center gap-1 text-xs font-normal text-zinc-600">
+                  {equipmentReadyForQueueTotal > 0 ? (
+                    <span className="rounded-full bg-sky-100 px-1.5 py-0.5 font-semibold text-sky-900">
+                      {equipmentReadyForQueueTotal} livre
+                    </span>
+                  ) : null}
+                  {equipmentQueueTotal > 0 ? (
+                    <span className="rounded-full bg-[#005fb8]/10 px-1.5 py-0.5 font-semibold text-[#005fb8]">
+                      {equipmentQueueTotal} fila
+                    </span>
+                  ) : null}
+                </span>
+              ) : null}
+            </Button>
+            <Button
+              type="button"
+              onClick={openCreate}
+              disabled={!apiReady || busy}
+            >
+              Nova solicitação
+            </Button>
+          </div>
         </header>
 
         {!ENV.API_URL ? (
@@ -150,8 +191,8 @@ export function ReplenishmentRequestsPageView(
           </p>
         ) : null}
 
-        <div className="mt-6 flex flex-col gap-6 xl:flex-row xl:items-start">
-          <Card className="min-w-0 flex-1 overflow-x-auto border border-zinc-200 shadow-sm">
+        <div className="mt-6">
+          <Card className="min-w-0 overflow-x-auto border border-zinc-200 shadow-sm">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -274,115 +315,44 @@ export function ReplenishmentRequestsPageView(
               </tbody>
             </table>
           </Card>
-
-          <aside className="w-full shrink-0 xl:w-[22rem] 2xl:w-[26rem]">
-            <ReplenishmentEquipmentPanel
-              forklifts={forklifts}
-              palletTrucks={palletTrucks}
-              forkliftStats={forkliftStats}
-              palletTruckStats={palletTruckStats}
-              isLoading={equipmentQuery.isLoading}
-              isError={equipmentQuery.isError}
-              errorMessage={
-                equipmentQuery.error instanceof Error
-                  ? equipmentQuery.error.message
-                  : undefined
-              }
-            />
-          </aside>
         </div>
       </div>
 
-      <SimpleModal
-        open={createOpen}
-        title="Nova solicitação de reposição"
-        description="O tipo de movimentação deve coincidir com o equipamento (empilhadeira ou transpaleteira) que atenderá o pedido."
-        onClose={() => (!busy ? setCreateOpen(false) : undefined)}
-        footer={
-          <ModalActions
-            onCancel={() => !busy && setCreateOpen(false)}
-            submitLabel={busy ? 'Salvando…' : 'Criar'}
-            disabled={busy || machinesEmpty}
-            onSubmit={() => createMut.mutate()}
-          />
+      <ReplenishmentEquipmentSidebar
+        open={equipmentSidebarOpen}
+        onOpenChange={setEquipmentSidebarOpen}
+        forklifts={forklifts}
+        palletTrucks={palletTrucks}
+        forkliftStats={forkliftStats}
+        palletTruckStats={palletTruckStats}
+        isLoading={equipmentQuery.isLoading}
+        isError={equipmentQuery.isError}
+        errorMessage={
+          equipmentQuery.error instanceof Error
+            ? equipmentQuery.error.message
+            : undefined
         }
-      >
-        {createError ? (
-          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {createError}
-          </p>
-        ) : null}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="rr-dest">Máquina de destino</Label>
-            <select
-              id="rr-dest"
-              className={selectClass}
-              value={destinationId}
-              onChange={(e) => setDestinationId(e.target.value)}
-            >
-              <option value="">Selecione…</option>
-              {machinesForSelect.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} — {m.sector.typeSector}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="rr-cube">Código do prisma / pallet</Label>
-            <Input
-              id="rr-cube"
-              value={movementCube}
-              onChange={(e) => setMovementCube(e.target.value)}
-              placeholder="Identificador físico do prisma"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="rr-mov-type">Tipo de movimentação</Label>
-            <select
-              id="rr-mov-type"
-              className={selectClass}
-              value={typeMovimentPallet}
-              onChange={(e) =>
-                setTypeMovimentPallet(
-                  e.target.value as 'FORKLIFT' | 'PALLET_TRUCK',
-                )
-              }
-            >
-              <option value="FORKLIFT">Empilhadeira</option>
-              <option value="PALLET_TRUCK">Transpaleteira</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="rr-prio">Prioridade</Label>
-            <select
-              id="rr-prio"
-              className={selectClass}
-              value={priorityLevel}
-              onChange={(e) =>
-                setPriorityLevel(
-                  e.target.value as 'VERY_HIGH' | 'HIGH' | 'NORMAL',
-                )
-              }
-            >
-              <option value="NORMAL">Normal</option>
-              <option value="HIGH">Alta</option>
-              <option value="VERY_HIGH">Muito alta</option>
-            </select>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={palletReady}
-              onChange={(e) => setPalletReady(e.target.checked)}
-              className="size-4 rounded border-zinc-300"
-            />
-            Pallet já pronto (liberar na fila do transporte sem passar por
-            «aguardando preparo»)
-          </label>
-        </div>
-      </SimpleModal>
+      />
+
+      <ReplenishmentCreateWizardModal
+        open={createOpen}
+        busy={busy}
+        machinesEmpty={machinesEmpty}
+        machines={machinesForSelect}
+        destinationId={destinationId}
+        setDestinationId={setDestinationId}
+        movementCube={movementCube}
+        setMovementCube={setMovementCube}
+        typeMovimentPallet={typeMovimentPallet}
+        setTypeMovimentPallet={setTypeMovimentPallet}
+        priorityLevel={priorityLevel}
+        setPriorityLevel={setPriorityLevel}
+        palletReady={palletReady}
+        setPalletReady={setPalletReady}
+        createError={createError}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={() => createMut.mutate()}
+      />
 
       <SimpleModal
         open={Boolean(editRow)}
@@ -434,12 +404,13 @@ export function ReplenishmentRequestsPageView(
               value={typeMovimentPallet}
               onChange={(e) =>
                 setTypeMovimentPallet(
-                  e.target.value as 'FORKLIFT' | 'PALLET_TRUCK',
+                  e.target.value as ReplenishmentMovimentType,
                 )
               }
             >
               <option value="FORKLIFT">Empilhadeira</option>
               <option value="PALLET_TRUCK">Transpaleteira</option>
+              <option value="ANY">Qualquer tipo</option>
             </select>
           </div>
           <div className="space-y-2">

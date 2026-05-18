@@ -90,6 +90,19 @@ export async function postAcceptOpenPickupTask(
   return res;
 }
 
+export async function postAcceptOpenDeliverTask(
+  taskId: string,
+): Promise<OperatorAcceptPickupResponse> {
+  const res = await apiAuthFetch<OperatorAcceptPickupResponse>(
+    API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.ACCEPT_DELIVER(taskId),
+    { method: 'POST' },
+  );
+  if (!res) {
+    throw new Error('Resposta vazia ao aceitar entrega.');
+  }
+  return res;
+}
+
 export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]> {
   const res = await apiAuthFetch<OperatorMyTasksResponse>(
     API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.MY_TASKS,
@@ -107,6 +120,7 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
     return {
       suggestions: [],
       standalonePickupTasks: [],
+      standaloneDeliverTasks: [],
       priorityContext: { mostUrgentOpenInSector: null },
     };
   }
