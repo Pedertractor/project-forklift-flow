@@ -27,9 +27,9 @@ import {
   TripRouteSuggestionNotOpenError,
 } from "../errors/domain-errors.js";
 import { prisma } from "../lib/prisma.js";
+import { requestStatusPatch } from "../utils/request-status-since.js";
 import { machineReplenishmentRequestRepository } from "../repositories/machine-replenishment-request.repository.js";
-import { movimentPalletRepository } from "../repositories/moviment-pallet.repository.js";
-import {
+import { movimentPalletRepository } from "../repositories/moviment-pallet.repository.js";import {
   isOpenTripTaskPairValid,
   movimentPalletTripSuggestionRepository,
 } from "../repositories/moviment-pallet-trip-suggestion.repository.js";
@@ -1059,7 +1059,7 @@ export async function acceptTripRouteSuggestion(
           typeMovimentPallet: { in: openPoolTypesForEquipment(assertEquipmentMovimentType(pallet.type)) },
         },
         data: {
-          status: RequestStatus.IN_PROGRESS,
+          ...requestStatusPatch(RequestStatus.IN_PROGRESS),
           typeMovimentPallet: pallet.type,
         },
       });
@@ -1436,7 +1436,7 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
         typeMovimentPallet: { in: openPoolTypesForEquipment(assertEquipmentMovimentType(pallet.type)) },
       },
       data: {
-        status: RequestStatus.IN_PROGRESS,
+        ...requestStatusPatch(RequestStatus.IN_PROGRESS),
         typeMovimentPallet: pallet.type,
       },
     });
@@ -1570,7 +1570,7 @@ export async function completeDeliverTaskToMachine(
         id: task.requestId,
         status: RequestStatus.IN_PROGRESS,
       },
-      data: { status: RequestStatus.ON_MACHINE },
+      data: requestStatusPatch(RequestStatus.ON_MACHINE),
     });
     if (requestUpdate.count !== 1) {
       throw new Error(
@@ -1686,7 +1686,10 @@ export async function completePickupTaskToExpedition(
         id: task.requestId,
         status: RequestStatus.ON_MACHINE,
       },
-      data: { status: RequestStatus.COMPLETED },
+      data: {
+        ...requestStatusPatch(RequestStatus.COMPLETED),
+        completedAt: new Date(),
+      },
     });
     if (requestUpdate.count !== 1) {
       throw new Error(

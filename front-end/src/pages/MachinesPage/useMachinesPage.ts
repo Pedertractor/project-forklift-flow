@@ -12,6 +12,8 @@ import {
 import { fetchSectors } from '@/services/sectors-api';
 import { fetchTypeMachines } from '@/services/type-machines-api';
 import { useAuthStore } from '@/store/auth.store';
+import type { PlantMapUnit } from '@/constants/plant-map';
+import { PLANT_MAP_UNIT_SHORT_LABEL } from '@/constants/plant-map';
 import type { MachineListItem, SectorListItem } from '@/types/machine.types';
 
 function useApiReady(): boolean {
@@ -64,10 +66,15 @@ export function useMachinesPage() {
   });
 
   const [sectorFilter, setSectorFilter] = useState('');
+  const [plantUnitFilter, setPlantUnitFilter] = useState<'' | PlantMapUnit>('');
 
   const machinesQuery = useQuery({
-    queryKey: ['machines', sectorFilter],
-    queryFn: () => fetchMachines(sectorFilter || undefined),
+    queryKey: ['machines', sectorFilter, plantUnitFilter],
+    queryFn: () =>
+      fetchMachines({
+        sectorId: sectorFilter || undefined,
+        plantUnit: plantUnitFilter || undefined,
+      }),
     enabled: apiReady,
   });
 
@@ -89,6 +96,7 @@ export function useMachinesPage() {
   const [typeMachineId, setTypeMachineId] = useState('');
   const [sectorId, setSectorId] = useState('');
   const [userId, setUserId] = useState('');
+  const [plantUnit, setPlantUnit] = useState<PlantMapUnit>('PEDERTRACTOR');
   const [clearOperator, setClearOperator] = useState(false);
 
   const resetForm = useCallback(() => {
@@ -97,6 +105,7 @@ export function useMachinesPage() {
     setTypeMachineId('');
     setSectorId('');
     setUserId('');
+    setPlantUnit('PEDERTRACTOR');
     setClearOperator(false);
   }, []);
 
@@ -119,6 +128,7 @@ export function useMachinesPage() {
   const openEdit = (row: MachineListItem) => {
     setName(row.name);
     setPosition(row.position);
+    setPlantUnit(row.plantUnit);
     setTypeMachineId(row.typeMachineId);
     setSectorId(row.sectorId);
     setUserId(row.userId ?? '');
@@ -139,6 +149,7 @@ export function useMachinesPage() {
       return createMachine({
         name: n,
         position: p,
+        plantUnit,
         typeMachineId,
         sectorId,
         userId: userId.trim() === '' ? undefined : userId.trim(),
@@ -169,6 +180,7 @@ export function useMachinesPage() {
       const patch: Parameters<typeof updateMachine>[1] = {
         name: n,
         position: p,
+        plantUnit,
         typeMachineId,
         sectorId,
       };
@@ -213,6 +225,11 @@ export function useMachinesPage() {
     typesQuery,
     sectorFilter,
     setSectorFilter,
+    plantUnitFilter,
+    setPlantUnitFilter,
+    plantUnit,
+    setPlantUnit,
+    plantUnitLabel: PLANT_MAP_UNIT_SHORT_LABEL,
     machinesQuery,
     sectorsEmpty,
     typesEmpty,

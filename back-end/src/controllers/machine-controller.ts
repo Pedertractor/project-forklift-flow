@@ -10,6 +10,7 @@ import {
   deleteMachine,
   getMachineById,
   listMachines,
+  parsePlantMapUnit,
   updateMachine,
 } from '../services/machine.service.js'
 
@@ -17,6 +18,7 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   const body = (request.body ?? {}) as {
     name?: string
     position?: string
+    plantUnit?: string
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
@@ -33,11 +35,19 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   if (typeof body.sectorId !== 'string' || body.sectorId.trim() === '') {
     return reply.status(400).send({ error: 'Informe sectorId.' })
   }
+  if (typeof body.plantUnit !== 'string' || body.plantUnit.trim() === '') {
+    return reply.status(400).send({ error: 'Informe plantUnit (PEDERTRACTOR | TRACTOR).' })
+  }
+  const plantUnit = parsePlantMapUnit(body.plantUnit)
+  if (!plantUnit) {
+    return reply.status(400).send({ error: 'plantUnit invalido. Use PEDERTRACTOR ou TRACTOR.' })
+  }
 
   try {
     const row = await createMachine({
       name: body.name,
       position: body.position,
+      plantUnit,
       typeMachineId: body.typeMachineId.trim(),
       sectorId: body.sectorId.trim(),
       userId: body.userId,
@@ -58,12 +68,22 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
 }
 
 export const getListMachines: RouteHandlerMethod = async (request, reply) => {
-  const { sectorId } = (request.query ?? {}) as { sectorId?: string }
-  const machines = await listMachines(
-    typeof sectorId === 'string' && sectorId.trim() !== ''
-      ? { sectorId: sectorId.trim() }
-      : undefined,
-  )
+  const { sectorId, plantUnit: plantUnitRaw } = (request.query ?? {}) as {
+    sectorId?: string
+    plantUnit?: string
+  }
+  const options: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' } = {}
+  if (typeof sectorId === 'string' && sectorId.trim() !== '') {
+    options.sectorId = sectorId.trim()
+  }
+  if (typeof plantUnitRaw === 'string' && plantUnitRaw.trim() !== '') {
+    const plantUnit = parsePlantMapUnit(plantUnitRaw)
+    if (!plantUnit) {
+      return reply.status(400).send({ error: 'plantUnit invalido. Use PEDERTRACTOR ou TRACTOR.' })
+    }
+    options.plantUnit = plantUnit
+  }
+  const machines = await listMachines(Object.keys(options).length > 0 ? options : undefined)
   return reply.send({ machines })
 }
 
@@ -88,6 +108,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
   const body = (request.body ?? {}) as {
     name?: string
     position?: string
+    plantUnit?: string
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
@@ -99,6 +120,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
   const patch: {
     name?: string
     position?: string
+    plantUnit?: 'PEDERTRACTOR' | 'TRACTOR'
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
@@ -114,6 +136,16 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
       return reply.status(400).send({ error: 'position nao pode ser vazio.' })
     }
     patch.position = body.position
+  }
+  if (body.plantUnit !== undefined) {
+    if (typeof body.plantUnit !== 'string' || body.plantUnit.trim() === '') {
+      return reply.status(400).send({ error: 'plantUnit nao pode ser vazio.' })
+    }
+    const plantUnit = parsePlantMapUnit(body.plantUnit)
+    if (!plantUnit) {
+      return reply.status(400).send({ error: 'plantUnit invalido. Use PEDERTRACTOR ou TRACTOR.' })
+    }
+    patch.plantUnit = plantUnit
   }
   if (typeof body.typeMachineId === 'string') {
     if (body.typeMachineId.trim() === '') {
@@ -136,7 +168,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
       .status(400)
       .send({
         error:
-          'Envie ao menos um campo: name, position, typeMachineId, sectorId ou userId.',
+          'Envie ao menos um campo: name, position, plantUnit, typeMachineId, sectorId ou userId.',
       })
   }
 

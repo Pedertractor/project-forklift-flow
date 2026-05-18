@@ -63,6 +63,20 @@ export class SectorNotFoundError extends Error {
   }
 }
 
+export class PlantMapAreaNotFoundError extends Error {
+  constructor(message = 'Area do mapa nao encontrada.') {
+    super(message)
+    this.name = 'PlantMapAreaNotFoundError'
+  }
+}
+
+export class PlantMapAreaValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PlantMapAreaValidationError'
+  }
+}
+
 export class SectorInUseError extends Error {
   constructor(
     message = "Existem registros vinculados a este setor; nao e possivel excluir.",

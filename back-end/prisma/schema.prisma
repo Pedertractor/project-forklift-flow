@@ -52,6 +52,8 @@ model MachineReplenishmentRequest {
   typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
 
   status        RequestStatus @default(AWAITING_PREPARATION)
+  /// Quando o pedido entrou no `status` atual (nao reinicia em edicao de prioridade/cubo).
+  statusSince   DateTime      @default(now())
   priorityLevel PriorityLevel @default(NORMAL)
 
   /// Preenchido quando o abastecimento marca pallet pronto (Â§9).
@@ -145,6 +147,8 @@ model Machine {
   id       String @id @default(uuid())
   name     String
   position String
+  /// Planta do mapa de supervisao em que a maquina aparece (P ou T).
+  plantUnit PlantMapUnit @default(PEDERTRACTOR)
 
   typeMachine   TypeMachine @relation(fields: [typeMachineId], references: [id])
   typeMachineId String
@@ -275,6 +279,34 @@ enum PriorityLevel {
   VERY_HIGH
   HIGH
   NORMAL
+}
+
+/// Unidade/planta exibida no mapa de supervisao (imagens em public/).
+enum PlantMapUnit {
+  PEDERTRACTOR
+  TRACTOR
+}
+
+enum PlantMapAreaKind {
+  EXPEDITION
+  RECEIVING
+}
+
+/// Retangulo normalizado (0..1) sobre a imagem da planta — uma area por tipo por unidade.
+model PlantMapArea {
+  id        String           @id @default(uuid())
+  plantUnit PlantMapUnit
+  kind      PlantMapAreaKind
+  nx        Float
+  ny        Float
+  nw        Float
+  nh        Float
+  label     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([plantUnit, kind])
 }
 
 enum OperatorMachineSupplyRequestStatus {

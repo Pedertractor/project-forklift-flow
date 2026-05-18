@@ -19,6 +19,11 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     typesQuery,
     sectorFilter,
     setSectorFilter,
+    plantUnitFilter,
+    setPlantUnitFilter,
+    plantUnit,
+    setPlantUnit,
+    plantUnitLabel,
     machinesQuery,
     sectorsEmpty,
     typesEmpty,
@@ -133,6 +138,20 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ))}
             </select>
           </div>
+          <div className="min-w-48 space-y-2">
+            <Label htmlFor="machine-plant-unit-filter">Filtrar por unidade</Label>
+            <select
+              id="machine-plant-unit-filter"
+              className={selectClass}
+              value={plantUnitFilter}
+              onChange={(e) => setPlantUnitFilter(e.target.value as '' | 'PEDERTRACTOR' | 'TRACTOR')}
+              disabled={!apiReady}
+            >
+              <option value="">Todas</option>
+              <option value="PEDERTRACTOR">{plantUnitLabel.PEDERTRACTOR}</option>
+              <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
+            </select>
+          </div>
         </div>
 
         {machinesQuery.isError ? (
@@ -156,6 +175,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                   Tipo (produção)
                 </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">Unidade</th>
                 <th className="px-4 py-3 text-right font-semibold text-zinc-700">
                   Ações
                 </th>
@@ -165,7 +185,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               {machinesQuery.isLoading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-zinc-500"
                   >
                     Carregando…
@@ -174,7 +194,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ) : machinesQuery.data?.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-zinc-500"
                   >
                     Nenhuma máquina de produção neste filtro.
@@ -210,6 +230,9 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {row.sector.typeSector}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {plantUnitLabel[row.plantUnit]}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
@@ -301,8 +324,20 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               id="m-pos"
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              placeholder="Ex.: A1"
+              placeholder="Ex.: A1 ou MAP:0.35,0.62"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-plant-unit">Unidade (planta no mapa)</Label>
+            <select
+              id="m-plant-unit"
+              className={selectClass}
+              value={plantUnit}
+              onChange={(e) => setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')}
+            >
+              <option value="PEDERTRACTOR">{plantUnitLabel.PEDERTRACTOR}</option>
+              <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
+            </select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-type">Tipo de máquina (modelo de produção)</Label>
@@ -389,9 +424,19 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-edit-type">
-              Tipo de máquina (modelo de produção)
-            </Label>
+            <Label htmlFor="m-edit-plant-unit">Unidade (planta no mapa)</Label>
+            <select
+              id="m-edit-plant-unit"
+              className={selectClass}
+              value={plantUnit}
+              onChange={(e) => setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')}
+            >
+              <option value="PEDERTRACTOR">{plantUnitLabel.PEDERTRACTOR}</option>
+              <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-edit-type">Tipo de máquina (modelo de produção)</Label>
             <select
               id="m-edit-type"
               className={selectClass}

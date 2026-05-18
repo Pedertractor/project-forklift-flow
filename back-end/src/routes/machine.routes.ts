@@ -6,7 +6,10 @@ import {
   patchUpdateMachine,
   postCreateMachine,
 } from '../controllers/machine-controller.js'
-import { requireMachineDomainRoles } from '../middleware/require-roles.js'
+import {
+  requireMachineCatalogReadRoles,
+  requireMachineDomainRoles,
+} from '../middleware/require-roles.js'
 
 export async function registerMachineRoutes(fastify: FastifyInstance) {
   await fastify.register(
@@ -21,14 +24,14 @@ export async function registerMachineRoutes(fastify: FastifyInstance) {
       router.get(
         '/',
         {
-          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+          preHandler: [fastify.authenticate, requireMachineCatalogReadRoles()],
         },
         getListMachines,
       )
       router.get(
         '/:machineId',
         {
-          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+          preHandler: [fastify.authenticate, requireMachineCatalogReadRoles()],
         },
         getMachineByIdHandler,
       )

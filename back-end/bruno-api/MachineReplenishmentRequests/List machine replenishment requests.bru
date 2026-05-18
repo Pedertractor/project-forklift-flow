@@ -15,6 +15,7 @@ auth:bearer {
 }
 
 docs {
-  # Requer JWT: roles SUPPLY_OPERATOR, LEADER ou ADMIN.
+  # Requer JWT: leitura (GET) para SUPPLY_OPERATOR, LEADER, ADMIN, SUPERVISOR, MANAGER.
+  # Escritas (POST/PATCH/DELETE/mark-pallet-ready) permanecem SUPPLY_OPERATOR, LEADER, ADMIN.
   # Query opcional: ?requestedById=&status=CREATED&destinationId=
 }

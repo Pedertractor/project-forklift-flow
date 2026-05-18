@@ -22,12 +22,40 @@ export function requireMachineDomainRoles() {
   );
 }
 
+/**
+ * Leitura de catalogo de maquinas (lista e detalhe) para supervisao no mapa.
+ * Mutacoes (POST/PATCH/DELETE) continuam em `requireMachineDomainRoles`.
+ */
+export function requireMachineCatalogReadRoles() {
+  return requireRoles(
+    RoleUser.LEADER,
+    RoleUser.SUPPLY_OPERATOR,
+    RoleUser.ADMIN,
+    RoleUser.SUPERVISOR,
+    RoleUser.MANAGER,
+  );
+}
+
 /** Solicitacoes de reposicao para o empilhadeirista: SUPPLY_OPERATOR, LEADER ou ADMIN. */
 export function requireMachineReplenishmentRequestRoles() {
   return requireRoles(
     RoleUser.SUPPLY_OPERATOR,
     RoleUser.LEADER,
     RoleUser.ADMIN,
+  );
+}
+
+/**
+ * Leitura de pedidos de reposicao (lista, detalhe, preparo pendente) para mapa / supervisao.
+ * Escritas (POST/PATCH/DELETE/mark-pallet-ready) continuam em `requireMachineReplenishmentRequestRoles`.
+ */
+export function requireMachineReplenishmentReadRoles() {
+  return requireRoles(
+    RoleUser.SUPPLY_OPERATOR,
+    RoleUser.LEADER,
+    RoleUser.ADMIN,
+    RoleUser.SUPERVISOR,
+    RoleUser.MANAGER,
   );
 }
 

@@ -20,6 +20,10 @@ import { operatorMachineSupplyRequestRepository } from "../repositories/operator
 import { machineRepository } from "../repositories/machine.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { prisma } from "../lib/prisma.js";
+import {
+  requestStatusOnCreate,
+  requestStatusPatch,
+} from "../utils/request-status-since.js";
 import { operatorMovimentPalletWsEmitAfterReplenishmentSave } from "../ws/operator-moviment-pallet-ws.hub.js";
 
 export type FinalizeMachineCycleInput = {
@@ -139,7 +143,7 @@ export async function finalizeMachineProductionCycle(
     movementCube,
     typeMovimentPallet,
     priorityLevel,
-    status: RequestStatus.AWAITING_PREPARATION,
+    ...requestStatusOnCreate(RequestStatus.AWAITING_PREPARATION, now),
     awaitingPreparationSince: now,
     requestedBy: { connect: { id: operatorUserId } },
     destination: { connect: { id: machine.id } },
@@ -207,7 +211,7 @@ export async function markReplenishmentPalletReady(requestId: string) {
 
   const now = new Date();
   const updated = await machineReplenishmentRequestRepository.update(requestId, {
-    status: RequestStatus.PALLET_READY,
+    ...requestStatusPatch(RequestStatus.PALLET_READY, now),
     preparedAt: now,
     awaitingPreparationSince: null,
   });

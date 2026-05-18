@@ -52,7 +52,10 @@ export function useReplenishmentRequestsPage() {
 
   const machinesQuery = useQuery({
     queryKey: ['machines', user?.sectorId ?? ''],
-    queryFn: () => fetchMachines(user?.sectorId ?? undefined),
+    queryFn: () =>
+      fetchMachines({
+        sectorId: user?.sectorId ?? undefined,
+      }),
     enabled: apiReady,
   });
 

@@ -317,7 +317,7 @@ function RouteFlowTrack({
   return (
     <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
       {steps.map((step, index) => (
-        <div key={`${step.id}-${index}`} className="flex min-w-0 flex-1 items-stretch">
+        <motion.div key={`${step.id}-${index}`} className="flex min-w-0 flex-1 items-stretch">
           <div className="flex min-w-[12rem] max-w-none shrink-0 basis-0 flex-1 flex-col items-center px-0.5 sm:min-w-[13.5rem]">
             <FlowStepNode step={step} />
             <div className="mt-3 flex min-h-[4.25rem] w-full min-w-0 flex-col items-stretch justify-start px-0.5">

@@ -3,7 +3,8 @@
 Este documento descreve **o que cada usuário faz**, em **que ordem**, e **como quebrar em telas** no app.  
 Complementa [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md) (permissões HTTP) e [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md) (regras e pré-condições da API).
 
-**Matriz implementado vs pendente (back-end + front):** [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md)
+**Matriz implementado vs pendente (back-end + front):** [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md)  
+**Mapa da planta (supervisão — especificação):** [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md)
 
 **Base da API:** prefixo `/api`. Todas as chamadas autenticadas usam JWT no header `Authorization`.
 
@@ -13,12 +14,13 @@ Complementa [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md) (permissões HTTP) e [`RE
 
 ## Status das telas (resumo)
 
-| Papel                    | ✅ API pronta (telas possíveis)                                                          | ❌ API ainda não (não chamar rota inexistente) |
-| ------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **SUPPLY_OPERATOR**      | CRUD tipos, máquinas; solicitações; `pending-preparation`; marcar pallet pronto          | Push em tempo real (opcional)                  |
-| **OPERATOR_MACHINE**     | Turno/máquina; **Finalizei** (`POST .../finalize`, corpo vazio na UI); pedidos; retirada | Push em tempo real (opcional)                  |
-| **FORKLIFT / FOLLOW_UP** | Equipamento, fila, aceitar, tarefas, sugestões, concluir entrega/retirada                | Notificações §9 (opcional)                     |
-| **Front-end geral**      | Login, guards, páginas cadastro máquinas/tipos                                           | Módulos operador, supply completo, transporte  |
+| Papel | ? API pronta (telas poss�veis) | ? API ainda n�o (n�o chamar rota inexistente) |
+|-------|--------------------------------|-----------------------------------------------|
+| **LEADER**, **SUPERVISOR**, **MANAGER**, **ADMIN** | Tela **Mapa da planta** (`GET` m�quinas + pedidos para painel lateral) | Desenho de �reas expedi��o/recebimento; persist�ncia de coordenadas dedicada (ver [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md)) |
+| **SUPPLY_OPERATOR** | CRUD tipos, m�quinas; solicita��es; `pending-preparation`; marcar pallet pronto | Push em tempo real (opcional) |
+| **OPERATOR_MACHINE** | Turno/m�quina; **Finalizei** (`POST .../finalize`, corpo vazio na UI); pedidos; retirada | Push em tempo real (opcional) |
+| **FORKLIFT / FOLLOW_UP** | Equipamento, fila, aceitar, tarefas, sugest�es, concluir entrega/retirada | Notifica��es �9 (opcional) |
+| **Front-end geral** | Login, guards, p�ginas cadastro m�quinas/tipos | M�dulos operador, supply completo, transporte |
 
 Diagrama abaixo: fluxo **§9** já coberto pela API; itens **❌** no back-end referem-se sobretudo a **push** em tempo real (opcional).
 
@@ -72,15 +74,18 @@ flowchart TD
 2. `GET /api/auth/me` → ler `role`, `sectorId`, nome, etc.
 3. Redirecionar para o **módulo** correspondente ao papel (abaixo). **Não** monte menus com rotas que o papel não pode chamar (retorno **403**).
 
-| `role`                  | Módulo principal sugerido                                       |
-| ----------------------- | --------------------------------------------------------------- |
-| `ADMIN`                 | Área administrativa completa + atalhos de teste para operadores |
-| `LEADER`                | Cadastros + solicitações + criar usuário                        |
-| `SUPPLY_OPERATOR`       | Cadastros (máquinas, tipos, equipamentos) + solicitações        |
-| `OPERATOR_MACHINE`      | Somente fluxo **operador de máquina**                           |
-| `FORKLIFT_OPERATOR`     | Somente fluxo **operador de movimentação** (empilhadeira)       |
-| `FOLLOW_UP_OPERATOR`    | Somente fluxo **operador de movimentação** (transpaleteira)     |
-| `SUPERVISOR`, `MANAGER` | Hoje: apenas conta (me / senha) até existirem rotas específicas |
+| `role` | Módulo principal sugerido |
+|--------|---------------------------|
+| `ADMIN` | Área administrativa completa + atalhos de teste para operadores + **mapa da planta** |
+| `LEADER` | Cadastros + solicitações + criar usuário + **mapa da planta** |
+| `SUPPLY_OPERATOR` | Cadastros (máquinas, tipos, equipamentos) + solicitações |
+| `OPERATOR_MACHINE` | Somente fluxo **operador de máquina** |
+| `FORKLIFT_OPERATOR` | Somente fluxo **operador de movimentação** (empilhadeira) |
+| `FOLLOW_UP_OPERATOR` | Somente fluxo **operador de movimentação** (transpaleteira) |
+| `SUPERVISOR`, `MANAGER` | **Mapa da planta** (leitura) + conta (me / senha); demais cadastros **403** |
+
+**Mapa da planta** (`/supervisao/mapa-planta`): mesmas imagens de planta do Machine Logs; Konva (pan/zoom); máquinas em posição `MAP:nx,ny` no campo «Posição» ou grade automática; painel com status do pedido em aberto (tempo desde `updatedAt` do pedido — aproximação até existir campo dedicado). Áreas de expedição/recebimento: ver [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md).
+
 
 ---
 
