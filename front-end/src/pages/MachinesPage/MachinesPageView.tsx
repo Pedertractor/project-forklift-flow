@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { Card } from '@/components/ui/card';
@@ -51,6 +51,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     updateError,
   } = vm;
 
+  const navigate = useNavigate();
+
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
@@ -59,15 +61,19 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
               Máquinas de produção
             </h1>
-        
           </div>
-          <Button
-            type="button"
-            onClick={openCreate}
-            disabled={!apiReady || busy}
-          >
-            Nova máquina de produção
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={() => navigate('/cadastro/tipos-maquina')}>
+              Tipos de máquina
+            </Button>
+            <Button
+              type="button"
+              onClick={openCreate}
+              disabled={!apiReady || busy}
+            >
+              Nova máquina de produção
+            </Button>
+          </div>
         </header>
 
         {!ENV.API_URL ? (

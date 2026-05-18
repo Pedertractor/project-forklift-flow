@@ -82,11 +82,6 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — tipos, máquinas, equipamentos e solicitações.',
     items: [
       {
-        to: '/cadastro/tipos-maquina',
-        label: 'Tipos de máquina',
-        allowedRoles: MACHINE_DOMAIN_ROLES,
-      },
-      {
         to: '/cadastro/maquinas',
         label: 'Máquinas de produção',
         allowedRoles: MACHINE_DOMAIN_ROLES,
