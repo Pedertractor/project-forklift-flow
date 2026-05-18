@@ -26,17 +26,11 @@ export function SupplyPendingPreparationPageView(
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w- max-w-6xl">
         <header className="mb-6 border-b border-zinc-200 pb-6">
           <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
             Preparo pendente
           </h1>
-          <p className="mt-1.5 text-sm text-zinc-600">
-            Inclui avisos do operador de máquina (sem cubo) e pedidos de reposição
-            em «Aguardando preparo». Para pedidos com cubo, ao concluir o preparo
-            físico, marque <strong>pallet pronto</strong> para liberar na fila do
-            transporte.
-          </p>
         </header>
 
         {!ENV.API_URL ? (
@@ -65,59 +59,77 @@ export function SupplyPendingPreparationPageView(
           </p>
         ) : null}
 
-        {hasSector && user?.sector ? (
-          <p className="mt-2 text-sm text-zinc-600">
-            Setor:{' '}
-            <span className="font-medium text-zinc-900">
-              {user.sector.typeSector}
-            </span>
-          </p>
-        ) : null}
-
         <h2 className="mt-8 mb-2 text-lg font-semibold tracking-tight text-zinc-900">
           Avisos do operador de máquina
         </h2>
         <p className="mb-3 text-sm text-zinc-600">
-          Pedido de pallet sem cubo na dobra. Ao registrar a solicitação de reposição
-          com cubo para a mesma máquina, o aviso é concluído automaticamente.
+          Pedido de pallet sem prisma na máquina Ao registrar a solicitação de
+          reposição com cubo para a mesma máquina, o aviso é concluído
+          automaticamente.
         </p>
         <Card className="overflow-x-auto border border-zinc-200 shadow-sm">
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
-                <th className="px-4 py-3 font-semibold text-zinc-700">Máquina</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Operador</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Enviada em</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Situação</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Máquina
+                </th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Operador
+                </th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Enviada em
+                </th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Situação
+                </th>
               </tr>
             </thead>
             <tbody>
               {!apiReady || !hasSector ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     —
                   </td>
                 </tr>
               ) : pendingQuery.isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     Carregando…
                   </td>
                 </tr>
               ) : operatorSupplyRows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     Nenhum aviso do operador no setor.
                   </td>
                 </tr>
               ) : (
                 operatorSupplyRows.map((row) => (
-                  <tr key={row.id} className="border-b border-zinc-100 last:border-0">
+                  <tr
+                    key={row.id}
+                    className="border-b border-zinc-100 last:border-0"
+                  >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900">{row.machine.name}</div>
-                      <div className="text-xs text-zinc-500">{row.machine.position}</div>
+                      <div className="font-medium text-zinc-900">
+                        {row.machine.name}
+                      </div>
+                      <div className="text-xs text-zinc-500">
+                        {row.machine.position}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-zinc-800">{row.requestedBy.name}</td>
+                    <td className="px-4 py-3 text-zinc-800">
+                      {row.requestedBy.name}
+                    </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {formatOperatorSupplyCreatedAt(row.createdAt)}
                     </td>
@@ -141,9 +153,7 @@ export function SupplyPendingPreparationPageView(
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Máquina destino
                 </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Cubo
-                </th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">Cubo</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Tipo mov.
                 </th>
@@ -232,17 +242,6 @@ export function SupplyPendingPreparationPageView(
             </tbody>
           </table>
         </Card>
-
-        <div className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-700">
-          <p className="m-0 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Fluxo
-          </p>
-          <p className="mt-2 mb-0 leading-relaxed">
-            Use também a lista em «Solicitações de reposição» para abrir pedidos
-            antecipados ou ajustar prioridade. Cubos marcados como pronto entram
-            na fila compatível com o tipo (empilhadeira ou transpaleteira).
-          </p>
-        </div>
       </div>
     </main>
   );

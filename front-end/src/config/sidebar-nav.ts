@@ -11,7 +11,6 @@ import {
   OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
 } from '@/constants/operator-moviment-routes';
 
-
 export interface SidebarNavItem {
   to: string;
   label: string;
@@ -31,7 +30,10 @@ export interface SidebarNavSection {
   items: readonly SidebarNavItem[];
 }
 
-function itemVisibleForRole(item: SidebarNavItem, role: string | undefined): boolean {
+function itemVisibleForRole(
+  item: SidebarNavItem,
+  role: string | undefined,
+): boolean {
   if (item.allowedRoles === null) {
     return true;
   }
@@ -49,10 +51,15 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   {
     id: 'geral',
     title: 'Geral',
-    rolesDescription: 'Administrador (ADMIN) e líder (LEADER) — Início e Painel.',
+    rolesDescription:
+      'Administrador (ADMIN) e líder (LEADER) — Início e Painel.',
     items: [
       { to: '/', label: 'Início', allowedRoles: ADMIN_OR_LEADER_ROLES },
-      { to: '/dashboard', label: 'Painel', allowedRoles: ADMIN_OR_LEADER_ROLES },
+      {
+        to: '/dashboard',
+        label: 'Painel',
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
+      },
     ],
   },
   {
@@ -94,11 +101,6 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
         label: 'Solicitações de reposição',
         allowedRoles: MACHINE_DOMAIN_ROLES,
       },
-      {
-        to: '/abastecimento/preparo-pendente',
-        label: 'Preparo pendente',
-        allowedRoles: MACHINE_DOMAIN_ROLES,
-      },
     ],
   },
   {
@@ -116,7 +118,8 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   {
     id: 'admin-usuarios',
     title: 'Administração — usuários',
-    rolesDescription: 'Líder (LEADER), para criar usuário no setor, e administrador (ADMIN).',
+    rolesDescription:
+      'Líder (LEADER), para criar usuário no setor, e administrador (ADMIN).',
     items: [
       {
         to: '/administracao/usuarios',
@@ -159,7 +162,9 @@ export function sidebarSectionsForRole(
 ): { section: SidebarNavSection; items: SidebarNavItem[] }[] {
   const result: { section: SidebarNavSection; items: SidebarNavItem[] }[] = [];
   for (const section of SIDEBAR_NAV_SECTIONS) {
-    const items = section.items.filter((item) => itemVisibleForRole(item, role));
+    const items = section.items.filter((item) =>
+      itemVisibleForRole(item, role),
+    );
     if (items.length > 0) {
       result.push({ section, items });
     }
@@ -168,6 +173,8 @@ export function sidebarSectionsForRole(
 }
 
 /** Lista achatada de todos os itens (útil para testes). */
-export function sidebarItemsForRole(role: string | undefined): SidebarNavItem[] {
+export function sidebarItemsForRole(
+  role: string | undefined,
+): SidebarNavItem[] {
   return sidebarSectionsForRole(role).flatMap((b) => b.items);
 }

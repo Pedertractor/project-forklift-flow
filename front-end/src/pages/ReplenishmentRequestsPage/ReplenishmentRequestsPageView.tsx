@@ -15,6 +15,7 @@ import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentReque
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
 import { CheckIcon, PanelRightOpen } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
@@ -38,6 +39,7 @@ export function ReplenishmentRequestsPageView(
     onlyMySector,
     setOnlyMySector,
     listQuery,
+    pendingPreparationCount,
     visibleRequests,
     machinesForSelect,
     machinesEmpty,
@@ -81,6 +83,8 @@ export function ReplenishmentRequestsPageView(
     forkliftStats.queuePending + palletTruckStats.queuePending;
   const equipmentReadyForQueueTotal =
     forkliftStats.readyForQueue + palletTruckStats.readyForQueue;
+
+  const navigate = useNavigate();
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
@@ -150,37 +154,57 @@ export function ReplenishmentRequestsPageView(
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap items-end gap-4">
-          <div className="min-w-48 space-y-2">
-            <Label htmlFor="rr-status-filter">Status</Label>
-            <select
-              id="rr-status-filter"
-              className={selectClass}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              disabled={!apiReady}
-            >
-              <option value="">Todos</option>
-              <option value="AWAITING_PREPARATION">Aguardando preparo</option>
-              <option value="PALLET_READY">Pallet pronto (fila)</option>
-              <option value="CREATED">Criado</option>
-              <option value="IN_PROGRESS">Em andamento</option>
-              <option value="ON_MACHINE">Na máquina</option>
-              <option value="COMPLETED">Concluído</option>
-              <option value="CANCELED">Cancelado</option>
-            </select>
+        <div className="mt-4 flex flex-wrap justify-between items-end gap-4">
+          <div className="flex  items-end gap-4">
+            <div className="min-w-48 space-y-2">
+              <Label htmlFor="rr-status-filter">Status</Label>
+              <select
+                id="rr-status-filter"
+                className={selectClass}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                disabled={!apiReady}
+              >
+                <option value="">Todos</option>
+                <option value="AWAITING_PREPARATION">Aguardando preparo</option>
+                <option value="PALLET_READY">Pallet pronto (fila)</option>
+                <option value="CREATED">Criado</option>
+                <option value="IN_PROGRESS">Em andamento</option>
+                <option value="ON_MACHINE">Na máquina</option>
+                <option value="COMPLETED">Concluído</option>
+                <option value="CANCELED">Cancelado</option>
+              </select>
+            </div>
+            {user?.sectorId ? (
+              <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  checked={onlyMySector}
+                  onChange={(e) => setOnlyMySector(e.target.checked)}
+                  className="size-4 rounded border-zinc-300"
+                />
+                Mostrar apenas pedidos do meu setor
+              </label>
+            ) : null}
           </div>
-          {user?.sectorId ? (
-            <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                checked={onlyMySector}
-                onChange={(e) => setOnlyMySector(e.target.checked)}
-                className="size-4 rounded border-zinc-300"
-              />
-              Mostrar apenas pedidos do meu setor
-            </label>
-          ) : null}
+          <div className="div">
+            <Button
+              size="default"
+              className="h-9 min-w-0 px-2 text-xs"
+              disabled={!apiReady}
+              onClick={() => navigate('/abastecimento/preparo-pendente')}
+            >
+              {pendingPreparationCount > 0 ? (
+                <span
+                  className="min-w-[1.25rem] rounded-2xl bg-red-500 px-1.5 py-0.5 text-center text-[0.6875rem] font-bold leading-none text-white"
+                  aria-label={`${pendingPreparationCount} solicitações aguardando preparo`}
+                >
+                  {pendingPreparationCount}
+                </span>
+              ) : null}
+              Ver solicitações de reposição
+            </Button>
+          </div>
         </div>
 
         {listQuery.isError ? (

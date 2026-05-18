@@ -6,6 +6,7 @@ import { ENV } from '@/constants/env';
 import {
   createReplenishmentRequest,
   deleteReplenishmentRequest,
+  fetchPendingPreparationRequests,
   fetchReplenishmentRequests,
   updateReplenishmentRequest,
 } from '@/services/machine-replenishment-requests-api';
@@ -68,6 +69,22 @@ export function useReplenishmentRequestsPage() {
       }),
     enabled: apiReady,
   });
+
+  const hasSector = Boolean(user?.sectorId);
+
+  const pendingPreparationQuery = useQuery({
+    queryKey: ['pending-preparation-requests'],
+    queryFn: fetchPendingPreparationRequests,
+    enabled: apiReady && hasSector,
+  });
+
+  const pendingPreparationCount = useMemo(() => {
+    const data = pendingPreparationQuery.data;
+    if (!data) {
+      return 0;
+    }
+    return data.requests.length + data.operatorSupplyRequests.length;
+  }, [pendingPreparationQuery.data]);
 
   const visibleRequests = useMemo(() => {
     const rows = listQuery.data ?? [];
@@ -287,6 +304,7 @@ export function useReplenishmentRequestsPage() {
     onlyMySector,
     setOnlyMySector,
     listQuery,
+    pendingPreparationCount,
     visibleRequests,
     forklifts,
     palletTrucks,
