@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { queryClient } from '@/lib/queryClient';
 import { AppSidebar } from '@/components/layout/AppSidebar';
@@ -54,16 +54,26 @@ export function MainLayout() {
   const logoutStore = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useLayoutEffect(() => {
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setSidebarOpen(false);
+    }
+  }, []);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
-  function closeSidebar() {
-    setSidebarOpen(false);
+  function closeSidebarOnNavigate() {
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setSidebarOpen(false);
+    }
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- fechar menu ao trocar pathname
-    setSidebarOpen(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fechar gaveta no mobile ao trocar de rota
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setSidebarOpen(false);
+    }
   }, [location.pathname]);
 
   function confirmLogout() {
@@ -75,83 +85,90 @@ export function MainLayout() {
 
   return (
     <OperatorMovimentWorkProvider>
-      <div className="relative flex min-h-svh bg-zinc-100 text-zinc-900">
-      {sidebarOpen ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-zinc-900/35 lg:hidden"
-          aria-label="Fechar menu"
-          onClick={() => setSidebarOpen(false)}
-        />
-      ) : null}
-
-      <AppSidebar
-        sidebarOpen={sidebarOpen}
-        onCloseSidebar={closeSidebar}
-        onRequestLogout={() => setLogoutOpen(true)}
-      />
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3">
+      <div className="relative flex h-svh min-h-0 overflow-hidden bg-zinc-100 text-zinc-900">
+        {sidebarOpen ? (
           <button
             type="button"
-            className="inline-flex size-10 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100 lg:hidden"
-            aria-label="Abrir menu"
-            onClick={() => setSidebarOpen((v) => !v)}
-          >
-            <MenuIcon />
-          </button>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-          <Outlet />
-        </div>
-      </div>
-
-      {logoutOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <button
-            type="button"
-            className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[1px]"
-            aria-label="Fechar"
-            onClick={() => setLogoutOpen(false)}
+            className="fixed inset-0 z-40 bg-zinc-900/35 lg:hidden"
+            aria-label="Fechar menu"
+            onClick={() => setSidebarOpen(false)}
           />
-          <Card className="relative z-10 w-full max-w-md overflow-hidden border border-zinc-200 p-0 shadow-xl">
-            <div className="border-b border-zinc-100 bg-gradient-to-b from-zinc-50 to-white px-6 pb-6 pt-8">
-              <h2 className="m-0 text-lg font-semibold tracking-tight text-zinc-900">Encerrar sessão</h2>
-              <p className="mt-3 text-[0.9375rem] leading-relaxed text-zinc-600">
-                Você precisará entrar de novo com cartão, unidade e senha para voltar ao ForkLift Flow.
-              </p>
-              {user?.name ? (
-                <p className="mt-5 truncate rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
-                  <span className="font-normal text-zinc-500">Conectado como </span>
-                  <span className="font-medium text-zinc-900">{user.name}</span>
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 bg-zinc-50/80 px-5 py-4 sm:flex-row sm:justify-end sm:gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:w-auto sm:min-w-[6.5rem]"
-                onClick={() => setLogoutOpen(false)}
-              >
-                Voltar
-              </Button>
-              <Button
-                type="button"
-                variant="default"
-                className="w-full gap-2 border-transparent bg-red-600 text-white hover:bg-red-700 sm:w-auto sm:min-w-[6.5rem]"
-                onClick={confirmLogout}
-              >
-                <LogOutIcon className="size-4 opacity-95" />
-                Sair
-              </Button>
-            </div>
-          </Card>
+        ) : null}
+
+        <AppSidebar
+          sidebarOpen={sidebarOpen}
+          onCloseSidebar={closeSidebarOnNavigate}
+          onRequestLogout={() => setLogoutOpen(true)}
+        />
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3">
+            <button
+              type="button"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100"
+              aria-label={sidebarOpen ? 'Recolher menu' : 'Abrir menu'}
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              <MenuIcon />
+            </button>
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <Outlet />
+          </div>
         </div>
-      ) : null}
-    </div>
+
+        {logoutOpen ? (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <button
+              type="button"
+              className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[1px]"
+              aria-label="Fechar"
+              onClick={() => setLogoutOpen(false)}
+            />
+            <Card className="relative z-10 w-full max-w-md overflow-hidden border border-zinc-200 p-0 shadow-xl">
+              <div className="border-b border-zinc-100 bg-gradient-to-b from-zinc-50 to-white px-6 pb-6 pt-8">
+                <h2 className="m-0 text-lg font-semibold tracking-tight text-zinc-900">
+                  Encerrar sessão
+                </h2>
+                <p className="mt-3 text-[0.9375rem] leading-relaxed text-zinc-600">
+                  Você precisará entrar de novo com cartão, unidade e senha para
+                  voltar ao ForkLift Flow.
+                </p>
+                {user?.name ? (
+                  <p className="mt-5 truncate rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">
+                    <span className="font-normal text-zinc-500">
+                      Conectado como{' '}
+                    </span>
+                    <span className="font-medium text-zinc-900">
+                      {user.name}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 bg-zinc-50/80 px-5 py-4 sm:flex-row sm:justify-end sm:gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full sm:w-auto sm:min-w-[6.5rem]"
+                  onClick={() => setLogoutOpen(false)}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full gap-2 border-transparent bg-red-600 text-white hover:bg-red-700 sm:w-auto sm:min-w-[6.5rem]"
+                  onClick={confirmLogout}
+                >
+                  <LogOutIcon className="size-4 opacity-95" />
+                  Sair
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : null}
+      </div>
     </OperatorMovimentWorkProvider>
   );
 }

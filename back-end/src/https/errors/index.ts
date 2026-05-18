@@ -6,6 +6,7 @@ export function defaultErrorHandler(error: Error, _request: FastifyRequest, repl
     return reply.status(statusCode).send({ error: error.message })
   }
   return reply.status(500).send({
+    error: error.message,
     message: error.message,
   })
 }

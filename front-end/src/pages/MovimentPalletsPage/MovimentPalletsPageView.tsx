@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import type { MovimentPalletsPageViewModel } from './useMovimentPalletsPage';
+import { movimentTypePublicIconPath } from '@/utils/operator-moviment-display';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
@@ -57,19 +58,23 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
               Equipamentos de movimentação
             </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
-              Cadastro de empilhadeiras e transpaleteiras usadas pelos operadores de transporte no
-              setor.
+              Cadastro de empilhadeiras e transpaleteiras usadas pelos
+              operadores de transporte no setor.
             </p>
           </div>
-          <Button type="button" onClick={openCreate} disabled={!apiReady || busy}>
+          <Button
+            type="button"
+            onClick={openCreate}
+            disabled={!apiReady || busy}
+          >
             Novo equipamento
           </Button>
         </header>
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_API_URL</code> e faça login para gerenciar
-            equipamentos.
+            Defina <code className="font-mono">VITE_API_URL</code> e faça login
+            para gerenciar equipamentos.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -79,9 +84,9 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
 
         {missingUserSector ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            Seu usuário não tem setor vinculado e não foi possível listar setores pela API.
-            Solicite ao administrador o cadastro do setor no seu perfil para vincular equipamentos
-            corretamente.
+            Seu usuário não tem setor vinculado e não foi possível listar
+            setores pela API. Solicite ao administrador o cadastro do setor no
+            seu perfil para vincular equipamentos corretamente.
           </p>
         ) : null}
 
@@ -110,7 +115,9 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
               className={selectClass}
               value={typeFilter}
               onChange={(e) =>
-                setTypeFilter(e.target.value as 'all' | 'FORKLIFT' | 'PALLET_TRUCK')
+                setTypeFilter(
+                  e.target.value as 'all' | 'FORKLIFT' | 'PALLET_TRUCK',
+                )
               }
               disabled={!apiReady}
             >
@@ -133,39 +140,71 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
-                <th className="px-4 py-3 font-semibold text-zinc-700">Código</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700"></th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Código
+                </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Tipo</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Operador</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Tarefas</th>
-                <th className="px-4 py-3 text-right font-semibold text-zinc-700">Ações</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Operador
+                </th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Tarefas
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-zinc-700">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
               {listQuery.isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     Carregando…
                   </td>
                 </tr>
               ) : listQuery.data?.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     Nenhum equipamento neste filtro.
                   </td>
                 </tr>
               ) : (
                 listQuery.data?.map((row) => (
-                  <tr key={row.id} className="border-b border-zinc-100 last:border-0">
-                    <td className="px-4 py-3 font-mono font-medium text-zinc-900">{row.code}</td>
-                    <td className="px-4 py-3 text-zinc-700">{typeLabel(row.type)}</td>
+                  <tr
+                    key={row.id}
+                    className="border-b border-zinc-100 last:border-0"
+                  >
+                    <td className="px-4 py-3">
+                      {' '}
+                      <img
+                        src={movimentTypePublicIconPath(row.type)}
+                        alt={row.type}
+                        className="size-12 p-1 rounded-lg border border-zinc-200 object-cover"
+                      />{' '}
+                    </td>
+                    <td className="px-4 py-3 font-mono font-medium text-zinc-900">
+                      {row.code}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {typeLabel(row.type)}
+                    </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {row.sector ? row.sector.typeSector : '—'}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {row.operator ? row.operator.name : '—'}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">{row._count.movimentPalletTasks}</td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {row._count.movimentPalletTasks}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -299,7 +338,11 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="mp-edit-code">Código</Label>
-            <Input id="mp-edit-code" value={code} onChange={(e) => setCode(e.target.value)} />
+            <Input
+              id="mp-edit-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="mp-edit-type">Tipo</Label>
@@ -356,7 +399,9 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
         open={Boolean(deleteRow)}
         title="Excluir equipamento"
         description={
-          deleteRow ? `Confirma a exclusão do equipamento «${deleteRow.code}»?` : undefined
+          deleteRow
+            ? `Confirma a exclusão do equipamento «${deleteRow.code}»?`
+            : undefined
         }
         onClose={() => (!busy ? setDeleteRow(null) : undefined)}
         footer={

@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
 import {
+  expeditionAreaDetail,
+  machineLocationDetail,
+  prismaDetail,
+  receivingAreaDetail,
+  RouteFlowStepDetails,
+  type RouteFlowDetailItem,
+} from '@/components/operator-moviment/route-flow-step-details';
+import {
   routeFlowStepIcon,
   type RouteFlowStepId,
 } from '@/components/operator-moviment/route-flow-icons';
@@ -24,7 +32,7 @@ type FlowStepId = RouteFlowStepId;
 interface FlowStepConfig {
   id: FlowStepId;
   label: string;
-  subtitle: string;
+  details: RouteFlowDetailItem[];
   state: StepState;
 }
 
@@ -109,32 +117,46 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     canCompletePickup(group.pickupTask.type, group.pickupTask.status);
   const deliverCube = group.deliverTask?.request.movementCube;
   const pickupCube = group.pickupTask?.request.movementCube;
-  const machineLine = `${group.machineName} · ${group.machinePosition}`;
+  const machineDetails = [
+    machineLocationDetail(group.machineName, group.machinePosition),
+  ];
 
   if (group.deliverTask && group.pickupTask) {
     return [
       {
         id: 'receiving',
         label: 'Pegue o pallet no recebimento',
-        subtitle: deliverCube ? `Cubo ${deliverCube}` : 'Buscar cubo',
+        details: [
+          receivingAreaDetail(),
+          prismaDetail(deliverCube, 'pick-at-receiving'),
+        ],
         state: deliverOpen ? 'current' : 'done',
       },
       {
         id: 'machine',
         label: 'Entregue o pallet na máquina',
-        subtitle: machineLine,
+        details: [
+          ...machineDetails,
+          prismaDetail(deliverCube, 'deliver-to-machine'),
+        ],
         state: deliverOpen ? 'current' : pickupOpen ? 'current' : 'done',
       },
       {
         id: 'pallet',
         label: 'Pallet na máquina',
-        subtitle: pickupCube ? `Cubo ${pickupCube}` : 'Retirar pallet',
+        details: [
+          ...machineDetails,
+          prismaDetail(pickupCube, 'pick-at-machine'),
+        ],
         state: deliverOpen ? 'upcoming' : pickupOpen ? 'current' : 'done',
       },
       {
         id: 'expedition',
         label: 'Expedição',
-        subtitle: 'Entregar na expedição',
+        details: [
+          expeditionAreaDetail('Entregar na expedição'),
+          prismaDetail(pickupCube, 'carry-to-expedition'),
+        ],
         state: pickupOpen ? 'current' : deliverOpen ? 'upcoming' : 'done',
       },
     ];
@@ -144,20 +166,26 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     return [
       {
         id: 'receiving',
-        label: 'Se movimente até o recebimento',
-        subtitle: 'Recebimento',
+        label: 'Vá ao recebimento',
+        details: [receivingAreaDetail('Deslocar-se até o recebimento')],
         state: deliverOpen ? 'current' : 'done',
       },
       {
         id: 'receiving',
         label: 'Pegue o pallet no recebimento',
-        subtitle: deliverCube ? `${deliverCube}` : 'Origem',
+        details: [
+          receivingAreaDetail(),
+          prismaDetail(deliverCube, 'pick-at-receiving'),
+        ],
         state: deliverOpen ? 'current' : 'done',
       },
       {
         id: 'machine',
         label: 'Entregue o pallet na máquina',
-        subtitle: machineLine,
+        details: [
+          ...machineDetails,
+          prismaDetail(deliverCube, 'deliver-to-machine'),
+        ],
         state: deliverOpen ? 'current' : 'done',
       },
     ];
@@ -167,19 +195,25 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     {
       id: 'machine',
       label: 'Retire o pallet na máquina',
-      subtitle: machineLine,
+      details: [
+        ...machineDetails,
+        prismaDetail(pickupCube, 'pick-at-machine'),
+      ],
       state: pickupOpen ? 'current' : 'done',
     },
     {
       id: 'pallet',
       label: 'Leve o pallet para a expedição',
-      subtitle: pickupCube ? `Cubo ${pickupCube}` : 'Retirar pallet',
+      details: [prismaDetail(pickupCube, 'pick-at-machine')],
       state: pickupOpen ? 'current' : 'done',
     },
     {
       id: 'expedition',
       label: 'Expedição',
-      subtitle: 'Destino final',
+      details: [
+        expeditionAreaDetail(),
+        prismaDetail(pickupCube, 'carry-to-expedition'),
+      ],
       state: pickupOpen ? 'current' : 'done',
     },
   ];
@@ -224,7 +258,7 @@ function FlowStepNode({ step }: { step: FlowStepConfig }) {
   const isDone = step.state === 'done';
 
   return (
-    <div className="flex min-w-[4.75rem] max-w-[7.5rem] flex-1 flex-col items-center text-center">
+    <div className="flex min-w-[4.75rem] max-w-[11rem] flex-1 flex-col items-center text-center sm:max-w-[12rem]">
       <div
         className={cn(
           'relative flex size-12 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors sm:size-14',
@@ -268,9 +302,7 @@ function FlowStepNode({ step }: { step: FlowStepConfig }) {
       >
         {step.label}
       </p>
-      <p className="mt-0.5 line-clamp-2 text-[0.6875rem] leading-snug font-medium text-zinc-700">
-        {step.subtitle}
-      </p>
+      <RouteFlowStepDetails items={step.details} />
     </div>
   );
 }
@@ -285,10 +317,7 @@ function RouteFlowTrack({
   return (
     <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
       {steps.map((step, index) => (
-        <div
-          key={`${step.id}-${index}`}
-          className="flex min-w-0 flex-1 items-stretch"
-        >
+        <motion.div key={`${step.id}-${index}`} className="flex min-w-0 flex-1 items-stretch">
           <div className="flex min-w-[12rem] max-w-none shrink-0 basis-0 flex-1 flex-col items-center px-0.5 sm:min-w-[13.5rem]">
             <FlowStepNode step={step} />
             <div className="mt-3 flex min-h-[4.25rem] w-full min-w-0 flex-col items-stretch justify-start px-0.5">
@@ -405,7 +434,7 @@ function OpenTaskRouteCard({
             <p className="mt-1 text-sm font-semibold text-zinc-900">
               {group.machineName}
               <span className="font-normal text-zinc-500">
-                {' '}
+                {' · '}
                 · {group.machinePosition}
               </span>
             </p>

@@ -1,5 +1,6 @@
 import type { Prisma } from '../generated/prisma/client.js'
 import type { TypeMovimentPallet } from '../generated/prisma/enums.js'
+import { incompleteAssignedMovimentTaskStatuses } from '../constants/moviment-pallet-task-status.js'
 import { prisma } from '../lib/prisma.js'
 
 const movimentPalletListSelect = {
@@ -25,6 +26,40 @@ const movimentPalletListSelect = {
   _count: { select: { movimentPalletTasks: true } },
 } as const
 
+const movimentPalletListWithAvailabilitySelect = {
+  ...movimentPalletListSelect,
+  movimentPalletTasks: {
+    where: { status: { in: incompleteAssignedMovimentTaskStatuses } },
+    select: { id: true },
+  },
+} as const
+
+type MovimentPalletListWithAvailabilityRow = Prisma.MovimentPalletGetPayload<{
+  select: typeof movimentPalletListWithAvailabilitySelect
+}>
+
+function mapListRowWithAvailability(row: MovimentPalletListWithAvailabilityRow) {
+  const { movimentPalletTasks: incompleteTasks, ...rest } = row
+  return {
+    ...rest,
+    incompleteAssignedTaskCount: incompleteTasks.length,
+  }
+}
+
+function buildListWhere(filters?: {
+  sectorId?: string
+  type?: TypeMovimentPallet
+}): Prisma.MovimentPalletWhereInput {
+  const where: Prisma.MovimentPalletWhereInput = {}
+  if (filters?.sectorId !== undefined) {
+    where.sectorId = filters.sectorId
+  }
+  if (filters?.type !== undefined) {
+    where.type = filters.type
+  }
+  return where
+}
+
 export const movimentPalletRepository = {
   create(data: Prisma.MovimentPalletCreateInput) {
     return prisma.movimentPallet.create({
@@ -48,18 +83,23 @@ export const movimentPalletRepository = {
   },
 
   findManyForList(filters?: { sectorId?: string; type?: TypeMovimentPallet }) {
-    const where: Prisma.MovimentPalletWhereInput = {}
-    if (filters?.sectorId !== undefined) {
-      where.sectorId = filters.sectorId
-    }
-    if (filters?.type !== undefined) {
-      where.type = filters.type
-    }
     return prisma.movimentPallet.findMany({
-      where,
+      where: buildListWhere(filters),
       select: movimentPalletListSelect,
       orderBy: { code: 'asc' },
     })
+  },
+
+  async findManyForListWithTaskAvailability(filters?: {
+    sectorId?: string
+    type?: TypeMovimentPallet
+  }) {
+    const rows = await prisma.movimentPallet.findMany({
+      where: buildListWhere(filters),
+      select: movimentPalletListWithAvailabilitySelect,
+      orderBy: { code: 'asc' },
+    })
+    return rows.map(mapListRowWithAvailability)
   },
 
   findManyForOperatorPicker(options: {

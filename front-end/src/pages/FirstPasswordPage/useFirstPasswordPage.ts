@@ -1,15 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/lib/toast';
 import { toastApiError } from '@/lib/toast-helpers';
 import { firstPasswordSchema, type FirstPasswordForm } from '@/schemas/first-password.schema';
 import { changeOwnPassword } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
+import { resolvePostLoginPath } from '@/lib/route-access';
+
+type FirstPasswordLocationState = { from?: { pathname?: string } } | null | undefined;
 
 export function useFirstPasswordPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const setSession = useAuthStore((s) => s.setSession);
 
@@ -27,7 +31,9 @@ export function useFirstPasswordPage() {
         setSession({ token: newToken, user: u, requiresPasswordChange: false });
       }
       toast.success('Senha atualizada com sucesso.');
-      navigate('/', { replace: true });
+      const role = useAuthStore.getState().user?.role;
+      const fromPath = (location.state as FirstPasswordLocationState)?.from?.pathname;
+      navigate(resolvePostLoginPath(fromPath, role), { replace: true });
     },
     onError: toastApiError,
   });

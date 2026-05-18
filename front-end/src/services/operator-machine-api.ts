@@ -6,7 +6,9 @@ import type {
   OperatorMachinesListResponse,
   OperatorMachinePickupResponse,
   OperatorMyMachineResponse,
+  OperatorPickupProgressResponse,
   OperatorReplenishmentRequestsResponse,
+  OperatorSupplyRequestsResponse,
 } from '@/types/operator-machine.types';
 
 export async function fetchOperatorMyMachine() {
@@ -58,6 +60,21 @@ export async function fetchOperatorReplenishmentRequests(status?: string) {
   return res?.requests ?? [];
 }
 
+export async function fetchOperatorSupplyRequests(status?: string) {
+  const params = new URLSearchParams();
+  if (status !== undefined && status.trim() !== '') {
+    params.set('status', status.trim());
+  }
+  const q = params.toString();
+  const path = q
+    ? `${API_ENDPOINTS.OPERATOR_MACHINE.OPERATOR_SUPPLY_REQUESTS}?${q}`
+    : API_ENDPOINTS.OPERATOR_MACHINE.OPERATOR_SUPPLY_REQUESTS;
+  const res = await apiAuthFetch<OperatorSupplyRequestsResponse>(path, {
+    method: 'GET',
+  });
+  return res?.operatorSupplyRequests ?? [];
+}
+
 export async function postOperatorFinalizeCycle(body: {
   movementCube?: string;
   typeMovimentPallet?: 'FORKLIFT' | 'PALLET_TRUCK';
@@ -83,6 +100,17 @@ export async function postOperatorRequestPickup(requestId: string) {
   );
   if (!res) {
     throw new Error('Resposta inválida ao solicitar retirada.');
+  }
+  return res;
+}
+
+export async function fetchOperatorPickupProgress(requestId: string) {
+  const res = await apiAuthFetch<OperatorPickupProgressResponse>(
+    API_ENDPOINTS.OPERATOR_MACHINE.PICKUP_PROGRESS(requestId),
+    { method: 'GET' },
+  );
+  if (!res) {
+    throw new Error('Resposta inválida ao carregar andamento da retirada.');
   }
   return res;
 }

@@ -7,9 +7,12 @@ async function readErrorMessage(response: Response): Promise<string> {
     return `Request failed: ${response.status}`;
   }
   try {
-    const body = JSON.parse(text) as { error?: string };
+    const body = JSON.parse(text) as { error?: string; message?: string };
     if (typeof body.error === 'string' && body.error.length > 0) {
       return body.error;
+    }
+    if (typeof body.message === 'string' && body.message.length > 0) {
+      return body.message;
     }
   } catch {
     /* ignore */

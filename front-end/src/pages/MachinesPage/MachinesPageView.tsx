@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { Card } from '@/components/ui/card';
@@ -56,6 +56,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     updateError,
   } = vm;
 
+  const navigate = useNavigate();
+
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
@@ -64,25 +66,19 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
               Máquinas de produção
             </h1>
-            <p className="mt-1.5 text-sm text-zinc-600">
-              Postos na linha (incluindo dobra): destino de reposição e tela do operador de máquina.
-              Não confundir com transporte — empilhadeiras e transpaleteiras ficam em{' '}
-              <Link
-                to="/abastecimento/equipamentos"
-                className="font-semibold text-[#005fb8] underline underline-offset-2 hover:text-[#004a8f]"
-              >
-                Equipamentos de movimentação
-              </Link>
-              .
-            </p>
           </div>
-          <Button
-            type="button"
-            onClick={openCreate}
-            disabled={!apiReady || busy}
-          >
-            Nova máquina de produção
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={() => navigate('/cadastro/tipos-maquina')}>
+              Tipos de máquina
+            </Button>
+            <Button
+              type="button"
+              onClick={openCreate}
+              disabled={!apiReady || busy}
+            >
+              Nova máquina de produção
+            </Button>
+          </div>
         </header>
 
         {!ENV.API_URL ? (
@@ -158,16 +154,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
         </div>
 
-        {apiReady && token ? (
-          <p className="mt-4 rounded-xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-950">
-            <span className="font-semibold">Lembrete:</span> tudo nesta lista são{' '}
-            <span className="font-semibold">máquinas de produção</span>, não equipamento de
-            transporte. O nome na coluna «Tipo (produção)» é o{' '}
-            <span className="font-semibold">modelo cadastrado em Tipos de máquina</span>, não
-            empilhadeira ou transpaleteira.
-          </p>
-        ) : null}
-
         {machinesQuery.isError ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {machinesQuery.error instanceof Error
@@ -220,7 +206,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     key={row.id}
                     className="border-b border-zinc-100 last:border-0"
                   >
-                     <td className="px-4 py-3">
+                    <td className="px-4 py-3">
                       <img
                         src={typeMachineImageSrc(row.typeMachine.urlImage)}
                         alt=""
@@ -235,7 +221,9 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                       {row.position}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
-                      <span className="text-zinc-900">{row.typeMachine.name}</span>
+                      <span className="text-zinc-900">
+                        {row.typeMachine.name}
+                      </span>
                       <span className="mt-0.5 block text-xs font-normal text-zinc-500">
                         modelo de máquina de produção
                       </span>

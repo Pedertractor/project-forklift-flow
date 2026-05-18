@@ -2,11 +2,18 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import {
+  expeditionAreaDetail,
+  machineLocationDetail,
+  prismaDetail,
+  receivingAreaDetail,
+} from '@/components/operator-moviment/route-flow-step-details';
+import {
   SuggestionFlowConnector,
   SuggestionFlowStep,
 } from '@/components/operator-moviment/route-flow-icons';
 import type {
   TripCombinedSuggestionApi,
+  TripStandaloneDeliverApi,
   TripStandalonePickupApi,
   TripSuggestionsResponse,
 } from '@/types/operator-moviment-pallet.types';
@@ -22,28 +29,69 @@ function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
       <SuggestionFlowStep
         stepId="receiving"
         label="Recebimento"
-        subtitle={`Cubo ${d1}`}
+        details={[receivingAreaDetail(), prismaDetail(d1, 'pick-at-receiving')]}
         accent="start"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="machine"
-        label="Máquina"
-        subtitle={`${machine.name} · ${machine.position}`}
+        label="Entregar na máquina"
+        details={[
+          machineLocationDetail(machine.name, machine.position),
+          prismaDetail(d1, 'deliver-to-machine'),
+        ]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="pallet"
         label="Pallet na máquina"
-        subtitle={`Cubo ${d2}`}
+        details={[
+          machineLocationDetail(machine.name, machine.position),
+          prismaDetail(d2, 'pick-at-machine'),
+        ]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="expedition"
         label="Expedição"
-        subtitle="Retirada registrada"
+        details={[
+          expeditionAreaDetail(),
+          prismaDetail(d2, 'carry-to-expedition'),
+        ]}
+        accent="end"
+      />
+    </div>
+  );
+}
+
+function StandaloneDeliverFlow({ row }: { row: TripStandaloneDeliverApi }) {
+  const cube =
+    row.deliverTask?.request.movementCube ??
+    row.suggestedOrder[0]?.movementCube ??
+    '—';
+  const machine = row.machine;
+
+  return (
+    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
+      <SuggestionFlowStep
+        stepId="receiving"
+        label="Busque no recebimento"
+        details={[
+          receivingAreaDetail(),
+          prismaDetail(cube, 'pick-at-receiving'),
+        ]}
+        accent="start"
+      />
+      <SuggestionFlowConnector />
+      <SuggestionFlowStep
+        stepId="machine"
+        label="Entregue na máquina"
+        details={[
+          machineLocationDetail(machine.name, machine.position),
+          prismaDetail(cube, 'deliver-to-machine'),
+        ]}
         accent="end"
       />
     </div>
@@ -58,15 +106,21 @@ function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
     <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
       <SuggestionFlowStep
         stepId="machine"
-        label="Máquina"
-        subtitle={`${machine.name} · ${machine.position}`}
+        label="Retire na máquina"
+        details={[
+          machineLocationDetail(machine.name, machine.position),
+          prismaDetail(cube, 'pick-at-machine'),
+        ]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="expedition"
-        label="Expedição"
-        subtitle={`Cubo ${cube}`}
+        label="Leve à expedição"
+        details={[
+          expeditionAreaDetail(),
+          prismaDetail(cube, 'carry-to-expedition'),
+        ]}
         accent="end"
       />
     </div>
@@ -137,7 +191,60 @@ function CombinedRouteCard({
   );
 }
 
-function StandaloneRouteCard({
+function StandaloneDeliverRouteCard({
+  row,
+  bound,
+  busy,
+  isAcceptingThisDeliver,
+  onAcceptDeliver,
+}: {
+  row: TripStandaloneDeliverApi;
+  bound: boolean;
+  busy: boolean;
+  isAcceptingThisDeliver: boolean;
+  onAcceptDeliver: (row: TripStandaloneDeliverApi) => void;
+}) {
+  return (
+    <Card
+      className={`overflow-hidden border-2 shadow-md ${
+        row.deferRecommended
+          ? 'border-amber-300/80 bg-amber-50/40'
+          : 'border-zinc-200 bg-white'
+      }`}
+    >
+      <div className="p-4 sm:p-5">
+        <p className="m-0 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+          Sugestão de entrega
+        </p>
+        <p className="mt-2 text-sm font-semibold text-zinc-900">
+          Levar prisma do recebimento até a máquina (sem retirada combinada).
+        </p>
+        <div className="mt-5">
+          <StandaloneDeliverFlow row={row} />
+        </div>
+        <p className="mt-4 text-xs leading-relaxed text-zinc-600">
+          {row.message}
+        </p>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-zinc-800">
+            Prioridade: {priorityLabel(row.effectivePriority)}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0 border-[#005fb8] text-[#005fb8] hover:bg-[#005fb8]/10"
+            disabled={!bound || busy || isAcceptingThisDeliver}
+            onClick={() => onAcceptDeliver(row)}
+          >
+            {isAcceptingThisDeliver ? 'Aceitando…' : 'Aceitar entrega sugerida'}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function StandalonePickupRouteCard({
   row,
   bound,
   busy,
@@ -165,7 +272,7 @@ function StandaloneRouteCard({
           Sugestão de retirada
         </p>
         <p className="mt-2 text-sm font-semibold text-zinc-900">
-          Retirada na máquina com cubo pronto para expedição.
+          Retirada na máquina com prisma pronto para expedição.
         </p>
         <div className="mt-5">
           <StandalonePickupFlow row={row} />
@@ -198,8 +305,10 @@ export interface TripSuggestionsFlowSectionProps {
   busy: boolean;
   pendingTripSuggestionId: string | null;
   pendingStandalonePickupTaskId: string | null;
+  pendingStandaloneDeliverKey: string | null;
   onAcceptTrip: (tripSuggestionId: string) => void;
   onAcceptStandalonePickup: (taskId: string) => void;
+  onAcceptStandaloneDeliver: (row: TripStandaloneDeliverApi) => void;
 }
 
 export function TripSuggestionsFlowSection({
@@ -208,8 +317,10 @@ export function TripSuggestionsFlowSection({
   busy,
   pendingTripSuggestionId,
   pendingStandalonePickupTaskId,
+  pendingStandaloneDeliverKey,
   onAcceptTrip,
   onAcceptStandalonePickup,
+  onAcceptStandaloneDeliver,
 }: TripSuggestionsFlowSectionProps) {
   if (tripQuery.isError) {
     return (
@@ -235,10 +346,15 @@ export function TripSuggestionsFlowSection({
   }
 
   const combined = data.suggestions;
-  const standalone = data.standalonePickupTasks;
+  const standalonePickups = data.standalonePickupTasks;
+  const standaloneDelivers = data.standaloneDeliverTasks ?? [];
   const hint = data.priorityContext?.hint;
 
-  if (combined.length === 0 && standalone.length === 0) {
+  if (
+    combined.length === 0 &&
+    standalonePickups.length === 0 &&
+    standaloneDelivers.length === 0
+  ) {
     return null;
   }
 
@@ -257,19 +373,10 @@ export function TripSuggestionsFlowSection({
           </h2>
           <p className="mt-1 text-sm text-zinc-600">
             Economize percurso quando entrega e retirada caem na mesma máquina —
-            ou quando há retirada isolada sugerida.
+            ou aceite entregas e retiradas avulsas sugeridas.
           </p>
         </div>
       </div>
-
-      {hint ? (
-        <div
-          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950"
-          role="status"
-        >
-          {hint}
-        </div>
-      ) : null}
 
       {!bound ? (
         <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
@@ -290,11 +397,24 @@ export function TripSuggestionsFlowSection({
             onAcceptTrip={onAcceptTrip}
           />
         ))}
-        {standalone.map((row) => {
+        {standaloneDelivers.map((row) => {
+          const acceptKey = row.deliverTask?.id ?? `pool:${row.requestId}`;
+          return (
+            <StandaloneDeliverRouteCard
+              key={`deliver-${row.machine.id}-${acceptKey}`}
+              row={row}
+              bound={bound}
+              busy={busy}
+              isAcceptingThisDeliver={pendingStandaloneDeliverKey === acceptKey}
+              onAcceptDeliver={onAcceptStandaloneDeliver}
+            />
+          );
+        })}
+        {standalonePickups.map((row) => {
           const taskId = row.suggestedOrder[0]?.taskId ?? row.pickupTask.id;
           return (
-            <StandaloneRouteCard
-              key={`${row.machine.id}-${taskId}`}
+            <StandalonePickupRouteCard
+              key={`pickup-${row.machine.id}-${taskId}`}
               row={row}
               bound={bound}
               busy={busy}

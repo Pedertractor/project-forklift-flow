@@ -1,8 +1,11 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthMe } from '@/hooks/useAuthMe';
+import { resolvePostLoginPath } from '@/lib/route-access';
 import { useAuthStore } from '@/store/auth.store';
 
 const FIRST_PASSWORD_PATH = '/definir-senha';
+
+type PrivateLocationState = { from?: { pathname?: string } } | null | undefined;
 
 export function PrivateRoute() {
   useAuthMe();
@@ -19,7 +22,13 @@ export function PrivateRoute() {
   }
 
   if (!requiresPasswordChange && location.pathname === FIRST_PASSWORD_PATH) {
-    return <Navigate to="/" replace />;
+    const state = location.state as PrivateLocationState;
+    return (
+      <Navigate
+        to={resolvePostLoginPath(state?.from?.pathname, user.role)}
+        replace
+      />
+    );
   }
 
   return <Outlet />;

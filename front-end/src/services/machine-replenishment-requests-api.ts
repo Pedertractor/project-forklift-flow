@@ -5,7 +5,13 @@ import type {
   PriorityLevelValue,
   ReplenishmentRequestListItem,
 } from '@/types/replenishment-request.types';
-import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
+import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
+
+export type PendingPreparationListPayload = {
+  requests: ReplenishmentRequestListItem[];
+  operatorSupplyRequests: OperatorMachineSupplyRequestListItem[];
+};
 
 export async function fetchReplenishmentRequests(filters?: {
   status?: string;
@@ -32,18 +38,21 @@ export async function fetchReplenishmentRequests(filters?: {
   return res?.requests ?? [];
 }
 
-export async function fetchPendingPreparationRequests(): Promise<ReplenishmentRequestListItem[]> {
-  const res = await apiAuthFetch<{ requests: ReplenishmentRequestListItem[] }>(
+export async function fetchPendingPreparationRequests(): Promise<PendingPreparationListPayload> {
+  const res = await apiAuthFetch<PendingPreparationListPayload>(
     API_ENDPOINTS.MACHINE_REPLENISHMENT_REQUESTS.PENDING_PREPARATION,
     { method: 'GET' },
   );
-  return res?.requests ?? [];
+  return {
+    requests: res?.requests ?? [],
+    operatorSupplyRequests: res?.operatorSupplyRequests ?? [],
+  };
 }
 
 export async function createReplenishmentRequest(input: {
   destinationId: string;
   movementCube: string;
-  typeMovimentPallet: MovimentPalletEquipmentType;
+  typeMovimentPallet: ReplenishmentMovimentType;
   priorityLevel?: PriorityLevelValue;
   palletReady?: boolean;
 }): Promise<ReplenishmentRequestListItem> {
@@ -73,7 +82,7 @@ export async function updateReplenishmentRequest(
   patch: {
     destinationId?: string;
     movementCube?: string;
-    typeMovimentPallet?: MovimentPalletEquipmentType;
+    typeMovimentPallet?: ReplenishmentMovimentType;
     priorityLevel?: PriorityLevelValue;
   },
 ): Promise<ReplenishmentRequestListItem> {
