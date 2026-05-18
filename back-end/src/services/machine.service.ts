@@ -1,4 +1,4 @@
-import type { Prisma } from '../generated/prisma/client.js'
+import type { PlantMapUnit, Prisma } from '../generated/prisma/client.js'
 import {
   AssignMachineUserError,
   MachineNotFoundError,
@@ -10,9 +10,19 @@ import { sectorRepository } from '../repositories/sector.repository.js'
 import { typeMachineRepository } from '../repositories/type-machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 
+const PLANT_MAP_UNITS = new Set<PlantMapUnit>(['PEDERTRACTOR', 'TRACTOR'])
+
+export function parsePlantMapUnit(value: string): PlantMapUnit | null {
+  const normalized = value.trim().toUpperCase()
+  return PLANT_MAP_UNITS.has(normalized as PlantMapUnit)
+    ? (normalized as PlantMapUnit)
+    : null
+}
+
 export type CreateMachineInput = {
   name: string
   position: string
+  plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string
   userId?: string | null | undefined
@@ -21,6 +31,7 @@ export type CreateMachineInput = {
 export type UpdateMachineInput = {
   name?: string
   position?: string
+  plantUnit?: PlantMapUnit
   typeMachineId?: string
   sectorId?: string
   userId?: string | null
@@ -65,6 +76,9 @@ function buildMachineUpdateData(
   if (input.position !== undefined) {
     data.position = input.position.trim()
   }
+  if (input.plantUnit !== undefined) {
+    data.plantUnit = input.plantUnit
+  }
   if (input.typeMachineId !== undefined) {
     data.typeMachine = { connect: { id: input.typeMachineId } }
   }
@@ -91,6 +105,7 @@ export async function createMachine(input: CreateMachineInput) {
   const data: Prisma.MachineCreateInput = {
     name: input.name.trim(),
     position: input.position.trim(),
+    plantUnit: input.plantUnit,
     typeMachine: { connect: { id: input.typeMachineId } },
     sector: { connect: { id: input.sectorId } },
   }
@@ -101,7 +116,10 @@ export async function createMachine(input: CreateMachineInput) {
   return machineRepository.create(data)
 }
 
-export async function listMachines(options?: { sectorId?: string }) {
+export async function listMachines(options?: {
+  sectorId?: string
+  plantUnit?: PlantMapUnit
+}) {
   return machineRepository.findManyForList(options)
 }
 

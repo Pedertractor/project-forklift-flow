@@ -5,6 +5,7 @@ const machineListSelect = {
   id: true,
   name: true,
   position: true,
+  plantUnit: true,
   typeMachineId: true,
   sectorId: true,
   userId: true,
@@ -39,11 +40,16 @@ export const machineRepository = {
     })
   },
 
-  findManyForList(options?: { sectorId?: string }) {
+  findManyForList(options?: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' }) {
+    const where: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' } = {}
+    if (options?.sectorId !== undefined) {
+      where.sectorId = options.sectorId
+    }
+    if (options?.plantUnit !== undefined) {
+      where.plantUnit = options.plantUnit
+    }
     return prisma.machine.findMany({
-      ...(options?.sectorId !== undefined
-        ? { where: { sectorId: options.sectorId } }
-        : {}),
+      ...(Object.keys(where).length > 0 ? { where } : {}),
       select: machineListSelect,
       orderBy: { name: 'asc' },
     })

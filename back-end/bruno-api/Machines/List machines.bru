@@ -15,6 +15,7 @@ auth:bearer {
 }
 
 docs {
-  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
-  # Query opcional: ?sectorId=<uuid>
+  # Requer JWT: leitura para LEADER, SUPPLY_OPERATOR, ADMIN, SUPERVISOR, MANAGER.
+  # Escrita (POST/PATCH/DELETE) continua restrita a LEADER, SUPPLY_OPERATOR, ADMIN.
+  # Query opcional: ?sectorId=<uuid>&plantUnit=PEDERTRACTOR|TRACTOR
 }

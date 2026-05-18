@@ -12,6 +12,7 @@ import {
 } from '../errors/domain-errors.js'
 import { machineReplenishmentRequestRepository } from '../repositories/machine-replenishment-request.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
+import { requestStatusOnCreate } from '../utils/request-status-since.js'
 
 const TERMINAL_STATUSES: RequestStatus[] = [
   RequestStatus.COMPLETED,
@@ -63,13 +64,14 @@ export async function createMachineReplenishmentRequest(
 
   const ready = input.palletReady === true
   const now = new Date()
+  const initialStatus = ready
+    ? RequestStatus.PALLET_READY
+    : RequestStatus.AWAITING_PREPARATION
   const data: Prisma.MachineReplenishmentRequestCreateInput = {
     movementCube: input.movementCube.trim(),
     typeMovimentPallet: input.typeMovimentPallet,
     priorityLevel: input.priorityLevel ?? PriorityLevel.NORMAL,
-    status: ready
-      ? RequestStatus.PALLET_READY
-      : RequestStatus.AWAITING_PREPARATION,
+    ...requestStatusOnCreate(initialStatus, now),
     ...(ready
       ? { preparedAt: now }
       : { awaitingPreparationSince: now }),
@@ -85,7 +87,18 @@ export async function listMachineReplenishmentRequests(filters?: {
   status?: RequestStatus
   destinationId?: string
 }) {
-  return machineReplenishmentRequestRepository.findManyForList(filters)
+  const rows = await machineReplenishmentRequestRepository.findManyForList(filters)
+  if (rows.length === 0) {
+    return rows
+  }
+  const pickupIds =
+    await machineReplenishmentRequestRepository.findRequestIdsWithOpenPickup(
+      rows.map((r) => r.id),
+    )
+  return rows.map((row) => ({
+    ...row,
+    hasOpenPickupTask: pickupIds.has(row.id),
+  }))
 }
 
 export async function getMachineReplenishmentRequestById(id: string) {

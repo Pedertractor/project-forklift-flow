@@ -14,6 +14,10 @@ import {
 import { machineReplenishmentRequestRepository } from '../repositories/machine-replenishment-request.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
+import {
+  requestStatusOnCreate,
+  requestStatusPatch,
+} from '../utils/request-status-since.js'
 
 export type FinalizeMachineCycleInput = {
   movementCube?: string
@@ -81,7 +85,7 @@ export async function finalizeMachineProductionCycle(
     movementCube,
     typeMovimentPallet,
     priorityLevel: input.priorityLevel ?? PriorityLevel.NORMAL,
-    status: RequestStatus.AWAITING_PREPARATION,
+    ...requestStatusOnCreate(RequestStatus.AWAITING_PREPARATION, now),
     awaitingPreparationSince: now,
     requestedBy: { connect: { id: operatorUserId } },
     destination: { connect: { id: machine.id } },
@@ -126,7 +130,7 @@ export async function markReplenishmentPalletReady(requestId: string) {
 
   const now = new Date()
   return machineReplenishmentRequestRepository.update(requestId, {
-    status: RequestStatus.PALLET_READY,
+    ...requestStatusPatch(RequestStatus.PALLET_READY, now),
     preparedAt: now,
     awaitingPreparationSince: null,
   })

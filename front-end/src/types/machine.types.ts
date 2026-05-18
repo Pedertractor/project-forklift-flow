@@ -7,11 +7,14 @@ export interface TypeMachine {
   updatedAt: string
 }
 
+import type { PlantMapUnit } from '@/constants/plant-map'
+
 /** Item de GET /machines */
 export interface MachineListItem {
   id: string
   name: string
   position: string
+  plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string
   userId: string | null
@@ -25,6 +28,7 @@ export interface MachineListItem {
 export interface CreateMachinePostBody {
   name: string
   position: string
+  plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string
   userId?: string

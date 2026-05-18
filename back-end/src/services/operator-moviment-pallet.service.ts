@@ -26,6 +26,7 @@ import {
   TripRouteSuggestionNotOpenError,
 } from '../errors/domain-errors.js'
 import { prisma } from '../lib/prisma.js'
+import { requestStatusPatch } from '../utils/request-status-since.js'
 import { machineReplenishmentRequestRepository } from '../repositories/machine-replenishment-request.repository.js'
 import { movimentPalletRepository } from '../repositories/moviment-pallet.repository.js'
 import {
@@ -932,7 +933,7 @@ export async function acceptTripRouteSuggestion(
           status: RequestStatus.CREATED,
           typeMovimentPallet: pallet.type,
         },
-        data: { status: RequestStatus.IN_PROGRESS },
+        data: requestStatusPatch(RequestStatus.IN_PROGRESS),
       })
       if (claimedRequest.count !== 1) {
         throw new ReplenishmentRequestAlreadyAssignedError()
@@ -1171,7 +1172,7 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
         },
         typeMovimentPallet: pallet.type,
       },
-      data: { status: RequestStatus.IN_PROGRESS },
+      data: requestStatusPatch(RequestStatus.IN_PROGRESS),
     })
     if (claimed.count !== 1) {
       throw new ReplenishmentRequestAlreadyAssignedError()
@@ -1296,7 +1297,7 @@ export async function completeDeliverTaskToMachine(
         id: task.requestId,
         status: RequestStatus.IN_PROGRESS,
       },
-      data: { status: RequestStatus.ON_MACHINE },
+      data: requestStatusPatch(RequestStatus.ON_MACHINE),
     })
     if (requestUpdate.count !== 1) {
       throw new Error(
@@ -1406,7 +1407,10 @@ export async function completePickupTaskToExpedition(
         id: task.requestId,
         status: RequestStatus.ON_MACHINE,
       },
-      data: { status: RequestStatus.COMPLETED },
+      data: {
+        ...requestStatusPatch(RequestStatus.COMPLETED),
+        completedAt: new Date(),
+      },
     })
     if (requestUpdate.count !== 1) {
       throw new Error(

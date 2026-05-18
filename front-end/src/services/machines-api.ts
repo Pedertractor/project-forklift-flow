@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@/constants/API_ENDPOINTS';
+import type { PlantMapUnit } from '@/constants/plant-map';
 import { apiAuthFetch } from '@/lib/api';
 import type {
   CreateMachinePostBody,
@@ -6,13 +7,26 @@ import type {
   MachineListItem,
 } from '@/types/machine.types';
 
-export async function fetchMachines(sectorId?: string): Promise<MachineListItem[]> {
-  const q =
-    typeof sectorId === 'string' && sectorId.trim() !== ''
-      ? `?sectorId=${encodeURIComponent(sectorId.trim())}`
-      : '';
+export type FetchMachinesOptions = {
+  sectorId?: string;
+  plantUnit?: PlantMapUnit;
+};
+
+function machinesListQuery(options?: FetchMachinesOptions): string {
+  const params = new URLSearchParams();
+  if (options?.sectorId?.trim()) {
+    params.set('sectorId', options.sectorId.trim());
+  }
+  if (options?.plantUnit) {
+    params.set('plantUnit', options.plantUnit);
+  }
+  const q = params.toString();
+  return q ? `?${q}` : '';
+}
+
+export async function fetchMachines(options?: FetchMachinesOptions): Promise<MachineListItem[]> {
   const res = await apiAuthFetch<{ machines: MachineListItem[] }>(
-    `${API_ENDPOINTS.MACHINES.LIST}${q}`,
+    `${API_ENDPOINTS.MACHINES.LIST}${machinesListQuery(options)}`,
     { method: 'GET' },
   );
   return res?.machines ?? [];
@@ -29,6 +43,7 @@ export async function fetchMachineById(id: string): Promise<MachineDetail> {
 export async function createMachine(input: {
   name: string;
   position: string;
+  plantUnit: PlantMapUnit;
   typeMachineId: string;
   sectorId: string;
   userId?: string | null;
@@ -36,6 +51,7 @@ export async function createMachine(input: {
   const body: CreateMachinePostBody = {
     name: input.name.trim(),
     position: input.position.trim(),
+    plantUnit: input.plantUnit,
     typeMachineId: input.typeMachineId.trim(),
     sectorId: input.sectorId.trim(),
   };
@@ -57,6 +73,7 @@ export async function updateMachine(
   patch: {
     name?: string;
     position?: string;
+    plantUnit?: PlantMapUnit;
     typeMachineId?: string;
     sectorId?: string;
     userId?: string | null;

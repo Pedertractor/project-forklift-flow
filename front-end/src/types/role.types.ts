@@ -38,8 +38,20 @@ export const ADMIN_OR_LEADER_ROLES: readonly AppRole[] = ['ADMIN', 'LEADER'];
 
 export const OPERATOR_MACHINE_ROLES: readonly AppRole[] = ['OPERATOR_MACHINE', 'ADMIN'];
 
-/** Empilhadeirista e transpaleteira (fluxo moviment-pallet). */
+/**
+ * Empilhadeirista e transpaleteira (fluxo moviment-pallet).
+ * ADMIN incluído para testes e suporte (espelho de `requireForkliftOrFollowUpOperatorRole` na API).
+ */
 export const MOVIMENT_OPERATOR_ROLES: readonly AppRole[] = [
   'FORKLIFT_OPERATOR',
   'FOLLOW_UP_OPERATOR',
+  'ADMIN',
+];
+
+/** Mapa da planta (supervisão): líder, supervisor, gestor e administrador. */
+export const PLANT_MAP_SUPERVISION_ROLES: readonly AppRole[] = [
+  'LEADER',
+  'SUPERVISOR',
+  'MANAGER',
+  'ADMIN',
 ];

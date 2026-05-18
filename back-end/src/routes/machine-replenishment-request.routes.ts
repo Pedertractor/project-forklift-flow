@@ -8,7 +8,10 @@ import {
   postCreateMachineReplenishmentRequest,
   postMarkPalletReady,
 } from '../controllers/machine-replenishment-request-controller.js'
-import { requireMachineReplenishmentRequestRoles } from '../middleware/require-roles.js'
+import {
+  requireMachineReplenishmentReadRoles,
+  requireMachineReplenishmentRequestRoles,
+} from '../middleware/require-roles.js'
 
 export async function registerMachineReplenishmentRequestRoutes(
   fastify: FastifyInstance,
@@ -30,7 +33,7 @@ export async function registerMachineReplenishmentRequestRoutes(
         {
           preHandler: [
             fastify.authenticate,
-            requireMachineReplenishmentRequestRoles(),
+            requireMachineReplenishmentReadRoles(),
           ],
         },
         getListMachineReplenishmentRequests,
@@ -40,7 +43,7 @@ export async function registerMachineReplenishmentRequestRoutes(
         {
           preHandler: [
             fastify.authenticate,
-            requireMachineReplenishmentRequestRoles(),
+            requireMachineReplenishmentReadRoles(),
           ],
         },
         getPendingPreparationRequests,
@@ -60,7 +63,7 @@ export async function registerMachineReplenishmentRequestRoutes(
         {
           preHandler: [
             fastify.authenticate,
-            requireMachineReplenishmentRequestRoles(),
+            requireMachineReplenishmentReadRoles(),
           ],
         },
         getMachineReplenishmentRequestByIdHandler,

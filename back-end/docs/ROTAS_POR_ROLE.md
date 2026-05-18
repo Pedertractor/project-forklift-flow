@@ -7,7 +7,8 @@ Papéis definidos no Prisma: `OPERATOR_MACHINE`, `FORKLIFT_OPERATOR`, `FOLLOW_UP
 
 > **Regras de negócio:** [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md)  
 > **O que existe vs o que falta (matriz única):** [`STATUS_IMPLEMENTACAO.md`](./STATUS_IMPLEMENTACAO.md)  
-> **Telas sugeridas:** [`FLUXOS_TELAS_FRONTEND.md`](./FLUXOS_TELAS_FRONTEND.md)
+> **Telas sugeridas:** [`FLUXOS_TELAS_FRONTEND.md`](./FLUXOS_TELAS_FRONTEND.md)  
+> **Mapa da planta (supervisão — planejado):** [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md)
 
 **Legenda nas tabelas abaixo:** coluna **Status** — ✅ rota registrada no código · ❌ ainda não existe.
 
@@ -182,14 +183,16 @@ Igual `LEADER` / `ADMIN` — **✅** CRUD completo (`POST`, `GET`, `GET/:id`, `P
 
 ## `SUPERVISOR` e `MANAGER`
 
-No código atual **não há** `preHandler` dedicado a esses papéis: eles só conseguem usar o que **qualquer JWT** usa:
+**Leitura (GET) liberada:** `GET /api/machines`, `GET /api/machines/:machineId`, `GET /api/machine-replenishment-requests` (lista, por id, `pending-preparation`) — para telas de supervisão (ex.: mapa da planta). **Escritas** nesses recursos continuam restritas a `LEADER` / `SUPPLY_OPERATOR` / `ADMIN`.
+
+Além disso, usam o que **qualquer JWT** usa:
 
 - `GET /api/auth/me`
 - `POST /api/auth/password`
 - `GET /api/health`
 - `POST /api/auth/login`
 
-Demais rotas da API retornam **403** até existir permissão explícita no back-end.
+Outras rotas (cadastros, operadores, etc.) retornam **403** até existir permissão explícita.
 
 ---
 
@@ -203,8 +206,11 @@ Demais rotas da API retornam **403** até existir permissão explícita no back-
 | `/api/users` (maioria) | `ADMIN` |
 | `POST /api/users` | `ADMIN`, `LEADER` |
 | `/api/sectors` | `ADMIN` |
-| `/api/type-machines`, `/api/machines`, `/api/moviment-pallets` | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR` |
-| `/api/machine-replenishment-requests` | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR` |
+| `/api/type-machines`, `/api/moviment-pallets` | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR` |
+| `GET /api/machines`, `GET /api/machines/:id` | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR`, `SUPERVISOR`, `MANAGER` |
+| `POST`/`PATCH`/`DELETE` `/api/machines` | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR` |
+| `GET` `/api/machine-replenishment-requests` (lista, `:id`, `pending-preparation`) | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR`, `SUPERVISOR`, `MANAGER` |
+| `POST`/`PATCH`/`DELETE` `/api/machine-replenishment-requests` (+ `mark-pallet-ready`) | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR` |
 | `/api/operator-machine` | `ADMIN`, `OPERATOR_MACHINE` |
 | `/api/operator-moviment-pallet` | `ADMIN`, `FORKLIFT_OPERATOR`, `FOLLOW_UP_OPERATOR` |
 | Orquestração §9 | ✅ — [Rotas §9](#rotas-orquestração-dobra-finalizou-9) |

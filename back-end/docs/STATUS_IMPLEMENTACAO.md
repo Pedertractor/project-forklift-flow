@@ -10,6 +10,7 @@ Documentos relacionados:
 | [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md) | Regras e pré-condições |
 | [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md) | Rotas HTTP por papel |
 | [`FLUXOS_TELAS_FRONTEND.md`](./FLUXOS_TELAS_FRONTEND.md) | Telas sugeridas por papel |
+| [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md) | Plano do mapa da planta (supervisão) — back + front |
 
 **Como validar no código:** `back-end/src/routes/*.routes.ts`, `replenishment-orchestration.service.ts`.
 
@@ -44,6 +45,7 @@ Documentos relacionados:
 | Sugestões de viagem | ✅ | |
 | Notificações transporte (polling) | ✅ | `GET .../notifications` |
 | Push / WebSocket em tempo real | ❌ | Opcional futuro |
+| Mapa da planta (supervisão: posição máquinas, processo + tempo, áreas expedição/recebimento) | ⚠️ | Tela + `GET` máquinas/pedidos para `SUPERVISOR`/`MANAGER`; áreas e coords dedicadas: [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md) |
 
 ---
 
@@ -74,6 +76,7 @@ Documentos relacionados:
 | Módulo | Status |
 |--------|--------|
 | Telas operador / supply / transporte para §9 | ❌ | API pronta; integrar no app |
+| Mapa da planta (`/supervisao/mapa-planta`) | ⚠️ | Konva + sidebar; `GET` máquinas/pedidos; áreas desenhadas ainda não |
 
 ---
 

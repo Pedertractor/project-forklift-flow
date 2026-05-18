@@ -20,6 +20,8 @@ export interface ReplenishmentRequestListItem {
   status: RequestStatusValue;
   preparedAt: string | null;
   awaitingPreparationSince: string | null;
+  /** Quando entrou no status atual (preferir sobre updatedAt para tempo no estado). */
+  statusSince: string;
   createdAt: string;
   updatedAt: string;
   requestedById: string;
@@ -40,6 +42,8 @@ export interface ReplenishmentRequestListItem {
     sector: { id: string; typeSector: string };
   };
   _count: { movimentPalletTasks: number };
+  /** Lista de pedidos: retirada já solicitada (tarefa PICKUP aberta). */
+  hasOpenPickupTask?: boolean;
 }
 
 export interface MarkPalletReadyResponse {

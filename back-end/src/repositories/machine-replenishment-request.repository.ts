@@ -18,6 +18,17 @@ const openDeliverTaskWhere = {
   status: { in: openDeliverTaskStatuses },
 }
 
+const openPickupTaskStatuses: ForkliftTaskStatus[] = [
+  ForkliftTaskStatus.CREATED,
+  ForkliftTaskStatus.ASSIGNED,
+  ForkliftTaskStatus.IN_PROGRESS,
+]
+
+const openPickupTaskWhere = {
+  type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+  status: { in: openPickupTaskStatuses },
+}
+
 const requestListInclude = {
   requestedBy: {
     select: {
@@ -172,6 +183,22 @@ export const machineReplenishmentRequestRepository = {
       where: { destinationId },
       orderBy: { createdAt: 'desc' },
     })
+  },
+
+  /** Pedidos com tarefa de retirada aberta (mapa: aguardando retirada). */
+  async findRequestIdsWithOpenPickup(requestIds: string[]): Promise<Set<string>> {
+    if (requestIds.length === 0) {
+      return new Set()
+    }
+    const rows = await prisma.movimentPalletTask.findMany({
+      where: {
+        requestId: { in: requestIds },
+        ...openPickupTaskWhere,
+      },
+      select: { requestId: true },
+      distinct: ['requestId'],
+    })
+    return new Set(rows.map((r) => r.requestId))
   },
 
   update(id: string, data: Prisma.MachineReplenishmentRequestUpdateInput) {
