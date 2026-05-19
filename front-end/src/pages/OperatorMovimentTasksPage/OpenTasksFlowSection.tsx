@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 
 type StepState = 'done' | 'current' | 'upcoming';
 
-/** Alinhado a `route-flow-icons` (recebimento Â· mÃ¡quina Â· pallet Â· expediÃ§Ã£o). */
+/** Alinhado a `route-flow-icons` (recebimento · máquina · pallet · expedição). */
 type FlowStepId = RouteFlowStepId;
 
 interface FlowStepConfig {
@@ -134,7 +134,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'machine',
-        label: 'Entregue o pallet na mÃ¡quina',
+        label: 'Entregue o pallet na máquina',
         details: [
           ...machineDetails,
           prismaDetail(deliverCube, 'deliver-to-machine'),
@@ -143,7 +143,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'pallet',
-        label: 'Pallet na mÃ¡quina',
+        label: 'Pallet na máquina',
         details: [
           ...machineDetails,
           prismaDetail(pickupCube, 'pick-at-machine'),
@@ -152,9 +152,9 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'expedition',
-        label: 'ExpediÃ§Ã£o',
+        label: 'Expedição',
         details: [
-          expeditionAreaDetail('Entregar na expediÃ§Ã£o'),
+          expeditionAreaDetail('Entregar na expedição'),
           prismaDetail(pickupCube, 'carry-to-expedition'),
         ],
         state: pickupOpen ? 'current' : deliverOpen ? 'upcoming' : 'done',
@@ -166,8 +166,8 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     return [
       {
         id: 'receiving',
-        label: 'VÃ¡ ao recebimento',
-        details: [receivingAreaDetail('Deslocar-se atÃ© o recebimento')],
+        label: 'Vá ao recebimento',
+        details: [receivingAreaDetail('Deslocar-se até o recebimento')],
         state: deliverOpen ? 'current' : 'done',
       },
       {
@@ -181,7 +181,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'machine',
-        label: 'Entregue o pallet na mÃ¡quina',
+        label: 'Entregue o pallet na máquina',
         details: [
           ...machineDetails,
           prismaDetail(deliverCube, 'deliver-to-machine'),
@@ -194,7 +194,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
   return [
     {
       id: 'machine',
-      label: 'Retire o pallet na mÃ¡quina',
+      label: 'Retire o pallet na máquina',
       details: [
         ...machineDetails,
         prismaDetail(pickupCube, 'pick-at-machine'),
@@ -203,13 +203,13 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     },
     {
       id: 'pallet',
-      label: 'Leve o pallet para a expediÃ§Ã£o',
+      label: 'Leve o pallet para a expedição',
       details: [prismaDetail(pickupCube, 'pick-at-machine')],
       state: pickupOpen ? 'current' : 'done',
     },
     {
       id: 'expedition',
-      label: 'ExpediÃ§Ã£o',
+      label: 'Expedição',
       details: [
         expeditionAreaDetail(),
         prismaDetail(pickupCube, 'carry-to-expedition'),
@@ -244,7 +244,7 @@ function TaskConfirmationProgressBar() {
     <div
       className="relative mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200"
       role="progressbar"
-      aria-valuetext="Enviando confirmaÃ§Ã£o"
+      aria-valuetext="Enviando confirmação"
       aria-busy="true"
     >
       <div className="absolute inset-y-0 w-[38%] rounded-full bg-[#005fb8] motion-safe:animate-task-confirm-progress" />
@@ -317,7 +317,7 @@ function RouteFlowTrack({
   return (
     <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
       {steps.map((step, index) => (
-        <motion.div key={`${step.id}-${index}`} className="flex min-w-0 flex-1 items-stretch">
+        <div key={`${step.id}-${index}`} className="flex min-w-0 flex-1 items-stretch">
           <div className="flex min-w-[12rem] max-w-none shrink-0 basis-0 flex-1 flex-col items-center px-0.5 sm:min-w-[13.5rem]">
             <FlowStepNode step={step} />
             <div className="mt-3 flex min-h-[4.25rem] w-full min-w-0 flex-col items-stretch justify-start px-0.5">
@@ -385,7 +385,7 @@ function OpenTaskRouteCard({
             disabled={!bound || busy}
             onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
           >
-            {deliverPending ? 'Registrandoâ€¦' : 'Confirmar entrega na mÃ¡quina'}
+            {deliverPending ? 'Registrando?' : 'Confirmar entrega na máquina'}
           </Button>
           {deliverPending ? <TaskConfirmationProgressBar /> : null}
         </>
@@ -396,8 +396,8 @@ function OpenTaskRouteCard({
       if (deliverOpen) {
         return (
           <p className="m-0 text-center text-[0.6875rem] leading-snug text-zinc-500">
-            Conclua a entrega na mÃ¡quina para habilitar a confirmaÃ§Ã£o na
-            expediÃ§Ã£o.
+            Conclua a entrega na máquina para habilitar a confirmação na
+            expedição.
           </p>
         );
       }
@@ -409,7 +409,7 @@ function OpenTaskRouteCard({
             disabled={!bound || busy}
             onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
           >
-            {pickupPending ? 'Registrandoâ€¦' : 'Confirmar entrega na expediÃ§Ã£o'}
+            {pickupPending ? 'Registrando?' : 'Confirmar entrega na expedição'}
           </Button>
           {pickupPending ? <TaskConfirmationProgressBar /> : null}
         </>
@@ -426,7 +426,7 @@ function OpenTaskRouteCard({
           <div>
             <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
               {isCombined
-                ? 'Rota completa na mÃ¡quina'
+                ? 'Rota completa na máquina'
                 : deliverOpen
                   ? 'Entrega em andamento'
                   : 'Retirada em andamento'}
@@ -434,8 +434,8 @@ function OpenTaskRouteCard({
             <p className="mt-1 text-sm font-semibold text-zinc-900">
               {group.machineName}
               <span className="font-normal text-zinc-500">
-                {' Â· '}
-                Â· {group.machinePosition}
+                {' · '}
+                · {group.machinePosition}
               </span>
             </p>
           </div>
@@ -447,7 +447,7 @@ function OpenTaskRouteCard({
           <p className="mt-2 text-xs text-zinc-600">
             Status:{' '}
             <span className="font-medium text-zinc-800">{statusLabel}</span>
-            {' Â· '}
+            {' · '}
             Desde {formatTaskDate(activeTask.createdAt)}
           </p>
         ) : null}
@@ -485,7 +485,7 @@ export function OpenTasksFlowSection({
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
       {isLoading ? (
         <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-600">
-          Carregando tarefasâ€¦
+          Carregando tarefas?
         </p>
       ) : null}
 

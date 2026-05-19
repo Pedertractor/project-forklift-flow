@@ -1,9 +1,6 @@
 import type { RouteHandlerMethod } from 'fastify'
 import {
-  PriorityLevel,
   RequestStatus,
-  RoleUser,
-  TypeMovimentPallet,
   OperatorMachineSupplyRequestStatus,
 } from '../generated/prisma/enums.js'
 import {
@@ -172,14 +169,6 @@ export const getListOperatorSupplyRequestsForOperator: RouteHandlerMethod =
     }
   }
 
-function isTypeMovimentPallet(value: string): value is TypeMovimentPallet {
-  return (Object.values(TypeMovimentPallet) as string[]).includes(value)
-}
-
-function isPriorityLevel(value: string): value is PriorityLevel {
-  return (Object.values(PriorityLevel) as string[]).includes(value)
-}
-
 export const getReplenishmentPickupProgress: RouteHandlerMethod = async (
   request,
   reply,
@@ -214,50 +203,15 @@ export const postFinalizeMachineCycle: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
-  const operatorDobraInitiated = user.role === RoleUser.OPERATOR_MACHINE
-
-  const input: {
-    movementCube?: string
-    typeMovimentPallet?: TypeMovimentPallet
-    priorityLevel?: PriorityLevel
-  } = {}
-
-  if (!operatorDobraInitiated) {
-    const body = (request.body ?? {}) as {
-      movementCube?: string
-      typeMovimentPallet?: string
-      priorityLevel?: string
-    }
-
-    if (typeof body.movementCube === 'string' && body.movementCube.trim() !== '') {
-      input.movementCube = body.movementCube.trim()
-    }
-    if (body.typeMovimentPallet !== undefined) {
-      if (typeof body.typeMovimentPallet !== 'string') {
-        return reply.status(400).send({ error: 'typeMovimentPallet invalido.' })
-      }
-      const raw = body.typeMovimentPallet.trim()
-      if (raw !== '' && !isTypeMovimentPallet(raw)) {
-        return reply.status(400).send({
-          error: 'typeMovimentPallet invalido. Use PALLET_TRUCK ou FORKLIFT.',
-        })
-      }
-      if (raw !== '') {
-        input.typeMovimentPallet = raw
-      }
-    }
-    if (body.priorityLevel !== undefined) {
-      if (!isPriorityLevel(body.priorityLevel)) {
-        return reply.status(400).send({
-          error: 'priorityLevel invalido. Use VERY_HIGH, HIGH ou NORMAL.',
-        })
-      }
-      input.priorityLevel = body.priorityLevel
-    }
-  }
+  /**
+   * Rota exclusiva do operador de dobra (`OPERATOR_MACHINE` ou `ADMIN` em testes).
+   * Corpo vazio: cria aviso ao abastecimento (`OperatorMachineSupplyRequest`);
+   * cubo e tipo entram quando o supply registra o pedido de reposição.
+   */
+  const operatorDobraInitiated = true
 
   try {
-    const result = await finalizeMachineProductionCycle(user.sub, input, {
+    const result = await finalizeMachineProductionCycle(user.sub, {}, {
       operatorDobraInitiated,
     })
     return reply.status(200).send(result)

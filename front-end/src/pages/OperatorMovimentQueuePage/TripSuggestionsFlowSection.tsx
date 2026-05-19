@@ -348,8 +348,6 @@ export function TripSuggestionsFlowSection({
   const combined = data.suggestions;
   const standalonePickups = data.standalonePickupTasks;
   const standaloneDelivers = data.standaloneDeliverTasks ?? [];
-  const hint = data.priorityContext?.hint;
-
   if (
     combined.length === 0 &&
     standalonePickups.length === 0 &&
@@ -363,21 +361,6 @@ export function TripSuggestionsFlowSection({
       className="mt-8 space-y-4"
       aria-labelledby="trip-suggestions-heading"
     >
-      <div className="flex flex-col gap-2 border-b border-zinc-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            id="trip-suggestions-heading"
-            className="m-0 text-lg font-bold tracking-tight text-zinc-900"
-          >
-            Sugestões de rota
-          </h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Economize percurso quando entrega e retirada caem na mesma máquina —
-            ou aceite entregas e retiradas avulsas sugeridas.
-          </p>
-        </div>
-      </div>
-
       {!bound ? (
         <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
           Vincule-se a um equipamento para aceitar uma sugestão de rota.
