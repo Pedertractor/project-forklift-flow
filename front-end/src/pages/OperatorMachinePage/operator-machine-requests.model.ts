@@ -11,7 +11,7 @@ export const OPERATOR_MACHINE_REQUEST_STATUS_OPTIONS = [
   { value: 'CREATED', label: 'Criado' },
   { value: 'IN_PROGRESS', label: 'Em andamento' },
   { value: 'AWAITING_PREPARATION', label: 'Aguardando preparo' },
-  { value: 'PALLET_READY', label: 'Pallet pronto (fila)' },
+  { value: 'PALLET_READY', label: 'Pallet no recebimento' },
   { value: 'COMPLETED', label: 'Concluído' },
   { value: 'CANCELED', label: 'Cancelado' },
 ] as const;

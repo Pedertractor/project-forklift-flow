@@ -13,7 +13,7 @@ import {
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentRequestsPage';
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
-import { CheckIcon, PanelRightOpen } from 'lucide-react';
+import { Box, CheckIcon, PanelRightOpen } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -167,7 +167,7 @@ export function ReplenishmentRequestsPageView(
               >
                 <option value="">Todos</option>
                 <option value="AWAITING_PREPARATION">Aguardando preparo</option>
-                <option value="PALLET_READY">Pallet pronto (fila)</option>
+                <option value="PALLET_READY">Pallet no recebimento</option>
                 <option value="CREATED">Criado</option>
                 <option value="IN_PROGRESS">Em andamento</option>
                 <option value="ON_MACHINE">Na máquina</option>
@@ -274,7 +274,8 @@ export function ReplenishmentRequestsPageView(
                           {row.destination.position}
                         </div>
                       </td>
-                      <td className="px-3 py-3 font-mono text-zinc-800">
+                      <td className="flex items-center gap-2 py-5 font-mono text-zinc-800">
+                        <Box className="size-4 text-blue-500" />
                         {row.movementCube}
                       </td>
                       <td className="px-3 py-3 text-zinc-700">

@@ -96,7 +96,7 @@ function EquipmentBlock({
           </p>
           {readyForQueue ? (
             <span className="mt-1 inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-sky-900">
-              Livre para fila
+              Livre para transporte
             </span>
           ) : unbound ? (
             <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-emerald-800">

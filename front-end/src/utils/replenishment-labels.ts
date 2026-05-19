@@ -1,4 +1,7 @@
-import type { PriorityLevelValue, RequestStatusValue } from '@/types/replenishment-request.types';
+import type {
+  PriorityLevelValue,
+  RequestStatusValue,
+} from '@/types/replenishment-request.types';
 
 const STATUS_LABELS: Record<RequestStatusValue, string> = {
   CREATED: 'Criado',
@@ -7,7 +10,7 @@ const STATUS_LABELS: Record<RequestStatusValue, string> = {
   COMPLETED: 'Concluído',
   CANCELED: 'Cancelado',
   AWAITING_PREPARATION: 'Aguardando preparo',
-  PALLET_READY: 'Pallet pronto (fila)',
+  PALLET_READY: 'Pallet no recebimento',
 };
 
 const PRIORITY_LABELS: Record<PriorityLevelValue, string> = {
