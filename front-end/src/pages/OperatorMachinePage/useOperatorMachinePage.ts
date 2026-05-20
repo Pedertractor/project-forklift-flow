@@ -1,33 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ENV } from '@/constants/env';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { toastApiError } from '@/lib/toast-helpers';
+import { ENV } from '@/constants/env';
 import {
   deleteOperatorUnbindMachine,
   fetchOperatorMachinesForPicker,
   fetchOperatorMyMachine,
+  fetchOperatorPickupProgress,
   fetchOperatorReplenishmentRequests,
   fetchOperatorSupplyRequests,
   postOperatorBindMachine,
   postOperatorFinalizeCycle,
   postOperatorRequestPickup,
 } from '@/services/operator-machine-api';
+import {
+  selectPickupPanelReplenishment,
+  selectSupplyFlowReplenishment,
+  shouldFetchPickupProgress,
+} from './operator-machine-flow';
 import { useAuthStore } from '@/store/auth.store';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
 
 const FINALIZE_BLOCK_STATUSES = new Set<
   ReplenishmentRequestListItem['status']
->(['AWAITING_PREPARATION', 'IN_PROGRESS', 'ON_MACHINE']);
+>(['PALLET_READY', 'IN_PROGRESS', 'ON_MACHINE']);
 
 const queryKeyMyMachine = ['operator-machine', 'my-machine'] as const;
 const queryKeyOperatorSupply = ['operator-machine', 'operator-supply-requests'] as const;
-
-function queryKeyRequests(status: string) {
-  return ['operator-machine', 'replenishment-requests', status] as const;
-}
+const queryKeyRequests = ['operator-machine', 'replenishment-requests', 'active'] as const;
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -36,16 +38,14 @@ function useApiReady(): boolean {
 
 export function useOperatorMachinePage() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const apiReady = useApiReady();
-  const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const hasSector = Boolean(user?.sectorId);
 
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [endShiftOpen, setEndShiftOpen] = useState(false);
   const [pickupTargetId, setPickupTargetId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [showMachinePicker, setShowMachinePicker] = useState(false);
+  const [selectedMachineId, setSelectedMachineId] = useState('');
 
   const myMachineQuery = useQuery({
     queryKey: queryKeyMyMachine,
@@ -53,62 +53,112 @@ export function useOperatorMachinePage() {
     enabled: apiReady,
   });
 
+  const current = myMachineQuery.data ?? null;
+
   const machinesQuery = useQuery({
     queryKey: ['operator-machine', 'machines'],
     queryFn: fetchOperatorMachinesForPicker,
-    enabled: apiReady && hasSector && pickerOpen,
+    enabled: apiReady && hasSector && showMachinePicker,
   });
 
-  const requestsQuery = useQuery({
-    queryKey: queryKeyRequests(statusFilter),
-    queryFn: () => fetchOperatorReplenishmentRequests(statusFilter || undefined),
-    enabled: apiReady && Boolean(myMachineQuery.data),
-  });
+  useEffect(() => {
+    if (myMachineQuery.isSuccess && current === null) {
+      setShowMachinePicker(true);
+    }
+  }, [myMachineQuery.isSuccess, current]);
 
-  const operatorSupplyQuery = useQuery({
-    queryKey: queryKeyOperatorSupply,
-    queryFn: () => fetchOperatorSupplyRequests(),
-    enabled: apiReady && Boolean(myMachineQuery.data),
-  });
-
-  const finalizeGateQuery = useQuery({
-    queryKey: ['operator-machine', 'replenishment-requests', 'finalize-gate'],
-    queryFn: () => fetchOperatorReplenishmentRequests(),
-    enabled: apiReady && Boolean(myMachineQuery.data),
-  });
-
-  const blockingFinalizeRequest = useMemo((): ReplenishmentRequestListItem | null => {
-    const list = finalizeGateQuery.data ?? [];
-    return list.find((r) => FINALIZE_BLOCK_STATUSES.has(r.status)) ?? null;
-  }, [finalizeGateQuery.data]);
-
-  const blockingOperatorSupply = useMemo((): OperatorMachineSupplyRequestListItem | null => {
-    const list = operatorSupplyQuery.data ?? [];
-    return list.find((r) => r.status === 'OPEN') ?? null;
-  }, [operatorSupplyQuery.data]);
-
-  const canRequestPallet =
-    blockingFinalizeRequest === null && blockingOperatorSupply === null;
+  useEffect(() => {
+    if (current?.id) {
+      setSelectedMachineId(current.id);
+      setShowMachinePicker(false);
+    }
+  }, [current?.id]);
 
   const bindMut = useMutation({
     mutationFn: postOperatorBindMachine,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
-      void queryClient.invalidateQueries({ queryKey: ['operator-machine', 'replenishment-requests'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
-      setPickerOpen(false);
+      setShowMachinePicker(false);
       toast.success('Máquina vinculada ao turno.');
     },
     onError: toastApiError,
   });
 
+  const selectMachine = (machineId: string) => {
+    if (bindMut.isPending) {
+      return;
+    }
+    setSelectedMachineId(machineId);
+    if (current?.id === machineId) {
+      setShowMachinePicker(false);
+      return;
+    }
+    bindMut.mutate(machineId);
+  };
+
+  const requestsQuery = useQuery({
+    queryKey: queryKeyRequests,
+    queryFn: () => fetchOperatorReplenishmentRequests(),
+    enabled: apiReady && Boolean(current),
+    refetchInterval: 15_000,
+  });
+
+  const operatorSupplyQuery = useQuery({
+    queryKey: queryKeyOperatorSupply,
+    queryFn: () => fetchOperatorSupplyRequests(),
+    enabled: apiReady && Boolean(current),
+    refetchInterval: 15_000,
+  });
+
+  const replenishmentList = requestsQuery.data ?? [];
+
+  const hasBlockingReplenishment = useMemo(
+    () =>
+      replenishmentList.some((r) => FINALIZE_BLOCK_STATUSES.has(r.status)),
+    [replenishmentList],
+  );
+
+  const openOperatorSupply = useMemo((): OperatorMachineSupplyRequestListItem | null => {
+    const list = operatorSupplyQuery.data ?? [];
+    return list.find((r) => r.status === 'OPEN') ?? null;
+  }, [operatorSupplyQuery.data]);
+
+  const supplyFlowReplenishment = useMemo(
+    () => selectSupplyFlowReplenishment(replenishmentList),
+    [replenishmentList],
+  );
+
+  const pickupPanelReplenishment = useMemo(
+    () => selectPickupPanelReplenishment(replenishmentList),
+    [replenishmentList],
+  );
+
+  const pickupProgressQuery = useQuery({
+    queryKey: [
+      'operator-machine',
+      'pickup-progress',
+      pickupPanelReplenishment?.id ?? '',
+    ] as const,
+    queryFn: () => fetchOperatorPickupProgress(pickupPanelReplenishment!.id),
+    enabled:
+      apiReady &&
+      Boolean(current) &&
+      shouldFetchPickupProgress(pickupPanelReplenishment),
+    refetchInterval: 10_000,
+  });
+
+  const canRequestPallet = !hasBlockingReplenishment && openOperatorSupply === null;
+
   const unbindMut = useMutation({
     mutationFn: deleteOperatorUnbindMachine,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
-      void queryClient.invalidateQueries({ queryKey: ['operator-machine', 'replenishment-requests'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       setEndShiftOpen(false);
+      setShowMachinePicker(true);
       toast.success('Vínculo encerrado. Bom descanso.');
     },
     onError: toastApiError,
@@ -118,7 +168,7 @@ export function useOperatorMachinePage() {
     mutationFn: () => postOperatorFinalizeCycle({}),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
-      void queryClient.invalidateQueries({ queryKey: ['operator-machine', 'replenishment-requests'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       toast.success(data.message);
     },
@@ -128,54 +178,51 @@ export function useOperatorMachinePage() {
   const pickupMut = useMutation({
     mutationFn: postOperatorRequestPickup,
     onSuccess: (data, requestId) => {
-      void queryClient.invalidateQueries({ queryKey: ['operator-machine', 'replenishment-requests'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       void queryClient.invalidateQueries({
         queryKey: ['operator-machine', 'pickup-progress', requestId],
       });
       setPickupTargetId(null);
       toast.success(
-        `Retirada solicitada. Tarefa criada (${data.pickupTask.status}). O transporte verá na fila de tarefas.`,
+        `Retirada solicitada. Tarefa criada (${data.pickupTask.status}). Acompanhe o fluxo no painel de reposição.`,
       );
-      navigate(`/dobra/retirada/${requestId}`, { replace: true });
     },
     onError: toastApiError,
   });
 
-  const openPicker = useCallback(() => {
-    setPickerOpen(true);
-  }, []);
-
-  const closePicker = useCallback(() => {
-    setPickerOpen(false);
-  }, []);
+  const pickupRow = pickupTargetId
+    ? (requestsQuery.data ?? []).find((r) => r.id === pickupTargetId)
+    : undefined;
 
   const busy =
-    bindMut.isPending ||
     unbindMut.isPending ||
     finalizeMut.isPending ||
-    pickupMut.isPending;
+    pickupMut.isPending ||
+    bindMut.isPending;
 
   return {
     apiReady,
-    token,
-    user,
     hasSector,
     myMachineQuery,
+    current,
+    showMachinePicker,
+    setShowMachinePicker,
     machinesQuery,
+    machines: machinesQuery.data ?? [],
+    selectedMachineId,
+    selectMachine,
+    bindPending: bindMut.isPending,
     requestsQuery,
     operatorSupplyQuery,
-    finalizeGateQuery,
-    blockingFinalizeRequest,
-    blockingOperatorSupply,
+    openOperatorSupply,
+    supplyFlowReplenishment,
+    pickupPanelReplenishment,
+    pickupProgressQuery,
+    pickupPhase: pickupProgressQuery.data?.phase ?? null,
+    pickupTransportLabel:
+      pickupProgressQuery.data?.transportLabel ?? 'transporte',
     canRequestPallet,
-    statusFilter,
-    setStatusFilter,
-    pickerOpen,
-    setPickerOpen,
-    openPicker,
-    closePicker,
-    bindMut,
     endShiftOpen,
     setEndShiftOpen,
     unbindMut,
@@ -183,6 +230,7 @@ export function useOperatorMachinePage() {
     pickupTargetId,
     setPickupTargetId,
     pickupMut,
+    pickupRow,
     busy,
   };
 }

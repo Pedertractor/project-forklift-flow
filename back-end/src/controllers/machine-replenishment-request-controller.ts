@@ -57,7 +57,6 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
     movementCube?: string;
     typeMovimentPallet?: string;
     priorityLevel?: string;
-    palletReady?: boolean;
   };
 
   if (
@@ -81,13 +80,13 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
     return reply
       .status(400)
       .send({
-        error: "Informe typeMovimentPallet (PALLET_TRUCK, FORKLIFT ou ANY).",
+        error: "Informe typeMovimentPallet (FORKLIFT ou ANY).",
       });
   }
   const typeMovimentPalletRaw = body.typeMovimentPallet.trim();
   if (!isTypeMovimentPallet(typeMovimentPalletRaw)) {
     return reply.status(400).send({
-      error: "typeMovimentPallet invalido. Use PALLET_TRUCK, FORKLIFT ou ANY.",
+      error: "typeMovimentPallet invalido. Use FORKLIFT ou ANY.",
     });
   }
   const typeMovimentPallet = typeMovimentPalletRaw;
@@ -109,7 +108,6 @@ export const postCreateMachineReplenishmentRequest: RouteHandlerMethod = async (
       movementCube: body.movementCube,
       typeMovimentPallet,
       ...(priority !== undefined ? { priorityLevel: priority } : {}),
-      ...(body.palletReady === true ? { palletReady: true } : {}),
     });
     return reply.status(201).send(row);
   } catch (error) {
@@ -275,7 +273,7 @@ export const patchUpdateMachineReplenishmentRequest: RouteHandlerMethod =
       }
       if (!isTypeMovimentPallet(raw)) {
         return reply.status(400).send({
-          error: "typeMovimentPallet invalido. Use PALLET_TRUCK, FORKLIFT ou ANY.",
+          error: "typeMovimentPallet invalido. Use FORKLIFT ou ANY.",
         });
       }
       patch.typeMovimentPallet = raw;

@@ -54,18 +54,14 @@ export async function createReplenishmentRequest(input: {
   movementCube: string;
   typeMovimentPallet: ReplenishmentMovimentType;
   priorityLevel?: PriorityLevelValue;
-  palletReady?: boolean;
 }): Promise<ReplenishmentRequestListItem> {
-  const body: Record<string, string | boolean> = {
+  const body: Record<string, string> = {
     destinationId: input.destinationId.trim(),
     movementCube: input.movementCube.trim(),
     typeMovimentPallet: input.typeMovimentPallet,
   };
   if (input.priorityLevel !== undefined) {
     body.priorityLevel = input.priorityLevel;
-  }
-  if (input.palletReady === true) {
-    body.palletReady = true;
   }
   const res = await apiAuthFetch<ReplenishmentRequestListItem>(
     API_ENDPOINTS.MACHINE_REPLENISHMENT_REQUESTS.LIST,

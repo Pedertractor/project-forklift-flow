@@ -76,6 +76,28 @@ export const operatorMachineSupplyRequestRepository = {
     })
   },
 
+  findFulfilledReplenishmentIds(replenishmentRequestIds: string[]) {
+    if (replenishmentRequestIds.length === 0) {
+      return new Set<string>();
+    }
+    return prisma.operatorMachineSupplyRequest
+      .findMany({
+        where: {
+          status: OperatorMachineSupplyRequestStatus.FULFILLED,
+          fulfilledByReplenishmentRequestId: { in: replenishmentRequestIds },
+        },
+        select: { fulfilledByReplenishmentRequestId: true },
+      })
+      .then(
+        (rows) =>
+          new Set(
+            rows
+              .map((r) => r.fulfilledByReplenishmentRequestId)
+              .filter((id): id is string => id != null),
+          ),
+      );
+  },
+
   fulfillOpenForDestination(
     destinationId: string,
     replenishmentRequestId: string,

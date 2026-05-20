@@ -1,16 +1,13 @@
-import { TypeMovimentPallet } from "../generated/prisma/enums.js";
+import {
+  MovimentPalletEquipmentType,
+  TypeMovimentPallet,
+} from "../generated/prisma/enums.js";
 
-/** Equipamento físico (nunca ANY). */
-export type EquipmentMovimentType =
-  | typeof TypeMovimentPallet.FORKLIFT
-  | typeof TypeMovimentPallet.PALLET_TRUCK;
+export type EquipmentMovimentType = MovimentPalletEquipmentType;
 
 export function assertEquipmentMovimentType(
-  type: TypeMovimentPallet,
+  type: MovimentPalletEquipmentType,
 ): EquipmentMovimentType {
-  if (type === TypeMovimentPallet.ANY) {
-    throw new Error("Equipamento com tipo de movimentacao invalido (ANY).");
-  }
   return type;
 }
 
@@ -18,13 +15,31 @@ export function requestTypeMatchesEquipment(
   requestType: TypeMovimentPallet,
   equipmentType: EquipmentMovimentType,
 ): boolean {
+  if (requestType === TypeMovimentPallet.ANY) {
+    return true;
+  }
   return (
-    requestType === TypeMovimentPallet.ANY || requestType === equipmentType
+    requestType === TypeMovimentPallet.FORKLIFT &&
+    equipmentType === MovimentPalletEquipmentType.FORKLIFT
   );
 }
 
+/** Tipos de solicitação que o equipamento pode aceitar na fila aberta. */
 export function openPoolTypesForEquipment(
   equipmentType: EquipmentMovimentType,
 ): TypeMovimentPallet[] {
-  return [equipmentType, TypeMovimentPallet.ANY];
+  if (equipmentType === MovimentPalletEquipmentType.FORKLIFT) {
+    return [TypeMovimentPallet.FORKLIFT, TypeMovimentPallet.ANY];
+  }
+  return [TypeMovimentPallet.ANY];
+}
+
+/** Ao vincular equipamento ao pedido, restringe o tipo da solicitação (só empilhadeira estreita). */
+export function requestTypeAfterEquipmentClaim(
+  equipmentType: EquipmentMovimentType,
+): { typeMovimentPallet?: TypeMovimentPallet } {
+  if (equipmentType === MovimentPalletEquipmentType.FORKLIFT) {
+    return { typeMovimentPallet: TypeMovimentPallet.FORKLIFT };
+  }
+  return {};
 }

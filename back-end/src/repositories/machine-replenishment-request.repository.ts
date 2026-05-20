@@ -154,11 +154,11 @@ export const machineReplenishmentRequestRepository = {
   },
 
   /** Fila para operador de empilhadeira / transpaleteira aceitar entrega (pallet pronto). */
-  findManyOpenPoolForMovimentType(typeMovimentPallet: TypeMovimentPallet) {
+  findManyOpenPoolForMovimentType(equipmentType: EquipmentMovimentType) {
     return prisma.machineReplenishmentRequest.findMany({
       where: {
         typeMovimentPallet: {
-          in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+          in: openPoolTypesForEquipment(equipmentType),
         },
         status: { in: [RequestStatus.PALLET_READY, RequestStatus.CREATED] },
         movimentPalletTasks: {
@@ -173,12 +173,12 @@ export const machineReplenishmentRequestRepository = {
   /** Mesma regra de `findManyOpenPoolForMovimentType`, restrita ao setor da máquina de destino. */
   findManyOpenPoolForSectorAndMovimentType(
     sectorId: string,
-    typeMovimentPallet: TypeMovimentPallet,
+    equipmentType: EquipmentMovimentType,
   ) {
     return prisma.machineReplenishmentRequest.findMany({
       where: {
         typeMovimentPallet: {
-          in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+          in: openPoolTypesForEquipment(equipmentType),
         },
         status: { in: [RequestStatus.PALLET_READY, RequestStatus.CREATED] },
         movimentPalletTasks: {

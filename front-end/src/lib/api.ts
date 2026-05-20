@@ -1,8 +1,22 @@
 import { ENV } from '@/constants/env';
 import { useAuthStore } from '@/store/auth.store';
 
+/** Garante leitura UTF-8 mesmo se o servidor omitir `charset` no Content-Type. */
+async function readResponseText(response: Response): Promise<string> {
+  const buffer = await response.arrayBuffer();
+  return new TextDecoder('utf-8').decode(buffer);
+}
+
+async function parseJsonBody<T>(response: Response): Promise<T> {
+  const text = await readResponseText(response);
+  if (!text) {
+    throw new Error('Resposta vazia da API.');
+  }
+  return JSON.parse(text) as T;
+}
+
 async function readErrorMessage(response: Response): Promise<string> {
-  const text = await response.text();
+  const text = await readResponseText(response);
   if (!text) {
     return `Request failed: ${response.status}`;
   }
@@ -96,7 +110,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     throw new Error(await readErrorMessage(response));
   }
 
-  return response.json() as Promise<T>;
+  return parseJsonBody<T>(response);
 }
 
 /**
@@ -167,7 +181,7 @@ export async function apiAuthFetch<T>(
     return undefined;
   }
 
-  const text = await response.text();
+  const text = await readResponseText(response);
   if (!text) {
     return undefined;
   }

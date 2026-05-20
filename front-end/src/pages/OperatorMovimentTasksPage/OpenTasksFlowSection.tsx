@@ -22,11 +22,12 @@ import type {
   ForkliftTaskTypeApi,
   OperatorMovimentTaskItem,
 } from '@/types/operator-moviment-pallet.types';
+import { isOpenMovimentTaskStatus } from '@/utils/operator-moviment-work';
 import { cn } from '@/lib/utils';
 
 type StepState = 'done' | 'current' | 'upcoming';
 
-/** Alinhado a `route-flow-icons` (recebimento · máquina · pallet · expedição). */
+/** Alinhado a `route-flow-icons` (recebimento ? m?quina ? pallet ? expedi??o). */
 type FlowStepId = RouteFlowStepId;
 
 interface FlowStepConfig {
@@ -71,8 +72,9 @@ function canCompletePickup(type: ForkliftTaskTypeApi, status: string): boolean {
 
 function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
   const byMachine = new Map<string, TaskRouteGroup>();
+  const openTasks = tasks.filter((t) => isOpenMovimentTaskStatus(t.status));
 
-  for (const task of tasks) {
+  for (const task of openTasks) {
     const dest = task.request.destination;
     let group = byMachine.get(dest.id);
     if (!group) {
@@ -100,6 +102,21 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
     const rank = { VERY_HIGH: 0, HIGH: 1, NORMAL: 2 };
     if (rank[task.request.priorityLevel] < rank[group.priority]) {
       group.priority = task.request.priorityLevel;
+    }
+  }
+
+  for (const group of byMachine.values()) {
+    if (group.pickupTask && !group.deliverTask) {
+      const completedDeliver = tasks.find(
+        (t) =>
+          t.type === 'DELIVER_TO_MACHINE' &&
+          t.status === 'COMPLETED' &&
+          t.request.destination.id === group.machineId &&
+          t.assignedMovimentPalletId === group.pickupTask?.assignedMovimentPalletId,
+      );
+      if (completedDeliver) {
+        group.deliverTask = completedDeliver;
+      }
     }
   }
 
@@ -134,7 +151,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'machine',
-        label: 'Entregue o pallet na máquina',
+        label: 'Entregue o pallet na m?quina',
         details: [
           ...machineDetails,
           prismaDetail(deliverCube, 'deliver-to-machine'),
@@ -143,7 +160,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'pallet',
-        label: 'Pallet na máquina',
+        label: 'Pallet na m?quina',
         details: [
           ...machineDetails,
           prismaDetail(pickupCube, 'pick-at-machine'),
@@ -152,9 +169,9 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'expedition',
-        label: 'Expedição',
+        label: 'Expedi??o',
         details: [
-          expeditionAreaDetail('Entregar na expedição'),
+          expeditionAreaDetail('Entregar na expedi??o'),
           prismaDetail(pickupCube, 'carry-to-expedition'),
         ],
         state: pickupOpen ? 'current' : deliverOpen ? 'upcoming' : 'done',
@@ -166,8 +183,8 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     return [
       {
         id: 'receiving',
-        label: 'Vá ao recebimento',
-        details: [receivingAreaDetail('Deslocar-se até o recebimento')],
+        label: 'V? ao recebimento',
+        details: [receivingAreaDetail('Deslocar-se at? o recebimento')],
         state: deliverOpen ? 'current' : 'done',
       },
       {
@@ -181,7 +198,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'machine',
-        label: 'Entregue o pallet na máquina',
+        label: 'Entregue o pallet na m?quina',
         details: [
           ...machineDetails,
           prismaDetail(deliverCube, 'deliver-to-machine'),
@@ -194,7 +211,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
   return [
     {
       id: 'machine',
-      label: 'Retire o pallet na máquina',
+      label: 'Retire o pallet na m?quina',
       details: [
         ...machineDetails,
         prismaDetail(pickupCube, 'pick-at-machine'),
@@ -203,13 +220,13 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     },
     {
       id: 'pallet',
-      label: 'Leve o pallet para a expedição',
+      label: 'Leve o pallet para a expedi??o',
       details: [prismaDetail(pickupCube, 'pick-at-machine')],
       state: pickupOpen ? 'current' : 'done',
     },
     {
       id: 'expedition',
-      label: 'Expedição',
+      label: 'Expedi??o',
       details: [
         expeditionAreaDetail(),
         prismaDetail(pickupCube, 'carry-to-expedition'),
@@ -244,7 +261,7 @@ function TaskConfirmationProgressBar() {
     <div
       className="relative mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200"
       role="progressbar"
-      aria-valuetext="Enviando confirmação"
+      aria-valuetext="Enviando confirma??o"
       aria-busy="true"
     >
       <div className="absolute inset-y-0 w-[38%] rounded-full bg-[#005fb8] motion-safe:animate-task-confirm-progress" />
@@ -385,7 +402,7 @@ function OpenTaskRouteCard({
             disabled={!bound || busy}
             onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
           >
-            {deliverPending ? 'Registrando?' : 'Confirmar entrega na máquina'}
+            {deliverPending ? 'Registrando?' : 'Confirmar entrega na m?quina'}
           </Button>
           {deliverPending ? <TaskConfirmationProgressBar /> : null}
         </>
@@ -396,8 +413,8 @@ function OpenTaskRouteCard({
       if (deliverOpen) {
         return (
           <p className="m-0 text-center text-[0.6875rem] leading-snug text-zinc-500">
-            Conclua a entrega na máquina para habilitar a confirmação na
-            expedição.
+            Conclua a entrega na m?quina para habilitar a confirma??o na
+            expedi??o.
           </p>
         );
       }
@@ -409,7 +426,7 @@ function OpenTaskRouteCard({
             disabled={!bound || busy}
             onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
           >
-            {pickupPending ? 'Registrando?' : 'Confirmar entrega na expedição'}
+            {pickupPending ? 'Registrando?' : 'Confirmar entrega na expedi??o'}
           </Button>
           {pickupPending ? <TaskConfirmationProgressBar /> : null}
         </>
@@ -426,7 +443,7 @@ function OpenTaskRouteCard({
           <div>
             <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
               {isCombined
-                ? 'Rota completa na máquina'
+                ? 'Rota completa na m?quina'
                 : deliverOpen
                   ? 'Entrega em andamento'
                   : 'Retirada em andamento'}
@@ -434,8 +451,8 @@ function OpenTaskRouteCard({
             <p className="mt-1 text-sm font-semibold text-zinc-900">
               {group.machineName}
               <span className="font-normal text-zinc-500">
-                {' · '}
-                · {group.machinePosition}
+                {' ? '}
+                ? {group.machinePosition}
               </span>
             </p>
           </div>
@@ -447,7 +464,7 @@ function OpenTaskRouteCard({
           <p className="mt-2 text-xs text-zinc-600">
             Status:{' '}
             <span className="font-medium text-zinc-800">{statusLabel}</span>
-            {' · '}
+            {' ? '}
             Desde {formatTaskDate(activeTask.createdAt)}
           </p>
         ) : null}
@@ -461,7 +478,8 @@ function OpenTaskRouteCard({
 }
 
 export interface OpenTasksFlowSectionProps {
-  openTasks: OperatorMovimentTaskItem[];
+  /** Todas as tarefas atribu?das (abertas e conclu?das) para agrupar rotas combinadas. */
+  tasks: OperatorMovimentTaskItem[];
   isLoading: boolean;
   bound: boolean;
   busy: boolean;
@@ -471,7 +489,7 @@ export interface OpenTasksFlowSectionProps {
 }
 
 export function OpenTasksFlowSection({
-  openTasks,
+  tasks,
   isLoading,
   bound,
   busy,
@@ -479,17 +497,18 @@ export function OpenTasksFlowSection({
   completePickupMut,
   emptyAction,
 }: OpenTasksFlowSectionProps) {
-  const groups = groupOpenTasks(openTasks);
+  const groups = groupOpenTasks(tasks);
+  const hasOpenWork = tasks.some((t) => isOpenMovimentTaskStatus(t.status));
 
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
       {isLoading ? (
         <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-600">
-          Carregando tarefas?
+          {'Carregando tarefas\u2026'}
         </p>
       ) : null}
 
-      {!isLoading && groups.length === 0 ? (
+      {!isLoading && !hasOpenWork ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-4 py-10 text-center">
           <p className="m-0 text-sm text-zinc-600">
             Nenhuma tarefa em aberto no momento.
@@ -498,7 +517,7 @@ export function OpenTasksFlowSection({
         </div>
       ) : null}
 
-      {!isLoading && groups.length > 0 ? (
+      {!isLoading && hasOpenWork && groups.length > 0 ? (
         <ul className="m-0 flex list-none flex-col gap-5 p-0">
           {groups.map((group) => (
             <li key={group.machineId}>

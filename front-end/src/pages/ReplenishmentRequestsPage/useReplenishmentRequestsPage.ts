@@ -28,9 +28,7 @@ function useApiReady(): boolean {
 
 function canDeleteRequest(row: ReplenishmentRequestListItem): boolean {
   const okStatus =
-    row.status === 'CREATED' ||
-    row.status === 'AWAITING_PREPARATION' ||
-    row.status === 'PALLET_READY';
+    row.status === 'CREATED' || row.status === 'PALLET_READY';
   return okStatus && row._count.movimentPalletTasks === 0;
 }
 
@@ -86,7 +84,7 @@ export function useReplenishmentRequestsPage() {
     if (!data) {
       return 0;
     }
-    return data.requests.length + data.operatorSupplyRequests.length;
+    return data.operatorSupplyRequests.length;
   }, [pendingPreparationQuery.data]);
 
   const visibleRequests = useMemo(() => {
@@ -138,10 +136,7 @@ export function useReplenishmentRequestsPage() {
       ) {
         forklift += 1;
       }
-      if (
-        row.typeMovimentPallet === 'PALLET_TRUCK' ||
-        row.typeMovimentPallet === 'ANY'
-      ) {
+      if (row.typeMovimentPallet === 'ANY') {
         palletTruck += 1;
       }
     }
@@ -173,14 +168,12 @@ export function useReplenishmentRequestsPage() {
     useState<ReplenishmentMovimentType>('FORKLIFT');
   const [priorityLevel, setPriorityLevel] =
     useState<PriorityLevelValue>('NORMAL');
-  const [palletReady, setPalletReady] = useState(false);
 
   const resetForm = useCallback(() => {
     setDestinationId('');
     setMovementCube('');
     setTypeMovimentPallet('FORKLIFT');
     setPriorityLevel('NORMAL');
-    setPalletReady(false);
   }, []);
 
   const openCreate = () => {
@@ -213,7 +206,6 @@ export function useReplenishmentRequestsPage() {
         movementCube: cube,
         typeMovimentPallet: typeMovimentPallet,
         priorityLevel,
-        ...(palletReady ? { palletReady: true } : {}),
       });
     },
     onSuccess: () => {
@@ -333,8 +325,6 @@ export function useReplenishmentRequestsPage() {
     setTypeMovimentPallet,
     priorityLevel,
     setPriorityLevel,
-    palletReady,
-    setPalletReady,
     openCreate,
     openEdit,
     createMut,

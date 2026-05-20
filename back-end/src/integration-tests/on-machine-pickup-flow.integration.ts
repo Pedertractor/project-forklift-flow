@@ -6,6 +6,7 @@ import {
   ForkliftTaskType,
   RequestStatus,
   RoleUser,
+  MovimentPalletEquipmentType,
   TypeMovimentPallet,
   Unit,
 } from '../generated/prisma/enums.js'
@@ -110,7 +111,7 @@ test(
       const pallet = await prisma.movimentPallet.create({
         data: {
           code: `TEST-PL-${suffix}`,
-          type: TypeMovimentPallet.FORKLIFT,
+          type: MovimentPalletEquipmentType.FORKLIFT,
           sectorId,
         },
       })

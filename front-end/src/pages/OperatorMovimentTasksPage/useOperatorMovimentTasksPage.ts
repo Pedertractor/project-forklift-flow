@@ -37,19 +37,29 @@ export function useOperatorMovimentTasksPage() {
     enabled: apiReady,
   });
 
-  const goToAvailableTasksAfterComplete = useCallback(async () => {
+  const afterTaskComplete = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-    await queryClient.refetchQueries({ queryKey: ['operator-moviment', 'my-tasks'] });
-    navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
-      state: { fromTaskCompletion: true },
+    const tasks = await queryClient.fetchQuery({
+      queryKey: ['operator-moviment', 'my-tasks'],
+      queryFn: fetchOperatorMyTasks,
     });
-  }, [queryClient, navigate]);
+    return tasks.filter((t) => isOpenMovimentTaskStatus(t.status));
+  }, [queryClient]);
 
   const completeDeliverMut = useMutation({
     mutationFn: (taskId: string) => postCompleteDeliverTask(taskId),
     onSuccess: async () => {
+      const stillOpen = await afterTaskComplete();
+      if (stillOpen.length > 0) {
+        toast.success(
+          'Entrega na máquina registrada. Continue na mesma rota para concluir a retirada na expedição.',
+        );
+        return;
+      }
       toast.success('Entrega na máquina registrada.');
-      await goToAvailableTasksAfterComplete();
+      navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
+        state: { fromTaskCompletion: true },
+      });
     },
     onError: toastApiError,
   });
@@ -57,14 +67,20 @@ export function useOperatorMovimentTasksPage() {
   const completePickupMut = useMutation({
     mutationFn: (taskId: string) => postCompletePickupTask(taskId),
     onSuccess: async () => {
+      const stillOpen = await afterTaskComplete();
+      if (stillOpen.length > 0) {
+        toast.success('Retirada registrada. Ainda há outras tarefas em aberto.');
+        return;
+      }
       toast.success('Retirada para expedição registrada.');
-      await goToAvailableTasksAfterComplete();
+      navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
+        state: { fromTaskCompletion: true },
+      });
     },
     onError: toastApiError,
   });
 
   const tasks = myTasksQuery.data ?? [];
-  const openTasks = tasks.filter((t) => isOpenMovimentTaskStatus(t.status));
 
   const busy = completeDeliverMut.isPending || completePickupMut.isPending;
 
@@ -74,7 +90,7 @@ export function useOperatorMovimentTasksPage() {
     currentPallet: myPalletQuery.data ?? null,
     myPalletQuery,
     myTasksQuery,
-    openTasks,
+    tasks,
     completeDeliverMut,
     completePickupMut,
     busy,

@@ -142,7 +142,11 @@ export function App() {
                   </Route>
                 </Route>
                 <Route element={<RequireRoles roles={OPERATOR_MACHINE_ROLES} />}>
-                  <Route path="dobra" element={<OperatorMachinePage />} />
+                  <Route
+                    path="dobra"
+                    element={<Navigate to="/dobra/operacao" replace />}
+                  />
+                  <Route path="dobra/operacao" element={<OperatorMachinePage />} />
                   <Route
                     path="dobra/retirada/:requestId"
                     element={<OperatorMachinePickupProgressPage />}

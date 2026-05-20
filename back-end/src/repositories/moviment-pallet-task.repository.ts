@@ -1,9 +1,10 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type { TypeMovimentPallet } from '../generated/prisma/enums.js'
 import {
   ForkliftTaskStatus,
   ForkliftTaskType,
+  MovimentPalletEquipmentType,
   RequestStatus,
+  TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 import { incompleteAssignedMovimentTaskStatuses } from '../constants/moviment-pallet-task-status.js'
 import { prisma } from '../lib/prisma.js'
@@ -85,6 +86,44 @@ export const movimentPalletTaskRepository = {
     })
   },
 
+  /**
+   * Follow-up / transpaleteira: tarefas do setor exceto pedidos e equipamentos de
+   * empilhadeira (FORKLIFT).
+   */
+  findManyForFollowUpSectorVisibility(
+    sectorId: string,
+    myPalletId?: string | null,
+  ) {
+    const orAssigned: Prisma.MovimentPalletTaskWhereInput[] = [
+      { assignedMovimentPalletId: null },
+      {
+        assignedMovimentPallet: {
+          type: MovimentPalletEquipmentType.PALLET_TRUCK,
+        },
+      },
+    ];
+    if (myPalletId) {
+      orAssigned.push({ assignedMovimentPalletId: myPalletId });
+    }
+    return prisma.movimentPalletTask.findMany({
+      where: {
+        status: { in: openPickupStatuses },
+        request: {
+          destination: { sectorId },
+          typeMovimentPallet: TypeMovimentPallet.ANY,
+        },
+        NOT: {
+          assignedMovimentPallet: {
+            type: MovimentPalletEquipmentType.FORKLIFT,
+          },
+        },
+        OR: orAssigned,
+      },
+      include: taskWithRequestInclude,
+      orderBy: [{ request: { priorityLevel: 'asc' } }, { createdAt: 'asc' }],
+    });
+  },
+
   /** Quantidade de tarefas nao concluidas/canceladas ja vinculadas ao equipamento. */
   countIncompleteTasksAssignedToPallet(
     palletId: string,
@@ -139,7 +178,7 @@ export const movimentPalletTaskRepository = {
   /** Pickups em aberto no setor (ex.: apos operador de maquina pedir retirada). */
   findManyOpenPickupTasksForSectorAndMovimentType(
     sectorId: string,
-    typeMovimentPallet: TypeMovimentPallet,
+    equipmentType: MovimentPalletEquipmentType,
   ) {
     return prisma.movimentPalletTask.findMany({
       where: {
@@ -147,7 +186,7 @@ export const movimentPalletTaskRepository = {
         status: { in: openPickupStatuses },
         request: {
           typeMovimentPallet: {
-            in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+            in: openPoolTypesForEquipment(equipmentType),
           },
           status: RequestStatus.ON_MACHINE,
           destination: { sectorId },
@@ -185,7 +224,7 @@ export const movimentPalletTaskRepository = {
   /** Entregas em aberto no setor (pallet no recebimento / em rota para a maquina). */
   findManyOpenDeliverTasksForSectorAndMovimentType(
     sectorId: string,
-    typeMovimentPallet: TypeMovimentPallet,
+    equipmentType: MovimentPalletEquipmentType,
   ) {
     return prisma.movimentPalletTask.findMany({
       where: {
@@ -193,9 +232,15 @@ export const movimentPalletTaskRepository = {
         status: { in: openDeliverStatuses },
         request: {
           typeMovimentPallet: {
-            in: openPoolTypesForEquipment(typeMovimentPallet as EquipmentMovimentType),
+            in: openPoolTypesForEquipment(equipmentType),
           },
-          status: { in: [RequestStatus.CREATED, RequestStatus.IN_PROGRESS] },
+          status: {
+            in: [
+              RequestStatus.PALLET_READY,
+              RequestStatus.CREATED,
+              RequestStatus.IN_PROGRESS,
+            ],
+          },
           destination: { sectorId },
         },
       },

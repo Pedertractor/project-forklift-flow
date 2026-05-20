@@ -28,8 +28,6 @@ export type CreateMachineReplenishmentRequestInput = {
   movementCube: string;
   typeMovimentPallet: TypeMovimentPallet;
   priorityLevel?: PriorityLevel;
-  /** Se true, pallet ja preparado — entra direto na fila do transporte. */
-  palletReady?: boolean;
 };
 
 export type UpdateMachineReplenishmentRequestInput = {
@@ -65,17 +63,13 @@ export async function createMachineReplenishmentRequest(
 ) {
   await requireMachineExists(input.destinationId);
 
-  const ready = input.palletReady === true;
   const now = new Date();
-  const initialStatus = ready
-    ? RequestStatus.PALLET_READY
-    : RequestStatus.AWAITING_PREPARATION;
   const data: Prisma.MachineReplenishmentRequestCreateInput = {
     movementCube: input.movementCube.trim(),
     typeMovimentPallet: input.typeMovimentPallet,
     priorityLevel: input.priorityLevel ?? PriorityLevel.NORMAL,
-    ...requestStatusOnCreate(initialStatus, now),
-    ...(ready ? { preparedAt: now } : { awaitingPreparationSince: now }),
+    ...requestStatusOnCreate(RequestStatus.PALLET_READY, now),
+    preparedAt: now,
     requestedBy: { connect: { id: input.requestedById } },
     destination: { connect: { id: input.destinationId } },
   };

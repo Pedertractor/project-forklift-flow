@@ -24,6 +24,6 @@ body:json {
 docs {
   # Requer JWT: roles SUPPLY_OPERATOR, LEADER ou ADMIN.
   # Envie ao menos um campo: destinationId, movementCube, typeMovimentPallet ou priorityLevel.
-  # typeMovimentPallet (opcional no PATCH): PALLET_TRUCK | FORKLIFT
+  # typeMovimentPallet (opcional no PATCH): FORKLIFT | ANY
   # Bloqueado se status for COMPLETED ou CANCELED (409).
 }

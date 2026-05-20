@@ -1,36 +1,106 @@
-import { Button } from '@/components/ui/Button';
+import { ReplenishmentCreateWizardModal } from '@/pages/ReplenishmentRequestsPage/ReplenishmentCreateWizardModal';
 import { Card } from '@/components/ui/card';
 import { ENV } from '@/constants/env';
-import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import {
   formatOperatorSupplyCreatedAt,
-  operatorSupplyRequestStatusLabel,
 } from '@/pages/OperatorMachinePage/operator-machine-requests.model';
-import {
-  priorityLevelLabel,
-  requestStatusLabel,
-} from '@/utils/replenishment-labels';
+import { cn } from '@/lib/utils';
+import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { SupplyPendingPreparationPageViewModel } from './useSupplyPendingPreparationPage';
+import { Box } from 'lucide-react';
 
-function movementTypeLabel(t: string): string {
-  return t === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
+function OperatorSupplyRequestCard({
+  row,
+  disabled,
+  onSelect,
+}: {
+  row: OperatorMachineSupplyRequestListItem;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <li className="min-w-0">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onSelect}
+        className={cn(
+          'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 border-zinc-200 bg-white p-4 text-left outline-none transition-all',
+          'hover:border-[#005fb8]/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+        )}
+        aria-label={`Criar solicitação de retirada para ${row.machine.name}`}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600"
+            aria-hidden
+          >
+            <Box className="size-8 stroke-[1.75]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="m-0 text-base font-bold text-zinc-900">
+              {row.machine.name}
+            </p>
+            <p className="mt-0.5 text-sm text-zinc-600">{row.machine.position}</p>
+            <p className="mt-2 text-xs text-zinc-500">
+              Operador:{' '}
+              <span className="font-medium text-zinc-700">
+                {row.requestedBy.name}
+              </span>
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {formatOperatorSupplyCreatedAt(row.createdAt)}
+            </p>
+          </div>
+        </div>
+        <p className="m-0 text-xs font-medium text-[#005fb8]">
+          Toque para registrar a retirada com o cubo
+        </p>
+      </button>
+    </li>
+  );
 }
 
 export function SupplyPendingPreparationPageView(
   vm: SupplyPendingPreparationPageViewModel,
 ) {
-  const { apiReady, token, user, hasSector, pendingQuery, markMut } = vm;
-  const pending = pendingQuery.data;
-  const rows = pending?.requests ?? [];
-  const operatorSupplyRows = pending?.operatorSupplyRequests ?? [];
+  const {
+    apiReady,
+    token,
+    hasSector,
+    pendingQuery,
+    operatorSupplyRows,
+    machinesForSelect,
+    machinesEmpty,
+    createOpen,
+    setCreateOpen,
+    wizardInitialStep,
+    destinationId,
+    setDestinationId,
+    movementCube,
+    setMovementCube,
+    typeMovimentPallet,
+    setTypeMovimentPallet,
+    priorityLevel,
+    setPriorityLevel,
+    openCreateFromOperatorSupply,
+    createMut,
+    busy,
+    createError,
+  } = vm;
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
-      <div className="mx-auto w- max-w-6xl">
+      <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6 border-b border-zinc-200 pb-6">
           <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
-            Preparo pendente
+            Solicitações de reposição
           </h1>
+          <p className="mt-1.5 text-sm text-zinc-600">
+            Pedidos enviados pelos operadores de máquina. Toque em um card para
+            abrir a solicitação de retirada com a máquina já selecionada.
+          </p>
         </header>
 
         {!ENV.API_URL ? (
@@ -46,8 +116,15 @@ export function SupplyPendingPreparationPageView(
         {!hasSector ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             Seu usuário não tem <strong>setor</strong> vinculado. A API exige
-            setor para listar preparos pendentes do chão. Solicite ao
-            administrador o ajuste do cadastro.
+            setor para listar solicitações do chão. Solicite ao administrador o
+            ajuste do cadastro.
+          </p>
+        ) : null}
+
+        {machinesEmpty ? (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            Não há máquinas no seu setor para registrar retiradas. Cadastre
+            máquinas em «Máquinas de produção» ou verifique o setor do usuário.
           </p>
         ) : null}
 
@@ -59,190 +136,53 @@ export function SupplyPendingPreparationPageView(
           </p>
         ) : null}
 
-        <h2 className="mt-8 mb-2 text-lg font-semibold tracking-tight text-zinc-900">
-          Avisos do operador de máquina
-        </h2>
-        <p className="mb-3 text-sm text-zinc-600">
-          Pedido de pallet sem prisma na máquina Ao registrar a solicitação de
-          reposição com cubo para a mesma máquina, o aviso é concluído
-          automaticamente.
-        </p>
-        <Card className="overflow-x-auto border border-zinc-200 shadow-sm">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/90">
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Máquina
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Operador
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Enviada em
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Situação
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {!apiReady || !hasSector ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-8 text-center text-zinc-500"
-                  >
-                    —
-                  </td>
-                </tr>
-              ) : pendingQuery.isLoading ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-8 text-center text-zinc-500"
-                  >
-                    Carregando…
-                  </td>
-                </tr>
-              ) : operatorSupplyRows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-8 text-center text-zinc-500"
-                  >
-                    Nenhum aviso do operador no setor.
-                  </td>
-                </tr>
-              ) : (
-                operatorSupplyRows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-zinc-100 last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900">
-                        {row.machine.name}
-                      </div>
-                      <div className="text-xs text-zinc-500">
-                        {row.machine.position}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-800">
-                      {row.requestedBy.name}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {formatOperatorSupplyCreatedAt(row.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {operatorSupplyRequestStatusLabel(row.status)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </Card>
-
-        <h2 className="mt-8 mb-2 text-lg font-semibold tracking-tight text-zinc-900">
-          Pedidos aguardando preparo (cubo)
-        </h2>
-        <Card className="overflow-x-auto border border-zinc-200 shadow-sm">
-          <table className="w-full min-w-[880px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/90">
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Máquina destino
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Cubo</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Tipo mov.
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Prioridade
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-zinc-700">
-                  Ação
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {!apiReady || !hasSector ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-zinc-500"
-                  >
-                    —
-                  </td>
-                </tr>
-              ) : pendingQuery.isLoading ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-zinc-500"
-                  >
-                    Carregando…
-                  </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-zinc-500"
-                  >
-                    Nenhum preparo pendente no momento.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-zinc-100 last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900">
-                        {row.destination.name}
-                      </div>
-                      <div className="text-xs text-zinc-500">
-                        {row.destination.position}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-zinc-800">
-                      {formatReplenishmentMovementCubeDisplay(row.movementCube)}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {movementTypeLabel(row.typeMovimentPallet)}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {priorityLevelLabel(row.priorityLevel)}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {requestStatusLabel(row.status)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        size="default"
-                        className="h-9 min-w-0 px-3 text-xs"
-                        disabled={!apiReady || markMut.isPending}
-                        onClick={() => markMut.mutate(row.id)}
-                        aria-label={`Marcar pallet pronto para ${row.destination.name}`}
-                      >
-                        {markMut.isPending
-                          ? 'Salvando…'
-                          : 'Marcar pallet pronto'}
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </Card>
+        {!apiReady || !hasSector ? (
+          <Card className="mt-6 border border-zinc-200 px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
+            —
+          </Card>
+        ) : pendingQuery.isLoading ? (
+          <Card className="mt-6 border border-zinc-200 px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
+            Carregando solicitações…
+          </Card>
+        ) : operatorSupplyRows.length === 0 ? (
+          <Card className="mt-6 border border-zinc-200 px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
+            Nenhuma solicitação de operador de máquina no setor.
+          </Card>
+        ) : (
+          <ul
+            className="mt-6 m-0 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3"
+            aria-label="Solicitações dos operadores de máquina"
+          >
+            {operatorSupplyRows.map((row) => (
+              <OperatorSupplyRequestCard
+                key={row.id}
+                row={row}
+                disabled={!apiReady || busy || machinesEmpty}
+                onSelect={() => openCreateFromOperatorSupply(row)}
+              />
+            ))}
+          </ul>
+        )}
       </div>
+
+      <ReplenishmentCreateWizardModal
+        open={createOpen}
+        busy={busy}
+        machinesEmpty={machinesEmpty}
+        machines={machinesForSelect}
+        destinationId={destinationId}
+        setDestinationId={setDestinationId}
+        movementCube={movementCube}
+        setMovementCube={setMovementCube}
+        typeMovimentPallet={typeMovimentPallet}
+        setTypeMovimentPallet={setTypeMovimentPallet}
+        priorityLevel={priorityLevel}
+        setPriorityLevel={setPriorityLevel}
+        initialStep={wizardInitialStep}
+        createError={createError}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={() => createMut.mutate()}
+      />
     </main>
   );
 }

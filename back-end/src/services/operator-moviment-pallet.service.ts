@@ -4,6 +4,7 @@ import {
   MovimentPalletTripSuggestionStatus,
   PriorityLevel,
   RequestStatus,
+  MovimentPalletEquipmentType,
   RoleUser,
   TypeMovimentPallet,
 } from "../generated/prisma/enums.js";
@@ -26,10 +27,14 @@ import {
   TripRouteSuggestionNotFoundError,
   TripRouteSuggestionNotOpenError,
 } from "../errors/domain-errors.js";
+import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/prisma.js";
+import { operatorMovimentPalletWsBroadcastTripSuggestionsUpdated } from "../ws/operator-moviment-pallet-ws.hub.js";
 import { requestStatusPatch } from "../utils/request-status-since.js";
 import { machineReplenishmentRequestRepository } from "../repositories/machine-replenishment-request.repository.js";
-import { movimentPalletRepository } from "../repositories/moviment-pallet.repository.js";import {
+import { operatorMachineSupplyRequestRepository } from "../repositories/operator-machine-supply-request.repository.js";
+import { movimentPalletRepository } from "../repositories/moviment-pallet.repository.js";
+import {
   isOpenTripTaskPairValid,
   movimentPalletTripSuggestionRepository,
 } from "../repositories/moviment-pallet-trip-suggestion.repository.js";
@@ -38,17 +43,54 @@ import { userRepository } from "../repositories/user.repository.js";
 import {
   assertEquipmentMovimentType,
   openPoolTypesForEquipment,
+  requestTypeAfterEquipmentClaim,
   requestTypeMatchesEquipment,
+  type EquipmentMovimentType,
 } from "../utils/replenishment-moviment-type.js";
 
-function typesAllowedForRole(role: RoleUser): TypeMovimentPallet[] {
+const poolClaimableRequestStatuses: RequestStatus[] = [
+  RequestStatus.PALLET_READY,
+  RequestStatus.CREATED,
+];
+
+async function claimPoolReplenishmentRequestForTransportInTx(
+  tx: Prisma.TransactionClient,
+  requestId: string,
+  currentStatus: RequestStatus,
+  palletType: EquipmentMovimentType,
+): Promise<void> {
+  if (!poolClaimableRequestStatuses.includes(currentStatus)) {
+    return;
+  }
+  const claimed = await tx.machineReplenishmentRequest.updateMany({
+    where: {
+      id: requestId,
+      status: { in: poolClaimableRequestStatuses },
+      typeMovimentPallet: { in: openPoolTypesForEquipment(palletType) },
+    },
+    data: {
+      ...requestStatusPatch(RequestStatus.IN_PROGRESS),
+      ...requestTypeAfterEquipmentClaim(palletType),
+    },
+  });
+  if (claimed.count !== 1) {
+    throw new ReplenishmentRequestAlreadyAssignedError();
+  }
+}
+
+function equipmentTypesAllowedForRole(
+  role: RoleUser,
+): MovimentPalletEquipmentType[] {
   switch (role) {
     case RoleUser.FORKLIFT_OPERATOR:
-      return [TypeMovimentPallet.FORKLIFT];
+      return [MovimentPalletEquipmentType.FORKLIFT];
     case RoleUser.FOLLOW_UP_OPERATOR:
-      return [TypeMovimentPallet.PALLET_TRUCK];
+      return [MovimentPalletEquipmentType.PALLET_TRUCK];
     case RoleUser.ADMIN:
-      return [TypeMovimentPallet.FORKLIFT, TypeMovimentPallet.PALLET_TRUCK];
+      return [
+        MovimentPalletEquipmentType.FORKLIFT,
+        MovimentPalletEquipmentType.PALLET_TRUCK,
+      ];
     default:
       return [];
   }
@@ -83,7 +125,7 @@ export async function listMovimentPalletsForOperatorPicker(
   operatorUserId: string,
   role: RoleUser,
 ) {
-  const types = typesAllowedForRole(role);
+  const types = equipmentTypesAllowedForRole(role);
   if (types.length === 0) {
     return [];
   }
@@ -107,7 +149,7 @@ export async function bindOperatorToMovimentPallet(
   role: RoleUser,
   movimentPalletId: string,
 ) {
-  const allowed = typesAllowedForRole(role);
+  const allowed = equipmentTypesAllowedForRole(role);
   if (allowed.length === 0) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }
@@ -171,20 +213,20 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
   const sectorId = user?.sectorId;
 
-  const requests =
-    await machineReplenishmentRequestRepository.findManyOpenPoolForMovimentType(
-      pallet.type,
-    );
-
   if (sectorId == null || sectorId === "") {
-    return { requests, onMachinePickupTasks: [] };
+    return { requests: [], onMachinePickupTasks: [] };
   }
 
-  const onMachinePickupTasks =
-    await movimentPalletTaskRepository.findManyOpenPickupTasksForSectorAndMovimentType(
+  const [requests, onMachinePickupTasks] = await Promise.all([
+    machineReplenishmentRequestRepository.findManyOpenPoolForSectorAndMovimentType(
       sectorId,
       pallet.type,
-    );
+    ),
+    movimentPalletTaskRepository.findManyOpenPickupTasksForSectorAndMovimentType(
+      sectorId,
+      pallet.type,
+    ),
+  ]);
 
   return { requests, onMachinePickupTasks };
 }
@@ -194,18 +236,10 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
  * (mesma ordenação que `listMyMovimentPalletTasks`). Útil para montar linha do
  * tempo no front após aceitar sugestão, retirada avulsa ou pedido de entrega.
  */
-export async function getOperatorMovimentPalletActiveFlow(
-  operatorUserId: string,
-) {
-  const movimentPallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!movimentPallet) {
-    return { movimentPallet: null, tasks: [] };
-  }
-  const tasks = await movimentPalletTaskRepository.findManyForAssignedPallet(
-    movimentPallet.id,
-  );
-  const sorted = [...tasks].sort((a, b) => {
+function sortTasksByRequestPriority<T extends { request: { priorityLevel: PriorityLevel }; createdAt: Date }>(
+  tasks: T[],
+): T[] {
+  return [...tasks].sort((a, b) => {
     const pa = priorityRank[a.request.priorityLevel];
     const pb = priorityRank[b.request.priorityLevel];
     if (pa !== pb) {
@@ -213,11 +247,69 @@ export async function getOperatorMovimentPalletActiveFlow(
     }
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
-  return { movimentPallet, tasks: sorted };
 }
 
-export async function listMyMovimentPalletTasks(operatorUserId: string) {
-  const { tasks } = await getOperatorMovimentPalletActiveFlow(operatorUserId);
+function usesFollowUpSectorTaskView(
+  role: RoleUser,
+  palletType: MovimentPalletEquipmentType | undefined,
+): boolean {
+  if (role === RoleUser.FOLLOW_UP_OPERATOR) {
+    return true;
+  }
+  if (role === RoleUser.ADMIN && palletType === MovimentPalletEquipmentType.PALLET_TRUCK) {
+    return true;
+  }
+  return false;
+}
+
+async function listTasksVisibleToMovimentOperator(
+  operatorUserId: string,
+  role: RoleUser,
+) {
+  const movimentPallet =
+    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
+
+  if (
+    usesFollowUpSectorTaskView(role, movimentPallet?.type) &&
+    user?.sectorId
+  ) {
+    const tasks =
+      await movimentPalletTaskRepository.findManyForFollowUpSectorVisibility(
+        user.sectorId,
+        movimentPallet?.id,
+      );
+    return { movimentPallet, tasks: sortTasksByRequestPriority(tasks) };
+  }
+
+  if (!movimentPallet) {
+    return { movimentPallet: null, tasks: [] };
+  }
+
+  const tasks = await movimentPalletTaskRepository.findManyForAssignedPallet(
+    movimentPallet.id,
+  );
+  return {
+    movimentPallet,
+    tasks: sortTasksByRequestPriority(tasks),
+  };
+}
+
+export async function getOperatorMovimentPalletActiveFlow(
+  operatorUserId: string,
+  role: RoleUser,
+) {
+  return listTasksVisibleToMovimentOperator(operatorUserId, role);
+}
+
+export async function listMyMovimentPalletTasks(
+  operatorUserId: string,
+  role: RoleUser,
+) {
+  const { tasks } = await listTasksVisibleToMovimentOperator(
+    operatorUserId,
+    role,
+  );
   return tasks;
 }
 
@@ -230,12 +322,12 @@ type TaskWithReq = Awaited<
 type ComputedTripPair = {
   deliverTask: TaskWithReq;
   pickupTask: TaskWithReq;
-  typeMovimentPallet: TypeMovimentPallet;
+  typeMovimentPallet: MovimentPalletEquipmentType;
 };
 
 type TripRouteSuggestionRow = {
   kind: "COMBINE_DELIVER_AND_PICKUP_AT_MACHINE";
-  typeMovimentPallet: TypeMovimentPallet;
+  typeMovimentPallet: MovimentPalletEquipmentType;
   effectivePriority: PriorityLevel;
   deferRecommended: boolean;
   machine: { id: string; name: string; position: string };
@@ -262,7 +354,7 @@ type TripRouteSuggestionRow = {
 
 type StandalonePickupRow = {
   kind: "PICKUP_ONLY_AT_MACHINE";
-  typeMovimentPallet: TypeMovimentPallet;
+  typeMovimentPallet: MovimentPalletEquipmentType;
   effectivePriority: PriorityLevel;
   deferRecommended: boolean;
   machine: { id: string; name: string; position: string };
@@ -279,24 +371,24 @@ type StandalonePickupRow = {
 
 type StandalonePickupEntry = {
   pickupTask: TaskWithReq;
-  typeMovimentPallet: TypeMovimentPallet;
+  typeMovimentPallet: MovimentPalletEquipmentType;
 };
 
 type StandaloneDeliverEntry =
   | {
       kind: "POOL";
       poolRequest: PoolRequestRow;
-      typeMovimentPallet: TypeMovimentPallet;
+      typeMovimentPallet: MovimentPalletEquipmentType;
     }
   | {
       kind: "DELIVER_TASK";
       deliverTask: TaskWithReq;
-      typeMovimentPallet: TypeMovimentPallet;
+      typeMovimentPallet: MovimentPalletEquipmentType;
     };
 
 type StandaloneDeliverRow = {
   kind: "DELIVER_ONLY_TO_MACHINE";
-  typeMovimentPallet: TypeMovimentPallet;
+  typeMovimentPallet: MovimentPalletEquipmentType;
   effectivePriority: PriorityLevel;
   deferRecommended: boolean;
   machine: { id: string; name: string; position: string };
@@ -318,13 +410,13 @@ type TripPairCandidate =
       kind: "POOL";
       pickupTask: TaskWithReq;
       poolRequest: PoolRequestRow;
-      typeMovimentPallet: TypeMovimentPallet;
+      typeMovimentPallet: MovimentPalletEquipmentType;
     }
   | {
       kind: "EXISTING_DELIVER";
       pickupTask: TaskWithReq;
       deliverTask: TaskWithReq;
-      typeMovimentPallet: TypeMovimentPallet;
+      typeMovimentPallet: MovimentPalletEquipmentType;
     };
 
 function effectivePriorityForTripCandidate(
@@ -408,17 +500,6 @@ async function ensureOpenDeliverTaskForPoolRequest(
   );
 }
 
-function sortTasksByRequestPriority(tasks: TaskWithReq[]) {
-  return [...tasks].sort((a, b) => {
-    const pa = priorityRank[a.request.priorityLevel];
-    const pb = priorityRank[b.request.priorityLevel];
-    if (pa !== pb) {
-      return pa - pb;
-    }
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  });
-}
-
 type PoolRequestRow = Awaited<
   ReturnType<
     typeof machineReplenishmentRequestRepository.findManyOpenPoolForSectorAndMovimentType
@@ -438,7 +519,7 @@ function sortPoolByPriority(requests: PoolRequestRow[]) {
 
 async function computeTripPairsAndSectorUrgency(
   sectorId: string,
-  types: TypeMovimentPallet[],
+  types: MovimentPalletEquipmentType[],
 ): Promise<{
   pairs: ComputedTripPair[];
   standalonePickups: StandalonePickupEntry[];
@@ -567,6 +648,7 @@ async function computeTripPairsAndSectorUrgency(
             typeMovimentPallet: type,
           });
         } else {
+          usedPoolRequestIds.add(best.deliverTask.requestId);
           pairsForType.push({
             deliverTask: best.deliverTask,
             pickupTask: best.pickupTask,
@@ -589,14 +671,23 @@ async function computeTripPairsAndSectorUrgency(
       }
     }
 
+    const operatorLinkedPoolIds =
+      await operatorMachineSupplyRequestRepository.findFulfilledReplenishmentIds(
+        poolRequests.map((r) => r.id),
+      );
+
     for (const poolReq of sortPoolByPriority(poolRequests)) {
-      if (!usedPoolRequestIds.has(poolReq.id)) {
-        standaloneDelivers.push({
-          kind: "POOL",
-          poolRequest: poolReq,
-          typeMovimentPallet: type,
-        });
+      if (usedPoolRequestIds.has(poolReq.id)) {
+        continue;
       }
+      if (!operatorLinkedPoolIds.has(poolReq.id)) {
+        continue;
+      }
+      standaloneDelivers.push({
+        kind: "POOL",
+        poolRequest: poolReq,
+        typeMovimentPallet: type,
+      });
     }
 
     for (const deliverTask of sortTasksByRequestPriority(delivers)) {
@@ -636,9 +727,67 @@ async function tryCompleteTripSuggestionForPickupTask(pickupTaskId: string) {
   }
 }
 
+function dedupeComputedTripPairs(pairs: ComputedTripPair[]): ComputedTripPair[] {
+  const byPickup = new Map<string, ComputedTripPair>();
+  for (const pair of pairs) {
+    if (!byPickup.has(pair.pickupTask.id)) {
+      byPickup.set(pair.pickupTask.id, pair);
+    }
+  }
+  return [...byPickup.values()];
+}
+
+function dedupeCombinedSuggestionsByPickup(
+  rows: TripRouteSuggestionRow[],
+): TripRouteSuggestionRow[] {
+  const bestByPickup = new Map<string, TripRouteSuggestionRow>();
+  for (const row of rows) {
+    const pickupId = row.pickupTask.id;
+    const current = bestByPickup.get(pickupId);
+    if (
+      !current ||
+      row.tripSuggestion.updatedAt > current.tripSuggestion.updatedAt
+    ) {
+      bestByPickup.set(pickupId, row);
+    }
+  }
+  return [...bestByPickup.values()];
+}
+
+function excludeStandalonesCoveredByCombined(
+  suggestions: TripRouteSuggestionRow[],
+  standalonePickups: StandalonePickupRow[],
+  standaloneDelivers: StandaloneDeliverRow[],
+) {
+  const pairedPickupIds = new Set(suggestions.map((s) => s.pickupTask.id));
+  const pairedDeliverIds = new Set(suggestions.map((s) => s.deliverTask.id));
+  const pairedDeliverRequestIds = new Set(
+    suggestions.map((s) => s.deliverTask.requestId),
+  );
+  const combinedMachineIds = new Set(suggestions.map((s) => s.machine.id));
+
+  return {
+    standalonePickupTasks: standalonePickups.filter(
+      (s) => !pairedPickupIds.has(s.pickupTask.id),
+    ),
+    standaloneDeliverTasks: standaloneDelivers.filter((d) => {
+      if (d.deliverTask && pairedDeliverIds.has(d.deliverTask.id)) {
+        return false;
+      }
+      if (pairedDeliverRequestIds.has(d.requestId)) {
+        return false;
+      }
+      if (combinedMachineIds.has(d.machine.id)) {
+        return false;
+      }
+      return true;
+    }),
+  };
+}
+
 async function syncTripSuggestionsToDb(
   sectorId: string,
-  types: TypeMovimentPallet[],
+  types: MovimentPalletEquipmentType[],
   pairs: ComputedTripPair[],
 ) {
   const openRows =
@@ -649,9 +798,20 @@ async function syncTripSuggestionsToDb(
   const validKeys = new Set(
     pairs.map((p) => `${p.deliverTask.id}:${p.pickupTask.id}`),
   );
+  const deliverIdForPickup = new Map(
+    pairs.map((p) => [p.pickupTask.id, p.deliverTask.id] as const),
+  );
   const toExpire: string[] = [];
   for (const row of openRows) {
     const key = `${row.deliverTaskId}:${row.pickupTaskId}`;
+    const canonicalDeliverId = deliverIdForPickup.get(row.pickupTaskId);
+    if (
+      canonicalDeliverId !== undefined &&
+      row.deliverTaskId !== canonicalDeliverId
+    ) {
+      toExpire.push(row.id);
+      continue;
+    }
     if (!validKeys.has(key)) {
       toExpire.push(row.id);
       continue;
@@ -675,13 +835,24 @@ async function syncTripSuggestionsToDb(
     }
   }
   await movimentPalletTripSuggestionRepository.expireByIds(toExpire);
+  const typesNotified = new Set<MovimentPalletEquipmentType>();
   for (const p of pairs) {
-    await movimentPalletTripSuggestionRepository.upsertOpenPair({
+    const { created } = await movimentPalletTripSuggestionRepository.upsertOpenPair({
       deliverTaskId: p.deliverTask.id,
       pickupTaskId: p.pickupTask.id,
       machineId: p.deliverTask.request.destinationId,
       typeMovimentPallet: p.typeMovimentPallet,
     });
+    if (created) {
+      typesNotified.add(p.typeMovimentPallet);
+    }
+  }
+
+  for (const equipmentType of typesNotified) {
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+      sectorId,
+      equipmentType as TypeMovimentPallet,
+    );
   }
 }
 
@@ -696,7 +867,7 @@ function mapDbRowToTripRouteSuggestion(
     updatedAt: Date;
     deliverTask: TaskWithReq;
     pickupTask: TaskWithReq;
-    typeMovimentPallet: TypeMovimentPallet;
+    typeMovimentPallet: MovimentPalletEquipmentType;
   },
   mostUrgentOpenInSector: PriorityLevel | null,
 ): TripRouteSuggestionRow {
@@ -710,8 +881,8 @@ function mapDbRowToTripRouteSuggestion(
 
   const machine = row.pickupTask.request.destination;
   const baseMessage =
-    `Na maquina ${machine.name} (${machine.position}): ha pallet no recebimento destinado a esta maquina e retirada ja solicitada pelo operador da maquina. ` +
-    `Sugestao: uma unica ida — buscar no recebimento, entregar na maquina, retirar o prisma finalizado e levar a expedicao.`;
+    `Na máquina ${machine.name} (${machine.position}): há pallet no recebimento destinado a esta máquina e retirada já solicitada pelo operador da máquina. ` +
+    `Sugestão: uma única ida — buscar no recebimento, entregar na máquina, retirar o prisma finalizado e levar à expedição.`;
 
   const prioritySuffix = deferRecommended
     ? ` Prioridade desta sugestao: ${effectivePriority}; ha itens mais urgentes em aberto no setor (${mostUrgentOpenInSector}).`
@@ -770,8 +941,8 @@ function mapStandalonePickupToRow(
 
   const machine = pickupTask.request.destination;
   const baseMessage =
-    `Na maquina ${machine.name} (${machine.position}): retirada avulsa sugerida — prisma pronto na maquina. ` +
-    `Aceite para retirar o pallet e levar a expedicao (sem entrega combinada nesta maquina).`;
+    `Na máquina ${machine.name} (${machine.position}): retirada avulsa sugerida — prisma pronto na máquina. ` +
+    `Aceite para retirar o pallet e levar à expedição (sem entrega combinada nesta máquina).`;
 
   const prioritySuffix = deferRecommended
     ? ` Prioridade: ${effectivePriority}; ha itens mais urgentes em aberto no setor (${mostUrgentOpenInSector}).`
@@ -830,12 +1001,12 @@ function mapStandaloneDeliverToRow(
 
   const baseMessage =
     entry.kind === "POOL"
-      ? `Entrega avulsa sugerida: prisma ${movementCube} no recebimento para a maquina ${machine.name} (${machine.position}). ` +
-        `Aceite para buscar no recebimento e entregar na maquina (sem retirada combinada neste momento).`
-      : `Entrega avulsa sugerida: levar prisma ${movementCube} do recebimento ate a maquina ${machine.name} (${machine.position}).`;
+      ? `Entrega avulsa sugerida: prisma ${movementCube} no recebimento para a máquina ${machine.name} (${machine.position}). ` +
+        `Aceite para buscar no recebimento e entregar na máquina (sem retirada combinada neste momento).`
+      : `Entrega avulsa sugerida: levar prisma ${movementCube} do recebimento até a máquina ${machine.name} (${machine.position}).`;
 
   const prioritySuffix = deferRecommended
-    ? ` Prioridade: ${effectivePriority}; ha itens mais urgentes em aberto no setor (${mostUrgentOpenInSector}).`
+    ? ` Prioridade: ${effectivePriority}; há itens mais urgentes em aberto no setor (${mostUrgentOpenInSector}).`
     : "";
 
   return {
@@ -871,7 +1042,7 @@ export async function listTripRouteSuggestionsForOperator(
   operatorUserId: string,
   role: RoleUser,
 ) {
-  const types = typesAllowedForRole(role);
+  const types = equipmentTypesAllowedForRole(role);
   if (types.length === 0) {
     return {
       suggestions: [] as TripRouteSuggestionRow[],
@@ -894,7 +1065,9 @@ export async function listTripRouteSuggestionsForOperator(
   const { pairs, standalonePickups, standaloneDelivers, mostUrgentOpenInSector } =
     await computeTripPairsAndSectorUrgency(user.sectorId, types);
 
-  await syncTripSuggestionsToDb(user.sectorId, types, pairs);
+  const uniquePairs = dedupeComputedTripPairs(pairs);
+
+  await syncTripSuggestionsToDb(user.sectorId, types, uniquePairs);
 
   await movimentPalletTripSuggestionRepository.reconcileCompletedAcceptedInSector(
     user.sectorId,
@@ -932,7 +1105,9 @@ export async function listTripRouteSuggestionsForOperator(
     );
   }
 
-  suggestions.sort((a, b) => {
+  const dedupedSuggestions = dedupeCombinedSuggestionsByPickup(suggestions);
+
+  dedupedSuggestions.sort((a, b) => {
     const ra = priorityRank[a.effectivePriority];
     const rb = priorityRank[b.effectivePriority];
     if (ra !== rb) {
@@ -965,7 +1140,21 @@ export async function listTripRouteSuggestionsForOperator(
     return a.machine.id.localeCompare(b.machine.id);
   });
 
-  return { suggestions, standalonePickupTasks, standaloneDeliverTasks };
+  const filtered = excludeStandalonesCoveredByCombined(
+    dedupedSuggestions,
+    standalonePickupTasks,
+    standaloneDeliverTasks,
+  );
+
+  return {
+    suggestions: dedupedSuggestions,
+    standalonePickupTasks: filtered.standalonePickupTasks,
+    standaloneDeliverTasks: filtered.standaloneDeliverTasks,
+    priorityContext: {
+      mostUrgentOpenInSector,
+      hint: undefined,
+    },
+  };
 }
 
 export async function acceptTripRouteSuggestion(
@@ -973,7 +1162,7 @@ export async function acceptTripRouteSuggestion(
   role: RoleUser,
   tripSuggestionId: string,
 ) {
-  const allowed = typesAllowedForRole(role);
+  const allowed = equipmentTypesAllowedForRole(role);
   if (allowed.length === 0) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }
@@ -1009,6 +1198,14 @@ export async function acceptTripRouteSuggestion(
   }
   if (pallet.type !== full.typeMovimentPallet) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
+  }
+  if (
+    !requestTypeMatchesEquipment(
+      full.deliverTask.request.typeMovimentPallet,
+      assertEquipmentMovimentType(pallet.type),
+    )
+  ) {
+    throw new ReplenishmentRequestTypeMismatchError();
   }
 
   const dt = full.deliverTask;
@@ -1051,22 +1248,12 @@ export async function acceptTripRouteSuggestion(
   await assertNoIncompleteTasksBlockingNewAccept(pallet.id);
 
   await prisma.$transaction(async (tx) => {
-    if (dt.request.status === RequestStatus.CREATED) {
-      const claimedRequest = await tx.machineReplenishmentRequest.updateMany({
-        where: {
-          id: dt.requestId,
-          status: RequestStatus.CREATED,
-          typeMovimentPallet: { in: openPoolTypesForEquipment(assertEquipmentMovimentType(pallet.type)) },
-        },
-        data: {
-          ...requestStatusPatch(RequestStatus.IN_PROGRESS),
-          typeMovimentPallet: pallet.type,
-        },
-      });
-      if (claimedRequest.count !== 1) {
-        throw new ReplenishmentRequestAlreadyAssignedError();
-      }
-    }
+    await claimPoolReplenishmentRequestForTransportInTx(
+      tx,
+      dt.requestId,
+      dt.request.status,
+      assertEquipmentMovimentType(pallet.type),
+    );
 
     const claimed = await tx.movimentPalletTripSuggestion.updateMany({
       where: {
@@ -1146,7 +1333,7 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
   role: RoleUser,
   taskId: string,
 ) {
-  const allowed = typesAllowedForRole(role);
+  const allowed = equipmentTypesAllowedForRole(role);
   if (allowed.length === 0) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }
@@ -1234,18 +1421,20 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
     );
   }
 
-  if (task.request.status === RequestStatus.CREATED) {
+  if (poolClaimableRequestStatuses.includes(task.request.status)) {
     const claimedRequest = await prisma.machineReplenishmentRequest.updateMany({
       where: {
         id: task.requestId,
-        status: RequestStatus.CREATED,
+        status: { in: poolClaimableRequestStatuses },
         typeMovimentPallet: {
           in: openPoolTypesForEquipment(assertEquipmentMovimentType(pallet.type)),
         },
       },
       data: {
-        status: RequestStatus.IN_PROGRESS,
-        typeMovimentPallet: pallet.type,
+        ...requestStatusPatch(RequestStatus.IN_PROGRESS),
+        ...requestTypeAfterEquipmentClaim(
+          assertEquipmentMovimentType(pallet.type),
+        ),
       },
     });
     if (claimedRequest.count !== 1) {
@@ -1267,7 +1456,7 @@ export async function acceptOpenPickupTaskForMovimentOperator(
   role: RoleUser,
   taskId: string,
 ) {
-  const allowed = typesAllowedForRole(role);
+  const allowed = equipmentTypesAllowedForRole(role);
   if (allowed.length === 0) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }
@@ -1396,7 +1585,7 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
   role: RoleUser,
   requestId: string,
 ) {
-  const allowed = typesAllowedForRole(role);
+  const allowed = equipmentTypesAllowedForRole(role);
   if (allowed.length === 0) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }
@@ -1437,7 +1626,9 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
       },
       data: {
         ...requestStatusPatch(RequestStatus.IN_PROGRESS),
-        typeMovimentPallet: pallet.type,
+        ...requestTypeAfterEquipmentClaim(
+          assertEquipmentMovimentType(pallet.type),
+        ),
       },
     });
     if (claimed.count !== 1) {
@@ -1483,7 +1674,7 @@ export async function completeDeliverTaskToMachine(
   role: RoleUser,
   taskId: string,
 ) {
-  const allowed = typesAllowedForRole(role);
+  const allowed = equipmentTypesAllowedForRole(role);
   if (allowed.length === 0) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }
@@ -1599,7 +1790,7 @@ export async function completePickupTaskToExpedition(
   role: RoleUser,
   taskId: string,
 ) {
-  const allowed = typesAllowedForRole(role);
+  const allowed = equipmentTypesAllowedForRole(role);
   if (allowed.length === 0) {
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }

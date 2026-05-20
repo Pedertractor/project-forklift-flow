@@ -1,5 +1,5 @@
 import type { RouteHandlerMethod } from 'fastify'
-import { TypeMovimentPallet } from '../generated/prisma/enums.js'
+import { MovimentPalletEquipmentType } from '../generated/prisma/enums.js'
 import {
   MovimentPalletCodeConflictError,
   MovimentPalletDeleteBlockedError,
@@ -15,8 +15,10 @@ import {
   type CreateMovimentPalletInput,
 } from '../services/moviment-pallet.service.js'
 
-function isTypeMovimentPallet(value: string): value is TypeMovimentPallet {
-  return (Object.values(TypeMovimentPallet) as string[]).includes(value)
+function isMovimentPalletEquipmentType(
+  value: string,
+): value is MovimentPalletEquipmentType {
+  return (Object.values(MovimentPalletEquipmentType) as string[]).includes(value)
 }
 
 export const postCreateMovimentPallet: RouteHandlerMethod = async (
@@ -37,7 +39,7 @@ export const postCreateMovimentPallet: RouteHandlerMethod = async (
       .send({ error: 'Informe type (PALLET_TRUCK ou FORKLIFT).' })
   }
   const typeRaw = body.type.trim()
-  if (!isTypeMovimentPallet(typeRaw)) {
+  if (!isMovimentPalletEquipmentType(typeRaw)) {
     return reply.status(400).send({
       error: 'type invalido. Use PALLET_TRUCK ou FORKLIFT.',
     })
@@ -75,14 +77,14 @@ export const getListMovimentPallets: RouteHandlerMethod = async (
     type?: string
     includeTaskAvailability?: string
   }
-  let type: TypeMovimentPallet | undefined
+  let type: MovimentPalletEquipmentType | undefined
   if (q.type !== undefined && q.type !== '') {
-    if (!isTypeMovimentPallet(q.type)) {
+    if (!isMovimentPalletEquipmentType(q.type)) {
       return reply.status(400).send({ error: 'type invalido no filtro.' })
     }
     type = q.type
   }
-  const filters: { sectorId?: string; type?: TypeMovimentPallet } = {}
+  const filters: { sectorId?: string; type?: MovimentPalletEquipmentType } = {}
   if (typeof q.sectorId === 'string' && q.sectorId.trim() !== '') {
     filters.sectorId = q.sectorId.trim()
   }
@@ -132,7 +134,7 @@ export const patchUpdateMovimentPallet: RouteHandlerMethod = async (
   }
   const patch: {
     code?: string
-    type?: TypeMovimentPallet
+    type?: MovimentPalletEquipmentType
     sectorId?: string | null
   } = {}
   if (body.code !== undefined) {
@@ -146,7 +148,7 @@ export const patchUpdateMovimentPallet: RouteHandlerMethod = async (
       return reply.status(400).send({ error: 'type nao pode ser vazio.' })
     }
     const raw = body.type.trim()
-    if (!isTypeMovimentPallet(raw)) {
+    if (!isMovimentPalletEquipmentType(raw)) {
       return reply.status(400).send({
         error: 'type invalido. Use PALLET_TRUCK ou FORKLIFT.',
       })

@@ -9,7 +9,7 @@ const STATUS_LABELS: Record<RequestStatusValue, string> = {
   ON_MACHINE: 'Na máquina',
   COMPLETED: 'Concluído',
   CANCELED: 'Cancelado',
-  AWAITING_PREPARATION: 'Aguardando preparo',
+  AWAITING_PREPARATION: 'Pallet no recebimento',
   PALLET_READY: 'Pallet no recebimento',
 };
 

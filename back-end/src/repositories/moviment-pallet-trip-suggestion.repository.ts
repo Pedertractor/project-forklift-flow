@@ -4,7 +4,7 @@ import {
   ForkliftTaskType,
   MovimentPalletTripSuggestionStatus,
   RequestStatus,
-  TypeMovimentPallet,
+  MovimentPalletEquipmentType,
 } from '../generated/prisma/enums.js'
 
 const completedTaskStatus = ForkliftTaskStatus.COMPLETED
@@ -78,7 +78,7 @@ export const movimentPalletTripSuggestionRepository = {
   /** Apenas sugestoes ainda nao aceitas (fila de rotas combinadas). */
   findManyOpenListableForOperator(
     sectorId: string,
-    types: TypeMovimentPallet[],
+    types: MovimentPalletEquipmentType[],
   ) {
     return prisma.movimentPalletTripSuggestion.findMany({
       where: {
@@ -114,7 +114,7 @@ export const movimentPalletTripSuggestionRepository = {
     })
   },
 
-  reconcileCompletedAcceptedInSector(sectorId: string, types: TypeMovimentPallet[]) {
+  reconcileCompletedAcceptedInSector(sectorId: string, types: MovimentPalletEquipmentType[]) {
     return prisma.movimentPalletTripSuggestion.updateMany({
       where: {
         status: MovimentPalletTripSuggestionStatus.ACCEPTED,
@@ -127,7 +127,7 @@ export const movimentPalletTripSuggestionRepository = {
     })
   },
 
-  findManyOpenForSector(sectorId: string, types: TypeMovimentPallet[]) {
+  findManyOpenForSector(sectorId: string, types: MovimentPalletEquipmentType[]) {
     return prisma.movimentPalletTripSuggestion.findMany({
       where: {
         status: MovimentPalletTripSuggestionStatus.OPEN,
@@ -155,13 +155,13 @@ export const movimentPalletTripSuggestionRepository = {
     deliverTaskId: string
     pickupTaskId: string
     machineId: string
-    typeMovimentPallet: TypeMovimentPallet
-  }) {
+    typeMovimentPallet: MovimentPalletEquipmentType
+  }): Promise<{ created: boolean }> {
     const existing = await prisma.movimentPalletTripSuggestion.findUnique({
       where: { deliverTaskId: input.deliverTaskId },
     })
     if (!existing) {
-      return prisma.movimentPalletTripSuggestion.create({
+      await prisma.movimentPalletTripSuggestion.create({
         data: {
           status: MovimentPalletTripSuggestionStatus.OPEN,
           deliverTask: { connect: { id: input.deliverTaskId } },
@@ -171,17 +171,19 @@ export const movimentPalletTripSuggestionRepository = {
         },
         include: suggestionListInclude,
       })
+      return { created: true }
     }
     if (
       existing.status === MovimentPalletTripSuggestionStatus.ACCEPTED ||
       existing.status === MovimentPalletTripSuggestionStatus.COMPLETED
     ) {
-      return prisma.movimentPalletTripSuggestion.findUniqueOrThrow({
+      await prisma.movimentPalletTripSuggestion.findUniqueOrThrow({
         where: { id: existing.id },
         include: suggestionListInclude,
       })
+      return { created: false }
     }
-    return prisma.movimentPalletTripSuggestion.update({
+    await prisma.movimentPalletTripSuggestion.update({
       where: { id: existing.id },
       data: {
         pickupTaskId: input.pickupTaskId,
@@ -191,10 +193,12 @@ export const movimentPalletTripSuggestionRepository = {
       },
       include: suggestionListInclude,
     })
+    return { created: false }
   },
 }
 
 const validDeliverRequestStatuses: RequestStatus[] = [
+  RequestStatus.PALLET_READY,
   RequestStatus.CREATED,
   RequestStatus.IN_PROGRESS,
 ]

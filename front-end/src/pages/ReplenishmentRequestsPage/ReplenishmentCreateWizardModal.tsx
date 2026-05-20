@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/Button';
 import { SimpleModal } from '@/components/crud/SimpleModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { cn } from '@/lib/utils';
-import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import type { MachineListItem } from '@/types/machine.types';
 import type { PriorityLevelValue } from '@/types/replenishment-request.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
@@ -38,10 +38,6 @@ const MOVEMENT_OPTIONS: {
   {
     value: 'FORKLIFT',
     description: 'Somente empilhadeira atende este pedido.',
-  },
-  {
-    value: 'PALLET_TRUCK',
-    description: 'Somente transpaleteira atende este pedido.',
   },
   {
     value: 'ANY',
@@ -116,8 +112,8 @@ export interface ReplenishmentCreateWizardModalProps {
   setTypeMovimentPallet: (value: ReplenishmentMovimentType) => void;
   priorityLevel: PriorityLevelValue;
   setPriorityLevel: (value: PriorityLevelValue) => void;
-  palletReady: boolean;
-  setPalletReady: (value: boolean) => void;
+  /** Etapa inicial ao abrir (ex.: 2 quando a máquina já veio de um aviso do operador). */
+  initialStep?: number;
   createError: string | null;
   onClose: () => void;
   onSubmit: () => void;
@@ -136,8 +132,7 @@ export function ReplenishmentCreateWizardModal({
   setTypeMovimentPallet,
   priorityLevel,
   setPriorityLevel,
-  palletReady,
-  setPalletReady,
+  initialStep = 1,
   createError,
   onClose,
   onSubmit,
@@ -146,9 +141,13 @@ export function ReplenishmentCreateWizardModal({
 
   useEffect(() => {
     if (open) {
-      setStep(1);
+      const step = Math.min(
+        Math.max(initialStep, 1),
+        TOTAL_STEPS,
+      );
+      setStep(step);
     }
-  }, [open]);
+  }, [open, initialStep]);
 
   const canGoNext = (() => {
     if (step === 1) return destinationId.trim() !== '';
@@ -250,62 +249,12 @@ export function ReplenishmentCreateWizardModal({
 
       {step === 1 ? (
         <div className="space-y-3">
-          {machines.length === 0 ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-              Não há máquinas disponíveis no seu setor.
-            </p>
-          ) : (
-            <ul
-              className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2"
-              role="listbox"
-              aria-label="Máquina de destino"
-            >
-              {machines.map((m) => {
-                const selected = destinationId === m.id;
-                const img = m.typeMachine.urlImage?.trim();
-                return (
-                  <li key={m.id} className="min-w-0">
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      className={cn(
-                        selectCardBase,
-                        selected ? selectCardSelected : selectCardIdle,
-                      )}
-                      onClick={() => setDestinationId(m.id)}
-                      disabled={busy}
-                    >
-                      <div className="flex items-center justify-center rounded-xl bg-zinc-50 px-3 py-4 min-h-[5.5rem]">
-                        {img ? (
-                          <img
-                            src={typeMachineImageSrc(m.typeMachine.urlImage)}
-                            alt=""
-                            className="h-16 w-auto max-w-full object-contain"
-                          />
-                        ) : (
-                          <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-                            {m.typeMachine.name}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="m-0 text-base font-bold text-zinc-900">
-                          {m.name}
-                        </p>
-                        <p className="mt-1 text-sm text-zinc-600">
-                          {m.typeMachine.name}
-                        </p>
-                        <p className="mt-0.5 text-xs text-zinc-500">
-                          {m.sector.typeSector} · {m.position}
-                        </p>
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <MachineOperationSelectGrid
+            machines={machines}
+            selectedId={destinationId}
+            onSelect={setDestinationId}
+            disabled={busy}
+          />
         </div>
       ) : null}
 
@@ -432,19 +381,6 @@ export function ReplenishmentCreateWizardModal({
               );
             })}
           </ul>
-          <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-3 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={palletReady}
-              onChange={(e) => setPalletReady(e.target.checked)}
-              disabled={busy}
-              className="mt-0.5 size-4 shrink-0 rounded border-zinc-300"
-            />
-            <span>
-              Pallet já pronto — liberar direto na fila do transporte, sem
-              passar por «aguardando preparo».
-            </span>
-          </label>
         </div>
       ) : null}
     </SimpleModal>

@@ -57,6 +57,20 @@ export function operatorMovimentPalletWsBroadcastQueueUpdated(
   }
 }
 
+export function operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+  sectorId: string,
+  typeMovimentPallet?: TypeMovimentPallet,
+): void {
+  const payload = {
+    type: 'trip_suggestions_updated' as const,
+    sectorId,
+    ...(typeMovimentPallet ? { typeMovimentPallet } : {}),
+  }
+  for (const { socket } of clients) {
+    safeSend(socket, payload)
+  }
+}
+
 /** Linha de pedido com destino/setor (include do repositório). */
 export type ReplenishmentRowForWs = {
   status: RequestStatus
@@ -74,6 +88,10 @@ export function operatorMovimentPalletWsEmitAfterReplenishmentSave(
     row.status === RequestStatus.CREATED
   ) {
     operatorMovimentPalletWsBroadcastReplenishmentRequestCreated(
+      sectorId,
+      typeMovimentPallet,
+    )
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
       sectorId,
       typeMovimentPallet,
     )

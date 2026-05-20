@@ -178,7 +178,7 @@ export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
               id="tm-name"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              placeholder="Ex.: Empilhadeira frontal"
+              placeholder="Ex.: solda"
             />
           </div>
           <div className="space-y-2">

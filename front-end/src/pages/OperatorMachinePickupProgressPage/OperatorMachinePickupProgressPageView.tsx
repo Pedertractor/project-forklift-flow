@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
+import { OPERATOR_MACHINE_OPERATION_PATH } from '@/constants/operator-machine-routes';
 import { ENV } from '@/constants/env';
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { cn } from '@/lib/utils';
@@ -138,7 +139,7 @@ export function OperatorMachinePickupProgressPageView(
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
         <Link
-          to="/dobra"
+          to={OPERATOR_MACHINE_OPERATION_PATH}
           className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold whitespace-nowrap text-zinc-900 transition-colors hover:bg-zinc-50"
         >
           ← Voltar à máquina

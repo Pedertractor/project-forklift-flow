@@ -13,7 +13,7 @@ export function defaultHomePathForRole(role: string | undefined): string {
     return '/abastecimento/preparo-pendente';
   }
   if (role === 'OPERATOR_MACHINE') {
-    return '/dobra';
+    return '/dobra/operacao';
   }
   if (role === 'FORKLIFT_OPERATOR' || role === 'FOLLOW_UP_OPERATOR') {
     return OPERATOR_MOVIMENT_EQUIPMENT_PATH;

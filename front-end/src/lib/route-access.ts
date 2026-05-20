@@ -24,6 +24,7 @@ const PATH_RULES: { path: string; roles: readonly AppRole[] }[] = [
   { path: '/operacao/filas-manuais', roles: MOVIMENT_OPERATOR_ROLES },
   { path: '/operacao/minhas-tarefas', roles: MOVIMENT_OPERATOR_ROLES },
   { path: '/dobra', roles: OPERATOR_MACHINE_ROLES },
+  { path: '/dobra/operacao', roles: OPERATOR_MACHINE_ROLES },
 ];
 
 export function normalizeAppPathname(path: string): string {

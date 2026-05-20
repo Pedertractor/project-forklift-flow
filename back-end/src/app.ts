@@ -16,6 +16,17 @@ export const app = Fastify({
 
 app.setErrorHandler(defaultErrorHandler)
 
+app.addHook('onSend', async (_request, reply) => {
+  const contentType = reply.getHeader('content-type')
+  if (
+    typeof contentType === 'string' &&
+    contentType.includes('application/json') &&
+    !contentType.toLowerCase().includes('charset')
+  ) {
+    reply.header('content-type', 'application/json; charset=utf-8')
+  }
+})
+
 await app.register(cors, {
   origin: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

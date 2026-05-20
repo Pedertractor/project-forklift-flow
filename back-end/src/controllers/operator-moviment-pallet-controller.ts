@@ -124,14 +124,17 @@ export const getListMyMovimentPalletTasks: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
-  const tasks = await listMyMovimentPalletTasks(user.sub)
+  const tasks = await listMyMovimentPalletTasks(user.sub, user.role)
   return reply.send({ tasks })
 }
 
 export const getOperatorMovimentPalletActiveFlowHandler: RouteHandlerMethod =
   async (request, reply) => {
     const user = request.user as AppJwtPayload
-    const payload = await getOperatorMovimentPalletActiveFlow(user.sub)
+    const payload = await getOperatorMovimentPalletActiveFlow(
+      user.sub,
+      user.role,
+    )
     return reply.send(payload)
   }
 

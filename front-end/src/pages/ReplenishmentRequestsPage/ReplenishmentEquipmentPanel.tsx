@@ -117,7 +117,8 @@ function EquipmentBlock({
               ) : null}
             </p>
           ) : unbound ? (
-            <p className="mt-1.5 m-0 text-xs text-zinc-600">
+            <p className="mt-1.5 m-0 text
+            xs text-zinc-600">
               {activeTasks === 0
                 ? 'Sem tarefa — aguardando operador vincular'
                 : 'Aguardando operador para retomar'}

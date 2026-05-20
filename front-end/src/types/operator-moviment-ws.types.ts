@@ -1,4 +1,4 @@
-import type { TypeMovimentPalletApi } from '@/types/operator-moviment-pallet.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
 /**
  * Eventos esperados do WebSocket do operador de movimentação.
@@ -13,13 +13,13 @@ export interface OperatorMovimentWsEventBase {
   type: OperatorMovimentWsEventType;
   /** Setor afetado (filtro no cliente). */
   sectorId?: string;
-  /** Tipo de movimentação do pedido (FORKLIFT / PALLET_TRUCK). */
-  typeMovimentPallet?: TypeMovimentPalletApi;
+  /** Tipo de movimentação do pedido (FORKLIFT / ANY). */
+  typeMovimentPallet?: ReplenishmentMovimentType;
 }
 
 export interface OperatorMovimentWsReplenishmentCreated extends OperatorMovimentWsEventBase {
   type: 'replenishment_request_created';
-  typeMovimentPallet: TypeMovimentPalletApi;
+  typeMovimentPallet: ReplenishmentMovimentType;
   sectorId: string;
 }
 

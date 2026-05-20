@@ -10,7 +10,6 @@ export const OPERATOR_MACHINE_REQUEST_STATUS_OPTIONS = [
   { value: 'ON_MACHINE', label: 'Na máquina (retirada)' },
   { value: 'CREATED', label: 'Criado' },
   { value: 'IN_PROGRESS', label: 'Em andamento' },
-  { value: 'AWAITING_PREPARATION', label: 'Aguardando preparo' },
   { value: 'PALLET_READY', label: 'Pallet no recebimento' },
   { value: 'COMPLETED', label: 'Concluído' },
   { value: 'CANCELED', label: 'Cancelado' },
@@ -20,7 +19,10 @@ export const OPERATOR_MACHINE_REQUEST_FILTER_SELECT_CLASS =
   'flex h-[var(--control-height,2.5rem)] w-full max-w-xs rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
 
 export function operatorMachineMovimentTypeLabel(type: string): string {
-  return type === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
+  if (type === 'ANY') {
+    return 'Qualquer tipo (empilhadeira ou transpaleteira)';
+  }
+  return 'Empilhadeira';
 }
 
 /** Exibe link «Ver andamento» da retirada / entrega. */

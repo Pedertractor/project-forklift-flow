@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ENV } from '@/constants/env';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
+import { useAuthStore } from '@/store/auth.store';
 import { OpenTasksFlowSection } from './OpenTasksFlowSection';
 import type { OperatorMovimentTasksPageViewModel } from './useOperatorMovimentTasksPage';
 
@@ -14,17 +15,31 @@ export function OperatorMovimentTasksPageView(
     token,
     currentPallet,
     myTasksQuery,
-    openTasks,
+    tasks,
     completeDeliverMut,
     completePickupMut,
     busy,
   } = vm;
 
   const bound = currentPallet !== null;
+  const role = useAuthStore((s) => s.user?.role);
+  const isFollowUp = role === 'FOLLOW_UP_OPERATOR';
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
+        {token ? (
+          <header className="mb-6 border-b border-zinc-200 pb-4">
+            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
+              {isFollowUp ? 'Tarefas do setor' : 'Minhas tarefas'}
+            </h1>
+            <p className="mt-1.5 text-sm text-zinc-600">
+              {isFollowUp
+                ? 'Pedidos "qualquer tipo" e transpaleteiras do seu setor — sem tarefas da empilhadeira.'
+                : 'Somente as tarefas do equipamento vinculado a você.'}
+            </p>
+          </header>
+        ) : null}
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Defina <code className="font-mono">VITE_API_URL</code> e faça login.
@@ -44,7 +59,7 @@ export function OperatorMovimentTasksPageView(
         ) : null}
 
         <OpenTasksFlowSection
-          openTasks={openTasks}
+          tasks={tasks}
           isLoading={myTasksQuery.isLoading}
           bound={bound}
           busy={busy}

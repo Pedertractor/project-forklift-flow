@@ -27,7 +27,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { MOVIMENT_OPERATOR_ROLES, type AppRole } from '@/types/role.types';
 import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types';
 import { countOpenMovimentTasks } from '@/utils/operator-moviment-work';
-import { movimentTypesForRole } from '@/utils/operator-moviment-role';
+import { replenishmentMovimentTypesForRole } from '@/utils/operator-moviment-role';
 
 function isMovimentOperatorRole(role: string | undefined): boolean {
   return (
@@ -74,7 +74,7 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
 
   const enabled = Boolean(ENV.API_URL && token && isMovimentOperatorRole(user?.role));
   const allowedMovimentTypes = useMemo(
-    () => movimentTypesForRole(user?.role),
+    () => replenishmentMovimentTypesForRole(user?.role),
     [user?.role],
   );
 
@@ -115,6 +115,8 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
 
       if (event.type === 'replenishment_request_created') {
         toast.info('Nova solicitação de reposição disponível para o seu tipo de equipamento.');
+      } else if (event.type === 'trip_suggestions_updated') {
+        toast.info('Novas sugestões de rota disponíveis na fila.');
       }
     },
     [allowedMovimentTypes, invalidateOperatorQueues, user?.sectorId],
@@ -209,6 +211,9 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
       (location.state as { fromTaskCompletion?: boolean } | null)?.fromTaskCompletion,
     );
     if (fromTaskCompletion) {
+      if (incompleteTaskCount > 0) {
+        navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH, { replace: true });
+      }
       return;
     }
     navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH, { replace: true });

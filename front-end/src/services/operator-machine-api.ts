@@ -77,7 +77,7 @@ export async function fetchOperatorSupplyRequests(status?: string) {
 
 export async function postOperatorFinalizeCycle(body: {
   movementCube?: string;
-  typeMovimentPallet?: 'FORKLIFT' | 'PALLET_TRUCK';
+  typeMovimentPallet?: 'FORKLIFT' | 'ANY';
   priorityLevel?: 'VERY_HIGH' | 'HIGH' | 'NORMAL';
 }) {
   const res = await apiAuthFetch<FinalizeMachineCycleResponse>(

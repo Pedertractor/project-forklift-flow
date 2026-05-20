@@ -1,5 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type { TypeMovimentPallet } from '../generated/prisma/enums.js'
+import type { MovimentPalletEquipmentType } from '../generated/prisma/enums.js'
 import { incompleteAssignedMovimentTaskStatuses } from '../constants/moviment-pallet-task-status.js'
 import { prisma } from '../lib/prisma.js'
 
@@ -48,7 +48,7 @@ function mapListRowWithAvailability(row: MovimentPalletListWithAvailabilityRow) 
 
 function buildListWhere(filters?: {
   sectorId?: string
-  type?: TypeMovimentPallet
+  type?: MovimentPalletEquipmentType
 }): Prisma.MovimentPalletWhereInput {
   const where: Prisma.MovimentPalletWhereInput = {}
   if (filters?.sectorId !== undefined) {
@@ -82,7 +82,7 @@ export const movimentPalletRepository = {
     })
   },
 
-  findManyForList(filters?: { sectorId?: string; type?: TypeMovimentPallet }) {
+  findManyForList(filters?: { sectorId?: string; type?: MovimentPalletEquipmentType }) {
     return prisma.movimentPallet.findMany({
       where: buildListWhere(filters),
       select: movimentPalletListSelect,
@@ -92,7 +92,7 @@ export const movimentPalletRepository = {
 
   async findManyForListWithTaskAvailability(filters?: {
     sectorId?: string
-    type?: TypeMovimentPallet
+    type?: MovimentPalletEquipmentType
   }) {
     const rows = await prisma.movimentPallet.findMany({
       where: buildListWhere(filters),
@@ -104,7 +104,7 @@ export const movimentPalletRepository = {
 
   findManyForOperatorPicker(options: {
     sectorId: string
-    types: TypeMovimentPallet[]
+    types: MovimentPalletEquipmentType[]
     operatorUserId: string
   }) {
     return prisma.movimentPallet.findMany({

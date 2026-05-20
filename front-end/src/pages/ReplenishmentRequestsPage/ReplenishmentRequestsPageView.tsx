@@ -21,7 +21,7 @@ const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
 
 function movementTypeLabel(t: string): string {
-  if (t === 'FORKLIFT' || t === 'PALLET_TRUCK' || t === 'ANY') {
+  if (t === 'FORKLIFT' || t === 'ANY') {
     return replenishmentMovimentTypeLabel(t);
   }
   return t;
@@ -59,8 +59,6 @@ export function ReplenishmentRequestsPageView(
     setTypeMovimentPallet,
     priorityLevel,
     setPriorityLevel,
-    palletReady,
-    setPalletReady,
     openCreate,
     openEdit,
     createMut,
@@ -131,7 +129,7 @@ export function ReplenishmentRequestsPageView(
               onClick={openCreate}
               disabled={!apiReady || busy}
             >
-              Nova solicitação
+              Nova solicitação de retirada
             </Button>
           </div>
         </header>
@@ -166,7 +164,6 @@ export function ReplenishmentRequestsPageView(
                 disabled={!apiReady}
               >
                 <option value="">Todos</option>
-                <option value="AWAITING_PREPARATION">Aguardando preparo</option>
                 <option value="PALLET_READY">Pallet no recebimento</option>
                 <option value="CREATED">Criado</option>
                 <option value="IN_PROGRESS">Em andamento</option>
@@ -270,8 +267,7 @@ export function ReplenishmentRequestsPageView(
                           {row.destination.name}
                         </div>
                         <div className="text-xs text-zinc-500">
-                          {row.destination.sector.typeSector} ·{' '}
-                          {row.destination.position}
+                          {row.destination.sector.typeSector}
                         </div>
                       </td>
                       <td className="flex items-center gap-2 py-5 font-mono text-zinc-800">
@@ -372,8 +368,6 @@ export function ReplenishmentRequestsPageView(
         setTypeMovimentPallet={setTypeMovimentPallet}
         priorityLevel={priorityLevel}
         setPriorityLevel={setPriorityLevel}
-        palletReady={palletReady}
-        setPalletReady={setPalletReady}
         createError={createError}
         onClose={() => setCreateOpen(false)}
         onSubmit={() => createMut.mutate()}
@@ -434,8 +428,7 @@ export function ReplenishmentRequestsPageView(
               }
             >
               <option value="FORKLIFT">Empilhadeira</option>
-              <option value="PALLET_TRUCK">Transpaleteira</option>
-              <option value="ANY">Qualquer tipo</option>
+              <option value="ANY">Qualquer tipo (empilhadeira ou transpaleteira)</option>
             </select>
           </div>
           <div className="space-y-2">
@@ -502,12 +495,6 @@ export function ReplenishmentRequestsPageView(
       >
         {detailRow ? (
           <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="text-xs font-medium text-zinc-500">ID</dt>
-              <dd className="mt-0.5 break-all font-mono text-xs text-zinc-800">
-                {detailRow.id}
-              </dd>
-            </div>
             <div>
               <dt className="text-xs font-medium text-zinc-500">Solicitante</dt>
               <dd className="mt-0.5 text-zinc-900">

@@ -5,6 +5,7 @@ import {
   ForkliftTaskType,
   RequestStatus,
   RoleUser,
+  MovimentPalletEquipmentType,
   TypeMovimentPallet,
   Unit,
 } from "../generated/prisma/enums.js";
@@ -120,7 +121,7 @@ test(
       const pallet = await prisma.movimentPallet.create({
         data: {
           code: `TEST-TRIP-${suffix}`,
-          type: TypeMovimentPallet.FORKLIFT,
+          type: MovimentPalletEquipmentType.FORKLIFT,
           sectorId,
         },
       });
@@ -166,10 +167,12 @@ test(
           requestedById: userSupplyId,
           destinationId: machineId,
           typeMovimentPallet: TypeMovimentPallet.FORKLIFT,
+          status: RequestStatus.PALLET_READY,
+          preparedAt: new Date(),
         },
       });
       poolRequestId = poolRequest.id;
-      assert.equal(poolRequest.status, RequestStatus.CREATED);
+      assert.equal(poolRequest.status, RequestStatus.PALLET_READY);
 
       const trip = await listTripRouteSuggestionsForOperator(
         userForkliftId,
@@ -183,7 +186,7 @@ test(
       );
       assert.ok(
         combined,
-        "deve existir sugestao combinada entre solicitacao CREATED no recebimento e retirada ON_MACHINE",
+        "deve existir sugestao combinada entre solicitacao PALLET_READY no recebimento e retirada ON_MACHINE",
       );
       assert.equal(combined.kind, "COMBINE_DELIVER_AND_PICKUP_AT_MACHINE");
 
@@ -193,6 +196,17 @@ test(
       assert.ok(
         !standaloneIds.includes(pickupTask.id),
         "retirada emparelhada nao deve aparecer como standalone",
+      );
+
+      assert.equal(
+        trip.standaloneDeliverTasks.length,
+        0,
+        "entrega avulsa na mesma maquina da rota combinada nao deve duplicar a sugestao",
+      );
+      assert.equal(
+        trip.suggestions.length,
+        1,
+        "deve haver apenas uma sugestao combinada para o par entrega+retirada",
       );
     } finally {
       for (const requestId of [onMachineRequestId, poolRequestId]) {

@@ -1,31 +1,36 @@
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { Card } from '@/components/ui/card';
+import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { ENV } from '@/constants/env';
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import { requestStatusLabel } from '@/utils/replenishment-labels';
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
-import { OperatorMachineRequestsSection } from './OperatorMachineRequestsSection';
+import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   const {
     apiReady,
-    token,
     hasSector,
     myMachineQuery,
+    current,
+    showMachinePicker,
+    setShowMachinePicker,
     machinesQuery,
-    requestsQuery,
+    machines,
+    selectedMachineId,
+    selectMachine,
+    bindPending,
     operatorSupplyQuery,
-    blockingFinalizeRequest,
-    blockingOperatorSupply,
+    requestsQuery,
+    openOperatorSupply,
+    supplyFlowReplenishment,
+    pickupPanelReplenishment,
+    pickupProgressQuery,
+    pickupPhase,
+    pickupTransportLabel,
     canRequestPallet,
-    statusFilter,
-    setStatusFilter,
-    pickerOpen,
-    closePicker,
-    openPicker,
-    bindMut,
     endShiftOpen,
     setEndShiftOpen,
     unbindMut,
@@ -33,209 +38,165 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     pickupTargetId,
     setPickupTargetId,
     pickupMut,
+    pickupRow,
     busy,
   } = vm;
 
-  const current = myMachineQuery.data ?? null;
-  const rows = requestsQuery.data ?? [];
-  const machines = machinesQuery.data ?? [];
-
-  const pickupRow = pickupTargetId
-    ? rows.find((r) => r.id === pickupTargetId)
-    : undefined;
+  const pickingMachine = showMachinePicker || !current;
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <header className="border-b border-zinc-200 pb-6">
-          <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
-            Operador — máquina de dobra
-          </h1>
-          <p className="mt-1.5 text-sm text-zinc-600">
-            Vincule sua máquina no turno, aponte <strong>finalizei</strong> para
-            o próximo cubo e solicite <strong>retirada</strong> apenas quando
-            o pedido estiver «Na máquina» (pallet já entregue na dobra).
-          </p>
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+        <header className="flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
+              {pickingMachine
+                ? 'Selecionar máquina de dobra'
+                : 'Operação na máquina'}
+            </h1>
+            <p className="mt-1 text-sm text-zinc-600">
+              {pickingMachine
+                ? 'Toque na máquina em que você está operando para abrir o painel de operação.'
+                : 'Acompanhe sua solicitação ao abastecimento e o pedido de reposição do prisma.'}
+            </p>
+          </div>
+          {current && !pickingMachine ? (
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                disabled={!apiReady || busy}
+                onClick={() => setShowMachinePicker(true)}
+              >
+                Trocar máquina
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-red-200 text-red-700 hover:bg-red-50"
+                disabled={!apiReady || busy}
+                onClick={() => setEndShiftOpen(true)}
+              >
+                Encerrar vínculo
+              </Button>
+            </div>
+          ) : null}
         </header>
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Defina <code className="font-mono">VITE_API_URL</code> e faça login.
           </p>
-        ) : !token ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Faça login com a API ativa.
-          </p>
         ) : null}
 
-        {!hasSector ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            Seu usuário não tem <strong>setor</strong> vinculado. Sem setor a
-            lista de máquinas vem vazia e não é possível vincular. Solicite ao
-            administrador o ajuste do cadastro.
-          </p>
-        ) : null}
-
-        <section aria-labelledby="op-machine-shift-heading">
-          <h2
-            id="op-machine-shift-heading"
-            className="mb-3 text-lg font-semibold tracking-tight text-zinc-900"
-          >
-            Minha máquina
-          </h2>
-          <Card className="border border-zinc-200 p-5 shadow-sm">
-            {myMachineQuery.isError ? (
-              <p className="text-sm text-red-700">
-                {myMachineQuery.error instanceof Error
-                  ? myMachineQuery.error.message
-                  : 'Erro ao carregar máquina.'}
+        {pickingMachine ? (
+          <>
+            {!hasSector ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                Seu usuário não tem <strong>setor</strong> vinculado. Solicite
+                ao administrador o ajuste do cadastro.
               </p>
-            ) : myMachineQuery.isLoading ? (
-              <p className="text-sm text-zinc-500">Carregando…</p>
-            ) : current ? (
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="shrink-0">
-                    {current.typeMachine.urlImage?.trim() ? (
-                      <img
-                        src={typeMachineImageSrc(current.typeMachine.urlImage)}
-                        alt={current.typeMachine.name}
-                        className="size-20 rounded-lg border border-zinc-200 object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="flex size-20 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400"
-                        aria-hidden
-                      >
-                        —
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <p className="m-0 text-base font-semibold text-zinc-900">
-                      {current.name}
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-600">
-                      Posição:{' '}
-                      <span className="font-mono text-zinc-800">
-                        {current.position}
-                      </span>
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-600">
-                      Tipo: {current.typeMachine.name}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={!apiReady || busy}
-                    onClick={openPicker}
-                  >
-                    Trocar máquina
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-red-200 text-red-700 hover:bg-red-50"
-                    disabled={!apiReady || busy}
-                    onClick={() => setEndShiftOpen(true)}
-                  >
-                    Encerrar vínculo
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="m-0 text-sm text-zinc-600">
-                  Nenhuma máquina vinculada neste turno. Escolha a máquina em
-                  que você está operando.
+            ) : null}
+
+            <section aria-labelledby="op-select-machine-heading">
+              <h2
+                id="op-select-machine-heading"
+                className="mb-3 text-lg font-semibold tracking-tight text-zinc-900"
+              >
+                Máquinas do seu setor
+              </h2>
+
+              {machinesQuery.isLoading || myMachineQuery.isLoading ? (
+                <p className="text-sm text-zinc-500">Carregando máquinas…</p>
+              ) : machinesQuery.isError ? (
+                <p className="text-sm text-red-700">
+                  {machinesQuery.error instanceof Error
+                    ? machinesQuery.error.message
+                    : 'Erro ao carregar máquinas.'}
                 </p>
-                <Button
-                  type="button"
-                  disabled={!apiReady || !hasSector || busy}
-                  onClick={openPicker}
-                >
-                  Escolher máquina
-                </Button>
-              </div>
-            )}
-          </Card>
-        </section>
-
-        <OperatorMachineRequestsSection
-          machineBound={current}
-          operatorSupplyQuery={operatorSupplyQuery}
-          requestsQuery={requestsQuery}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          blockingFinalizeRequest={blockingFinalizeRequest}
-          blockingOperatorSupply={blockingOperatorSupply}
-          canRequestPallet={canRequestPallet}
-          finalizePending={finalizeMut.isPending}
-          busy={busy}
-          apiReady={apiReady}
-          onSolicitarPallet={() => finalizeMut.mutate()}
-          onOpenPickupModal={setPickupTargetId}
-          pickupMutationPending={pickupMut.isPending}
-        />
-      </div>
-
-      <SimpleModal
-        open={pickerOpen}
-        onClose={closePicker}
-        title="Escolher máquina"
-        description="Lista apenas máquinas do seu setor. Ao confirmar, o vínculo anterior (se houver) é substituído."
-        footer={
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={closePicker}
-          >
-            Fechar
-          </Button>
-        }
-      >
-        {machinesQuery.isLoading ? (
-          <p className="text-sm text-zinc-500">Carregando máquinas…</p>
-        ) : machinesQuery.isError ? (
-          <p className="text-sm text-red-700">
-            {machinesQuery.error instanceof Error
-              ? machinesQuery.error.message
-              : 'Erro ao carregar.'}
-          </p>
-        ) : machines.length === 0 ? (
-          <p className="text-sm text-zinc-600">
-            Nenhuma máquina disponível no seu setor.
-          </p>
+              ) : (
+                <MachineOperationSelectGrid
+                  machines={machines}
+                  selectedId={selectedMachineId}
+                  onSelect={selectMachine}
+                  disabled={bindPending}
+                  ariaLabel="Máquina para operação"
+                />
+              )}
+              {bindPending ? (
+                <p className="mt-4 text-center text-sm text-zinc-500">
+                  Vinculando máquina…
+                </p>
+              ) : null}
+            </section>
+          </>
         ) : (
-          <ul className="m-0 list-none space-y-2 p-0">
-            {machines.map((m) => (
-              <li key={m.id}>
-                <button
-                  type="button"
-                  className="flex w-full flex-col rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left text-sm transition-colors hover:border-[#005fb8] hover:bg-zinc-50 disabled:opacity-50"
-                  disabled={bindMut.isPending}
-                  onClick={() => bindMut.mutate(m.id)}
-                >
-                  <span className="font-semibold text-zinc-900">{m.name}</span>
-                  <span className="text-xs text-zinc-500">
-                    {m.position} · {m.typeMachine.name}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            {current ? (
+              <Card className="flex items-center gap-3 border border-zinc-200 p-4 shadow-sm">
+                {current.typeMachine.urlImage?.trim() ? (
+                  <img
+                    src={typeMachineImageSrc(current.typeMachine.urlImage)}
+                    alt=""
+                    className="size-16 shrink-0 rounded-lg border border-zinc-200 object-cover"
+                  />
+                ) : (
+                  <div
+                    className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400"
+                    aria-hidden
+                  >
+                    —
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Máquina em operação
+                  </p>
+                  <p className="m-0 truncate text-lg font-bold text-zinc-900">
+                    {current.name}
+                  </p>
+                  <p className="mt-0.5 text-sm text-zinc-600">
+                    {current.typeMachine.name} · {current.position}
+                  </p>
+                </div>
+              </Card>
+            ) : myMachineQuery.isLoading ? (
+              <p className="text-sm text-zinc-500">Carregando máquina…</p>
+            ) : null}
+
+            <OperatorMachineOperationGrid
+              supplyLoading={operatorSupplyQuery.isLoading}
+              supplyError={operatorSupplyQuery.error ?? null}
+              openSupply={openOperatorSupply}
+              replenishmentLoading={requestsQuery.isLoading}
+              replenishmentError={requestsQuery.error ?? null}
+              supplyFlowReplenishment={supplyFlowReplenishment}
+              pickupPanelReplenishment={pickupPanelReplenishment}
+              pickupProgressLoading={pickupProgressQuery.isLoading}
+              pickupPhase={pickupPhase}
+              pickupTransportLabel={pickupTransportLabel}
+              canRequestPallet={canRequestPallet}
+              finalizePending={finalizeMut.isPending}
+              pickupMutationPending={pickupMut.isPending}
+              busy={busy}
+              apiReady={apiReady}
+              onSolicitarPallet={() => finalizeMut.mutate()}
+              onSolicitarRetirada={() => {
+                if (pickupPanelReplenishment?.id) {
+                  setPickupTargetId(pickupPanelReplenishment.id);
+                }
+              }}
+            />
+          </>
         )}
-      </SimpleModal>
+      </div>
 
       <SimpleModal
         open={endShiftOpen}
         onClose={() => setEndShiftOpen(false)}
         title="Encerrar vínculo com a máquina"
-        description="Use ao fim do turno ou para sair da máquina. Outro operador poderá vincular-se em seguida."
+        description="Use ao fim do turno. Você poderá escolher outra máquina na mesma tela."
         footer={
           <ModalActions
             onCancel={() => setEndShiftOpen(false)}
@@ -258,9 +219,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         onClose={() => setPickupTargetId(null)}
         title="Confirmar retirada"
         description={
-          pickupRow
-            ? `O cubo ${formatReplenishmentMovementCubeDisplay(pickupRow.movementCube)} será solicitado para retirada até a expedição. Só use quando o material já estiver fisicamente na máquina.`
-            : undefined
+          pickupRow ? `Deseja solicitar retirada do pallet por um operador de movimentação?` : undefined
         }
         footer={
           <ModalActions

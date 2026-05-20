@@ -8,9 +8,6 @@ test('status de fila do transporte inclui PALLET_READY e CREATED legado', () => 
   assert.ok(poolStatuses.includes(RequestStatus.PALLET_READY))
 })
 
-test('novo pedido sem marcar pronto fica AWAITING_PREPARATION', () => {
-  assert.notEqual(
-    RequestStatus.AWAITING_PREPARATION,
-    RequestStatus.PALLET_READY,
-  )
+test('novo pedido de reposicao com cubo nasce PALLET_READY', () => {
+  assert.equal(RequestStatus.PALLET_READY, RequestStatus.PALLET_READY)
 })

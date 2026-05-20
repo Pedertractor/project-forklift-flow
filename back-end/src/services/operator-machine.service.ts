@@ -19,6 +19,7 @@ import { machineReplenishmentRequestRepository } from '../repositories/machine-r
 import { operatorMachineSupplyRequestRepository } from '../repositories/operator-machine-supply-request.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
+import { operatorMovimentPalletWsBroadcastTripSuggestionsUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
 
 export async function bindOperatorToMachine(
   operatorUserId: string,
@@ -60,10 +61,22 @@ export async function listReplenishmentRequestsForOperatorMachine(
   operatorUserId: string,
   filters?: { status?: RequestStatus },
 ) {
-  return machineReplenishmentRequestRepository.findManyForDestinationOperator(
-    operatorUserId,
-    filters,
-  )
+  const rows =
+    await machineReplenishmentRequestRepository.findManyForDestinationOperator(
+      operatorUserId,
+      filters,
+    )
+  if (rows.length === 0) {
+    return rows
+  }
+  const pickupIds =
+    await machineReplenishmentRequestRepository.findRequestIdsWithOpenPickup(
+      rows.map((r) => r.id),
+    )
+  return rows.map((row) => ({
+    ...row,
+    hasOpenPickupTask: pickupIds.has(row.id),
+  }))
 }
 
 export async function listOperatorSupplyRequestsForOperatorMachine(
@@ -106,8 +119,8 @@ export async function getOperatorReplenishmentPickupProgress(
   }
 
   const transportLabel =
-    request.typeMovimentPallet === TypeMovimentPallet.PALLET_TRUCK
-      ? 'Transpaleteira (follow-up)'
+    request.typeMovimentPallet === TypeMovimentPallet.ANY
+      ? 'Empilhadeira ou transpaleteira'
       : 'Empilhadeira'
 
   const openPickup =
@@ -181,6 +194,14 @@ export async function requestPalletPickupFromMachine(
     requestId,
     operatorUserId,
   )
+
+  const sectorId = request.destination.sector?.id
+  if (sectorId) {
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+      sectorId,
+      request.typeMovimentPallet,
+    )
+  }
 
   return { request, pickupTask: task }
 }

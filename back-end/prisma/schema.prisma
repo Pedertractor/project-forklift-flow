@@ -56,7 +56,7 @@ model MachineReplenishmentRequest {
   statusSince   DateTime      @default(now())
   priorityLevel PriorityLevel @default(NORMAL)
 
-  /// Preenchido quando o abastecimento marca pallet pronto (¬ß9).
+  /// Preenchido quando o abastecimento marca pallet pronto (ù9).
   preparedAt               DateTime?
   /// Quando o operador de dobra apontou "finalizei" sem pallet pronto.
   awaitingPreparationSince DateTime?
@@ -70,8 +70,8 @@ model MachineReplenishmentRequest {
   completedAt DateTime?
 }
 
-/// Aviso do operador da m√°quina ao abastecimento: ¬´preciso de pallet¬ª sem cubo na dobra.
-/// Encerrada (FULFILLED) quando o abastecimento registra um pedido de reposi√ß√£o para a mesma m√°quina.
+/// Aviso do operador da mùquina ao abastecimento: ùpreciso de palletù sem cubo na dobra.
+/// Encerrada (FULFILLED) quando o abastecimento registra um pedido de reposiùùo para a mesma mùquina.
 model OperatorMachineSupplyRequest {
   id String @id @default(uuid())
 
@@ -129,7 +129,7 @@ model MovimentPalletTripSuggestion {
   machine   Machine @relation(fields: [machineId], references: [id])
   machineId String
 
-  typeMovimentPallet TypeMovimentPallet
+  typeMovimentPallet MovimentPalletEquipmentType
 
   acceptedBy       User?   @relation("TripSuggestionAcceptedBy", fields: [acceptedByUserId], references: [id])
   acceptedByUserId String?
@@ -204,9 +204,9 @@ model Sector {
 }
 
 model MovimentPallet {
-  id   String             @id @default(uuid())
-  code String             @unique
-  type TypeMovimentPallet
+  id   String                     @id @default(uuid())
+  code String                     @unique
+  type MovimentPalletEquipmentType
 
   operator   User?   @relation("MovimentPalletOperator", fields: [operatorId], references: [id])
   operatorId String?
@@ -222,8 +222,14 @@ model MovimentPallet {
   updatedAt DateTime @updatedAt
 }
 
-enum TypeMovimentPallet {
+/// Equipamento fÌsico no setor.
+enum MovimentPalletEquipmentType {
+  FORKLIFT
   PALLET_TRUCK
+}
+
+/// Tipo de movimentaÁ„o em solicitaÁıes de reposiÁ„o (fila de transporte).
+enum TypeMovimentPallet {
   FORKLIFT
   /// Aceito por empilhadeirista ou transpaleteirista (qualquer equipamento do setor).
   ANY
@@ -243,9 +249,9 @@ enum RoleUser {
 enum RequestStatus {
   /// Legado: pedidos antigos; novos usam AWAITING_PREPARATION ou PALLET_READY.
   CREATED
-  /// Abastecimento deve preparar o prisma (ou pedido rec√©m-criado sem marcar pronto).
+  /// Abastecimento deve preparar o prisma (ou pedido recùm-criado sem marcar pronto).
   AWAITING_PREPARATION
-  /// Prisma pronto ‚Äî vis√≠vel na fila do transporte.
+  /// Prisma pronto ù visùvel na fila do transporte.
   PALLET_READY
   IN_PROGRESS
   ON_MACHINE
@@ -292,7 +298,7 @@ enum PlantMapAreaKind {
   RECEIVING
 }
 
-/// Retangulo normalizado (0..1) sobre a imagem da planta ó uma area por tipo por unidade.
+/// Retangulo normalizado (0..1) sobre a imagem da planta ù uma area por tipo por unidade.
 model PlantMapArea {
   id        String           @id @default(uuid())
   plantUnit PlantMapUnit

@@ -1,5 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type { TypeMovimentPallet } from '../generated/prisma/enums.js'
+import type { MovimentPalletEquipmentType } from '../generated/prisma/enums.js'
 import {
   MovimentPalletCodeConflictError,
   MovimentPalletDeleteBlockedError,
@@ -11,13 +11,13 @@ import { sectorRepository } from '../repositories/sector.repository.js'
 
 export type CreateMovimentPalletInput = {
   code: string
-  type: TypeMovimentPallet
+  type: MovimentPalletEquipmentType
   sectorId?: string | null
 }
 
 export type UpdateMovimentPalletInput = {
   code?: string
-  type?: TypeMovimentPallet
+  type?: MovimentPalletEquipmentType
   sectorId?: string | null
 }
 
@@ -62,7 +62,7 @@ export async function createMovimentPallet(input: CreateMovimentPalletInput) {
 export async function listMovimentPallets(
   filters?: {
     sectorId?: string
-    type?: TypeMovimentPallet
+    type?: MovimentPalletEquipmentType
   },
   options?: { includeTaskAvailability?: boolean },
 ) {

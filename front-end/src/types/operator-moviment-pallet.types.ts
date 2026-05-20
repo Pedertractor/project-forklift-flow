@@ -1,6 +1,10 @@
 /** Valores alinhados ao Prisma / API. */
 
-export type TypeMovimentPalletApi = 'FORKLIFT' | 'PALLET_TRUCK';
+import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
+
+/** Tipo do equipamento físico (empilhadeira / transpaleteira). */
+export type TypeMovimentPalletApi = MovimentPalletEquipmentType;
 
 export type PriorityLevelApi = 'VERY_HIGH' | 'HIGH' | 'NORMAL';
 
@@ -41,7 +45,7 @@ export interface OperatorRequestDestinationBrief {
 export interface OperatorReplenishmentRequestItem {
   id: string;
   movementCube: string;
-  typeMovimentPallet: TypeMovimentPalletApi;
+  typeMovimentPallet: ReplenishmentMovimentType;
   status: RequestStatusApi;
   priorityLevel: PriorityLevelApi;
   requestedById: string;

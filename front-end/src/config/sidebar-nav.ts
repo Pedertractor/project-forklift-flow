@@ -84,8 +84,8 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       'Papel «operador de máquina» (OPERATOR_MACHINE) e administrador (ADMIN) para testes.',
     items: [
       {
-        to: '/dobra',
-        label: 'Máquina de dobra',
+        to: '/dobra/operacao',
+        label: 'Operação na dobra',
         allowedRoles: OPERATOR_MACHINE_ROLES,
       },
     ],

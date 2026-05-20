@@ -20,9 +20,9 @@ export function replenishmentMovimentTypeLabel(
   type: ReplenishmentMovimentType,
 ): string {
   if (type === 'ANY') {
-    return 'Qualquer tipo';
+    return 'Qualquer tipo (empilhadeira ou transpaleteira)';
   }
-  return movimentTypeLabel(type);
+  return 'Empilhadeira';
 }
 
 /** Caminho em `public/` para uso em `<img src={…} />`. */

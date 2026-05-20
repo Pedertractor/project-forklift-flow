@@ -143,8 +143,8 @@ export async function finalizeMachineProductionCycle(
     movementCube,
     typeMovimentPallet,
     priorityLevel,
-    ...requestStatusOnCreate(RequestStatus.AWAITING_PREPARATION, now),
-    awaitingPreparationSince: now,
+    ...requestStatusOnCreate(RequestStatus.PALLET_READY, now),
+    preparedAt: now,
     requestedBy: { connect: { id: operatorUserId } },
     destination: { connect: { id: machine.id } },
   };
@@ -167,9 +167,9 @@ export async function finalizeMachineProductionCycle(
   operatorMovimentPalletWsEmitAfterReplenishmentSave(request);
 
   return {
-    outcome: "SUPPLY_NOTIFIED" as const,
+    outcome: "TRANSPORT_QUEUED" as const,
     message:
-      "Nao ha pallet pronto — abastecimento deve preparar o proximo cubo para esta maquina.",
+      "Pedido registrado — pallet disponível na fila do transporte.",
     request,
   };
 }
@@ -182,16 +182,12 @@ export async function listPendingPreparationForSupplyUser(userId: string) {
     );
   }
 
-  const [requests, operatorSupplyRequests] = await Promise.all([
-    machineReplenishmentRequestRepository.findManyAwaitingPreparationForSector(
+  const operatorSupplyRequests =
+    await operatorMachineSupplyRequestRepository.findManyOpenForSector(
       user.sectorId,
-    ),
-    operatorMachineSupplyRequestRepository.findManyOpenForSector(
-      user.sectorId,
-    ),
-  ]);
+    );
 
-  return { requests, operatorSupplyRequests };
+  return { requests: [], operatorSupplyRequests };
 }
 
 export async function markReplenishmentPalletReady(requestId: string) {
