@@ -28,10 +28,13 @@ export function LoginBrandingPanel() {
           Acesse sua conta para continuar na plataforma.
         </p>
       </header>
-      <div className="relative z-10 min-h-0 flex-1 py-6 max-[800px]:py-4" aria-hidden />
+      <div
+        className="relative z-10 min-h-0 flex-1 py-6 max-[800px]:py-4"
+        aria-hidden
+      />
       <footer className="relative z-10 mt-auto flex items-center justify-center border-t border-white/20 pt-4">
         <p className="m-0 text-center text-xs font-medium tracking-wide text-white/75">
-          Operações em armazém
+          Pedertractor & TractorComponents
         </p>
       </footer>
     </aside>

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { PageLoader } from '@/components/layout/PageLoader';
 import { ENV } from '@/constants/env';
 import { cn } from '@/lib/utils';
 import {
@@ -8,6 +9,7 @@ import {
   movimentTypePublicIconPath,
 } from '@/utils/operator-moviment-display';
 import type { OperatorMovimentEquipmentPageViewModel } from './useOperatorMovimentEquipmentPage';
+import { Undo2Icon } from 'lucide-react';
 
 const equipmentCardBaseClass =
   'group flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-60';
@@ -21,31 +23,40 @@ export function OperatorMovimentEquipmentPageView(
   vm: OperatorMovimentEquipmentPageViewModel,
 ) {
   const {
-    apiReady,
     token,
     sectorMissing,
     currentPallet,
     bound,
+    changeEquipment,
+    redirectingToTasks,
     myPalletQuery,
     pickerQuery,
     pickerMovimentId,
-    setPickerMovimentId,
-    bindMut,
+    selectMovimentEquipment,
     unbindMut,
     busy,
-    goToTasksQueue,
+    bindPending,
   } = vm;
+
+  if (redirectingToTasks) {
+    return <PageLoader />;
+  }
+
+  const pickingTitle = changeEquipment
+    ? 'Trocar equipamento'
+    : 'Selecionar equipamento';
+  const pickingDescription = changeEquipment
+    ? 'Toque no equipamento que você vai operar. A troca é confirmada na hora e você segue para as tarefas.'
+    : 'Toque no equipamento que você vai operar para vincular e abrir as tarefas disponíveis.';
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-6 border-b border-zinc-200 pb-6">
           <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
-            Meu equipamento
+            {pickingTitle}
           </h1>
-          <p className="mt-1.5 text-sm text-zinc-600">
-           Selecione o equipamento que você vai operar ou está operando.
-          </p>
+          <p className="mt-1.5 text-sm text-zinc-600">{pickingDescription}</p>
         </header>
 
         {!ENV.API_URL ? (
@@ -65,14 +76,20 @@ export function OperatorMovimentEquipmentPageView(
           </p>
         ) : null}
 
-        {bound && currentPallet ? (
-          <Card className="mb-6  p-5 shadow-sm">
+        {changeEquipment && bound && currentPallet ? (
+          <Card className="mb-6 p-5 shadow-sm">
             <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
               Equipamento ativo
             </p>
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
               <div className="min-w-0">
-                <img src={movimentTypePublicIconPath(currentPallet.type)} alt="" className="h-10 w-auto max-w-[min(100%,9rem)] object-contain" width={144} height={64} />
+                <img
+                  src={movimentTypePublicIconPath(currentPallet.type)}
+                  alt=""
+                  className="h-10 w-auto max-w-[min(100%,9rem)] object-contain"
+                  width={144}
+                  height={64}
+                />
               </div>
               <div>
                 <dt className="text-xs font-medium text-zinc-500">Código</dt>
@@ -87,38 +104,32 @@ export function OperatorMovimentEquipmentPageView(
                 </dd>
               </div>
             </dl>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <Button
-                type="button"
-                className="w-full sm:flex-1"
-                onClick={goToTasksQueue}
-              >
-                Ir para tarefas
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-red-200 text-red-700 hover:bg-red-50 sm:w-auto"
-                disabled={busy}
-                onClick={() => unbindMut.mutate()}
-              >
-                Desvincular
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-5 w-full border-red-200 text-red-700 hover:bg-red-50 sm:w-auto"
+              disabled={busy}
+              onClick={() => unbindMut.mutate()}
+            >
+              <Undo2Icon className="size-4" />
+              Desconectar da máquina
+            </Button>
           </Card>
         ) : null}
 
         <Card className="border border-zinc-200 p-5 shadow-sm">
           <h2 className="m-0 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            {bound ? 'Trocar equipamento' : 'Selecionar equipamento'}
+            Equipamentos do seu setor
           </h2>
-          {myPalletQuery.isLoading ? (
+          {myPalletQuery.isLoading || pickerQuery.isLoading ? (
             <p className="mt-3 text-sm text-zinc-600">Carregando…</p>
           ) : (
             <div className="mt-4 space-y-4">
               <div className="space-y-2">
                 <Label id="operator-equipment-picker-label">
-                  Equipamento disponível no seu setor
+                  {bindPending
+                    ? 'Vinculando equipamento…'
+                    : 'Toque para selecionar'}
                 </Label>
                 <ul
                   className="m-0 mt-3 grid list-none gap-3 p-0 sm:grid-cols-3"
@@ -127,19 +138,21 @@ export function OperatorMovimentEquipmentPageView(
                 >
                   {(pickerQuery.data ?? []).map((p) => {
                     const selected = pickerMovimentId === p.id;
+                    const isActive = currentPallet?.id === p.id;
                     return (
                       <li key={p.id} className="min-w-0">
                         <button
                           type="button"
                           role="option"
                           aria-selected={selected}
+                          aria-current={isActive ? 'true' : undefined}
                           className={cn(
                             equipmentCardBaseClass,
                             selected
                               ? equipmentCardSelectedClass
                               : equipmentCardIdleClass,
                           )}
-                          onClick={() => setPickerMovimentId(p.id)}
+                          onClick={() => selectMovimentEquipment(p.id)}
                           disabled={pickerQuery.isFetching || busy}
                         >
                           <div className="flex items-center justify-center rounded-xl bg-zinc-50 px-3 py-5 min-[480px]:py-4 group-hover:bg-zinc-100/90">
@@ -158,6 +171,11 @@ export function OperatorMovimentEquipmentPageView(
                             <p className="mt-1 text-sm font-medium text-zinc-600">
                               {movimentTypeLabel(p.type)}
                             </p>
+                            {isActive ? (
+                              <p className="mt-1 text-xs font-semibold text-[#005fb8]">
+                                Em uso
+                              </p>
+                            ) : null}
                           </div>
                         </button>
                       </li>
@@ -179,15 +197,6 @@ export function OperatorMovimentEquipmentPageView(
                   </p>
                 ) : null}
               </div>
-              <Button
-                type="button"
-                disabled={!apiReady || busy || pickerMovimentId.trim() === ''}
-                onClick={() => bindMut.mutate()}
-              >
-                {bound
-                  ? 'Confirmar troca e ir para tarefas'
-                  : 'Vincular e ir para tarefas'}
-              </Button>
             </div>
           )}
         </Card>

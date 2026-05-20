@@ -28,7 +28,11 @@ export function LoginFormPanel() {
     defaultValues: { card: '', unit: 'pedertractor', password: '' },
   });
 
-  const unit = useWatch({ control, name: 'unit', defaultValue: 'pedertractor' });
+  const unit = useWatch({
+    control,
+    name: 'unit',
+    defaultValue: 'pedertractor',
+  });
   const passwordRegister = register('password');
 
   function onSubmit(data: LoginPayload) {
@@ -38,21 +42,19 @@ export function LoginFormPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col justify-center bg-white px-8 pb-8 pt-9 max-[800px]:px-5 max-[800px]:pb-8 max-[800px]:pt-8">
       <header className="mb-6">
-        <h2 className="m-0 text-xl font-bold tracking-tight text-zinc-900">Fazer login</h2>
-        <p className="mt-2 text-sm text-zinc-500">Insira suas credenciais abaixo.</p>
-        {!ENV.API_URL ? (
-          <p className="mt-1 text-xs text-amber-800">
-            Defina <code className="rounded bg-amber-100 px-1 py-0.5 text-[0.7rem]">VITE_API_URL</code> no{' '}
-            <code className="rounded bg-amber-100 px-1 py-0.5 text-[0.7rem]">.env</code> da raiz (ex.:{' '}
-            <code className="rounded bg-amber-100 px-1 py-0.5 text-[0.7rem]">http://localhost:3131/api</code>) e
-            reinicie o servidor.
-          </p>
-        ) : (
-          <p className="mt-1 text-xs text-zinc-400">As credenciais são validadas na API em {ENV.API_URL}.</p>
-        )}
+        <h2 className="m-0 text-xl font-bold tracking-tight text-zinc-900">
+          Fazer login
+        </h2>
+        <p className="mt-2 text-sm text-zinc-500">
+          Insira suas credenciais abaixo.
+        </p>
       </header>
 
-      <form className="flex max-w-md flex-col gap-5" onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form
+        className="flex max-w-md flex-col gap-5"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+      >
         <div className={fieldGap}>
           <Label htmlFor="login-card" className="text-base font-medium">
             Cartão
@@ -71,16 +73,25 @@ export function LoginFormPanel() {
         </div>
 
         <div className={fieldGap}>
-          <span className="text-base font-medium leading-none text-zinc-900" id={unitGroupId}>
+          <span
+            className="text-base font-medium leading-none text-zinc-900"
+            id={unitGroupId}
+          >
             Unidade
           </span>
-          <div className="grid w-full grid-cols-2 gap-3" role="group" aria-labelledby={unitGroupId}>
+          <div
+            className="grid w-full grid-cols-2 gap-3"
+            role="group"
+            aria-labelledby={unitGroupId}
+          >
             <Button
               type="button"
               variant={unit === 'pedertractor' ? 'default' : 'outline'}
               title="PEDERTRACTOR"
               aria-pressed={unit === 'pedertractor'}
-              onClick={() => setValue('unit', 'pedertractor', { shouldValidate: true })}
+              onClick={() =>
+                setValue('unit', 'pedertractor', { shouldValidate: true })
+              }
               className="h-[var(--control-height,2.5rem)] min-w-0 gap-0 px-3 py-0 text-sm font-semibold leading-none tracking-tight"
             >
               <span className="min-w-0 max-w-full truncate">PEDERTRACTOR</span>
@@ -89,7 +100,9 @@ export function LoginFormPanel() {
               type="button"
               variant={unit === 'tractor' ? 'default' : 'outline'}
               aria-pressed={unit === 'tractor'}
-              onClick={() => setValue('unit', 'tractor', { shouldValidate: true })}
+              onClick={() =>
+                setValue('unit', 'tractor', { shouldValidate: true })
+              }
               className="h-[var(--control-height,2.5rem)] min-w-0 gap-0 px-3 py-0 text-base font-semibold leading-none"
             >
               <span className="min-w-0 max-w-full truncate">TRACTOR</span>
@@ -126,21 +139,19 @@ export function LoginFormPanel() {
             </Button>
           </div>
           {errors.password ? (
-            <p className="m-0 text-sm text-red-600">{errors.password.message}</p>
+            <p className="m-0 text-sm text-red-600">
+              {errors.password.message}
+            </p>
           ) : null}
         </div>
 
-        {isError ? (
-          <p
-            role="alert"
-            className="m-0 rounded-xl border-2 border-red-600/40 bg-red-600/10 px-4 py-3 text-base text-red-700"
-          >
-            {error instanceof Error ? error.message : 'Não foi possível entrar'}
-          </p>
-        ) : null}
-
         <div className="pt-1">
-          <Button type="submit" size="default" className="w-full text-base font-semibold" disabled={isPending}>
+          <Button
+            type="submit"
+            size="default"
+            className="w-full text-base font-semibold"
+            disabled={isPending}
+          >
             {isPending ? 'Entrando…' : 'Entrar'}
           </Button>
         </div>

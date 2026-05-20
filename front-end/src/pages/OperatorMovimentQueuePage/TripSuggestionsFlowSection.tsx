@@ -277,13 +277,7 @@ function StandalonePickupRouteCard({
         <div className="mt-5">
           <StandalonePickupFlow row={row} />
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-zinc-600">
-          {row.message}
-        </p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-zinc-800">
-            Prioridade: {priorityLabel(row.effectivePriority)}
-          </span>
+        <div className="mt-5 flex justify-end">
           <Button
             type="button"
             variant="outline"

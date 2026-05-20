@@ -35,7 +35,9 @@ export function useOperatorMovimentQueuePage() {
   }, [navigate]);
 
   const goToEquipment = useCallback(() => {
-    void navigate(OPERATOR_MOVIMENT_EQUIPMENT_PATH);
+    void navigate(OPERATOR_MOVIMENT_EQUIPMENT_PATH, {
+      state: { changeEquipment: true },
+    });
   }, [navigate]);
 
   const myPalletQuery = useQuery({

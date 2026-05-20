@@ -24,10 +24,11 @@ import type {
 } from '@/types/operator-moviment-pallet.types';
 import { isOpenMovimentTaskStatus } from '@/utils/operator-moviment-work';
 import { cn } from '@/lib/utils';
+import { CheckIcon } from 'lucide-react';
 
 type StepState = 'done' | 'current' | 'upcoming';
 
-/** Alinhado a `route-flow-icons` (recebimento ? m?quina ? pallet ? expedi??o). */
+/** Alinhado a `route-flow-icons` (recebimento → máquina → pallet → expedição). */
 type FlowStepId = RouteFlowStepId;
 
 interface FlowStepConfig {
@@ -112,7 +113,8 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
           t.type === 'DELIVER_TO_MACHINE' &&
           t.status === 'COMPLETED' &&
           t.request.destination.id === group.machineId &&
-          t.assignedMovimentPalletId === group.pickupTask?.assignedMovimentPalletId,
+          t.assignedMovimentPalletId ===
+            group.pickupTask?.assignedMovimentPalletId,
       );
       if (completedDeliver) {
         group.deliverTask = completedDeliver;
@@ -151,7 +153,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'machine',
-        label: 'Entregue o pallet na m?quina',
+        label: 'Entregue o pallet na máquina',
         details: [
           ...machineDetails,
           prismaDetail(deliverCube, 'deliver-to-machine'),
@@ -160,7 +162,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'pallet',
-        label: 'Pallet na m?quina',
+        label: 'Pallet na máquina',
         details: [
           ...machineDetails,
           prismaDetail(pickupCube, 'pick-at-machine'),
@@ -169,9 +171,9 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'expedition',
-        label: 'Expedi??o',
+        label: 'Expedição',
         details: [
-          expeditionAreaDetail('Entregar na expedi??o'),
+          expeditionAreaDetail('Entregar na expedição'),
           prismaDetail(pickupCube, 'carry-to-expedition'),
         ],
         state: pickupOpen ? 'current' : deliverOpen ? 'upcoming' : 'done',
@@ -183,8 +185,8 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     return [
       {
         id: 'receiving',
-        label: 'V? ao recebimento',
-        details: [receivingAreaDetail('Deslocar-se at? o recebimento')],
+        label: 'Vá ao recebimento',
+        details: [receivingAreaDetail('Deslocar-se até o recebimento')],
         state: deliverOpen ? 'current' : 'done',
       },
       {
@@ -198,7 +200,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
       },
       {
         id: 'machine',
-        label: 'Entregue o pallet na m?quina',
+        label: 'Entregue o pallet na máquina',
         details: [
           ...machineDetails,
           prismaDetail(deliverCube, 'deliver-to-machine'),
@@ -211,22 +213,19 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
   return [
     {
       id: 'machine',
-      label: 'Retire o pallet na m?quina',
-      details: [
-        ...machineDetails,
-        prismaDetail(pickupCube, 'pick-at-machine'),
-      ],
+      label: 'Retire o pallet na máquina',
+      details: [...machineDetails, prismaDetail(pickupCube, 'pick-at-machine')],
       state: pickupOpen ? 'current' : 'done',
     },
     {
       id: 'pallet',
-      label: 'Leve o pallet para a expedi??o',
+      label: 'Leve o pallet para a expedição',
       details: [prismaDetail(pickupCube, 'pick-at-machine')],
       state: pickupOpen ? 'current' : 'done',
     },
     {
       id: 'expedition',
-      label: 'Expedi??o',
+      label: 'Expedição',
       details: [
         expeditionAreaDetail(),
         prismaDetail(pickupCube, 'carry-to-expedition'),
@@ -261,7 +260,7 @@ function TaskConfirmationProgressBar() {
     <div
       className="relative mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200"
       role="progressbar"
-      aria-valuetext="Enviando confirma??o"
+      aria-valuetext="Enviando confirmação"
       aria-busy="true"
     >
       <div className="absolute inset-y-0 w-[38%] rounded-full bg-[#005fb8] motion-safe:animate-task-confirm-progress" />
@@ -275,10 +274,10 @@ function FlowStepNode({ step }: { step: FlowStepConfig }) {
   const isDone = step.state === 'done';
 
   return (
-    <div className="flex min-w-[4.75rem] max-w-[11rem] flex-1 flex-col items-center text-center sm:max-w-[12rem]">
+    <div className="flex min-w-[4.75rem] max-w-[11rem]  flex-1 flex-col items-center text-center sm:max-w-[12rem]">
       <div
         className={cn(
-          'relative flex size-12 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors sm:size-14',
+          'relative flex size-12 items-center justify-center rounded-full border-2  bg-white shadow-sm transition-colors sm:size-14',
           isDone && 'border-emerald-500 bg-emerald-50 text-emerald-700',
           isCurrent &&
             'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8] ring-4 ring-[#005fb8]/20',
@@ -304,7 +303,7 @@ function FlowStepNode({ step }: { step: FlowStepConfig }) {
           <Icon className="size-6 sm:size-7" />
         )}
         {isCurrent ? (
-          <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-[#005fb8] ring-2 ring-white" />
+          <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-[#005fb8] animate-pulse ring-2 ring-white" />
         ) : null}
       </div>
       <p
@@ -334,7 +333,10 @@ function RouteFlowTrack({
   return (
     <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
       {steps.map((step, index) => (
-        <div key={`${step.id}-${index}`} className="flex min-w-0 flex-1 items-stretch">
+        <div
+          key={`${step.id}-${index}`}
+          className="flex min-w-0 flex-1 items-stretch"
+        >
           <div className="flex min-w-[12rem] max-w-none shrink-0 basis-0 flex-1 flex-col items-center px-0.5 sm:min-w-[13.5rem]">
             <FlowStepNode step={step} />
             <div className="mt-3 flex min-h-[4.25rem] w-full min-w-0 flex-col items-stretch justify-start px-0.5">
@@ -402,7 +404,8 @@ function OpenTaskRouteCard({
             disabled={!bound || busy}
             onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
           >
-            {deliverPending ? 'Registrando?' : 'Confirmar entrega na m?quina'}
+            <CheckIcon strokeWidth={2.5} className="size-4" />
+            {deliverPending ? 'Registrando…' : 'Concluir entrega na máquina'}
           </Button>
           {deliverPending ? <TaskConfirmationProgressBar /> : null}
         </>
@@ -413,8 +416,8 @@ function OpenTaskRouteCard({
       if (deliverOpen) {
         return (
           <p className="m-0 text-center text-[0.6875rem] leading-snug text-zinc-500">
-            Conclua a entrega na m?quina para habilitar a confirma??o na
-            expedi??o.
+            Conclua a entrega na máquina para habilitar a confirmação na
+            expedição.
           </p>
         );
       }
@@ -426,7 +429,7 @@ function OpenTaskRouteCard({
             disabled={!bound || busy}
             onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
           >
-            {pickupPending ? 'Registrando?' : 'Confirmar entrega na expedi??o'}
+            {pickupPending ? 'Registrando…' : 'Confirmar entrega na expedição'}
           </Button>
           {pickupPending ? <TaskConfirmationProgressBar /> : null}
         </>
@@ -443,7 +446,7 @@ function OpenTaskRouteCard({
           <div>
             <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
               {isCombined
-                ? 'Rota completa na m?quina'
+                ? 'Rota completa na máquina'
                 : deliverOpen
                   ? 'Entrega em andamento'
                   : 'Retirada em andamento'}
@@ -451,8 +454,8 @@ function OpenTaskRouteCard({
             <p className="mt-1 text-sm font-semibold text-zinc-900">
               {group.machineName}
               <span className="font-normal text-zinc-500">
-                {' ? '}
-                ? {group.machinePosition}
+                {' · '}
+                {group.machinePosition}
               </span>
             </p>
           </div>
@@ -464,7 +467,7 @@ function OpenTaskRouteCard({
           <p className="mt-2 text-xs text-zinc-600">
             Status:{' '}
             <span className="font-medium text-zinc-800">{statusLabel}</span>
-            {' ? '}
+            {' · '}
             Desde {formatTaskDate(activeTask.createdAt)}
           </p>
         ) : null}
@@ -478,7 +481,7 @@ function OpenTaskRouteCard({
 }
 
 export interface OpenTasksFlowSectionProps {
-  /** Todas as tarefas atribu?das (abertas e conclu?das) para agrupar rotas combinadas. */
+  /** Todas as tarefas atribuídas (abertas e concluídas) para agrupar rotas combinadas. */
   tasks: OperatorMovimentTaskItem[];
   isLoading: boolean;
   bound: boolean;
@@ -498,7 +501,9 @@ export function OpenTasksFlowSection({
   emptyAction,
 }: OpenTasksFlowSectionProps) {
   const groups = groupOpenTasks(tasks);
-  const hasOpenWork = tasks.some((t) => isOpenMovimentTaskStatus(t.status));
+  const hasOpenWork = tasks.some((task) =>
+    isOpenMovimentTaskStatus(task.status),
+  );
 
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">

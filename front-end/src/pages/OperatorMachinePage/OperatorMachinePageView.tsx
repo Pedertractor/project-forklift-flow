@@ -8,6 +8,7 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import { requestStatusLabel } from '@/utils/replenishment-labels';
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
+import { Undo2Icon } from 'lucide-react';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   const {
@@ -60,28 +61,6 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                 : 'Acompanhe sua solicitação ao abastecimento e o pedido de reposição do prisma.'}
             </p>
           </div>
-          {current && !pickingMachine ? (
-            <div className="flex shrink-0 flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="default"
-                disabled={!apiReady || busy}
-                onClick={() => setShowMachinePicker(true)}
-              >
-                Trocar máquina
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-red-200 text-red-700 hover:bg-red-50"
-                disabled={!apiReady || busy}
-                onClick={() => setEndShiftOpen(true)}
-              >
-                Encerrar vínculo
-              </Button>
-            </div>
-          ) : null}
         </header>
 
         {!ENV.API_URL ? (
@@ -149,16 +128,32 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                     —
                   </div>
                 )}
-                <div className="min-w-0">
-                  <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    Máquina em operação
-                  </p>
-                  <p className="m-0 truncate text-lg font-bold text-zinc-900">
-                    {current.name}
-                  </p>
-                  <p className="mt-0.5 text-sm text-zinc-600">
-                    {current.typeMachine.name} · {current.position}
-                  </p>
+                <div className="flex w-full items-center justify-between">
+                  <div className="flex flex-col gap-2">
+                    <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Máquina em operação
+                    </p>
+                    <p className="m-0 truncate text-lg font-bold text-zinc-900">
+                      {current.name}
+                    </p>
+                    <p className="mt-0.5 text-sm text-zinc-600">
+                      {current.typeMachine.name} · {`Posição: ${current.position}`}
+                    </p>
+                  </div>
+                  {current && !pickingMachine ? (
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-red-200 text-red-700 hover:bg-red-50"
+                        disabled={!apiReady || busy}
+                        onClick={() => setEndShiftOpen(true)}
+                      >
+                        <Undo2Icon className="size-4" />
+                        Sair da máquina
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               </Card>
             ) : myMachineQuery.isLoading ? (
@@ -219,7 +214,9 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         onClose={() => setPickupTargetId(null)}
         title="Confirmar retirada"
         description={
-          pickupRow ? `Deseja solicitar retirada do pallet por um operador de movimentação?` : undefined
+          pickupRow
+            ? `Deseja solicitar retirada do pallet por um operador de movimentação?`
+            : undefined
         }
         footer={
           <ModalActions

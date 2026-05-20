@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
+  type OperatorMovimentEquipmentNavigateState,
+} from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
@@ -18,13 +21,23 @@ function useApiReady(): boolean {
   return Boolean(ENV.API_URL && token);
 }
 
+function readChangeEquipmentFlag(
+  state: OperatorMovimentEquipmentNavigateState | null,
+): boolean {
+  return state?.changeEquipment === true;
+}
+
 export function useOperatorMovimentEquipmentPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const sectorMissing = Boolean(user && !user.sectorId);
+  const changeEquipment = readChangeEquipmentFlag(
+    location.state as OperatorMovimentEquipmentNavigateState | null,
+  );
 
   const [pickerMovimentId, setPickerMovimentId] = useState('');
 
@@ -45,17 +58,11 @@ export function useOperatorMovimentEquipmentPage() {
   }, [queryClient]);
 
   const goToTasksQueue = useCallback(() => {
-    void navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH);
+    void navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, { replace: true });
   }, [navigate]);
 
   const bindMut = useMutation({
-    mutationFn: () => {
-      const id = pickerMovimentId.trim();
-      if (!id) {
-        throw new Error('Selecione um equipamento.');
-      }
-      return postBindOperatorMovimentPallet(id);
-    },
+    mutationFn: postBindOperatorMovimentPallet,
     onSuccess: () => {
       invalidateOperator();
       setPickerMovimentId('');
@@ -69,6 +76,7 @@ export function useOperatorMovimentEquipmentPage() {
     mutationFn: deleteUnbindOperatorMovimentPallet,
     onSuccess: () => {
       invalidateOperator();
+      setPickerMovimentId('');
       toast.success('Equipamento desvinculado.');
     },
     onError: toastApiError,
@@ -77,6 +85,44 @@ export function useOperatorMovimentEquipmentPage() {
   const busy = bindMut.isPending || unbindMut.isPending;
   const currentPallet = myPalletQuery.data ?? null;
   const bound = currentPallet !== null;
+  const redirectingToTasks =
+    bound && !changeEquipment && myPalletQuery.isSuccess;
+
+  useEffect(() => {
+    if (currentPallet?.id) {
+      setPickerMovimentId(currentPallet.id);
+    }
+  }, [currentPallet?.id]);
+
+  useEffect(() => {
+    if (!apiReady || myPalletQuery.isLoading || changeEquipment) {
+      return;
+    }
+    if (bound) {
+      goToTasksQueue();
+    }
+  }, [
+    apiReady,
+    myPalletQuery.isLoading,
+    changeEquipment,
+    bound,
+    goToTasksQueue,
+  ]);
+
+  const selectMovimentEquipment = useCallback(
+    (movimentId: string) => {
+      if (bindMut.isPending || busy) {
+        return;
+      }
+      setPickerMovimentId(movimentId);
+      if (currentPallet?.id === movimentId) {
+        goToTasksQueue();
+        return;
+      }
+      bindMut.mutate(movimentId);
+    },
+    [bindMut, busy, currentPallet?.id, goToTasksQueue],
+  );
 
   return {
     apiReady,
@@ -84,14 +130,15 @@ export function useOperatorMovimentEquipmentPage() {
     sectorMissing,
     currentPallet,
     bound,
+    changeEquipment,
+    redirectingToTasks,
     myPalletQuery,
     pickerQuery,
     pickerMovimentId,
-    setPickerMovimentId,
-    bindMut,
+    selectMovimentEquipment,
     unbindMut,
     busy,
-    goToTasksQueue,
+    bindPending: bindMut.isPending,
   };
 }
 
