@@ -1,9 +1,7 @@
 import { ReplenishmentCreateWizardModal } from '@/pages/ReplenishmentRequestsPage/ReplenishmentCreateWizardModal';
 import { Card } from '@/components/ui/card';
 import { ENV } from '@/constants/env';
-import {
-  formatOperatorSupplyCreatedAt,
-} from '@/pages/OperatorMachinePage/operator-machine-requests.model';
+import { formatOperatorSupplyCreatedAt } from '@/pages/OperatorMachinePage/operator-machine-requests.model';
 import { cn } from '@/lib/utils';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { SupplyPendingPreparationPageViewModel } from './useSupplyPendingPreparationPage';
@@ -42,7 +40,9 @@ function OperatorSupplyRequestCard({
             <p className="m-0 text-base font-bold text-zinc-900">
               {row.machine.name}
             </p>
-            <p className="mt-0.5 text-sm text-zinc-600">{row.machine.position}</p>
+            <p className="mt-0.5 text-sm text-zinc-600">
+              {row.machine.position}
+            </p>
             <p className="mt-2 text-xs text-zinc-500">
               Operador:{' '}
               <span className="font-medium text-zinc-700">

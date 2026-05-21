@@ -6,7 +6,6 @@ import { EyeOffIcon } from '@/components/icons/EyeOffIcon';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ENV } from '@/constants/env';
 import { loginSchema, type LoginPayload } from '@/schemas/auth.schema';
 import { useLogin } from '@/hooks/useLogin';
 
@@ -14,7 +13,7 @@ const fieldGap = 'space-y-2';
 
 export function LoginFormPanel() {
   const unitGroupId = useId();
-  const { mutate, isPending, isError, error } = useLogin();
+  const { mutate, isPending } = useLogin();
   const [showPassword, setShowPassword] = useState(false);
 
   const {

@@ -172,7 +172,7 @@ export function ReplenishmentRequestsPageView(
                 <option value="CANCELED">Cancelado</option>
               </select>
             </div>
-            {user?.sectorId ? (
+            {user?.role === 'ADMIN' ? (
               <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm text-zinc-700">
                 <input
                   type="checkbox"
@@ -428,7 +428,9 @@ export function ReplenishmentRequestsPageView(
               }
             >
               <option value="FORKLIFT">Empilhadeira</option>
-              <option value="ANY">Qualquer tipo (empilhadeira ou transpaleteira)</option>
+              <option value="ANY">
+                Qualquer tipo (empilhadeira ou transpaleteira)
+              </option>
             </select>
           </div>
           <div className="space-y-2">
