@@ -94,7 +94,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     id: 'supply-cadastros',
     title: 'Abastecimento e cadastros de chão',
     rolesDescription:
-      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — tipos, máquinas, equipamentos e solicitações.',
+      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas e solicitações. Cadastro de equipamentos de movimentação: líder e administrador.',
     items: [
       {
         to: '/cadastro/maquinas',
@@ -104,7 +104,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       {
         to: '/abastecimento/equipamentos',
         label: 'Equipamentos de movimentação',
-        allowedRoles: MACHINE_DOMAIN_ROLES,
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
       {
         to: '/abastecimento/solicitacoes',

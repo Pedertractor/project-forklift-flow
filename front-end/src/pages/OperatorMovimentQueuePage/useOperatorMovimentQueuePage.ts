@@ -11,6 +11,7 @@ import { toast } from '@/lib/toast';
 import type { TripStandaloneDeliverApi } from '@/types/operator-moviment-pallet.types';
 import {
   fetchOperatorMyMovimentPallet,
+  fetchOperatorReplenishmentQueue,
   fetchOperatorTripSuggestions,
   postAcceptOpenDeliverTask,
   postAcceptOpenPickupTask,
@@ -52,6 +53,17 @@ export function useOperatorMovimentQueuePage() {
     enabled: apiReady,
     refetchInterval: apiReady ? 60_000 : false,
   });
+
+  const replenishmentQueueQuery = useQuery({
+    queryKey: ['operator-moviment', 'replenishment-queue'],
+    queryFn: fetchOperatorReplenishmentQueue,
+    enabled: apiReady && myPalletQuery.isSuccess && myPalletQuery.data !== null,
+    refetchInterval: apiReady ? 60_000 : false,
+  });
+
+  const manualQueueActivityCount =
+    (replenishmentQueueQuery.data?.requests.length ?? 0) +
+    (replenishmentQueueQuery.data?.onMachinePickupTasks.length ?? 0);
 
   const invalidateOperator = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
@@ -124,6 +136,7 @@ export function useOperatorMovimentQueuePage() {
     token,
     currentPallet,
     tripSuggestionsQuery,
+    manualQueueActivityCount,
     acceptPickupMut,
     acceptTripMut,
     acceptDeliverMut,

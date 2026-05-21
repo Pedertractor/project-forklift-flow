@@ -6,7 +6,10 @@ import {
   patchUpdateMovimentPallet,
   postCreateMovimentPallet,
 } from '../controllers/moviment-pallet-controller.js'
-import { requireMachineDomainRoles } from '../middleware/require-roles.js'
+import {
+  requireMovimentPalletManageRoles,
+  requireMovimentPalletReadRoles,
+} from '../middleware/require-roles.js'
 
 export async function registerMovimentPalletRoutes(fastify: FastifyInstance) {
   await fastify.register(
@@ -14,35 +17,35 @@ export async function registerMovimentPalletRoutes(fastify: FastifyInstance) {
       router.post(
         '/',
         {
-          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+          preHandler: [fastify.authenticate, requireMovimentPalletManageRoles()],
         },
         postCreateMovimentPallet,
       )
       router.get(
         '/',
         {
-          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+          preHandler: [fastify.authenticate, requireMovimentPalletReadRoles()],
         },
         getListMovimentPallets,
       )
       router.get(
         '/:movimentPalletId',
         {
-          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+          preHandler: [fastify.authenticate, requireMovimentPalletReadRoles()],
         },
         getMovimentPalletByIdHandler,
       )
       router.patch(
         '/:movimentPalletId',
         {
-          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+          preHandler: [fastify.authenticate, requireMovimentPalletManageRoles()],
         },
         patchUpdateMovimentPallet,
       )
       router.delete(
         '/:movimentPalletId',
         {
-          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+          preHandler: [fastify.authenticate, requireMovimentPalletManageRoles()],
         },
         deleteMovimentPalletHandler,
       )

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { MACHINE_DOMAIN_ROLES } from '@/types/role.types';
+import { ADMIN_OR_LEADER_ROLES, MACHINE_DOMAIN_ROLES, type AppRole } from '@/types/role.types';
 import type { HomePageViewModel } from './useHomePage';
 
 function isMachineDomainRole(role: string | undefined): boolean {
@@ -9,6 +9,9 @@ function isMachineDomainRole(role: string | undefined): boolean {
 
 export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) {
   const showSupplyModule = isMachineDomainRole(user?.role);
+  const showMovimentPalletCadastro =
+    user?.role != null &&
+    ADMIN_OR_LEADER_ROLES.includes(user.role as AppRole);
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-5xl">
@@ -81,8 +84,8 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
               Abastecimento e cadastro de chão
             </h2>
             <p className="mt-2 mb-0 text-sm text-zinc-600">
-              Atalhos para o módulo do operador de abastecimento e perfis equivalentes (líder/admin
-              nos mesmos cadastros).
+              Atalhos do operador de abastecimento (solicitações e preparo). Cadastro de
+              equipamentos de movimentação: líder e administrador.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
@@ -97,12 +100,14 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
               >
                 Solicitações
               </Link>
-              <Link
-                to="/abastecimento/equipamentos"
-                className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25"
-              >
-                Equipamentos
-              </Link>
+              {showMovimentPalletCadastro ? (
+                <Link
+                  to="/abastecimento/equipamentos"
+                  className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25"
+                >
+                  Equipamentos
+                </Link>
+              ) : null}
             </div>
           </Card>
         ) : null}

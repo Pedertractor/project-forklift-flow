@@ -18,7 +18,7 @@ export function isAppRole(value: string): value is AppRole {
   return (APP_ROLES as readonly string[]).includes(value);
 }
 
-/** Papéis com CRUD de tipo de máquina, máquinas e moviment-pallets na API. */
+/** Papéis com CRUD de tipo de máquina e máquinas de produção na API. */
 export const MACHINE_DOMAIN_ROLES: readonly AppRole[] = [
   'ADMIN',
   'LEADER',

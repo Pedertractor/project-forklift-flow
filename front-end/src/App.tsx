@@ -113,7 +113,6 @@ export function App() {
                 <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
                   <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />
                   <Route path="cadastro/maquinas" element={<MachinesPage />} />
-                  <Route path="abastecimento/equipamentos" element={<MovimentPalletsPage />} />
                   <Route
                     path="abastecimento/solicitacoes"
                     element={<ReplenishmentRequestsPage />}
@@ -122,6 +121,9 @@ export function App() {
                     path="abastecimento/preparo-pendente"
                     element={<SupplyPendingPreparationPage />}
                   />
+                </Route>
+                <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
+                  <Route path="abastecimento/equipamentos" element={<MovimentPalletsPage />} />
                 </Route>
                 <Route element={<RequireRoles roles={['ADMIN']} />}>
                   <Route path="administracao/setores" element={<SectorsPage />} />

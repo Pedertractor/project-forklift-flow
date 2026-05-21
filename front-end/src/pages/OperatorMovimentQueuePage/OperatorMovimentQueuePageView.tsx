@@ -25,6 +25,7 @@ export function OperatorMovimentQueuePageView(
     acceptTripMut,
     acceptDeliverMut,
     tripSuggestionsQuery,
+    manualQueueActivityCount,
     pendingTripSuggestionId,
     pendingStandalonePickupTaskId,
     pendingStandaloneDeliverKey,
@@ -138,9 +139,10 @@ export function OperatorMovimentQueuePageView(
         ) : null}
         {tripSuggestionsQuery.data?.suggestions.length === 0 &&
         tripSuggestionsQuery.data?.standalonePickupTasks.length === 0 &&
-        (tripSuggestionsQuery.data?.standaloneDeliverTasks?.length ?? 0) === 0 ? (
+        (tripSuggestionsQuery.data?.standaloneDeliverTasks?.length ?? 0) ===
+          0 ? (
           <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-4 gap-3">
-            <RouteOff className="size-10 text-zinc-400" />
+            <RouteOff className="size-10 text-blue-500" />
             <p className="m-0 text-center text-sm text-zinc-600">
               Nenhuma sugestão de rota disponível. Acesse as filas manuais para
               aceitar tarefas.
@@ -151,6 +153,12 @@ export function OperatorMovimentQueuePageView(
             >
               <List className="size-4 shrink-0" aria-hidden />
               Filas manuais
+              <span
+                className="inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#005fb8] px-1.5 py-0.5 text-xs font-bold tabular-nums text-white"
+                aria-label={`${manualQueueActivityCount} atividades na fila manual`}
+              >
+                {manualQueueActivityCount}
+              </span>
             </Link>
           </div>
         ) : null}

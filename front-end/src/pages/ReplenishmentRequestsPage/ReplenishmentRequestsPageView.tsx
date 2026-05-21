@@ -13,7 +13,13 @@ import {
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentRequestsPage';
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
-import { Box, CheckIcon, PanelRightOpen } from 'lucide-react';
+import {
+  Box,
+  CheckIcon,
+  ListIcon,
+  PanelRightOpen,
+  PlusIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -106,8 +112,7 @@ export function ReplenishmentRequestsPageView(
               className="gap-2 border-zinc-200"
             >
               <PanelRightOpen className="size-4 shrink-0" aria-hidden />
-              <span className="hidden sm:inline">Meios de locomoção</span>
-              <span className="sm:hidden">Equipamentos</span>
+              <span className="">Equipamentos</span>
               {apiReady &&
               (equipmentQueueTotal > 0 || equipmentReadyForQueueTotal > 0) ? (
                 <span className="inline-flex items-center gap-1 text-xs font-normal text-zinc-600">
@@ -123,13 +128,6 @@ export function ReplenishmentRequestsPageView(
                   ) : null}
                 </span>
               ) : null}
-            </Button>
-            <Button
-              type="button"
-              onClick={openCreate}
-              disabled={!apiReady || busy}
-            >
-              Nova solicitação de retirada
             </Button>
           </div>
         </header>
@@ -184,7 +182,16 @@ export function ReplenishmentRequestsPageView(
               </label>
             ) : null}
           </div>
-          <div className="div">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              className="h-9 min-w-0 px-2 text-xs"
+              onClick={openCreate}
+              disabled={!apiReady || busy}
+            >
+              <PlusIcon className="size-4" />
+              Nova solicitação de retirada
+            </Button>
             <Button
               size="default"
               className="h-9 min-w-0 px-2 text-xs"
@@ -199,6 +206,7 @@ export function ReplenishmentRequestsPageView(
                   {pendingPreparationCount}
                 </span>
               ) : null}
+              <ListIcon className="size-4" />
               Ver solicitações de reposição
             </Button>
           </div>

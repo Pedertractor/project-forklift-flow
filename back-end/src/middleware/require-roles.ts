@@ -22,6 +22,20 @@ export function requireMachineDomainRoles() {
   );
 }
 
+/** Cadastro de equipamentos de movimentação: apenas LEADER ou ADMIN. */
+export function requireMovimentPalletManageRoles() {
+  return requireRoles(RoleUser.LEADER, RoleUser.ADMIN);
+}
+
+/** Leitura de equipamentos (ex.: painel do abastecedor): LEADER, SUPPLY_OPERATOR ou ADMIN. */
+export function requireMovimentPalletReadRoles() {
+  return requireRoles(
+    RoleUser.LEADER,
+    RoleUser.SUPPLY_OPERATOR,
+    RoleUser.ADMIN,
+  );
+}
+
 /**
  * Leitura de catalogo de maquinas (lista e detalhe) para supervisao no mapa.
  * Mutacoes (POST/PATCH/DELETE) continuam em `requireMachineDomainRoles`.

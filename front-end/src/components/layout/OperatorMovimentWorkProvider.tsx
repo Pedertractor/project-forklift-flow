@@ -22,7 +22,10 @@ import {
   wsEventMatchesSubscriber,
 } from '@/lib/operator-moviment-ws';
 import { toast } from '@/lib/toast';
-import { fetchOperatorMyMovimentPallet, fetchOperatorMyTasks } from '@/services/operator-moviment-pallet-api';
+import {
+  fetchOperatorMyMovimentPallet,
+  fetchOperatorMyTasks,
+} from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
 import {
   MOVIMENT_OPERATOR_ROLES,
@@ -74,7 +77,11 @@ export function useOperatorMovimentWork(): OperatorMovimentWorkContextValue {
 
 const WS_RECONNECT_MS = 5_000;
 
-export function OperatorMovimentWorkProvider({ children }: { children: ReactNode }) {
+export function OperatorMovimentWorkProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
@@ -131,7 +138,9 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
   const invalidateOperatorQueues = refreshRealtimeData;
 
   const refetchMyTasks = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['operator-moviment', 'my-tasks'] });
+    await queryClient.invalidateQueries({
+      queryKey: ['operator-moviment', 'my-tasks'],
+    });
   }, [queryClient]);
 
   const handleWsEvent = useCallback(
@@ -152,11 +161,6 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
 
       if (!isMovimentOperator) {
         return;
-      }
-      if (event.type === 'replenishment_request_created') {
-        toast.info('Nova solicitação de reposição disponível para o seu tipo de equipamento.');
-      } else if (event.type === 'trip_suggestions_updated') {
-        toast.info('Novas sugestões de rota disponíveis na fila.');
       }
     },
     [
@@ -208,7 +212,9 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
       };
 
       socket.onmessage = (messageEvent) => {
-        const parsed = parseOperatorMovimentWsMessage(String(messageEvent.data));
+        const parsed = parseOperatorMovimentWsMessage(
+          String(messageEvent.data),
+        );
         if (parsed) {
           handleWsEvent(parsed);
         }
@@ -255,7 +261,8 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
       return;
     }
     const fromTaskCompletion = Boolean(
-      (location.state as { fromTaskCompletion?: boolean } | null)?.fromTaskCompletion,
+      (location.state as { fromTaskCompletion?: boolean } | null)
+        ?.fromTaskCompletion,
     );
     if (fromTaskCompletion) {
       return;

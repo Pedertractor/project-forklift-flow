@@ -231,8 +231,8 @@ function StandaloneDeliverRouteCard({
           </span>
           <Button
             type="button"
-            variant="outline"
-            className="shrink-0 border-[#005fb8] text-[#005fb8] hover:bg-[#005fb8]/10"
+            // variant="outline"
+            className="shrink-0 bg-[#005fb8] text-white hover:bg-[#004a94]"
             disabled={!bound || busy || isAcceptingThisDeliver}
             onClick={() => onAcceptDeliver(row)}
           >
