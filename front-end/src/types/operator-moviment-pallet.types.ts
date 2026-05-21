@@ -62,6 +62,7 @@ export interface OperatorMovimentPalletBrief {
   type: TypeMovimentPalletApi;
   sectorId: string | null;
   operatorId: string | null;
+  operator: OperatorRequestUserBrief | null;
   createdAt: string;
   updatedAt: string;
 }

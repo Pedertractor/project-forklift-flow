@@ -19,3 +19,14 @@ test('pickup-only queue: pickup pareado com entrega nao entra duas vezes', () =>
   const standalone = openPickupIds.filter((id) => !pairedPickupIds.has(id))
   assert.deepEqual(standalone, ['pickup-b'])
 })
+
+test('pickup-only queue: mesmo pickup id nao deve aparecer duas vezes na lista', () => {
+  const ids = ['pickup-a', 'pickup-a', 'pickup-b']
+  const seen = new Set<string>()
+  const unique = ids.filter((id) => {
+    if (seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
+  assert.deepEqual(unique, ['pickup-a', 'pickup-b'])
+})

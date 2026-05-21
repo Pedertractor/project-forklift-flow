@@ -19,20 +19,31 @@ import { ENV } from '@/constants/env';
 import {
   parseOperatorMovimentWsMessage,
   resolveOperatorMovimentWsUrl,
-  wsEventMatchesOperator,
+  wsEventMatchesSubscriber,
 } from '@/lib/operator-moviment-ws';
 import { toast } from '@/lib/toast';
 import { fetchOperatorMyMovimentPallet, fetchOperatorMyTasks } from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
-import { MOVIMENT_OPERATOR_ROLES, type AppRole } from '@/types/role.types';
+import {
+  MOVIMENT_OPERATOR_ROLES,
+  OPERATOR_MACHINE_ROLES,
+  type AppRole,
+} from '@/types/role.types';
 import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types';
-import { countOpenMovimentTasks } from '@/utils/operator-moviment-work';
+import { countOpenMovimentTasksForPallet } from '@/utils/operator-moviment-work';
 import { replenishmentMovimentTypesForRole } from '@/utils/operator-moviment-role';
 
 function isMovimentOperatorRole(role: string | undefined): boolean {
   return (
     role !== undefined &&
     (MOVIMENT_OPERATOR_ROLES as readonly AppRole[]).includes(role as AppRole)
+  );
+}
+
+function isMachineOperatorRole(role: string | undefined): boolean {
+  return (
+    role !== undefined &&
+    (OPERATOR_MACHINE_ROLES as readonly AppRole[]).includes(role as AppRole)
   );
 }
 
@@ -72,7 +83,11 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const enabled = Boolean(ENV.API_URL && token && isMovimentOperatorRole(user?.role));
+  const isMovimentOperator = isMovimentOperatorRole(user?.role);
+  const isMachineOperator = isMachineOperatorRole(user?.role);
+  const realtimeEnabled = Boolean(
+    ENV.API_URL && token && (isMovimentOperator || isMachineOperator),
+  );
   const allowedMovimentTypes = useMemo(
     () => replenishmentMovimentTypesForRole(user?.role),
     [user?.role],
@@ -81,25 +96,39 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
   const myPalletQuery = useQuery({
     queryKey: ['operator-moviment', 'my-pallet'],
     queryFn: fetchOperatorMyMovimentPallet,
-    enabled,
+    enabled: realtimeEnabled && isMovimentOperator,
   });
 
   const myTasksQuery = useQuery({
     queryKey: ['operator-moviment', 'my-tasks'],
     queryFn: fetchOperatorMyTasks,
-    enabled: enabled && myPalletQuery.isSuccess && myPalletQuery.data !== null,
-    refetchInterval: enabled ? 45_000 : false,
+    enabled:
+      realtimeEnabled &&
+      isMovimentOperator &&
+      myPalletQuery.isSuccess &&
+      myPalletQuery.data !== null,
+    refetchInterval: realtimeEnabled && isMovimentOperator ? 45_000 : false,
     refetchOnWindowFocus: true,
   });
 
   const incompleteTaskCount = useMemo(
-    () => countOpenMovimentTasks(myTasksQuery.data ?? []),
-    [myTasksQuery.data],
+    () =>
+      countOpenMovimentTasksForPallet(
+        myTasksQuery.data ?? [],
+        myPalletQuery.data?.id,
+      ),
+    [myTasksQuery.data, myPalletQuery.data?.id],
   );
 
-  const invalidateOperatorQueues = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
+  const refreshRealtimeData = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['operator-moviment'] }),
+      queryClient.invalidateQueries({ queryKey: ['operator-machine'] }),
+    ]);
+    await queryClient.refetchQueries({ type: 'active' });
   }, [queryClient]);
+
+  const invalidateOperatorQueues = refreshRealtimeData;
 
   const refetchMyTasks = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['operator-moviment', 'my-tasks'] });
@@ -107,25 +136,43 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
 
   const handleWsEvent = useCallback(
     (event: OperatorMovimentWsEvent) => {
-      if (!wsEventMatchesOperator(event, user?.sectorId, allowedMovimentTypes)) {
+      if (
+        !wsEventMatchesSubscriber(event, {
+          sectorId: user?.sectorId,
+          userId: user?.id,
+          allowedMovimentTypes,
+          isMovimentOperator,
+          isMachineOperator,
+        })
+      ) {
         return;
       }
 
-      void invalidateOperatorQueues();
+      void refreshRealtimeData();
 
+      if (!isMovimentOperator) {
+        return;
+      }
       if (event.type === 'replenishment_request_created') {
         toast.info('Nova solicitação de reposição disponível para o seu tipo de equipamento.');
       } else if (event.type === 'trip_suggestions_updated') {
         toast.info('Novas sugestões de rota disponíveis na fila.');
       }
     },
-    [allowedMovimentTypes, invalidateOperatorQueues, user?.sectorId],
+    [
+      allowedMovimentTypes,
+      isMachineOperator,
+      isMovimentOperator,
+      refreshRealtimeData,
+      user?.id,
+      user?.sectorId,
+    ],
   );
 
   const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
-    if (!enabled || !token) {
+    if (!realtimeEnabled || !token) {
       return;
     }
 
@@ -192,10 +239,10 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [enabled, token, handleWsEvent]);
+  }, [realtimeEnabled, token, handleWsEvent]);
 
   useEffect(() => {
-    if (!enabled || !myTasksQuery.isSuccess) {
+    if (!realtimeEnabled || !isMovimentOperator || !myTasksQuery.isSuccess) {
       return;
     }
     if (incompleteTaskCount === 0) {
@@ -211,14 +258,12 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
       (location.state as { fromTaskCompletion?: boolean } | null)?.fromTaskCompletion,
     );
     if (fromTaskCompletion) {
-      if (incompleteTaskCount > 0) {
-        navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH, { replace: true });
-      }
       return;
     }
     navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH, { replace: true });
   }, [
-    enabled,
+    realtimeEnabled,
+    isMovimentOperator,
     incompleteTaskCount,
     location.pathname,
     location.state,
@@ -228,7 +273,7 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
 
   const value = useMemo<OperatorMovimentWorkContextValue>(
     () => ({
-      enabled,
+      enabled: realtimeEnabled && isMovimentOperator,
       incompleteTaskCount,
       isLoadingTasks: myTasksQuery.isLoading,
       wsConnected,
@@ -236,7 +281,8 @@ export function OperatorMovimentWorkProvider({ children }: { children: ReactNode
       invalidateOperatorQueues,
     }),
     [
-      enabled,
+      realtimeEnabled,
+      isMovimentOperator,
       incompleteTaskCount,
       invalidateOperatorQueues,
       myTasksQuery.isLoading,

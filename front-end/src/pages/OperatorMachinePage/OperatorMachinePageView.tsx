@@ -3,7 +3,6 @@ import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { Card } from '@/components/ui/card';
 import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { ENV } from '@/constants/env';
-import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import { requestStatusLabel } from '@/utils/replenishment-labels';
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
@@ -17,7 +16,6 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     myMachineQuery,
     current,
     showMachinePicker,
-    setShowMachinePicker,
     machinesQuery,
     machines,
     selectedMachineId,
@@ -25,6 +23,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     bindPending,
     operatorSupplyQuery,
     requestsQuery,
+    replenishmentList,
     openOperatorSupply,
     supplyFlowReplenishment,
     pickupPanelReplenishment,
@@ -137,7 +136,8 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                       {current.name}
                     </p>
                     <p className="mt-0.5 text-sm text-zinc-600">
-                      {current.typeMachine.name} · {`Posição: ${current.position}`}
+                      {current.typeMachine.name} ·{' '}
+                      {`Posição: ${current.position}`}
                     </p>
                   </div>
                   {current && !pickingMachine ? (
@@ -145,7 +145,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-red-200 text-red-700 hover:bg-red-50"
+                        className=" text-red-700 hover:bg-red-50"
                         disabled={!apiReady || busy}
                         onClick={() => setEndShiftOpen(true)}
                       >
@@ -161,6 +161,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
             ) : null}
 
             <OperatorMachineOperationGrid
+              replenishmentRequests={replenishmentList}
               supplyLoading={operatorSupplyQuery.isLoading}
               supplyError={operatorSupplyQuery.error ?? null}
               openSupply={openOperatorSupply}

@@ -12,7 +12,10 @@ import {
   postCompletePickupTask,
 } from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
-import { isOpenMovimentTaskStatus } from '@/utils/operator-moviment-work';
+import {
+  countOpenMovimentTasksForPallet,
+  filterTasksForMyPallet,
+} from '@/utils/operator-moviment-work';
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -39,18 +42,24 @@ export function useOperatorMovimentTasksPage() {
 
   const afterTaskComplete = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-    const tasks = await queryClient.fetchQuery({
-      queryKey: ['operator-moviment', 'my-tasks'],
-      queryFn: fetchOperatorMyTasks,
-    });
-    return tasks.filter((t) => isOpenMovimentTaskStatus(t.status));
+    const [tasks, pallet] = await Promise.all([
+      queryClient.fetchQuery({
+        queryKey: ['operator-moviment', 'my-tasks'],
+        queryFn: fetchOperatorMyTasks,
+      }),
+      queryClient.fetchQuery({
+        queryKey: ['operator-moviment', 'my-pallet'],
+        queryFn: fetchOperatorMyMovimentPallet,
+      }),
+    ]);
+    return countOpenMovimentTasksForPallet(tasks, pallet?.id ?? null);
   }, [queryClient]);
 
   const completeDeliverMut = useMutation({
     mutationFn: (taskId: string) => postCompleteDeliverTask(taskId),
     onSuccess: async () => {
-      const stillOpen = await afterTaskComplete();
-      if (stillOpen.length > 0) {
+      const stillOpenCount = await afterTaskComplete();
+      if (stillOpenCount > 0) {
         toast.success(
           'Entrega na máquina registrada. Continue na mesma rota para concluir a retirada na expedição.',
         );
@@ -67,8 +76,8 @@ export function useOperatorMovimentTasksPage() {
   const completePickupMut = useMutation({
     mutationFn: (taskId: string) => postCompletePickupTask(taskId),
     onSuccess: async () => {
-      const stillOpen = await afterTaskComplete();
-      if (stillOpen.length > 0) {
+      const stillOpenCount = await afterTaskComplete();
+      if (stillOpenCount > 0) {
         toast.success('Retirada registrada. Ainda há outras tarefas em aberto.');
         return;
       }
@@ -80,14 +89,18 @@ export function useOperatorMovimentTasksPage() {
     onError: toastApiError,
   });
 
-  const tasks = myTasksQuery.data ?? [];
+  const currentPallet = myPalletQuery.data ?? null;
+  const tasks = filterTasksForMyPallet(
+    myTasksQuery.data ?? [],
+    currentPallet?.id,
+  );
 
   const busy = completeDeliverMut.isPending || completePickupMut.isPending;
 
   return {
     apiReady,
     token,
-    currentPallet: myPalletQuery.data ?? null,
+    currentPallet,
     myPalletQuery,
     myTasksQuery,
     tasks,

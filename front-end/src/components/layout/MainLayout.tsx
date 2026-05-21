@@ -1,9 +1,8 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { queryClient } from '@/lib/queryClient';
+import { performLogout } from '@/lib/auth-session';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { OperatorMovimentWorkProvider } from '@/components/layout/OperatorMovimentWorkProvider';
-import { authMeQueryKeyBase } from '@/hooks/useAuthMe';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
@@ -51,7 +50,6 @@ function LogOutIcon({ className }: { className?: string }) {
 
 export function MainLayout() {
   const user = useAuthStore((s) => s.user);
-  const logoutStore = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -78,8 +76,7 @@ export function MainLayout() {
 
   function confirmLogout() {
     setLogoutOpen(false);
-    queryClient.removeQueries({ queryKey: [...authMeQueryKeyBase] });
-    logoutStore();
+    performLogout();
     navigate('/login', { replace: true });
   }
 

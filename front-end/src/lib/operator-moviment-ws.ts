@@ -34,7 +34,7 @@ export function parseOperatorMovimentWsMessage(raw: string): OperatorMovimentWsE
   }
 }
 
-export function wsEventMatchesOperator(
+export function wsEventMatchesMovimentOperator(
   event: OperatorMovimentWsEvent,
   sectorId: string | null | undefined,
   allowedMovimentTypes: readonly string[],
@@ -50,4 +50,50 @@ export function wsEventMatchesOperator(
     return false;
   }
   return true;
+}
+
+/** Operador de dobra: eventos da máquina em que está logado. */
+export function wsEventMatchesMachineOperator(
+  event: OperatorMovimentWsEvent,
+  operatorUserId: string | null | undefined,
+): boolean {
+  if (event.type !== 'replenishment_status_updated') {
+    return false;
+  }
+  if (!operatorUserId) {
+    return false;
+  }
+  return event.destinationUserId === operatorUserId;
+}
+
+export function wsEventMatchesSubscriber(
+  event: OperatorMovimentWsEvent,
+  options: {
+    sectorId: string | null | undefined;
+    userId: string | null | undefined;
+    allowedMovimentTypes: readonly string[];
+    isMovimentOperator: boolean;
+    isMachineOperator: boolean;
+  },
+): boolean {
+  if (options.isMachineOperator && wsEventMatchesMachineOperator(event, options.userId)) {
+    return true;
+  }
+  if (options.isMovimentOperator && wsEventMatchesMovimentOperator(
+    event,
+    options.sectorId,
+    options.allowedMovimentTypes,
+  )) {
+    return true;
+  }
+  return false;
+}
+
+/** @deprecated Use {@link wsEventMatchesMovimentOperator}. */
+export function wsEventMatchesOperator(
+  event: OperatorMovimentWsEvent,
+  sectorId: string | null | undefined,
+  allowedMovimentTypes: readonly string[],
+): boolean {
+  return wsEventMatchesMovimentOperator(event, sectorId, allowedMovimentTypes);
 }

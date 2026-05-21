@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { shouldClearSessionAfterMeFailure } from '@/hooks/useAuthMe';
+import { performLogout } from '@/lib/auth-session';
 import { fetchAuthMe } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 import { mapLoginUserToAppUser } from '@/types/auth-api.types';
@@ -16,7 +17,6 @@ export function useLoginPage(): { isRestoringSession: boolean } {
   const location = useLocation();
   const token = useAuthStore((s) => s.token);
   const syncSessionFromProfile = useAuthStore((s) => s.syncSessionFromProfile);
-  const logout = useAuthStore((s) => s.logout);
 
   const fromState = (location.state as LoginLocationState)?.from?.pathname;
   const fromPath = fromState ?? '/';
@@ -58,8 +58,8 @@ export function useLoginPage(): { isRestoringSession: boolean } {
     if (!shouldClearSessionAfterMeFailure(message)) {
       return;
     }
-    logout();
-  }, [bootstrapQuery.isError, bootstrapQuery.error, token, logout]);
+    performLogout();
+  }, [bootstrapQuery.isError, bootstrapQuery.error, token]);
 
   const isRestoringSession =
     Boolean(token) &&

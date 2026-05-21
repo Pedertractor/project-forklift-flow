@@ -120,7 +120,7 @@ export async function finalizeMachineProductionCycle(
     return {
       outcome: "SUPPLY_NOTIFIED" as const,
       message:
-        "Nao ha pallet pronto — abastecimento deve preparar o proximo cubo para esta maquina.",
+        "Nao ha pallet pronto — abastecimento deve preparar o proximo pallet para esta maquina.",
       operatorSupplyRequest,
     };
   }
@@ -154,8 +154,10 @@ export async function finalizeMachineProductionCycle(
       machine.id,
       tx,
     );
-    const row =
-      await machineReplenishmentRequestRepository.createWithClient(tx, data);
+    const row = await machineReplenishmentRequestRepository.createWithClient(
+      tx,
+      data,
+    );
     await operatorMachineSupplyRequestRepository.fulfillOpenForDestination(
       machine.id,
       row.id,
@@ -168,8 +170,7 @@ export async function finalizeMachineProductionCycle(
 
   return {
     outcome: "TRANSPORT_QUEUED" as const,
-    message:
-      "Pedido registrado — pallet disponível na fila do transporte.",
+    message: "Pedido registrado — pallet disponível na fila do transporte.",
     request,
   };
 }
@@ -206,11 +207,14 @@ export async function markReplenishmentPalletReady(requestId: string) {
   }
 
   const now = new Date();
-  const updated = await machineReplenishmentRequestRepository.update(requestId, {
-    ...requestStatusPatch(RequestStatus.PALLET_READY, now),
-    preparedAt: now,
-    awaitingPreparationSince: null,
-  });
+  const updated = await machineReplenishmentRequestRepository.update(
+    requestId,
+    {
+      ...requestStatusPatch(RequestStatus.PALLET_READY, now),
+      preparedAt: now,
+      awaitingPreparationSince: null,
+    },
+  );
   operatorMovimentPalletWsEmitAfterReplenishmentSave(updated);
   return updated;
 }

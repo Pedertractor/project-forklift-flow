@@ -157,10 +157,43 @@ export const movimentPalletTripSuggestionRepository = {
     machineId: string
     typeMovimentPallet: MovimentPalletEquipmentType
   }): Promise<{ created: boolean }> {
-    const existing = await prisma.movimentPalletTripSuggestion.findUnique({
+    await prisma.movimentPalletTripSuggestion.updateMany({
+      where: {
+        pickupTaskId: input.pickupTaskId,
+        status: MovimentPalletTripSuggestionStatus.OPEN,
+        deliverTaskId: { not: input.deliverTaskId },
+      },
+      data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
+    })
+
+    const existingByPickup = await prisma.movimentPalletTripSuggestion.findUnique({
+      where: { pickupTaskId: input.pickupTaskId },
+    })
+
+    if (existingByPickup) {
+      if (
+        existingByPickup.status === MovimentPalletTripSuggestionStatus.ACCEPTED ||
+        existingByPickup.status === MovimentPalletTripSuggestionStatus.COMPLETED
+      ) {
+        return { created: false }
+      }
+      await prisma.movimentPalletTripSuggestion.update({
+        where: { id: existingByPickup.id },
+        data: {
+          deliverTaskId: input.deliverTaskId,
+          machineId: input.machineId,
+          typeMovimentPallet: input.typeMovimentPallet,
+          status: MovimentPalletTripSuggestionStatus.OPEN,
+        },
+        include: suggestionListInclude,
+      })
+      return { created: false }
+    }
+
+    const existingByDeliver = await prisma.movimentPalletTripSuggestion.findUnique({
       where: { deliverTaskId: input.deliverTaskId },
     })
-    if (!existing) {
+    if (!existingByDeliver) {
       await prisma.movimentPalletTripSuggestion.create({
         data: {
           status: MovimentPalletTripSuggestionStatus.OPEN,
@@ -174,17 +207,13 @@ export const movimentPalletTripSuggestionRepository = {
       return { created: true }
     }
     if (
-      existing.status === MovimentPalletTripSuggestionStatus.ACCEPTED ||
-      existing.status === MovimentPalletTripSuggestionStatus.COMPLETED
+      existingByDeliver.status === MovimentPalletTripSuggestionStatus.ACCEPTED ||
+      existingByDeliver.status === MovimentPalletTripSuggestionStatus.COMPLETED
     ) {
-      await prisma.movimentPalletTripSuggestion.findUniqueOrThrow({
-        where: { id: existing.id },
-        include: suggestionListInclude,
-      })
       return { created: false }
     }
     await prisma.movimentPalletTripSuggestion.update({
-      where: { id: existing.id },
+      where: { id: existingByDeliver.id },
       data: {
         pickupTaskId: input.pickupTaskId,
         machineId: input.machineId,

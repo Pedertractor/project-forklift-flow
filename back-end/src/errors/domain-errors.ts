@@ -240,6 +240,15 @@ export class MovimentPalletNotInOperatorSectorError extends Error {
   }
 }
 
+export class MovimentPalletOccupiedByOtherOperatorError extends Error {
+  constructor(
+    message = "Este equipamento ja esta em uso por outro operador.",
+  ) {
+    super(message);
+    this.name = "MovimentPalletOccupiedByOtherOperatorError";
+  }
+}
+
 export class MovimentPalletTypeNotAllowedForRoleError extends Error {
   constructor(
     message = "Este perfil so pode operar empilhadeira (FORKLIFT) ou transpaleteira (PALLET_TRUCK) conforme a funcao.",

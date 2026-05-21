@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { performLogout } from '@/lib/auth-session';
 import { fetchAuthMe } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 import { mapLoginUserToAppUser } from '@/types/auth-api.types';
@@ -23,14 +24,14 @@ export function shouldClearSessionAfterMeFailure(message: string): boolean {
 export function useAuthMe() {
   const token = useAuthStore((s) => s.token);
   const syncSessionFromProfile = useAuthStore((s) => s.syncSessionFromProfile);
-  const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
 
   const query = useQuery({
     queryKey: [...authMeQueryKeyBase, token ?? ''],
     queryFn: fetchAuthMe,
     enabled: Boolean(token),
-    staleTime: 120_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     retry: false,
   });
@@ -53,9 +54,9 @@ export function useAuthMe() {
     if (!shouldClearSessionAfterMeFailure(message)) {
       return;
     }
-    logout();
+    performLogout();
     navigate('/login', { replace: true });
-  }, [query.isError, query.error, logout, navigate]);
+  }, [query.isError, query.error, navigate]);
 
   return query;
 }

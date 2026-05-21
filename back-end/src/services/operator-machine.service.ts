@@ -19,7 +19,10 @@ import { machineReplenishmentRequestRepository } from '../repositories/machine-r
 import { operatorMachineSupplyRequestRepository } from '../repositories/operator-machine-supply-request.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
-import { operatorMovimentPalletWsBroadcastTripSuggestionsUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
+import {
+  operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
+  operatorMovimentPalletWsNotifyReplenishmentChange,
+} from '../ws/operator-moviment-pallet-ws.hub.js'
 
 export async function bindOperatorToMachine(
   operatorUserId: string,
@@ -194,6 +197,8 @@ export async function requestPalletPickupFromMachine(
     requestId,
     operatorUserId,
   )
+
+  operatorMovimentPalletWsNotifyReplenishmentChange(request)
 
   const sectorId = request.destination.sector?.id
   if (sectorId) {

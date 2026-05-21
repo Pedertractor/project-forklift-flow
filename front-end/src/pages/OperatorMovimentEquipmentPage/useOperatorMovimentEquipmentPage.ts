@@ -109,9 +109,18 @@ export function useOperatorMovimentEquipmentPage() {
     goToTasksQueue,
   ]);
 
+  const currentUserId = user?.id ?? '';
+
   const selectMovimentEquipment = useCallback(
     (movimentId: string) => {
       if (bindMut.isPending || busy) {
+        return;
+      }
+      const pallet = pickerQuery.data?.find((p) => p.id === movimentId);
+      if (
+        pallet?.operatorId &&
+        pallet.operatorId !== currentUserId
+      ) {
         return;
       }
       setPickerMovimentId(movimentId);
@@ -121,12 +130,20 @@ export function useOperatorMovimentEquipmentPage() {
       }
       bindMut.mutate(movimentId);
     },
-    [bindMut, busy, currentPallet?.id, goToTasksQueue],
+    [
+      bindMut,
+      busy,
+      currentPallet?.id,
+      currentUserId,
+      goToTasksQueue,
+      pickerQuery.data,
+    ],
   );
 
   return {
     apiReady,
     token,
+    currentUserId,
     sectorMissing,
     currentPallet,
     bound,

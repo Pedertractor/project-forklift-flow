@@ -151,7 +151,7 @@ export function OperatorMachinePickupProgressPageView(
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
             Acompanhe o que acontece depois que você solicita a retirada do
-            pallet na dobra.
+            pallet na máquina.
           </p>
         </header>
 
@@ -226,7 +226,7 @@ export function OperatorMachinePickupProgressPageView(
                 <StepRow
                   status={steps[1]!}
                   title="Pallet na máquina"
-                  description="O material chegou na dobra. Quando estiver pronto, solicite a retirada na lista de pedidos."
+                  description="O material chegou na máquina. Quando estiver pronto, solicite a retirada na lista de pedidos."
                   isLast={false}
                 />
                 <StepRow

@@ -18,12 +18,15 @@ const equipmentCardIdleClass =
   'border-zinc-200 hover:border-zinc-300 hover:shadow-sm';
 const equipmentCardSelectedClass =
   'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white shadow-sm ring-2 ring-[#005fb8]/20';
+const equipmentCardOccupiedClass =
+  'cursor-not-allowed border-zinc-200 bg-zinc-50 opacity-75';
 
 export function OperatorMovimentEquipmentPageView(
   vm: OperatorMovimentEquipmentPageViewModel,
 ) {
   const {
     token,
+    currentUserId,
     sectorMissing,
     currentPallet,
     bound,
@@ -139,6 +142,10 @@ export function OperatorMovimentEquipmentPageView(
                   {(pickerQuery.data ?? []).map((p) => {
                     const selected = pickerMovimentId === p.id;
                     const isActive = currentPallet?.id === p.id;
+                    const occupiedByOther =
+                      p.operatorId !== null &&
+                      p.operatorId !== currentUserId;
+                    const operatorName = p.operator?.name?.trim();
                     return (
                       <li key={p.id} className="min-w-0">
                         <button
@@ -146,16 +153,27 @@ export function OperatorMovimentEquipmentPageView(
                           role="option"
                           aria-selected={selected}
                           aria-current={isActive ? 'true' : undefined}
+                          aria-disabled={occupiedByOther ? true : undefined}
                           className={cn(
                             equipmentCardBaseClass,
-                            selected
-                              ? equipmentCardSelectedClass
-                              : equipmentCardIdleClass,
+                            occupiedByOther
+                              ? equipmentCardOccupiedClass
+                              : selected
+                                ? equipmentCardSelectedClass
+                                : equipmentCardIdleClass,
                           )}
                           onClick={() => selectMovimentEquipment(p.id)}
-                          disabled={pickerQuery.isFetching || busy}
+                          disabled={
+                            occupiedByOther || pickerQuery.isFetching || busy
+                          }
                         >
-                          <div className="flex items-center justify-center rounded-xl bg-zinc-50 px-3 py-5 min-[480px]:py-4 group-hover:bg-zinc-100/90">
+                          <div
+                            className={cn(
+                              'flex items-center justify-center rounded-xl bg-zinc-50 px-3 py-5 min-[480px]:py-4',
+                              !occupiedByOther &&
+                                'group-hover:bg-zinc-100/90',
+                            )}
+                          >
                             <img
                               src={movimentTypePublicIconPath(p.type)}
                               alt=""
@@ -171,7 +189,11 @@ export function OperatorMovimentEquipmentPageView(
                             <p className="mt-1 text-sm font-medium text-zinc-600">
                               {movimentTypeLabel(p.type)}
                             </p>
-                            {isActive ? (
+                            {occupiedByOther && operatorName ? (
+                              <p className="mt-1 text-xs font-semibold text-zinc-500">
+                                {operatorName}
+                              </p>
+                            ) : isActive ? (
                               <p className="mt-1 text-xs font-semibold text-[#005fb8]">
                                 Em uso
                               </p>

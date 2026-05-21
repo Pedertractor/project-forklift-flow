@@ -64,14 +64,36 @@ function canCompleteDeliver(
   );
 }
 
-function canCompletePickup(type: ForkliftTaskTypeApi, status: string): boolean {
-  return (
-    type === 'PICKUP_TO_EXPEDITION' &&
-    (status === 'CREATED' || status === 'ASSIGNED' || status === 'IN_PROGRESS')
-  );
+function canCompletePickup(
+  task: OperatorMovimentTaskItem,
+  myPalletId: string | null,
+): boolean {
+  if (task.type !== 'PICKUP_TO_EXPEDITION') {
+    return false;
+  }
+  if (
+    task.status !== 'CREATED' &&
+    task.status !== 'ASSIGNED' &&
+    task.status !== 'IN_PROGRESS'
+  ) {
+    return false;
+  }
+  if (myPalletId == null) {
+    return false;
+  }
+  if (
+    task.assignedMovimentPalletId != null &&
+    task.assignedMovimentPalletId !== myPalletId
+  ) {
+    return false;
+  }
+  return true;
 }
 
-function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
+function groupOpenTasks(
+  tasks: OperatorMovimentTaskItem[],
+  myPalletId: string | null,
+): TaskRouteGroup[] {
   const byMachine = new Map<string, TaskRouteGroup>();
   const openTasks = tasks.filter((t) => isOpenMovimentTaskStatus(t.status));
 
@@ -108,13 +130,16 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
 
   for (const group of byMachine.values()) {
     if (group.pickupTask && !group.deliverTask) {
+      const pickupPalletId = group.pickupTask.assignedMovimentPalletId;
       const completedDeliver = tasks.find(
         (t) =>
           t.type === 'DELIVER_TO_MACHINE' &&
           t.status === 'COMPLETED' &&
           t.request.destination.id === group.machineId &&
-          t.assignedMovimentPalletId ===
-            group.pickupTask?.assignedMovimentPalletId,
+          (t.assignedMovimentPalletId === pickupPalletId ||
+            (pickupPalletId == null &&
+              myPalletId != null &&
+              t.assignedMovimentPalletId === myPalletId)),
       );
       if (completedDeliver) {
         group.deliverTask = completedDeliver;
@@ -127,20 +152,23 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
   );
 }
 
-function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
+function buildSteps(
+  group: TaskRouteGroup,
+  myPalletId: string | null,
+): FlowStepConfig[] {
   const deliverOpen =
     group.deliverTask !== null &&
     canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
   const pickupOpen =
     group.pickupTask !== null &&
-    canCompletePickup(group.pickupTask.type, group.pickupTask.status);
+    canCompletePickup(group.pickupTask, myPalletId);
   const deliverCube = group.deliverTask?.request.movementCube;
   const pickupCube = group.pickupTask?.request.movementCube;
   const machineDetails = [
     machineLocationDetail(group.machineName, group.machinePosition),
   ];
 
-  if (group.deliverTask && group.pickupTask) {
+  if (deliverOpen && pickupOpen) {
     return [
       {
         id: 'receiving',
@@ -181,7 +209,7 @@ function buildSteps(group: TaskRouteGroup): FlowStepConfig[] {
     ];
   }
 
-  if (group.deliverTask) {
+  if (deliverOpen && group.deliverTask) {
     return [
       {
         id: 'receiving',
@@ -360,24 +388,25 @@ function OpenTaskRouteCard({
   group,
   bound,
   busy,
+  myPalletId,
   completeDeliverMut,
   completePickupMut,
 }: {
   group: TaskRouteGroup;
   bound: boolean;
   busy: boolean;
+  myPalletId: string | null;
   completeDeliverMut: CompleteMutationHandlers;
   completePickupMut: CompleteMutationHandlers;
 }) {
-  const steps = buildSteps(group);
+  const steps = buildSteps(group, myPalletId);
   const deliverOpen =
     group.deliverTask !== null &&
     canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
   const pickupOpen =
-    group.pickupTask !== null &&
-    canCompletePickup(group.pickupTask.type, group.pickupTask.status);
+    group.pickupTask !== null && canCompletePickup(group.pickupTask, myPalletId);
 
-  const isCombined = group.deliverTask !== null && group.pickupTask !== null;
+  const isCombined = deliverOpen && pickupOpen;
   const activeTask = deliverOpen
     ? group.deliverTask
     : pickupOpen
@@ -412,7 +441,7 @@ function OpenTaskRouteCard({
       );
     }
 
-    if (step.id === 'expedition' && pickupOpen && group.pickupTask) {
+    if (step.id === 'expedition' && group.pickupTask) {
       if (deliverOpen) {
         return (
           <p className="m-0 text-center text-[0.6875rem] leading-snug text-zinc-500">
@@ -421,19 +450,21 @@ function OpenTaskRouteCard({
           </p>
         );
       }
-      return (
-        <>
-          <Button
-            type="button"
-            className="h-auto min-h-[2.75rem] w-full shrink-0 whitespace-normal bg-[#005fb8] px-2 py-2.5 text-center text-xs leading-snug text-white hover:bg-[#004a94] sm:px-3 sm:text-sm"
-            disabled={!bound || busy}
-            onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
-          >
-            {pickupPending ? 'Registrando…' : 'Confirmar entrega na expedição'}
-          </Button>
-          {pickupPending ? <TaskConfirmationProgressBar /> : null}
-        </>
-      );
+      if (pickupOpen) {
+        return (
+          <>
+            <Button
+              type="button"
+              className="h-auto min-h-[2.75rem] w-full shrink-0 whitespace-normal bg-[#005fb8] px-2 py-2.5 text-center text-xs leading-snug text-white hover:bg-[#004a94] sm:px-3 sm:text-sm"
+              disabled={!bound || busy}
+              onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
+            >
+              {pickupPending ? 'Registrando…' : 'Confirmar entrega na expedição'}
+            </Button>
+            {pickupPending ? <TaskConfirmationProgressBar /> : null}
+          </>
+        );
+      }
     }
 
     return null;
@@ -483,6 +514,7 @@ function OpenTaskRouteCard({
 export interface OpenTasksFlowSectionProps {
   /** Todas as tarefas atribuídas (abertas e concluídas) para agrupar rotas combinadas. */
   tasks: OperatorMovimentTaskItem[];
+  myPalletId: string | null;
   isLoading: boolean;
   bound: boolean;
   busy: boolean;
@@ -493,6 +525,7 @@ export interface OpenTasksFlowSectionProps {
 
 export function OpenTasksFlowSection({
   tasks,
+  myPalletId,
   isLoading,
   bound,
   busy,
@@ -500,10 +533,16 @@ export function OpenTasksFlowSection({
   completePickupMut,
   emptyAction,
 }: OpenTasksFlowSectionProps) {
-  const groups = groupOpenTasks(tasks);
-  const hasOpenWork = tasks.some((task) =>
-    isOpenMovimentTaskStatus(task.status),
-  );
+  const groups = groupOpenTasks(tasks, myPalletId).filter((group) => {
+    const deliverOpen =
+      group.deliverTask !== null &&
+      canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
+    const pickupOpen =
+      group.pickupTask !== null &&
+      canCompletePickup(group.pickupTask, myPalletId);
+    return deliverOpen || pickupOpen;
+  });
+  const hasOpenWork = groups.length > 0;
 
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
@@ -530,6 +569,7 @@ export function OpenTasksFlowSection({
                 group={group}
                 bound={bound}
                 busy={busy}
+                myPalletId={myPalletId}
                 completeDeliverMut={completeDeliverMut}
                 completePickupMut={completePickupMut}
               />

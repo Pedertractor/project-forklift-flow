@@ -58,14 +58,13 @@ export function selectPickupPanelReplenishment(
   if (onMachine.length > 0) {
     return pickNewestByStatusSince(onMachine);
   }
-  const completed = requests.filter((r) => r.status === 'COMPLETED');
-  return pickNewestByStatusSince(completed);
+  return null;
 }
 
 export const SUPPLY_FLOW_STEPS = [
   { key: 'supply', title: 'Aviso ao abastecimento' },
   { key: 'ready', title: 'Pallet no recebimento' },
-  { key: 'deliver', title: 'Entrega a caminho' },
+  { key: 'deliver', title: 'Movimento em curso' },
   { key: 'on-machine', title: 'Na máquina de dobra' },
 ] as const;
 
@@ -147,7 +146,7 @@ export function supplyFlowHeadline(phase: SupplyFlowPhase): string {
     case 'PALLET_READY':
       return 'O pallet está pronto no recebimento — aguardando o transporte aceitar.';
     case 'DELIVERING':
-      return 'O operador de movimentação está levando o prisma até a dobra.';
+      return 'O operador de movimentação está levando o pallet até a máquina.';
     case 'ON_MACHINE':
       return 'O material chegou na máquina.';
     case 'COMPLETED':
@@ -173,6 +172,42 @@ export function shouldShowSupplyFlow(
   replenishment: ReplenishmentRequestListItem | null,
 ): boolean {
   return deriveSupplyFlowPhase(openSupply, replenishment) !== 'IDLE';
+}
+
+export function hasReplenishmentIncomingForMachine(
+  requests: ReplenishmentRequestListItem[],
+): boolean {
+  return requests.some((r) => INCOMING_SUPPLY_STATUSES.has(r.status));
+}
+
+export function hasPalletOnMachine(
+  requests: ReplenishmentRequestListItem[],
+): boolean {
+  return requests.some((r) => r.status === 'ON_MACHINE');
+}
+
+/**
+ * Card "Solicitação ao abastecimento": oculto com prisma na máquina ou retirada em curso.
+ * Visível com fluxo de abastecimento/transporte a caminho, ou quando não há pedido no
+ * recebimento nem material na máquina (estado para solicitar pallet).
+ */
+export function shouldShowSupplyPanel(
+  requests: ReplenishmentRequestListItem[],
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  pickupPanelReplenishment: ReplenishmentRequestListItem | null,
+  pickupPhase: OperatorPickupProgressPhase | null,
+): boolean {
+  if (hasPalletOnMachine(requests)) {
+    return false;
+  }
+  if (shouldShowReplenishmentPanel(pickupPanelReplenishment, pickupPhase)) {
+    return false;
+  }
+  const supplyFlowReplenishment = selectSupplyFlowReplenishment(requests);
+  if (openSupply?.status === 'OPEN' || supplyFlowReplenishment) {
+    return true;
+  }
+  return !hasReplenishmentIncomingForMachine(requests);
 }
 
 export function pickupFlowStepStatuses(
@@ -245,14 +280,22 @@ export function shouldFetchPickupProgress(
   if (!replenishment) {
     return false;
   }
-  return (
-    replenishment.status === 'ON_MACHINE' ||
-    replenishment.status === 'COMPLETED'
-  );
+  return replenishment.status === 'ON_MACHINE';
 }
 
 export function shouldShowPickupFlow(
   replenishment: ReplenishmentRequestListItem | null,
 ): boolean {
   return shouldFetchPickupProgress(replenishment);
+}
+
+/** Card "Pedido de reposição": só enquanto o prisma está na máquina e o fluxo não terminou. */
+export function shouldShowReplenishmentPanel(
+  replenishment: ReplenishmentRequestListItem | null,
+  pickupPhase: OperatorPickupProgressPhase | null,
+): boolean {
+  if (!replenishment || replenishment.status !== 'ON_MACHINE') {
+    return false;
+  }
+  return pickupPhase !== 'PICKUP_FINISHED';
 }

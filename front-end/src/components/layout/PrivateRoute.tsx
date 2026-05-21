@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { PageLoader } from '@/components/layout/PageLoader';
 import { useAuthMe } from '@/hooks/useAuthMe';
 import { resolvePostLoginPath } from '@/lib/route-access';
 import { useAuthStore } from '@/store/auth.store';
@@ -8,10 +9,19 @@ const FIRST_PASSWORD_PATH = '/definir-senha';
 type PrivateLocationState = { from?: { pathname?: string } } | null | undefined;
 
 export function PrivateRoute() {
-  useAuthMe();
+  const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const requiresPasswordChange = useAuthStore((s) => s.requiresPasswordChange);
   const location = useLocation();
+  const meQuery = useAuthMe();
+
+  if (!token && !user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (token && meQuery.isPending) {
+    return <PageLoader />;
+  }
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;

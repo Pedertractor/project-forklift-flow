@@ -340,11 +340,25 @@ export function TripSuggestionsFlowSection({
   }
 
   const combined = data.suggestions;
-  const standalonePickups = data.standalonePickupTasks;
+  const seenPickupIds = new Set<string>();
+  const standalonePickups = data.standalonePickupTasks.filter((row) => {
+    const id = row.pickupTask.id;
+    if (seenPickupIds.has(id)) {
+      return false;
+    }
+    seenPickupIds.add(id);
+    return true;
+  });
+  const seenCombinedPickupIds = new Set(
+    combined.map((row) => row.pickupTask.id),
+  );
+  const standalonePickupsWithoutCombinedOverlap = standalonePickups.filter(
+    (row) => !seenCombinedPickupIds.has(row.pickupTask.id),
+  );
   const standaloneDelivers = data.standaloneDeliverTasks ?? [];
   if (
     combined.length === 0 &&
-    standalonePickups.length === 0 &&
+    standalonePickupsWithoutCombinedOverlap.length === 0 &&
     standaloneDelivers.length === 0
   ) {
     return null;
@@ -387,11 +401,11 @@ export function TripSuggestionsFlowSection({
             />
           );
         })}
-        {standalonePickups.map((row) => {
-          const taskId = row.suggestedOrder[0]?.taskId ?? row.pickupTask.id;
+        {standalonePickupsWithoutCombinedOverlap.map((row) => {
+          const taskId = row.pickupTask.id;
           return (
             <StandalonePickupRouteCard
-              key={`pickup-${row.machine.id}-${taskId}`}
+              key={`pickup-${taskId}`}
               row={row}
               bound={bound}
               busy={busy}

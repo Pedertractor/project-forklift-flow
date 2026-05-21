@@ -4,6 +4,7 @@ import {
   MovimentPalletDeliverTaskCompletionError,
   MovimentPalletNotFoundError,
   MovimentPalletNotInOperatorSectorError,
+  MovimentPalletOccupiedByOtherOperatorError,
   MovimentPalletDeliverTaskAcceptError,
   MovimentPalletPickupTaskAcceptError,
   MovimentPalletPickupTaskCompletionError,
@@ -68,6 +69,9 @@ export const postBindOperatorMovimentPallet: RouteHandlerMethod = async (
     }
     if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
       return reply.status(403).send({ error: error.message })
+    }
+    if (error instanceof MovimentPalletOccupiedByOtherOperatorError) {
+      return reply.status(409).send({ error: error.message })
     }
     throw error
   }

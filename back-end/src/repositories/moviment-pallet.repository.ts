@@ -105,16 +105,11 @@ export const movimentPalletRepository = {
   findManyForOperatorPicker(options: {
     sectorId: string
     types: MovimentPalletEquipmentType[]
-    operatorUserId: string
   }) {
     return prisma.movimentPallet.findMany({
       where: {
         sectorId: options.sectorId,
         type: { in: options.types },
-        OR: [
-          { operatorId: null },
-          { operatorId: options.operatorUserId },
-        ],
       },
       select: movimentPalletListSelect,
       orderBy: { code: 'asc' },

@@ -14,6 +14,7 @@ import {
   postOperatorFinalizeCycle,
   postOperatorRequestPickup,
 } from '@/services/operator-machine-api';
+import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
 import {
   selectPickupPanelReplenishment,
   selectSupplyFlowReplenishment,
@@ -36,11 +37,15 @@ function useApiReady(): boolean {
   return Boolean(ENV.API_URL && token);
 }
 
+const MACHINE_POLL_MS_WS_DOWN = 8_000;
+
 export function useOperatorMachinePage() {
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const user = useAuthStore((s) => s.user);
   const hasSector = Boolean(user?.sectorId);
+  const { wsConnected } = useOperatorMovimentWork();
+  const machinePollInterval = wsConnected ? false : MACHINE_POLL_MS_WS_DOWN;
 
   const [endShiftOpen, setEndShiftOpen] = useState(false);
   const [pickupTargetId, setPickupTargetId] = useState<string | null>(null);
@@ -102,14 +107,14 @@ export function useOperatorMachinePage() {
     queryKey: queryKeyRequests,
     queryFn: () => fetchOperatorReplenishmentRequests(),
     enabled: apiReady && Boolean(current),
-    refetchInterval: 15_000,
+    refetchInterval: machinePollInterval,
   });
 
   const operatorSupplyQuery = useQuery({
     queryKey: queryKeyOperatorSupply,
     queryFn: () => fetchOperatorSupplyRequests(),
     enabled: apiReady && Boolean(current),
-    refetchInterval: 15_000,
+    refetchInterval: machinePollInterval,
   });
 
   const replenishmentList = requestsQuery.data ?? [];
@@ -146,7 +151,7 @@ export function useOperatorMachinePage() {
       apiReady &&
       Boolean(current) &&
       shouldFetchPickupProgress(pickupPanelReplenishment),
-    refetchInterval: 10_000,
+    refetchInterval: machinePollInterval,
   });
 
   const canRequestPallet = !hasBlockingReplenishment && openOperatorSupply === null;
@@ -159,7 +164,7 @@ export function useOperatorMachinePage() {
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       setEndShiftOpen(false);
       setShowMachinePicker(true);
-      toast.success('Vínculo encerrado. Bom descanso.');
+      toast.success('Vínculo encerrado.');
     },
     onError: toastApiError,
   });
@@ -214,6 +219,7 @@ export function useOperatorMachinePage() {
     selectMachine,
     bindPending: bindMut.isPending,
     requestsQuery,
+    replenishmentList,
     operatorSupplyQuery,
     openOperatorSupply,
     supplyFlowReplenishment,

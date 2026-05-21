@@ -14,6 +14,7 @@ import {
   MovimentPalletDeliverTaskCompletionError,
   MovimentPalletNotFoundError,
   MovimentPalletNotInOperatorSectorError,
+  MovimentPalletOccupiedByOtherOperatorError,
   MovimentPalletPickupTaskAcceptError,
   MovimentPalletPickupTaskCompletionError,
   MovimentPalletTaskNotFoundError,
@@ -29,7 +30,10 @@ import {
 } from "../errors/domain-errors.js";
 import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/prisma.js";
-import { operatorMovimentPalletWsBroadcastTripSuggestionsUpdated } from "../ws/operator-moviment-pallet-ws.hub.js";
+import {
+  operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
+  operatorMovimentPalletWsNotifyReplenishmentChange,
+} from "../ws/operator-moviment-pallet-ws.hub.js";
 import { requestStatusPatch } from "../utils/request-status-since.js";
 import { machineReplenishmentRequestRepository } from "../repositories/machine-replenishment-request.repository.js";
 import { operatorMachineSupplyRequestRepository } from "../repositories/operator-machine-supply-request.repository.js";
@@ -136,7 +140,6 @@ export async function listMovimentPalletsForOperatorPicker(
   return movimentPalletRepository.findManyForOperatorPicker({
     sectorId: user.sectorId,
     types,
-    operatorUserId,
   });
 }
 
@@ -171,6 +174,12 @@ export async function bindOperatorToMovimentPallet(
     throw new MovimentPalletTypeNotAllowedForRoleError(
       "Este equipamento nao corresponde ao tipo permitido para o seu perfil.",
     );
+  }
+  if (
+    pallet.operatorId !== null &&
+    pallet.operatorId !== operatorUserId
+  ) {
+    throw new MovimentPalletOccupiedByOtherOperatorError();
   }
 
   return movimentPalletRepository.assignOperatorExclusive(
@@ -249,43 +258,18 @@ function sortTasksByRequestPriority<T extends { request: { priorityLevel: Priori
   });
 }
 
-function usesFollowUpSectorTaskView(
-  role: RoleUser,
-  palletType: MovimentPalletEquipmentType | undefined,
-): boolean {
-  if (role === RoleUser.FOLLOW_UP_OPERATOR) {
-    return true;
-  }
-  if (role === RoleUser.ADMIN && palletType === MovimentPalletEquipmentType.PALLET_TRUCK) {
-    return true;
-  }
-  return false;
-}
-
 async function listTasksVisibleToMovimentOperator(
   operatorUserId: string,
-  role: RoleUser,
+  _role: RoleUser,
 ) {
   const movimentPallet =
     await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-
-  if (
-    usesFollowUpSectorTaskView(role, movimentPallet?.type) &&
-    user?.sectorId
-  ) {
-    const tasks =
-      await movimentPalletTaskRepository.findManyForFollowUpSectorVisibility(
-        user.sectorId,
-        movimentPallet?.id,
-      );
-    return { movimentPallet, tasks: sortTasksByRequestPriority(tasks) };
-  }
 
   if (!movimentPallet) {
     return { movimentPallet: null, tasks: [] };
   }
 
+  /** Somente tarefas do equipamento vinculado (fila / setor ficam em trip-suggestions e replenishment-requests). */
   const tasks = await movimentPalletTaskRepository.findManyForAssignedPallet(
     movimentPallet.id,
   );
@@ -708,7 +692,12 @@ async function computeTripPairsAndSectorUrgency(
     }
   }
 
-  return { pairs, standalonePickups, standaloneDelivers, mostUrgentOpenInSector };
+  return {
+    pairs: dedupeComputedTripPairs(pairs),
+    standalonePickups: dedupeStandalonePickupEntries(standalonePickups),
+    standaloneDelivers,
+    mostUrgentOpenInSector,
+  };
 }
 
 async function tryCompleteTripSuggestionForPickupTask(pickupTaskId: string) {
@@ -737,6 +726,30 @@ function dedupeComputedTripPairs(pairs: ComputedTripPair[]): ComputedTripPair[] 
   return [...byPickup.values()];
 }
 
+function dedupeStandalonePickupEntries(
+  entries: StandalonePickupEntry[],
+): StandalonePickupEntry[] {
+  const byPickup = new Map<string, StandalonePickupEntry>();
+  for (const entry of entries) {
+    if (!byPickup.has(entry.pickupTask.id)) {
+      byPickup.set(entry.pickupTask.id, entry);
+    }
+  }
+  return [...byPickup.values()];
+}
+
+function dedupeStandalonePickupRows(
+  rows: StandalonePickupRow[],
+): StandalonePickupRow[] {
+  const byPickup = new Map<string, StandalonePickupRow>();
+  for (const row of rows) {
+    if (!byPickup.has(row.pickupTask.id)) {
+      byPickup.set(row.pickupTask.id, row);
+    }
+  }
+  return [...byPickup.values()];
+}
+
 function dedupeCombinedSuggestionsByPickup(
   rows: TripRouteSuggestionRow[],
 ): TripRouteSuggestionRow[] {
@@ -751,7 +764,18 @@ function dedupeCombinedSuggestionsByPickup(
       bestByPickup.set(pickupId, row);
     }
   }
-  return [...bestByPickup.values()];
+  const bestByRequest = new Map<string, TripRouteSuggestionRow>();
+  for (const row of bestByPickup.values()) {
+    const requestId = row.pickupTask.requestId;
+    const current = bestByRequest.get(requestId);
+    if (
+      !current ||
+      row.tripSuggestion.updatedAt > current.tripSuggestion.updatedAt
+    ) {
+      bestByRequest.set(requestId, row);
+    }
+  }
+  return [...bestByRequest.values()];
 }
 
 function excludeStandalonesCoveredByCombined(
@@ -760,6 +784,9 @@ function excludeStandalonesCoveredByCombined(
   standaloneDelivers: StandaloneDeliverRow[],
 ) {
   const pairedPickupIds = new Set(suggestions.map((s) => s.pickupTask.id));
+  const pairedPickupRequestIds = new Set(
+    suggestions.map((s) => s.pickupTask.requestId),
+  );
   const pairedDeliverIds = new Set(suggestions.map((s) => s.deliverTask.id));
   const pairedDeliverRequestIds = new Set(
     suggestions.map((s) => s.deliverTask.requestId),
@@ -768,7 +795,9 @@ function excludeStandalonesCoveredByCombined(
 
   return {
     standalonePickupTasks: standalonePickups.filter(
-      (s) => !pairedPickupIds.has(s.pickupTask.id),
+      (s) =>
+        !pairedPickupIds.has(s.pickupTask.id) &&
+        !pairedPickupRequestIds.has(s.pickupTask.requestId),
     ),
     standaloneDeliverTasks: standaloneDelivers.filter((d) => {
       if (d.deliverTask && pairedDeliverIds.has(d.deliverTask.id)) {
@@ -1116,8 +1145,8 @@ export async function listTripRouteSuggestionsForOperator(
     return a.machine.id.localeCompare(b.machine.id);
   });
 
-  const standalonePickupTasks: StandalonePickupRow[] = standalonePickups.map(
-    (s) => mapStandalonePickupToRow(s, mostUrgentOpenInSector),
+  const standalonePickupTasks: StandalonePickupRow[] = dedupeStandalonePickupRows(
+    standalonePickups.map((s) => mapStandalonePickupToRow(s, mostUrgentOpenInSector)),
   );
   standalonePickupTasks.sort((a, b) => {
     const ra = priorityRank[a.effectivePriority];
@@ -1317,6 +1346,68 @@ const openPickupTaskStatusesAccept: ForkliftTaskStatus[] = [
   ForkliftTaskStatus.IN_PROGRESS,
 ];
 
+/** Vincula retirada CREATED sem equipamento ao pallet do operador (aceite / conclusao). */
+async function claimOpenPickupTaskToPallet(params: {
+  taskId: string;
+  palletId: string;
+  palletEquipmentType: EquipmentMovimentType;
+  sectorId: string;
+}): Promise<boolean> {
+  const claimed = await prisma.movimentPalletTask.updateMany({
+    where: {
+      id: params.taskId,
+      type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+      status: ForkliftTaskStatus.CREATED,
+      assignedMovimentPalletId: null,
+      request: {
+        status: RequestStatus.ON_MACHINE,
+        typeMovimentPallet: {
+          in: openPoolTypesForEquipment(params.palletEquipmentType),
+        },
+        destination: { sectorId: params.sectorId },
+      },
+    },
+    data: {
+      assignedMovimentPalletId: params.palletId,
+      status: ForkliftTaskStatus.ASSIGNED,
+    },
+  });
+  return claimed.count === 1;
+}
+
+/**
+ * Apos entrega na maquina, vincula retirada ja aberta (mesma solicitacao) ao
+ * equipamento que concluiu a entrega — evita retirada visivel sem assignedMovimentPalletId.
+ */
+async function linkOpenPickupToPalletAfterDeliver(
+  requestId: string,
+  palletId: string,
+  palletEquipmentType: EquipmentMovimentType,
+  sectorId: string,
+) {
+  await prisma.movimentPalletTask.updateMany({
+    where: {
+      requestId,
+      type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
+      status: {
+        in: [ForkliftTaskStatus.CREATED, ForkliftTaskStatus.ASSIGNED],
+      },
+      assignedMovimentPalletId: null,
+      request: {
+        status: RequestStatus.ON_MACHINE,
+        typeMovimentPallet: {
+          in: openPoolTypesForEquipment(palletEquipmentType),
+        },
+        destination: { sectorId },
+      },
+    },
+    data: {
+      assignedMovimentPalletId: palletId,
+      status: ForkliftTaskStatus.ASSIGNED,
+    },
+  });
+}
+
 /**
  * Operador de empilhadeira aceita retirada ja solicitada (ON_MACHINE) quando
  * nao ha sugestao de viagem combinada — tarefa fica vinculada ao equipamento.
@@ -1448,6 +1539,14 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
     throw new MovimentPalletTaskNotFoundError();
   }
 
+  const requestAfterAccept =
+    await machineReplenishmentRequestRepository.findUniqueById(
+      updated.requestId,
+    );
+  if (requestAfterAccept) {
+    operatorMovimentPalletWsNotifyReplenishmentChange(requestAfterAccept);
+  }
+
   return { task: updated };
 }
 
@@ -1537,25 +1636,14 @@ export async function acceptOpenPickupTaskForMovimentOperator(
 
   await assertNoIncompleteTasksBlockingNewAccept(pallet.id, [taskId]);
 
-  const claimed = await prisma.movimentPalletTask.updateMany({
-    where: {
-      id: taskId,
-      type: ForkliftTaskType.PICKUP_TO_EXPEDITION,
-      status: ForkliftTaskStatus.CREATED,
-      assignedMovimentPalletId: null,
-      request: {
-        status: RequestStatus.ON_MACHINE,
-        typeMovimentPallet: { in: openPoolTypesForEquipment(assertEquipmentMovimentType(pallet.type)) },
-        destination: { sectorId: user.sectorId },
-      },
-    },
-    data: {
-      assignedMovimentPalletId: pallet.id,
-      status: ForkliftTaskStatus.ASSIGNED,
-    },
+  const claimed = await claimOpenPickupTaskToPallet({
+    taskId,
+    palletId: pallet.id,
+    palletEquipmentType: assertEquipmentMovimentType(pallet.type),
+    sectorId: user.sectorId,
   });
 
-  if (claimed.count !== 1) {
+  if (!claimed) {
     const reloaded =
       await movimentPalletTaskRepository.findByIdWithRequest(taskId);
     if (
@@ -1654,6 +1742,10 @@ export async function acceptReplenishmentRequestAsMovimentOperator(
   }
   const updatedRequest =
     await machineReplenishmentRequestRepository.findUniqueById(requestId);
+
+  if (updatedRequest) {
+    operatorMovimentPalletWsNotifyReplenishmentChange(updatedRequest);
+  }
 
   return { task, request: updatedRequest };
 }
@@ -1778,6 +1870,18 @@ export async function completeDeliverTaskToMachine(
     throw new Error("Inconsistencia ao carregar dados apos entrega.");
   }
 
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
+  if (user?.sectorId) {
+    await linkOpenPickupToPalletAfterDeliver(
+      task.requestId,
+      pallet.id,
+      assertEquipmentMovimentType(pallet.type),
+      user.sectorId,
+    );
+  }
+
+  operatorMovimentPalletWsNotifyReplenishmentChange(updatedRequest);
+
   return { task: updatedTask, request: updatedRequest };
 }
 
@@ -1804,7 +1908,7 @@ export async function completePickupTaskToExpedition(
     throw new MovimentPalletTypeNotAllowedForRoleError();
   }
 
-  const task = await movimentPalletTaskRepository.findByIdWithRequest(taskId);
+  let task = await movimentPalletTaskRepository.findByIdWithRequest(taskId);
   if (!task) {
     throw new MovimentPalletTaskNotFoundError();
   }
@@ -1822,6 +1926,54 @@ export async function completePickupTaskToExpedition(
     )
   ) {
     throw new ReplenishmentRequestTypeMismatchError();
+  }
+
+  if (task.assignedMovimentPalletId !== pallet.id) {
+    if (task.assignedMovimentPalletId) {
+      throw new MovimentPalletPickupTaskCompletionError(
+        "Esta retirada nao esta atribuida ao equipamento que voce esta operando.",
+      );
+    }
+
+    const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
+    if (!user?.sectorId) {
+      throw new OperatorWithoutSectorError();
+    }
+
+    const destSectorId = task.request.destination.sector?.id;
+    if (!destSectorId || destSectorId !== user.sectorId) {
+      throw new MovimentPalletPickupTaskCompletionError(
+        "Esta retirada nao pertence ao seu setor.",
+      );
+    }
+
+    if (task.request.status !== RequestStatus.ON_MACHINE) {
+      throw new MovimentPalletPickupTaskCompletionError(
+        "A solicitacao precisa estar em ON_MACHINE para registrar a retirada na expedicao.",
+      );
+    }
+
+    await assertNoIncompleteTasksBlockingNewAccept(pallet.id, [taskId]);
+
+    const claimed = await claimOpenPickupTaskToPallet({
+      taskId,
+      palletId: pallet.id,
+      palletEquipmentType: assertEquipmentMovimentType(pallet.type),
+      sectorId: user.sectorId,
+    });
+
+    if (!claimed) {
+      throw new MovimentPalletPickupTaskCompletionError(
+        "Esta retirada nao esta atribuida ao equipamento que voce esta operando. Aceite a retirada na fila antes de concluir.",
+      );
+    }
+
+    const reloaded =
+      await movimentPalletTaskRepository.findByIdWithRequest(taskId);
+    if (!reloaded) {
+      throw new MovimentPalletTaskNotFoundError();
+    }
+    task = reloaded;
   }
 
   if (task.assignedMovimentPalletId !== pallet.id) {
@@ -1898,6 +2050,8 @@ export async function completePickupTaskToExpedition(
   }
 
   await tryCompleteTripSuggestionForPickupTask(taskId);
+
+  operatorMovimentPalletWsNotifyReplenishmentChange(updatedRequest);
 
   return { task: updatedTask, request: updatedRequest };
 }
