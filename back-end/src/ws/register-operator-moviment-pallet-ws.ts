@@ -8,13 +8,17 @@ const MOVIMENT_WS_ROLES: readonly RoleUser[] = [
   RoleUser.FOLLOW_UP_OPERATOR,
   RoleUser.OPERATOR_MACHINE,
   RoleUser.ADMIN,
+  RoleUser.LEADER,
+  RoleUser.SUPPLY_OPERATOR,
+  RoleUser.SUPERVISOR,
+  RoleUser.MANAGER,
 ]
 
 const WS_PATH = '/ws/operator-moviment-pallet'
 
 /**
  * WebSocket para operadores de movimentação (mesmo path que o front em `operator-moviment-ws.ts`).
- * Autenticação: query `token` (JWT). Roles: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR, OPERATOR_MACHINE, ADMIN.
+ * Autenticação: query `token` (JWT). Operadores de movimentação/dobra, cadastro de máquinas e supervisão.
  */
 export function registerOperatorMovimentPalletWebSocket(app: FastifyInstance): void {
   app.get(

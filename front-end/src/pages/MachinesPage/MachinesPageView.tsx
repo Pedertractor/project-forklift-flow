@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { UserRound, UserRoundX } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { Card } from '@/components/ui/card';
@@ -44,8 +45,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setSectorId,
     userId,
     setUserId,
-    clearOperator,
-    setClearOperator,
+    editOperator,
+    unlinkOperatorMut,
     goToMapToCreateMachine,
     openEdit,
     createMut,
@@ -481,15 +482,40 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </select>
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                checked={clearOperator}
-                onChange={(e) => setClearOperator(e.target.checked)}
-                className="size-4 rounded border-zinc-300"
-              />
-              Remover operador
-            </label>
+            <Label>Operador na máquina</Label>
+            {editOperator ? (
+              <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600">
+                    <UserRound className="size-5" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="m-0 text-sm font-semibold text-zinc-900">
+                      {editOperator.name}
+                    </p>
+                    <p className="mt-0.5 m-0 font-mono text-xs text-zinc-600">
+                      Cartão {editOperator.card}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full shrink-0 border-red-200 text-red-700 hover:bg-red-50 sm:w-auto"
+                  disabled={!apiReady || busy}
+                  onClick={() => unlinkOperatorMut.mutate()}
+                >
+                  <UserRoundX className="size-4" aria-hidden />
+                  {unlinkOperatorMut.isPending
+                    ? 'Desvinculando…'
+                    : 'Desvincular operador'}
+                </Button>
+              </div>
+            ) : (
+              <p className="m-0 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-4 py-3 text-sm text-zinc-600">
+                Nenhum operador vinculado no momento.
+              </p>
+            )}
           </div>
         </div>
       </SimpleModal>

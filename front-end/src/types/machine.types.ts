@@ -22,6 +22,7 @@ export interface MachineListItem {
   updatedAt: string
   typeMachine: { id: string; name: string; urlImage: string }
   sector: { id: string; typeSector: string }
+  user: { id: string; name: string; card: string } | null
 }
 
 /** Corpo JSON de POST /machines (operador opcional). */

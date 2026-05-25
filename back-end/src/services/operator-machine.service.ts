@@ -22,6 +22,7 @@ import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
 import {
+  operatorMovimentPalletWsBroadcastMachineOperatorUpdated,
   operatorMovimentPalletWsBroadcastQueueUpdated,
   operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
   operatorMovimentPalletWsNotifyPickupTaskChange,
@@ -44,11 +45,52 @@ export async function bindOperatorToMachine(
     throw new MachineNotInOperatorSectorError()
   }
 
-  return machineRepository.assignOperatorExclusive(machineId, operatorUserId)
+  const previouslyBound = await prisma.machine.findMany({
+    where: { userId: operatorUserId },
+    select: { id: true, sectorId: true },
+  })
+
+  const machine = await machineRepository.assignOperatorExclusive(
+    machineId,
+    operatorUserId,
+  )
+
+  for (const row of previouslyBound) {
+    if (row.id === machineId) {
+      continue
+    }
+    operatorMovimentPalletWsBroadcastMachineOperatorUpdated({
+      machineId: row.id,
+      sectorId: row.sectorId,
+      operatorUserId: null,
+      affectedUserId: operatorUserId,
+    })
+  }
+
+  operatorMovimentPalletWsBroadcastMachineOperatorUpdated({
+    machineId: machine.id,
+    sectorId: machine.sectorId,
+    operatorUserId: machine.userId ?? null,
+    affectedUserId: operatorUserId,
+  })
+
+  return machine
 }
 
 export async function unbindOperatorFromMachines(operatorUserId: string) {
+  const bound = await prisma.machine.findMany({
+    where: { userId: operatorUserId },
+    select: { id: true, sectorId: true },
+  })
   await machineRepository.disconnectOperatorFromAllMachines(operatorUserId)
+  for (const row of bound) {
+    operatorMovimentPalletWsBroadcastMachineOperatorUpdated({
+      machineId: row.id,
+      sectorId: row.sectorId,
+      operatorUserId: null,
+      affectedUserId: operatorUserId,
+    })
+  }
 }
 
 export async function getOperatorCurrentMachine(operatorUserId: string) {

@@ -6,6 +6,7 @@ import {
   TypeMachineNotFoundError,
 } from '../errors/domain-errors.js'
 import { machineRepository } from '../repositories/machine.repository.js'
+import { operatorMovimentPalletWsBroadcastMachineOperatorUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
 import { sectorRepository } from '../repositories/sector.repository.js'
 import { typeMachineRepository } from '../repositories/type-machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
@@ -128,7 +129,7 @@ export async function getMachineById(id: string) {
 }
 
 export async function updateMachine(id: string, input: UpdateMachineInput) {
-  await requireMachineById(id)
+  const before = await requireMachineById(id)
   if (input.typeMachineId !== undefined) {
     await requireTypeMachineExists(input.typeMachineId)
   }
@@ -145,9 +146,22 @@ export async function updateMachine(id: string, input: UpdateMachineInput) {
 
   const data = buildMachineUpdateData(input)
   if (Object.keys(data).length === 0) {
-    return requireMachineById(id)
+    return before
   }
-  return machineRepository.update(id, data)
+  const updated = await machineRepository.update(id, data)
+  if (input.userId !== undefined) {
+    const nextOperatorId = updated.userId ?? null
+    const prevOperatorId = before.userId ?? null
+    if (nextOperatorId !== prevOperatorId) {
+      operatorMovimentPalletWsBroadcastMachineOperatorUpdated({
+        machineId: updated.id,
+        sectorId: updated.sectorId,
+        operatorUserId: nextOperatorId,
+        affectedUserId: nextOperatorId ?? prevOperatorId,
+      })
+    }
+  }
+  return updated
 }
 
 export async function deleteMachine(id: string) {

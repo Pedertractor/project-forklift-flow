@@ -17,7 +17,10 @@ const MACHINE_OPERATOR_EVENT_TYPES = new Set([
   'delivery_task_updated',
   'pickup_task_updated',
   'replenishment_status_updated',
+  'machine_operator_updated',
 ]);
+
+const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated']);
 
 export function resolveOperatorMovimentWsUrl(token: string): string | null {
   const explicit = (import.meta.env.VITE_WS_URL as string | undefined)?.trim();
@@ -102,8 +105,28 @@ export function wsEventMatchesMachineOperator(
   if (!operatorUserId || !MACHINE_OPERATOR_EVENT_TYPES.has(event.type)) {
     return false;
   }
+  if (event.type === 'machine_operator_updated') {
+    return event.affectedUserId === operatorUserId;
+  }
   const destinationUserId = destinationUserIdFromEvent(event);
   return destinationUserId === operatorUserId;
+}
+
+/** Cadastro / supervisão: vínculo operador ↔ máquina no setor (ou todos se sem setor). */
+export function wsEventMatchesMachineCadastro(
+  event: OperatorMovimentWsEvent,
+  sectorId: string | null | undefined,
+): boolean {
+  if (!MACHINE_CADASTRO_EVENT_TYPES.has(event.type)) {
+    return false;
+  }
+  if (event.type !== 'machine_operator_updated') {
+    return false;
+  }
+  if (!sectorId) {
+    return true;
+  }
+  return event.sectorId === sectorId;
 }
 
 export function wsEventMatchesSubscriber(
@@ -114,8 +137,15 @@ export function wsEventMatchesSubscriber(
     allowedMovimentTypes: readonly string[];
     isMovimentOperator: boolean;
     isMachineOperator: boolean;
+    isMachineCadastro: boolean;
   },
 ): boolean {
+  if (
+    options.isMachineCadastro &&
+    wsEventMatchesMachineCadastro(event, options.sectorId)
+  ) {
+    return true;
+  }
   if (
     options.isMachineOperator &&
     wsEventMatchesMachineOperator(event, options.userId)

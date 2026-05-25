@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { plantMapCreateMachinePath } from '@/constants/plant-map-routes';
 import { toast } from '@/lib/toast';
@@ -100,7 +100,6 @@ export function useMachinesPage() {
   const [sectorId, setSectorId] = useState('');
   const [userId, setUserId] = useState('');
   const [plantUnit, setPlantUnit] = useState<PlantMapUnit>('PEDERTRACTOR');
-  const [clearOperator, setClearOperator] = useState(false);
 
   const resetForm = useCallback(() => {
     setName('');
@@ -109,7 +108,6 @@ export function useMachinesPage() {
     setSectorId('');
     setUserId('');
     setPlantUnit('PEDERTRACTOR');
-    setClearOperator(false);
   }, []);
 
   const goToMapToCreateMachine = useCallback(() => {
@@ -134,9 +132,17 @@ export function useMachinesPage() {
     setTypeMachineId(row.typeMachineId);
     setSectorId(row.sectorId);
     setUserId(row.userId ?? '');
-    setClearOperator(false);
     setEditRow(row);
   };
+
+  const editMachineLive = useMemo(() => {
+    if (!editRow) {
+      return null;
+    }
+    return machinesQuery.data?.find((m) => m.id === editRow.id) ?? editRow;
+  }, [editRow, machinesQuery.data]);
+
+  const editOperator = editMachineLive?.user ?? null;
 
   const createMut = useMutation({
     mutationFn: async () => {
@@ -179,25 +185,37 @@ export function useMachinesPage() {
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
-      const patch: Parameters<typeof updateMachine>[1] = {
+      return updateMachine(editRow.id, {
         name: n,
         position: p,
         plantUnit,
         typeMachineId,
         sectorId,
-      };
-      if (clearOperator) {
-        patch.userId = null;
-      } else if (userId.trim() !== '') {
-        patch.userId = userId.trim();
-      }
-      return updateMachine(editRow.id, patch);
+      });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['machines'] });
       setEditRow(null);
       resetForm();
       toast.success('Máquina atualizada.');
+    },
+    onError: toastApiError,
+  });
+
+  const unlinkOperatorMut = useMutation({
+    mutationFn: async () => {
+      if (!editRow) {
+        throw new Error('Sem máquina selecionada.');
+      }
+      return updateMachine(editRow.id, { userId: null });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['machines'] });
+      setEditRow((prev) =>
+        prev ? { ...prev, userId: null, user: null } : null,
+      );
+      setUserId('');
+      toast.success('Operador desvinculado da máquina.');
     },
     onError: toastApiError,
   });
@@ -213,7 +231,10 @@ export function useMachinesPage() {
   });
 
   const busy =
-    createMut.isPending || updateMut.isPending || deleteMut.isPending;
+    createMut.isPending ||
+    updateMut.isPending ||
+    deleteMut.isPending ||
+    unlinkOperatorMut.isPending;
   const createError =
     createMut.error instanceof Error ? createMut.error.message : null;
   const updateError =
@@ -240,6 +261,7 @@ export function useMachinesPage() {
     setCreateOpen,
     editRow,
     setEditRow,
+    editOperator,
     deleteRow,
     setDeleteRow,
     name,
@@ -252,8 +274,7 @@ export function useMachinesPage() {
     setSectorId,
     userId,
     setUserId,
-    clearOperator,
-    setClearOperator,
+    unlinkOperatorMut,
     goToMapToCreateMachine,
     openEdit,
     createMut,

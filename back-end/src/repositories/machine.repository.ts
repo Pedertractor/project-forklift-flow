@@ -17,6 +17,9 @@ const machineListSelect = {
   sector: {
     select: { id: true, typeSector: true },
   },
+  user: {
+    select: { id: true, name: true, card: true },
+  },
 } as const
 
 const machineDetailInclude = {
