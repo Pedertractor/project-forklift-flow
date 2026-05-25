@@ -1,34 +1,20 @@
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { ReplenishmentCreateWizardModal } from './ReplenishmentCreateWizardModal';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { replenishmentMovimentTypeLabel } from '@/utils/operator-moviment-display';
 import { ENV } from '@/constants/env';
 import { requestStatusLabel } from '@/utils/replenishment-labels';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentRequestsPage';
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
-import {
-  Box,
-  CheckIcon,
-  ListIcon,
-  PanelRightOpen,
-  PlusIcon,
-} from 'lucide-react';
+import { ReplenishmentRequestsTable } from './ReplenishmentRequestsTable';
+import { HistoryIcon, ListIcon, PanelRightOpen, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
-
-function movementTypeLabel(t: string): string {
-  if (t === 'FORKLIFT' || t === 'ANY') {
-    return replenishmentMovimentTypeLabel(t);
-  }
-  return t;
-}
 
 export function ReplenishmentRequestsPageView(
   vm: ReplenishmentRequestsPageViewModel,
@@ -43,7 +29,10 @@ export function ReplenishmentRequestsPageView(
     setOnlyMySector,
     listQuery,
     pendingPreparationCount,
+    openRequests,
     visibleRequests,
+    historyOpen,
+    setHistoryOpen,
     machinesForSelect,
     machinesEmpty,
     createOpen,
@@ -90,11 +79,11 @@ export function ReplenishmentRequestsPageView(
   const navigate = useNavigate();
 
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
+    <main className="px-4 py-8 max-[800px]:px-3 max-[800px]:py-5">
       <div className="mx-auto w-full max-w-[90rem]">
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-          <div>
-            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
+          <div className="min-w-0">
+            <h1 className="m-0 text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
               Reposição
             </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
@@ -102,13 +91,13 @@ export function ReplenishmentRequestsPageView(
               enquanto o fluxo permitir.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <Button
               type="button"
               variant="outline"
               disabled={!apiReady}
               onClick={() => setEquipmentSidebarOpen(true)}
-              className="gap-2 border-zinc-200"
+              className="h-10 w-full gap-2 border-zinc-200 sm:h-9 sm:w-auto"
             >
               <PanelRightOpen className="size-4 shrink-0" aria-hidden />
               <span className="">Equipamentos</span>
@@ -149,9 +138,9 @@ export function ReplenishmentRequestsPageView(
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap justify-between items-end gap-4">
-          <div className="flex  items-end gap-4">
-            <div className="min-w-48 space-y-2">
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1 space-y-2 sm:min-w-48 sm:flex-none">
               <Label htmlFor="rr-status-filter">Status</Label>
               <select
                 id="rr-status-filter"
@@ -170,7 +159,7 @@ export function ReplenishmentRequestsPageView(
               </select>
             </div>
             {user?.role === 'ADMIN' ? (
-              <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm text-zinc-700">
+              <label className="flex cursor-pointer items-center gap-2 pb-0 text-sm text-zinc-700 sm:pb-2">
                 <input
                   type="checkbox"
                   checked={onlyMySector}
@@ -181,19 +170,22 @@ export function ReplenishmentRequestsPageView(
               </label>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Button
               type="button"
-              className="h-9 min-w-0 px-2 text-xs"
+              className="h-10 w-full justify-center gap-2 px-3 text-xs sm:h-9 sm:w-auto"
               onClick={openCreate}
               disabled={!apiReady || busy}
             >
-              <PlusIcon className="size-4" />
-              Nova solicitação de retirada
+              <PlusIcon className="size-4 shrink-0" />
+              <span className="sm:hidden">Nova solicitação</span>
+              <span className="hidden sm:inline">
+                Nova solicitação de retirada
+              </span>
             </Button>
             <Button
               size="default"
-              className="h-9 min-w-0 px-2 text-xs"
+              className="h-10 w-full justify-center gap-2 px-3 text-xs sm:h-9 sm:w-auto"
               disabled={!apiReady}
               onClick={() => navigate('/abastecimento/preparo-pendente')}
             >
@@ -205,8 +197,11 @@ export function ReplenishmentRequestsPageView(
                   {pendingPreparationCount}
                 </span>
               ) : null}
-              <ListIcon className="size-4" />
-              Ver solicitações de reposição
+              <ListIcon className="size-4 shrink-0" />
+              <span className="sm:hidden">Ver solicitações</span>
+              <span className="hidden sm:inline">
+                Ver solicitações de reposição
+              </span>
             </Button>
           </div>
         </div>
@@ -219,136 +214,67 @@ export function ReplenishmentRequestsPageView(
           </p>
         ) : null}
 
-        <div className="mt-6">
-          <Card className="min-w-0 overflow-x-auto border border-zinc-200 shadow-sm">
-            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50/90">
-                  <th className="px-3 py-3 font-semibold text-zinc-700">
-                    Destino
-                  </th>
-                  <th className="px-3 py-3 font-semibold text-zinc-700">
-                    Prisma
-                  </th>
-                  <th className="px-3 py-3 font-semibold text-zinc-700">
-                    Tipo mov.
-                  </th>
-                  <th className="px-3 py-3 font-semibold text-zinc-700">
-                    Crítico
-                  </th>
-                  <th className="px-3 py-3 font-semibold text-zinc-700">
-                    Status
-                  </th>
-                  <th className="px-3 py-3 text-right font-semibold text-zinc-700">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {listQuery.isLoading ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-8 text-center text-zinc-500"
-                    >
-                      Carregando…
-                    </td>
-                  </tr>
-                ) : visibleRequests.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-8 text-center text-zinc-500"
-                    >
-                      Nenhuma solicitação neste filtro.
-                    </td>
-                  </tr>
-                ) : (
-                  visibleRequests.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="border-b border-zinc-100 last:border-0"
-                    >
-                      <td className="px-3 py-3">
-                        <div className="font-medium text-zinc-900">
-                          {row.destination.name}
-                        </div>
-                        <div className="text-xs text-zinc-500">
-                          {row.destination.sector.typeSector}
-                        </div>
-                      </td>
-                      <td className="flex items-center gap-2 py-5 font-mono text-zinc-800">
-                        <Box className="size-4 text-blue-500" />
-                        {row.movementCube}
-                      </td>
-                      <td className="px-3 py-3 text-zinc-700">
-                        {movementTypeLabel(row.typeMovimentPallet)}
-                      </td>
-                      <td className="px-3 py-3 text-zinc-700">
-                        <p
-                          className={
-                            row.priorityLevel === 'VERY_HIGH'
-                              ? 'font-semibold text-red-600'
-                              : 'text-zinc-500'
-                          }
-                        >
-                          {row.priorityLevel === 'VERY_HIGH' ? 'Sim' : 'Não'}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3 text-zinc-700">
-                        <p
-                          className={`flex items-center gap-2 ${row.status === 'CREATED' ? 'text-green-500' : row.status === 'IN_PROGRESS' ? 'text-yellow-500' : row.status === 'ON_MACHINE' ? 'text-blue-500' : row.status === 'COMPLETED' ? 'text-green-500' : row.status === 'CANCELED' ? 'text-red-500' : 'text-gray-500'}`}
-                        >
-                          {row.status === 'COMPLETED' && (
-                            <CheckIcon className="w-4 h-4" />
-                          )}
-                          {requestStatusLabel(row.status)}
-                        </p>
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 px-2 text-xs"
-                            disabled={!apiReady || busy}
-                            onClick={() => setDetailRow(row)}
-                          >
-                            Detalhe
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 px-2 text-xs"
-                            disabled={!apiReady || busy || !canEditRequest(row)}
-                            onClick={() => openEdit(row)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 border-red-200 px-2 text-xs text-red-700 hover:bg-red-50"
-                            disabled={
-                              !apiReady || busy || !canDeleteRequest(row)
-                            }
-                            onClick={() => setDeleteRow(row)}
-                          >
-                            Excluir
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </Card>
-        </div>
+        <section className="mt-6" aria-labelledby="rr-open-requests-heading">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h2
+                id="rr-open-requests-heading"
+                className="m-0 text-base font-semibold text-zinc-900"
+              >
+                Solicitações em aberto
+              </h2>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!apiReady}
+              onClick={() => setHistoryOpen(true)}
+              className="h-10 w-full shrink-0 gap-2 border-zinc-200 sm:ml-auto sm:h-9 sm:w-auto"
+              aria-label="Ver histórico completo de solicitações"
+            >
+              <HistoryIcon className="size-4 shrink-0" aria-hidden />
+              Ver histórico completo
+            </Button>
+          </div>
+          <ReplenishmentRequestsTable
+            variant="open"
+            rows={openRequests}
+            isLoading={listQuery.isLoading}
+            emptyMessage="Nenhuma solicitação em aberto neste filtro."
+            onRowClick={setDetailRow}
+          />
+        </section>
       </div>
+
+      <SimpleModal
+        open={historyOpen}
+        title="Histórico de solicitações"
+        description="Todas as solicitações de retirada para máquina, incluindo concluídas e canceladas."
+        panelClassName="max-w-[min(96vw,72rem)]"
+        onClose={() => setHistoryOpen(false)}
+        footer={
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => setHistoryOpen(false)}
+            >
+              Fechar
+            </Button>
+          </div>
+        }
+      >
+        <ReplenishmentRequestsTable
+          variant="history"
+          rows={visibleRequests}
+          isLoading={listQuery.isLoading}
+          emptyMessage="Nenhuma solicitação neste filtro."
+          onRowClick={(row) => {
+            setHistoryOpen(false);
+            setDetailRow(row);
+          }}
+        />
+      </SimpleModal>
 
       <ReplenishmentEquipmentSidebar
         open={equipmentSidebarOpen}
@@ -495,7 +421,36 @@ export function ReplenishmentRequestsPageView(
         title="Detalhe da solicitação"
         onClose={() => setDetailRow(null)}
         footer={
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            {detailRow && canEditRequest(detailRow) ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!apiReady || busy}
+                onClick={() => {
+                  const row = detailRow;
+                  setDetailRow(null);
+                  openEdit(row);
+                }}
+              >
+                Editar
+              </Button>
+            ) : null}
+            {detailRow && canDeleteRequest(detailRow) ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-red-200 text-red-700 hover:bg-red-50"
+                disabled={!apiReady || busy}
+                onClick={() => {
+                  const row = detailRow;
+                  setDetailRow(null);
+                  setDeleteRow(row);
+                }}
+              >
+                Excluir
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="default"

@@ -117,8 +117,10 @@ function EquipmentBlock({
               ) : null}
             </p>
           ) : unbound ? (
-            <p className="mt-1.5 m-0 text
-            xs text-zinc-600">
+            <p
+              className="mt-1.5 m-0 text
+            xs text-zinc-600"
+            >
               {activeTasks === 0
                 ? 'Sem tarefa — aguardando operador vincular'
                 : 'Aguardando operador para retomar'}
@@ -161,14 +163,12 @@ function QueueInsightBanner({
     <p
       className={cn(
         'mb-3 rounded-xl border px-3 py-2.5 text-[0.6875rem] leading-snug',
-        insight === 'ready' &&
-          'border-sky-200 bg-sky-50/90 text-sky-950',
+        insight === 'ready' && 'border-sky-200 bg-sky-50/90 text-sky-950',
         insight === 'waiting' &&
           'border-amber-200 bg-amber-50/90 text-amber-950',
         insight === 'idle_unbound' &&
           'border-zinc-200 bg-zinc-50 text-zinc-700',
-        insight === 'neutral' &&
-          'border-zinc-200 bg-zinc-50/80 text-zinc-600',
+        insight === 'neutral' && 'border-zinc-200 bg-zinc-50/80 text-zinc-600',
       )}
     >
       {message}
@@ -295,7 +295,7 @@ export function ReplenishmentEquipmentPanel({
           {errorMessage ?? 'Erro ao carregar equipamentos.'}
         </p>
       ) : (
-        <div className="grid min-w-0 grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:gap-4 p-3">
           <EquipmentColumn
             type="FORKLIFT"
             items={forklifts}

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { SupplyPendingPreparationPageViewModel } from './useSupplyPendingPreparationPage';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
-import { CalendarIcon, ListIcon, MapPinIcon } from 'lucide-react';
+import { ArrowLeftIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,7 +26,7 @@ function OperatorSupplyRequestCard({
         disabled={disabled}
         onClick={onSelect}
         className={cn(
-          'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 border-zinc-200 bg-white p-4 text-left outline-none transition-all',
+          'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 border-zinc-200 bg-white p-4 text-left outline-none transition-all max-[800px]:p-3.5',
           'hover:border-[#005fb8]/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25',
           'disabled:cursor-not-allowed disabled:opacity-60',
         )}
@@ -37,19 +37,19 @@ function OperatorSupplyRequestCard({
             <img
               src={typeMachineImageSrc(row.machine.typeMachine.urlImage)}
               alt=""
-              className="size-14 shrink-0 rounded-xl border border-zinc-200 object-cover"
+              className="size-12 shrink-0 rounded-xl border border-zinc-200 object-cover sm:size-14"
               loading="lazy"
             />
           ) : (
             <div
-              className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400"
+              className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400 sm:size-14"
               aria-hidden
             >
               —
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-base font-bold text-zinc-900">
+            <p className="m-0 text-sm font-bold text-zinc-900 sm:text-base">
               {row.machine.name}
             </p>
             <p className="mt-0.5 text-sm text-zinc-600">
@@ -105,11 +105,11 @@ export function SupplyPendingPreparationPageView(
   const navigate = useNavigate();
 
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
+    <main className="px-4 py-8 max-[800px]:px-3 max-[800px]:py-5">
       <div className="mx-auto w-full max-w-6xl">
-        <header className="flex gap-4 justify-between mb-6 border-b border-zinc-200 pb-6">
-          <div className="flex flex-col">
-            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
+        <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="m-0 text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
               Solicitações de reposição
             </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
@@ -118,12 +118,14 @@ export function SupplyPendingPreparationPageView(
           </div>
           <Button
             type="button"
-            className="h-7 px-2.5 text-[0.6875rem] font-semibold sm:h-8 sm:px-3"
+            variant="outline"
+            className="h-10 w-full gap-2 px-3 text-xs sm:h-9 sm:w-auto"
             disabled={busy}
-            onClick={() => navigate('/abastecimento/preparo-pendente')}
+            onClick={() => navigate('/abastecimento/solicitacoes')}
           >
-            <ListIcon className="size-4" />
-            Ver solicitações de reposição
+            <ArrowLeftIcon className="size-4 shrink-0" />
+            <span className="sm:hidden">Voltar</span>
+            <span className="hidden sm:inline">Voltar para reposição</span>
           </Button>
         </header>
 

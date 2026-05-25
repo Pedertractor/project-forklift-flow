@@ -1,6 +1,7 @@
 import type { MachineListItem } from '@/types/machine.types';
 import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
 import type { RequestStatusValue } from '@/types/replenishment-request.types';
+import { isOpenReplenishmentRequest } from '@/utils/replenishment-request-status';
 import {
   PLANT_MAP_STATE_LABEL,
   type PlantMapVisualKey,
@@ -8,18 +9,12 @@ import {
 
 export type { PlantMapVisualKey } from '@/utils/plantMapNodeColors';
 
-const TERMINAL_STATUSES = new Set<RequestStatusValue>(['COMPLETED', 'CANCELED']);
-
 const AWAITING_DELIVERY_STATUSES = new Set<RequestStatusValue>([
   'AWAITING_PREPARATION',
   'PALLET_READY',
   'CREATED',
   'IN_PROGRESS',
 ]);
-
-function isOpenRequest(r: ReplenishmentRequestListItem): boolean {
-  return !TERMINAL_STATUSES.has(r.status);
-}
 
 function requestRecencyMs(r: ReplenishmentRequestListItem): number {
   const iso = r.statusSince ?? r.updatedAt;
@@ -55,7 +50,9 @@ export function pickLatestOpenRequestForMachine(
   machineId: string,
   requests: ReplenishmentRequestListItem[],
 ): ReplenishmentRequestListItem | null {
-  const forMachine = requests.filter((r) => r.destinationId === machineId && isOpenRequest(r));
+  const forMachine = requests.filter(
+    (r) => r.destinationId === machineId && isOpenReplenishmentRequest(r),
+  );
   if (forMachine.length === 0) {
     return null;
   }
