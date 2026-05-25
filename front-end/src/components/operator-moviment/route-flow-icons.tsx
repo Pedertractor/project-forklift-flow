@@ -89,8 +89,11 @@ export function routeFlowStepIcon(id: RouteFlowStepId) {
 
 export function SuggestionFlowConnector({
   size = 'default',
+  active = true,
 }: {
   size?: 'default' | 'compact';
+  /** Linha e seta destacadas quando o passo anterior já foi concluído ou está em curso. */
+  active?: boolean;
 }) {
   const compact = size === 'compact';
   return (
@@ -106,16 +109,18 @@ export function SuggestionFlowConnector({
     >
       <div
         className={cn(
-          'w-full rounded-full bg-[#005fb8]/40',
+          'w-full rounded-full',
           compact ? 'h-px' : 'h-0.5',
+          active ? 'bg-[#005fb8]' : 'bg-zinc-200',
         )}
       />
       <div
         className={cn(
-          'absolute right-0 top-1/2 size-0 -translate-y-1/2 border-y-transparent border-l-[#005fb8]/50',
+          'absolute right-0 top-1/2 size-0 -translate-y-1/2 border-y-transparent',
           compact
             ? 'border-y-[3px] border-l-[5px]'
             : 'border-y-[5px] border-l-[7px]',
+          active ? 'border-l-[#005fb8]' : 'border-l-zinc-300',
         )}
         aria-hidden
       />

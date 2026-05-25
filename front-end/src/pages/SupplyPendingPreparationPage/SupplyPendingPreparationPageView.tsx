@@ -6,7 +6,9 @@ import { cn } from '@/lib/utils';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { SupplyPendingPreparationPageViewModel } from './useSupplyPendingPreparationPage';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
-import { CalendarIcon, MapPinIcon } from 'lucide-react';
+import { CalendarIcon, ListIcon, MapPinIcon } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 function OperatorSupplyRequestCard({
   row,
@@ -100,17 +102,29 @@ export function SupplyPendingPreparationPageView(
     createError,
   } = vm;
 
+  const navigate = useNavigate();
+
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
-        <header className="mb-6 border-b border-zinc-200 pb-6">
-          <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
-            Solicitações de reposição
-          </h1>
-          <p className="mt-1.5 text-sm text-zinc-600">
-            Pedidos enviados pelos operadores de máquina. Toque em um card para
-            abrir a solicitação de retirada com a máquina já selecionada.
-          </p>
+        <header className="flex gap-4 justify-between mb-6 border-b border-zinc-200 pb-6">
+          <div className="flex flex-col">
+            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
+              Solicitações de reposição
+            </h1>
+            <p className="mt-1.5 text-sm text-zinc-600">
+              Pedidos enviados pelos operadores de máquina.
+            </p>
+          </div>
+          <Button
+            type="button"
+            className="h-7 px-2.5 text-[0.6875rem] font-semibold sm:h-8 sm:px-3"
+            disabled={busy}
+            onClick={() => navigate('/abastecimento/preparo-pendente')}
+          >
+            <ListIcon className="size-4" />
+            Ver solicitações de reposição
+          </Button>
         </header>
 
         {!ENV.API_URL ? (

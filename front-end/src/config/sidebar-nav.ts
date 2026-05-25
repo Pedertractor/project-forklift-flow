@@ -145,11 +145,6 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       'Empilhadeirista (FORKLIFT_OPERATOR), transpaleteira / follow-up (FOLLOW_UP_OPERATOR) e administrador (ADMIN) para testes.',
     items: [
       {
-        to: OPERATOR_MOVIMENT_EQUIPMENT_PATH,
-        label: 'Meu equipamento',
-        allowedRoles: MOVIMENT_OPERATOR_ROLES,
-      },
-      {
         to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
         label: 'Tarefas disponíveis',
         allowedRoles: MOVIMENT_OPERATOR_ROLES,

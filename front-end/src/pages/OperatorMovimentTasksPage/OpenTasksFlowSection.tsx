@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import {
   expeditionAreaDetail,
   machineLocationDetail,
@@ -9,6 +9,7 @@ import {
 } from '@/components/operator-moviment/route-flow-step-details';
 import {
   routeFlowStepIcon,
+  SuggestionFlowConnector,
   type RouteFlowStepId,
 } from '@/components/operator-moviment/route-flow-icons';
 import { Button } from '@/components/ui/Button';
@@ -247,30 +248,13 @@ function buildSteps(
   ];
 }
 
-function FlowConnector({ active }: { active: boolean }) {
-  return (
-    <div className="relative mx-0.5 flex min-w-[1.75rem] flex-1 items-center sm:mx-1 sm:min-w-[2.25rem]">
-      <div
-        className={cn(
-          'h-0.5 w-full rounded-full',
-          active ? 'bg-[#005fb8]' : 'bg-zinc-200',
-        )}
-      />
-      <div
-        className={cn(
-          'absolute right-0 size-0 border-y-[5px] border-y-transparent border-l-[7px]',
-          active ? 'border-l-[#005fb8]' : 'border-l-zinc-300',
-        )}
-        aria-hidden
-      />
-    </div>
-  );
-}
+/** Largura fixa da coluna = alinhamento ícone, texto, botão e seta entre passos. */
+const flowStepColumnClass = 'w-[9.25rem] shrink-0 sm:w-[10.5rem]';
 
 function TaskConfirmationProgressBar() {
   return (
     <div
-      className="relative mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200"
+      className="relative h-1 w-full overflow-hidden rounded-full bg-zinc-200"
       role="progressbar"
       aria-valuetext="Enviando confirmação"
       aria-busy="true"
@@ -280,44 +264,68 @@ function TaskConfirmationProgressBar() {
   );
 }
 
-function FlowStepNode({ step }: { step: FlowStepConfig }) {
+const flowStepActionButtonClass =
+  'h-8 w-full px-2 py-1.5 text-[0.6875rem] font-semibold leading-tight';
+
+function FlowStepColumn({
+  step,
+  action,
+}: {
+  step: FlowStepConfig;
+  action: ReactNode;
+}) {
   const Icon = routeFlowStepIcon(step.id);
   const isCurrent = step.state === 'current';
   const isDone = step.state === 'done';
 
   return (
-    <div className="flex min-w-[4.75rem] max-w-[11rem]  flex-1 flex-col items-center text-center sm:max-w-[12rem]">
-      <div
-        className={cn(
-          'relative flex size-12 items-center justify-center rounded-full border-2  bg-white shadow-sm transition-colors sm:size-14',
-          isDone && 'border-emerald-500 bg-emerald-50 text-emerald-700',
-          isCurrent &&
-            'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8] ring-4 ring-[#005fb8]/20',
-          !isDone && !isCurrent && 'border-zinc-200 text-zinc-400',
-        )}
-      >
-        {isDone ? (
-          <svg
-            className="size-6"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            aria-hidden
-          >
-            <path
-              d="M5 12l5 5L20 7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        ) : (
-          <Icon className="size-6 sm:size-7" />
-        )}
-        {isCurrent ? (
-          <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-[#005fb8] animate-pulse ring-2 ring-white" />
-        ) : null}
+    <div
+      className={cn(
+        flowStepColumnClass,
+        'flex flex-col items-center text-center',
+      )}
+    >
+      {/* Faixa com a mesma altura do conector — seta alinha ao centro do ícone */}
+      <div className="flex h-12 w-full shrink-0 items-center justify-center sm:h-14">
+        <div
+          className={cn(
+            'relative flex size-12 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors sm:size-14',
+            isDone && 'border-emerald-500 bg-emerald-50 text-emerald-700',
+            isCurrent &&
+              'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8] ring-4 ring-[#005fb8]/20',
+            !isDone && !isCurrent && 'border-zinc-200 text-zinc-400',
+          )}
+        >
+          {isDone ? (
+            <svg
+              className="size-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              aria-hidden
+            >
+              <path
+                d="M5 12l5 5L20 7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <Icon className="size-6 sm:size-7" />
+          )}
+          {isCurrent ? (
+            <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-[#005fb8] animate-pulse ring-2 ring-white" />
+          ) : null}
+        </div>
       </div>
+
+      {action ? (
+        <div className="mt-2 flex w-full flex-col items-center gap-1.5">
+          {action}
+        </div>
+      ) : null}
+
       <p
         className={cn(
           'mt-2.5 text-[0.6875rem] font-bold uppercase tracking-wide',
@@ -330,40 +338,34 @@ function FlowStepNode({ step }: { step: FlowStepConfig }) {
       >
         {step.label}
       </p>
-      <RouteFlowStepDetails items={step.details} />
+      <div className="mt-1.5 w-full">
+        <RouteFlowStepDetails items={step.details} />
+      </div>
     </div>
   );
 }
 
 function RouteFlowTrack({
   steps,
-  renderStepFooter,
+  renderStepAction,
 }: {
   steps: FlowStepConfig[];
-  renderStepFooter: (step: FlowStepConfig) => ReactNode;
+  renderStepAction: (step: FlowStepConfig) => ReactNode;
 }) {
   return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
-      {steps.map((step, index) => (
-        <div
-          key={`${step.id}-${index}`}
-          className="flex min-w-0 flex-1 items-stretch"
-        >
-          <div className="flex min-w-[12rem] max-w-none shrink-0 basis-0 flex-1 flex-col items-center px-0.5 sm:min-w-[13.5rem]">
-            <FlowStepNode step={step} />
-            <div className="mt-3 flex min-h-[4.25rem] w-full min-w-0 flex-col items-stretch justify-start px-0.5">
-              {renderStepFooter(step)}
-            </div>
-          </div>
-          {index < steps.length - 1 ? (
-            <div className="flex min-w-0 flex-1 items-center self-start pt-7">
-              <FlowConnector
+    <div className="w-full min-w-0 overflow-x-auto py-1 [-webkit-overflow-scrolling:touch]">
+      <div className="flex min-w-max items-start justify-center px-1">
+        {steps.map((step, index) => (
+          <Fragment key={`${step.id}-${index}`}>
+            <FlowStepColumn step={step} action={renderStepAction(step)} />
+            {index < steps.length - 1 ? (
+              <SuggestionFlowConnector
                 active={step.state === 'done' || step.state === 'current'}
               />
-            </div>
-          ) : null}
-        </div>
-      ))}
+            ) : null}
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }
@@ -408,17 +410,20 @@ function OpenTaskRouteCard({
     completePickupMut.isPending &&
     completePickupMut.variables === group.pickupTask.id;
 
-  const renderStepFooter = (step: FlowStepConfig) => {
+  const renderStepAction = (step: FlowStepConfig) => {
     if (step.id === 'machine' && deliverOpen && group.deliverTask) {
       return (
         <>
           <Button
             type="button"
-            className="h-auto min-h-[2.75rem] w-full shrink-0 whitespace-normal bg-[#005fb8] py-2.5 text-center text-xs leading-snug text-white hover:bg-[#004a94] sm:px-3 sm:text-sm"
+            className={cn(
+              flowStepActionButtonClass,
+              'inline-flex items-center justify-center gap-1.5 bg-[#005fb8] text-white hover:bg-[#004a94]',
+            )}
             disabled={!bound || busy}
             onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
           >
-            <CheckIcon className="size-5" />
+            <CheckIcon className="size-3.5 shrink-0" aria-hidden />
             {deliverPending ? 'Registrando…' : 'Concluir entrega'}
           </Button>
           {deliverPending ? <TaskConfirmationProgressBar /> : null}
@@ -429,9 +434,8 @@ function OpenTaskRouteCard({
     if (step.id === 'expedition' && group.pickupTask) {
       if (deliverOpen) {
         return (
-          <p className="m-0 text-center text-[0.6875rem] leading-snug text-zinc-500">
-            Conclua a entrega na máquina para habilitar a confirmação na
-            expedição.
+          <p className="m-0 w-full text-center text-[0.625rem] leading-snug text-zinc-500">
+            Conclua a entrega na máquina para habilitar a expedição.
           </p>
         );
       }
@@ -440,13 +444,14 @@ function OpenTaskRouteCard({
           <>
             <Button
               type="button"
-              className="h-auto min-h-[2.75rem] w-full shrink-0 whitespace-normal bg-[#005fb8] px-2 py-2.5 text-center text-xs leading-snug text-white hover:bg-[#004a94] sm:px-3 sm:text-sm"
+              className={cn(
+                flowStepActionButtonClass,
+                'bg-[#005fb8] text-white hover:bg-[#004a94]',
+              )}
               disabled={!bound || busy}
               onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
             >
-              {pickupPending
-                ? 'Registrando…'
-                : 'Confirmar entrega na expedição'}
+              {pickupPending ? 'Registrando…' : 'Confirmar na expedição'}
             </Button>
             {pickupPending ? <TaskConfirmationProgressBar /> : null}
           </>
@@ -492,7 +497,7 @@ function OpenTaskRouteCard({
       </div>
 
       <div className="px-3 py-5 sm:px-5 sm:py-6">
-        <RouteFlowTrack steps={steps} renderStepFooter={renderStepFooter} />
+        <RouteFlowTrack steps={steps} renderStepAction={renderStepAction} />
       </div>
     </Card>
   );

@@ -24,17 +24,6 @@ export function OperatorMovimentTasksPageView(
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
-        {token ? (
-          <header className="mb-6 border-b border-zinc-200 pb-4">
-            <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
-              Minhas tarefas
-            </h1>
-            <p className="mt-1.5 text-sm text-zinc-600">
-              Tarefas em andamento no equipamento vinculado a você. Novas
-              atividades ficam na fila de tarefas.
-            </p>
-          </header>
-        ) : null}
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Defina <code className="font-mono">VITE_API_URL</code> e faça login.
