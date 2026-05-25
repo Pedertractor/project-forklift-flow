@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { plantMapCreateMachinePath } from '@/constants/plant-map-routes';
 import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
@@ -40,6 +42,7 @@ function sectorsForForms(
 }
 
 export function useMachinesPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
@@ -109,21 +112,20 @@ export function useMachinesPage() {
     setClearOperator(false);
   }, []);
 
-  const openCreate = () => {
-    resetForm();
-    if (sectorsForSelect.length === 1) {
-      setSectorId(sectorsForSelect[0].id);
-    } else if (user?.sectorId) {
-      const match = sectorsForSelect.find((s) => s.id === user.sectorId);
-      if (match) {
-        setSectorId(match.id);
-      }
+  const goToMapToCreateMachine = useCallback(() => {
+    if (cannotCreateMachine) {
+      toast.message('Cadastro indisponível', {
+        description:
+          'Cadastre ao menos um tipo de máquina e um setor antes de criar no mapa.',
+      });
+      return;
     }
-    if (typesQuery.data?.length === 1) {
-      setTypeMachineId(typesQuery.data[0].id);
-    }
-    setCreateOpen(true);
-  };
+    navigate(
+      plantMapCreateMachinePath(
+        plantUnitFilter === '' ? undefined : plantUnitFilter,
+      ),
+    );
+  }, [cannotCreateMachine, navigate, plantUnitFilter]);
 
   const openEdit = (row: MachineListItem) => {
     setName(row.name);
@@ -252,7 +254,7 @@ export function useMachinesPage() {
     setUserId,
     clearOperator,
     setClearOperator,
-    openCreate,
+    goToMapToCreateMachine,
     openEdit,
     createMut,
     updateMut,

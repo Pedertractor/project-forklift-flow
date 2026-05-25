@@ -46,7 +46,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setUserId,
     clearOperator,
     setClearOperator,
-    openCreate,
+    goToMapToCreateMachine,
     openEdit,
     createMut,
     updateMut,
@@ -73,7 +73,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </Button>
             <Button
               type="button"
-              onClick={openCreate}
+              onClick={goToMapToCreateMachine}
               disabled={!apiReady || busy}
             >
               Nova máquina de produção

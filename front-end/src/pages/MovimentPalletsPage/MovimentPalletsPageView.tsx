@@ -4,14 +4,75 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
+import { cn } from '@/lib/utils';
+import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
 import type { MovimentPalletsPageViewModel } from './useMovimentPalletsPage';
 import { movimentTypePublicIconPath } from '@/utils/operator-moviment-display';
+import { PlusIcon } from 'lucide-react';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
 
 function typeLabel(t: string): string {
   return t === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
+}
+
+const EQUIPMENT_TYPE_OPTIONS: {
+  value: MovimentPalletEquipmentType;
+  label: string;
+}[] = [
+  { value: 'FORKLIFT', label: 'Empilhadeira' },
+  { value: 'PALLET_TRUCK', label: 'Transpaleteira' },
+];
+
+function EquipmentTypePicker({
+  value,
+  onChange,
+  disabled,
+  idPrefix,
+}: {
+  value: MovimentPalletEquipmentType;
+  onChange: (next: MovimentPalletEquipmentType) => void;
+  disabled?: boolean;
+  idPrefix: string;
+}) {
+  return (
+    <div
+      className="grid grid-cols-2 gap-3"
+      role="radiogroup"
+      aria-label="Tipo de equipamento"
+    >
+      {EQUIPMENT_TYPE_OPTIONS.map((opt) => {
+        const selected = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            id={`${idPrefix}-${opt.value}`}
+            disabled={disabled}
+            className={cn(
+              'flex flex-col items-center gap-2.5 rounded-2xl border-2 bg-white p-4 text-center outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-60',
+              selected
+                ? 'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white shadow-sm ring-2 ring-[#005fb8]/20'
+                : 'border-zinc-200 hover:border-zinc-300 hover:shadow-sm',
+            )}
+            onClick={() => onChange(opt.value)}
+          >
+            <div className="flex size-16 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50">
+              <img
+                src={movimentTypePublicIconPath(opt.value)}
+                alt=""
+                className="h-12 w-auto max-w-[4.5rem] object-contain"
+              />
+            </div>
+            <span className="text-sm font-semibold text-zinc-900">{opt.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
@@ -67,6 +128,7 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
             onClick={openCreate}
             disabled={!apiReady || busy}
           >
+            <PlusIcon className="size-4" />
             Novo equipamento
           </Button>
         </header>
@@ -267,18 +329,13 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mp-type">Tipo</Label>
-            <select
-              id="mp-type"
-              className={selectClass}
+            <Label>Tipo</Label>
+            <EquipmentTypePicker
+              idPrefix="mp-type"
               value={equipmentType}
-              onChange={(e) =>
-                setEquipmentType(e.target.value as 'FORKLIFT' | 'PALLET_TRUCK')
-              }
-            >
-              <option value="FORKLIFT">Empilhadeira</option>
-              <option value="PALLET_TRUCK">Transpaleteira</option>
-            </select>
+              onChange={setEquipmentType}
+              disabled={busy}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="mp-sector">Setor</Label>
@@ -299,20 +356,6 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                checked={noSector}
-                onChange={(e) => {
-                  setNoSector(e.target.checked);
-                  if (e.target.checked) {
-                    setSectorId('');
-                  }
-                }}
-                className="size-4 rounded border-zinc-300"
-              />
-              Sem setor (não recomendado para operação)
-            </label>
           </div>
         </div>
       </SimpleModal>
@@ -345,18 +388,13 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mp-edit-type">Tipo</Label>
-            <select
-              id="mp-edit-type"
-              className={selectClass}
+            <Label>Tipo</Label>
+            <EquipmentTypePicker
+              idPrefix="mp-edit-type"
               value={equipmentType}
-              onChange={(e) =>
-                setEquipmentType(e.target.value as 'FORKLIFT' | 'PALLET_TRUCK')
-              }
-            >
-              <option value="FORKLIFT">Empilhadeira</option>
-              <option value="PALLET_TRUCK">Transpaleteira</option>
-            </select>
+              onChange={setEquipmentType}
+              disabled={busy}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="mp-edit-sector">Setor</Label>

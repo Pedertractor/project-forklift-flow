@@ -1,10 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiServerOrigin } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { toastApiError } from '@/lib/toast-helpers';
 import { ENV } from '@/constants/env';
-import { PLANT_IMAGE_BY_UNIT, type PlantMapUnit } from '@/constants/plant-map';
+import {
+  PLANT_IMAGE_BY_UNIT,
+  isPlantMapUnit,
+  type PlantMapUnit,
+} from '@/constants/plant-map';
+import {
+  PLANT_MAP_CREATE_QUERY,
+  PLANT_MAP_UNIT_QUERY,
+} from '@/constants/plant-map-routes';
 import { createMachine, fetchMachines, updateMachine } from '@/services/machines-api';
 import { fetchReplenishmentRequests } from '@/services/machine-replenishment-requests-api';
 import {
@@ -74,9 +83,11 @@ function sectorsForForms(
 }
 
 export function usePlantMapPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const user = useAuthStore((s) => s.user);
+  const consumedCreateQueryRef = useRef(false);
   const canEditMachines =
     user?.role != null && MACHINE_DOMAIN_ROLES.includes(user.role as AppRole);
   const [plantUnit, setPlantUnit] = useState<PlantMapUnit>('PEDERTRACTOR');
@@ -652,6 +663,58 @@ export function usePlantMapPage() {
       description: 'Escolha o ponto onde a nova máquina ficará.',
     });
   }, [cannotCreateMachine, resetCreateForm, clearAreaDraw]);
+
+  useEffect(() => {
+    if (searchParams.get(PLANT_MAP_CREATE_QUERY) !== '1') {
+      consumedCreateQueryRef.current = false;
+      return;
+    }
+    if (consumedCreateQueryRef.current) {
+      return;
+    }
+    if (!apiReady || !canEditMachines) {
+      return;
+    }
+    if (typesQuery.isLoading || sectorsQuery.isLoading) {
+      return;
+    }
+    if (!typesQuery.isSuccess || !sectorsQuery.isSuccess) {
+      return;
+    }
+
+    const unitParam = searchParams.get(PLANT_MAP_UNIT_QUERY);
+    if (
+      unitParam &&
+      isPlantMapUnit(unitParam) &&
+      unitParam !== plantUnit
+    ) {
+      setPlantUnit(unitParam);
+      return;
+    }
+
+    consumedCreateQueryRef.current = true;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete(PLANT_MAP_CREATE_QUERY);
+        next.delete(PLANT_MAP_UNIT_QUERY);
+        return next;
+      },
+      { replace: true },
+    );
+    startPlacementMode();
+  }, [
+    searchParams,
+    setSearchParams,
+    apiReady,
+    canEditMachines,
+    typesQuery.isLoading,
+    typesQuery.isSuccess,
+    sectorsQuery.isLoading,
+    sectorsQuery.isSuccess,
+    plantUnit,
+    startPlacementMode,
+  ]);
 
   const handlePlantMapClick = useCallback(
     (nx: number, ny: number) => {

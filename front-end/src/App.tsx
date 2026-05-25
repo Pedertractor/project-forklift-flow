@@ -13,7 +13,7 @@ import {
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
-  PLANT_MAP_SUPERVISION_ROLES,
+  PLANT_MAP_PAGE_ACCESS_ROLES,
 } from '@/types/role.types';
 
 const HomePage = lazy(() =>
@@ -107,7 +107,7 @@ export function App() {
                   <Route index element={<HomePage />} />
                   <Route path="dashboard" element={<DashboardPage />} />
                 </Route>
-                <Route element={<RequireRoles roles={PLANT_MAP_SUPERVISION_ROLES} />}>
+                <Route element={<RequireRoles roles={PLANT_MAP_PAGE_ACCESS_ROLES} />}>
                   <Route path="supervisao/mapa-planta" element={<PlantMapPage />} />
                 </Route>
                 <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>

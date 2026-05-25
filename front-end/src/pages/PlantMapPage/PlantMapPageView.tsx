@@ -9,7 +9,10 @@ import { PlantMapMachineDetail } from './PlantMapMachineDetail';
 import { PlantMapMobileDetailSheet } from './PlantMapMobileDetailSheet';
 import type { PlantMapPageViewModel } from './usePlantMapPage';
 import { PlantMapAreasToolbar } from './PlantMapAreasToolbar';
-import { PLANT_MAP_LEGEND_ITEMS, plantMapNodeFill } from '@/utils/plantMapNodeColors';
+import {
+  PLANT_MAP_LEGEND_ITEMS,
+  plantMapNodeFill,
+} from '@/utils/plantMapNodeColors';
 import { plantMapAreaLegendItems } from '@/utils/plantMapAreaStyles';
 
 export function PlantMapPageView(props: PlantMapPageViewModel) {
@@ -126,12 +129,6 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
           <h1 className="m-0 text-lg font-bold tracking-tight text-zinc-900 sm:text-xl">
             Mapa da planta
           </h1>
-          <p className="mt-0.5 text-xs text-zinc-600 sm:text-sm">
-            Supervisão — situação das máquinas e pedidos de reposição.
-            <span className="hidden lg:inline">
-              {canEditMachines ? ' Arraste um ponto no mapa para reposicionar.' : null}
-            </span>
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-1 rounded-lg border border-zinc-200 bg-white p-0.5">
@@ -155,7 +152,12 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
           {canEditMachines ? (
             <span className="hidden lg:contents">
               {placementMode ? (
-                <Button type="button" variant="outline" className="gap-2" onClick={cancelPlacement}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={cancelPlacement}
+                >
                   <X className="size-4" aria-hidden />
                   Cancelar posicionamento
                 </Button>
@@ -210,7 +212,10 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
             </span>
           ) : null}
           {lastSyncLabel ? (
-            <span className="hidden text-xs text-zinc-500 sm:inline" title="Última sincronização com a API">
+            <span
+              className="hidden text-xs text-zinc-500 sm:inline"
+              title="Última sincronização com a API"
+            >
               Sincronizado {lastSyncLabel}
             </span>
           ) : null}
@@ -219,9 +224,15 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
 
       {placementMode ? (
         <p className="hidden shrink-0 rounded-lg border border-[#005fb8]/30 bg-sky-50 px-3 py-2 text-xs text-sky-950 lg:block">
-          <MapPin className="mr-1 inline size-3.5 align-text-bottom" aria-hidden />
-          <strong>Modo posicionamento:</strong> clique no desenho da planta onde a nova máquina deve
-          ficar. Pressione <kbd className="rounded border border-sky-200 bg-white px-1 font-mono text-[10px]">Esc</kbd>{' '}
+          <MapPin
+            className="mr-1 inline size-3.5 align-text-bottom"
+            aria-hidden
+          />
+          <strong>Modo posicionamento:</strong> clique no desenho da planta onde
+          a nova máquina deve ficar. Pressione{' '}
+          <kbd className="rounded border border-sky-200 bg-white px-1 font-mono text-[10px]">
+            Esc
+          </kbd>{' '}
           para cancelar.
         </p>
       ) : null}
@@ -232,11 +243,18 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
           mobileDetailOpen && 'hidden lg:flex',
         )}
       >
-        <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Legenda</span>
-        <span className="text-[11px] text-zinc-500">(cor do ponto = situação da máquina)</span>
+        <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+          Legenda
+        </span>
+        <span className="text-[11px] text-zinc-500">
+          (cor do ponto = situação da máquina)
+        </span>
         <ul className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0">
           {PLANT_MAP_LEGEND_ITEMS.map((item) => (
-            <li key={item.key} className="flex items-center gap-1.5 text-[11px] text-zinc-700">
+            <li
+              key={item.key}
+              className="flex items-center gap-1.5 text-[11px] text-zinc-700"
+            >
               <span
                 className="inline-block size-2.5 shrink-0 rounded-full border border-white shadow-sm"
                 style={{ backgroundColor: item.color }}
@@ -254,7 +272,10 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
         </span>
         <ul className="m-0 hidden list-none flex-wrap gap-x-3 gap-y-1 p-0 lg:flex">
           {plantMapAreaLegendItems().map((item) => (
-            <li key={item.kind} className="flex items-center gap-1.5 text-[11px] text-zinc-700">
+            <li
+              key={item.kind}
+              className="flex items-center gap-1.5 text-[11px] text-zinc-700"
+            >
               <span
                 className="inline-block size-2.5 shrink-0 rounded-sm border border-white shadow-sm"
                 style={{ backgroundColor: item.color }}
@@ -268,21 +289,16 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
 
       {areaEditMode ? (
         <p className="hidden shrink-0 rounded-lg border border-[#005fb8]/30 bg-sky-50 px-3 py-2 text-xs text-sky-950 lg:block">
-          <strong>Edição de áreas:</strong> use os botões acima para desenhar recebimento (laranja) ou
-          expedição (roxo) na planta da unidade selecionada. Cada tipo permite uma área por unidade.
+          <strong>Edição de áreas:</strong> use os botões acima para desenhar
+          recebimento (laranja) ou expedição (roxo) na planta da unidade
+          selecionada. Cada tipo permite uma área por unidade.
         </p>
       ) : null}
 
       {replenishmentError ? (
         <p className="shrink-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Não foi possível atualizar a lista de pedidos; a lista de máquinas segue disponível.
-        </p>
-      ) : null}
-
-      {showMapPlacementHint ? (
-        <p className="hidden shrink-0 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-950 lg:block">
-          Nenhuma máquina com posição salva — os pontos estão em <strong>grade automática</strong>.
-          Arraste cada máquina para o lugar certo ou use <strong>Nova máquina no mapa</strong>.
+          Não foi possível atualizar a lista de pedidos; a lista de máquinas
+          segue disponível.
         </p>
       ) : null}
 
@@ -302,11 +318,18 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
           ) : null}
           {machinesError && !mapStageReady ? (
             <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 p-4 text-center text-sm text-zinc-600">
-              <p className="m-0 font-medium text-zinc-800">Não foi possível carregar as máquinas.</p>
-              <p className="m-0 text-xs">Verifique a API e tente atualizar a página.</p>
+              <p className="m-0 font-medium text-zinc-800">
+                Não foi possível carregar as máquinas.
+              </p>
+              <p className="m-0 text-xs">
+                Verifique a API e tente atualizar a página.
+              </p>
             </div>
           ) : null}
-          {!machinesError && mapStageReady && backgroundImage && containerSize.width > 0 ? (
+          {!machinesError &&
+          mapStageReady &&
+          backgroundImage &&
+          containerSize.width > 0 ? (
             <div
               className="absolute inset-0"
               role="application"
@@ -331,19 +354,27 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
                 plantAreas={plantAreas}
                 areaDraftRect={areaDraftRect}
                 areaDrawKind={areaDrawKind}
-                onAreaDrawStart={canEditMachines ? handleAreaDrawStart : undefined}
-                onAreaDrawMove={canEditMachines ? handleAreaDrawMove : undefined}
+                onAreaDrawStart={
+                  canEditMachines ? handleAreaDrawStart : undefined
+                }
+                onAreaDrawMove={
+                  canEditMachines ? handleAreaDrawMove : undefined
+                }
                 onAreaDrawEnd={canEditMachines ? handleAreaDrawEnd : undefined}
                 selectedMachineId={selectedMachineId}
                 canEditMachines={canEditMachines && !areaEditMode}
                 placementMode={placementMode}
                 placementMarker={placementMarker}
                 savingMachineId={savingMachineId}
-                onSelectMachine={(id) => setSelectedMachineId((prev) => (prev === id ? null : id))}
+                onSelectMachine={(id) =>
+                  setSelectedMachineId((prev) => (prev === id ? null : id))
+                }
                 onStagePosChange={setStagePos}
                 onScaleChange={setScale}
                 clampStagePos={clampStagePos}
-                onPlantMapClick={canEditMachines ? handlePlantMapClick : undefined}
+                onPlantMapClick={
+                  canEditMachines ? handlePlantMapClick : undefined
+                }
                 onMachinePositionCommit={
                   canEditMachines ? handleMachinePositionCommit : undefined
                 }
@@ -360,7 +391,8 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
           ) : null}
           {machinesError && !mapStageReady ? (
             <p className="shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900 lg:hidden">
-              Não foi possível carregar as máquinas. Verifique a API e atualize a página.
+              Não foi possível carregar as máquinas. Verifique a API e atualize
+              a página.
             </p>
           ) : null}
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-zinc-200 p-0 shadow-sm lg:max-h-full">
@@ -369,19 +401,26 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
                 Máquinas
               </h2>
               <p className="mt-0.5 text-[11px] leading-snug text-zinc-500">
-                Processo conforme pedido em aberto. Tempo desde a entrada no status atual.
+                Processo conforme pedido em aberto. Tempo desde a entrada no
+                status atual.
               </p>
             </div>
-            <ul ref={listRef} className="min-h-0 flex-1 list-none overflow-y-auto p-2">
+            <ul
+              ref={listRef}
+              className="min-h-0 flex-1 list-none overflow-y-auto p-2"
+            >
               {sidebarRows.length === 0 ? (
                 <li className="px-2 py-4 text-center text-sm text-zinc-500">
                   Nenhuma máquina cadastrada.
                   {canEditMachines ? (
                     <>
                       {' '}
-                      <span className="lg:hidden">Cadastre máquinas na tela de máquinas.</span>
+                      <span className="lg:hidden">
+                        Cadastre máquinas na tela de máquinas.
+                      </span>
                       <span className="hidden lg:inline">
-                        Use <strong>Nova máquina no mapa</strong> para adicionar.
+                        Use <strong>Nova máquina no mapa</strong> para
+                        adicionar.
                       </span>
                     </>
                   ) : null}
@@ -390,12 +429,18 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
                 sidebarRows.map((row) => {
                   const active = row.machine.id === selectedMachineId;
                   return (
-                    <li key={row.machine.id} data-machine-id={row.machine.id} className="mb-1">
+                    <li
+                      key={row.machine.id}
+                      data-machine-id={row.machine.id}
+                      className="mb-1"
+                    >
                       <button
                         type="button"
                         aria-pressed={active}
                         onClick={() => {
-                          if (window.matchMedia('(min-width: 1024px)').matches) {
+                          if (
+                            window.matchMedia('(min-width: 1024px)').matches
+                          ) {
                             setSelectedMachineId((prev) =>
                               prev === row.machine.id ? null : row.machine.id,
                             );
@@ -413,12 +458,18 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
                         <span className="flex items-start gap-2">
                           <span
                             className="mt-1.5 inline-block size-2.5 shrink-0 rounded-full border border-white shadow-sm"
-                            style={{ backgroundColor: plantMapNodeFill(row.visualKey) }}
+                            style={{
+                              backgroundColor: plantMapNodeFill(row.visualKey),
+                            }}
                             aria-hidden
                           />
                           <span className="min-w-0 flex-1">
-                            <span className="block font-semibold text-zinc-900">{row.machine.name}</span>
-                            <span className="mt-0.5 block text-xs text-zinc-600">{row.processLabel}</span>
+                            <span className="block font-semibold text-zinc-900">
+                              {row.machine.name}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-zinc-600">
+                              {row.processLabel}
+                            </span>
                             <span className="mt-0.5 block text-[11px] text-zinc-500">
                               Há {row.sinceLabel} neste estado
                             </span>
@@ -438,11 +489,13 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
             </Card>
           ) : null}
 
-          {canEditMachines ? (
+          {/* {canEditMachines ? (
             <>
               <p className="m-0 hidden shrink-0 rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-2 py-2 text-[11px] leading-snug text-zinc-600 lg:block">
-                <strong>Reposicionar:</strong> arraste o ponto da máquina no mapa — a posição é salva
-                automaticamente. <strong>Nova máquina:</strong> use o botão no topo e clique no mapa.
+                <strong>Reposicionar:</strong> arraste o ponto da máquina no
+                mapa — a posição é salva automaticamente.{' '}
+                <strong>Nova máquina:</strong> use o botão no topo e clique no
+                mapa.
               </p>
               <p
                 className={cn(
@@ -460,17 +513,22 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
                 mobileDetailOpen && 'hidden lg:block',
               )}
             >
-              <span className="lg:hidden">Toque em uma máquina para ver o detalhe da supervisão.</span>
+              <span className="lg:hidden">
+                Toque em uma máquina para ver o detalhe da supervisão.
+              </span>
               <span className="hidden lg:inline">
-                Alterações de posição e cadastro no mapa exigem perfil de abastecimento, líder ou
-                administrador.
+                Alterações de posição e cadastro no mapa exigem perfil de
+                abastecimento, líder ou administrador.
               </span>
             </p>
-          )}
+          )} */}
         </aside>
       </div>
 
-      <PlantMapMobileDetailSheet detail={selectedDetail} onClose={clearMachineSelection} />
+      <PlantMapMobileDetailSheet
+        detail={selectedDetail}
+        onClose={clearMachineSelection}
+      />
 
       {newMachineDraft ? (
         <PlantMapCreateMachineModal
