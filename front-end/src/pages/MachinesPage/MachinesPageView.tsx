@@ -178,9 +178,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 <th className="px-4 py-3 font-semibold text-zinc-700"></th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Nome</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Posição
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
                   Tipo (produção)
                 </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
@@ -227,9 +224,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     </td>
                     <td className="px-4 py-3 font-medium text-zinc-900">
                       {row.name}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-zinc-700">
-                      {row.position}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       <span className="text-zinc-900">
