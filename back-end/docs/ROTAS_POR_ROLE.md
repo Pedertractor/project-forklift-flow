@@ -122,13 +122,17 @@ Acesso a **todas** as rotas autenticadas deste documento, inclusive as de operad
 ## `LEADER`
 
 - Rotas **“qualquer autenticado”** + **públicas** (tabela acima).
-- **Não** tem acesso a setores nem à maioria de `/api/users` (apenas criação de usuário).
+- **Não** tem acesso a setores nem à maioria de `/api/users` (criação, listagem do setor e reset de senha de operadores do setor).
 
 ### Usuários — `/api/users`
 
-| Método | Caminho      |
-| ------ | ------------ |
-| `POST` | `/api/users` |
+| Método | Caminho                             |
+| ------ | ----------------------------------- |
+| `GET`  | `/api/users`                        |
+| `GET`  | `/api/users/employee-info`          |
+| `POST`  | `/api/users`                        |
+| `PATCH` | `/api/users/:userId/role`           |
+| `POST`  | `/api/users/:userId/reset-password` |
 
 ### Tipo de máquina, máquinas, moviment-pallets
 

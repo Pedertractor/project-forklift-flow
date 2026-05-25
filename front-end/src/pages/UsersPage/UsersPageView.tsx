@@ -35,6 +35,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
     token,
     isAdmin,
     isLeader,
+    canListUsers,
     leaderSectorLabel,
     leaderMissingSector,
     usersQuery,
@@ -62,12 +63,20 @@ export function UsersPageView(vm: UsersPageViewModel) {
     roleEditValue,
     setRoleEditValue,
     rolePatchMut,
+    detailUser,
+    setDetailUser,
     resetTarget,
     setResetTarget,
     resetMut,
     busyAdmin,
-    openRoleEdit,
+    roleEditOptions,
+    leaderCanEditUserRole,
+    openUserDetail,
+    openResetFromDetail,
+    openRoleEditFromDetail,
   } = vm;
+
+  const canManageRow = isAdmin || isLeader;
 
   const createErr =
     createMut.error instanceof Error ? createMut.error.message : null;
@@ -89,11 +98,6 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 ? 'Gestão de usuários.'
                 : 'Cadastre colaboradores do seu setor com perfis de operação.'}
             </p>
-            {isLeader && leaderSectorLabel ? (
-              <p className="mt-2 text-sm font-medium text-[#005fb8]">
-                Setor do vínculo: {leaderSectorLabel}
-              </p>
-            ) : null}
           </div>
           <Button
             type="button"
@@ -121,7 +125,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
           </p>
         ) : null}
 
-        {isAdmin && usersQuery.isError ? (
+        {canListUsers && usersQuery.isError ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {usersQuery.error instanceof Error
               ? usersQuery.error.message
@@ -129,7 +133,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
           </p>
         ) : null}
 
-        {isAdmin ? (
+        {canListUsers ? (
           <Card className="mt-6 overflow-x-auto border border-zinc-200 shadow-sm">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
@@ -146,14 +150,13 @@ export function UsersPageView(vm: UsersPageViewModel) {
                   <th className="px-4 py-3 font-semibold text-zinc-700">
                     Perfil
                   </th>
-                  <th className="px-4 py-3 font-semibold text-zinc-700">
-                    Setor
-                  </th>
+                  {isAdmin ? (
+                    <th className="px-4 py-3 font-semibold text-zinc-700">
+                      Setor
+                    </th>
+                  ) : null}
                   <th className="px-4 py-3 font-semibold text-zinc-700">
                     Acesso
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold text-zinc-700">
-                    Ações
                   </th>
                 </tr>
               </thead>
@@ -161,7 +164,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 {usersQuery.isLoading ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={isAdmin ? 6 : 5}
                       className="px-4 py-8 text-center text-zinc-500"
                     >
                       Carregando…
@@ -170,17 +173,28 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 ) : usersQuery.data?.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={isAdmin ? 6 : 5}
                       className="px-4 py-8 text-center text-zinc-500"
                     >
-                      Nenhum usuário retornado.
+                      {isLeader
+                        ? 'Nenhum usuário vinculado ao seu setor.'
+                        : 'Nenhum usuário retornado.'}
                     </td>
                   </tr>
                 ) : (
                   usersQuery.data?.map((row) => (
                     <tr
                       key={row.id}
-                      className="border-b border-zinc-100 last:border-0"
+                      className={
+                        canManageRow
+                          ? 'cursor-pointer border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/90'
+                          : 'border-b border-zinc-100 last:border-0'
+                      }
+                      onClick={
+                        canManageRow && !busyAdmin
+                          ? () => openUserDetail(row)
+                          : undefined
+                      }
                     >
                       <td className="px-4 py-3 font-medium text-zinc-900">
                         {row.name}
@@ -194,35 +208,13 @@ export function UsersPageView(vm: UsersPageViewModel) {
                       <td className="px-4 py-3 text-zinc-800">
                         {roleLabel(row.role)}
                       </td>
-                      <td className="px-4 py-3 text-zinc-700">
-                        {row.sector?.typeSector ?? '—'}
-                      </td>
+                      {isAdmin ? (
+                        <td className="px-4 py-3 text-zinc-700">
+                          {row.sector?.typeSector ?? '—'}
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3 text-zinc-600">
                         {row.isLogged ? 'Senha já definida' : 'Primeiro acesso'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="default"
-                            className="h-9 px-3 text-xs"
-                            disabled={!apiReady || busyAdmin}
-                            onClick={() => openRoleEdit(row)}
-                          >
-                            Perfil
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="default"
-                            className="h-9 border-amber-200 px-3 text-xs text-amber-900 hover:bg-amber-50"
-                            disabled={!apiReady || busyAdmin}
-                            onClick={() => setResetTarget(row)}
-                          >
-                            Resetar senha
-                          </Button>
-                        </div>
                       </td>
                     </tr>
                   ))
@@ -230,25 +222,12 @@ export function UsersPageView(vm: UsersPageViewModel) {
               </tbody>
             </table>
           </Card>
-        ) : (
-          <Card className="mt-6 border border-zinc-200 p-6 shadow-sm">
-            <p className="m-0 text-sm leading-relaxed text-zinc-600">
-              Como líder, use{' '}
-              <strong className="font-semibold text-zinc-800">
-                Novo usuário
-              </strong>{' '}
-              para cadastrar operadores (
-              {LEADER_CREATABLE_ROLES.map(roleLabel).join(', ')}). Antes de
-              criar, a aplicação consulta a API de colaboradores com cartão e
-              unidade; se o colaborador não existir, a criação não é permitida.
-            </p>
-          </Card>
-        )}
+        ) : null}
 
         <SimpleModal
           open={createOpen}
           title="Novo usuário"
-          description="Informe cartão e unidade e clique em «Validar colaborador». Só é possível criar o usuário se a API de verificação encontrar o colaborador (mesma regra do back-end ao salvar)."
+          description="Informe o cartão e unidade."
           onClose={() => {
             if (!busyCreate) {
               setCreateOpen(false);
@@ -329,8 +308,8 @@ export function UsersPageView(vm: UsersPageViewModel) {
 
             {verifyState === 'fail' ? (
               <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                Colaborador não encontrado na API de verificação ou serviço
-                indisponível. Ajuste cartão/unidade ou tente novamente.
+                Colaborador não encontrado. Ajuste cartão/unidade ou tente
+                novamente.
               </p>
             ) : null}
 
@@ -398,6 +377,82 @@ export function UsersPageView(vm: UsersPageViewModel) {
         </SimpleModal>
 
         <SimpleModal
+          open={Boolean(detailUser)}
+          title={detailUser?.name ?? 'Usuário'}
+          description={
+            detailUser
+              ? `Cartão ${detailUser.card} · ${unitLabelApi(detailUser.unit)}`
+              : undefined
+          }
+          onClose={() => (!busyAdmin ? setDetailUser(null) : undefined)}
+          footer={
+            <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busyAdmin}
+                onClick={() => setDetailUser(null)}
+              >
+                Fechar
+              </Button>
+              {isAdmin ||
+              (isLeader && detailUser && leaderCanEditUserRole(detailUser)) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!apiReady || busyAdmin}
+                  onClick={openRoleEditFromDetail}
+                >
+                  Alterar perfil
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                className="border-amber-200 text-amber-900 hover:bg-amber-50"
+                disabled={!apiReady || busyAdmin}
+                onClick={openResetFromDetail}
+              >
+                Resetar senha
+              </Button>
+            </div>
+          }
+        >
+          {detailUser ? (
+            <dl className="m-0 grid gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="font-medium text-zinc-500">Perfil</dt>
+                <dd className="mt-0.5 text-zinc-900">{roleLabel(detailUser.role)}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-zinc-500">Acesso</dt>
+                <dd className="mt-0.5 text-zinc-900">
+                  {detailUser.isLogged ? 'Senha já definida' : 'Primeiro acesso'}
+                </dd>
+              </div>
+              {isAdmin && detailUser.sector ? (
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-zinc-500">Setor</dt>
+                  <dd className="mt-0.5 text-zinc-900">
+                    {detailUser.sector.typeSector}
+                  </dd>
+                </div>
+              ) : isLeader && leaderSectorLabel ? (
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-zinc-500">Setor</dt>
+                  <dd className="mt-0.5 text-zinc-900">{leaderSectorLabel}</dd>
+                </div>
+              ) : null}
+              <p className="m-0 text-xs text-zinc-500 sm:col-span-2">
+                {isLeader
+                  ? 'Altere o perfil de operação ou redefina a senha inicial de colaboradores do seu setor.'
+                  : 'Altere o perfil ou redefina a senha inicial para o padrão do ambiente.'}
+              </p>
+            </dl>
+          ) : null}
+        </SimpleModal>
+
+        <SimpleModal
           open={Boolean(roleEditUser)}
           title="Alterar perfil"
           description={
@@ -434,9 +489,9 @@ export function UsersPageView(vm: UsersPageViewModel) {
               className={selectClass}
               value={roleEditValue}
               onChange={(e) => setRoleEditValue(e.target.value)}
-              disabled={busyAdmin || !rolesQuery.data?.length}
+              disabled={busyAdmin || roleEditOptions.length === 0}
             >
-              {(rolesQuery.data ?? []).map((r) => (
+              {roleEditOptions.map((r) => (
                 <option key={r} value={r}>
                   {roleLabel(r)}
                 </option>

@@ -84,8 +84,15 @@ export const postCreateUser: RouteHandlerMethod = async (request, reply) => {
 
 export const getListUsers: RouteHandlerMethod = async (request, reply) => {
   const viewer = request.user as AppJwtPayload
-  const users = await listUsers(viewer.role)
-  return reply.send({ users })
+  try {
+    const users = await listUsers({ userId: viewer.sub, role: viewer.role })
+    return reply.send({ users })
+  } catch (error) {
+    if (error instanceof CreateUserError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
 }
 
 export const getEmployeeInfo: RouteHandlerMethod = async (request, reply) => {
@@ -124,8 +131,12 @@ export const patchUserRole: RouteHandlerMethod = async (request, reply) => {
   if (!isRole(roleRaw)) {
     return reply.status(400).send({ error: 'Informe um role valido.' })
   }
+  const jwtUser = request.user as AppJwtPayload
   try {
-    const user = await updateUserRole(userId, roleRaw)
+    const user = await updateUserRole(userId, roleRaw, {
+      userId: jwtUser.sub,
+      role: jwtUser.role,
+    })
     return reply.send({
       id: user.id,
       name: user.name,
@@ -137,6 +148,9 @@ export const patchUserRole: RouteHandlerMethod = async (request, reply) => {
   } catch (error) {
     if (error instanceof UserNotFoundError) {
       return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof CreateUserError) {
+      return reply.status(400).send({ error: error.message })
     }
     throw error
   }
@@ -150,8 +164,12 @@ export const postResetUserPassword: RouteHandlerMethod = async (
   if (!userId) {
     return reply.status(400).send({ error: 'userId invalido.' })
   }
+  const jwtUser = request.user as AppJwtPayload
   try {
-    await resetUserPasswordToDefault(userId)
+    await resetUserPasswordToDefault(userId, {
+      userId: jwtUser.sub,
+      role: jwtUser.role,
+    })
     return { ok: true }
   } catch (error) {
     if (error instanceof UserPasswordError) {

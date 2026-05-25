@@ -14,7 +14,10 @@ import {
 } from '@/services/users-api';
 import { useAuthStore } from '@/store/auth.store';
 import type { EmployeeInfoResponse } from '@/types/employee-api.types';
-import { LEADER_CREATABLE_ROLES } from '@/types/role.types';
+import {
+  isAppRole,
+  LEADER_CREATABLE_ROLES,
+} from '@/types/role.types';
 import type { AppUnit } from '@/types/user.types';
 import type { UserListRow } from '@/types/users-admin.types';
 
@@ -33,10 +36,13 @@ export function useUsersPage() {
   const leaderSectorLabel = authUser?.sector?.typeSector ?? null;
   const leaderMissingSector = isLeader && !authUser?.sectorId;
 
+  const canListUsers =
+    apiReady && (isAdmin || isLeader) && !leaderMissingSector;
+
   const usersQuery = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', isLeader ? authUser?.sectorId : 'all'],
     queryFn: fetchUsersList,
-    enabled: apiReady && isAdmin,
+    enabled: canListUsers,
   });
 
   const rolesQuery = useQuery({
@@ -62,6 +68,7 @@ export function useUsersPage() {
   const [roleEditUser, setRoleEditUser] = useState<UserListRow | null>(null);
   const [roleEditValue, setRoleEditValue] = useState('');
 
+  const [detailUser, setDetailUser] = useState<UserListRow | null>(null);
   const [resetTarget, setResetTarget] = useState<UserListRow | null>(null);
 
   useEffect(() => {
@@ -169,9 +176,43 @@ export function useUsersPage() {
     onError: toastApiError,
   });
 
+  const roleEditOptions = isAdmin
+    ? (rolesQuery.data ?? [])
+    : [...LEADER_CREATABLE_ROLES];
+
+  const leaderCanEditUserRole = (row: UserListRow) =>
+    row.role !== 'ADMIN' && row.role !== 'LEADER';
+
   const openRoleEdit = (row: UserListRow) => {
     setRoleEditUser(row);
+    if (isLeader) {
+      const initial = isAppRole(row.role) && LEADER_CREATABLE_ROLES.includes(row.role)
+        ? row.role
+        : LEADER_CREATABLE_ROLES[0];
+      setRoleEditValue(initial);
+      return;
+    }
     setRoleEditValue(row.role);
+  };
+
+  const openUserDetail = (row: UserListRow) => {
+    setDetailUser(row);
+  };
+
+  const openResetFromDetail = () => {
+    if (!detailUser) {
+      return;
+    }
+    setResetTarget(detailUser);
+    setDetailUser(null);
+  };
+
+  const openRoleEditFromDetail = () => {
+    if (!detailUser) {
+      return;
+    }
+    openRoleEdit(detailUser);
+    setDetailUser(null);
   };
 
   const busyCreate = verifyMut.isPending || createMut.isPending;
@@ -183,6 +224,7 @@ export function useUsersPage() {
     authUser,
     isAdmin,
     isLeader,
+    canListUsers,
     leaderSectorLabel,
     leaderMissingSector,
     usersQuery,
@@ -210,11 +252,18 @@ export function useUsersPage() {
     roleEditValue,
     setRoleEditValue,
     rolePatchMut,
+    roleEditOptions,
+    leaderCanEditUserRole,
+    detailUser,
+    setDetailUser,
     resetTarget,
     setResetTarget,
     resetMut,
     busyAdmin,
     openRoleEdit,
+    openUserDetail,
+    openResetFromDetail,
+    openRoleEditFromDetail,
   };
 }
 

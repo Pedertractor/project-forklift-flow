@@ -45,7 +45,7 @@ Aviso ao abastecimento. Encerrado (`FULFILLED`) quando supply cria `DeliveryTask
 
 ### `MovimentPalletTripSuggestion`
 
-Par **entrega + retirada** na mesma máquina. Criada quando operador solicita **retirada + abastecimento** e já existe entrega preparada para aquela máquina.
+Par **entrega + retirada** na mesma máquina. O empilhadeirista só vê a sugestão combinada quando a `DeliveryTask` vinculada tem `preparedAt` (pallet pronto no abastecimento). O operador da máquina pode abrir **retirada + abastecimento** antes disso; a sugestão é criada/sincronizada no `mark-prepared` ou na listagem de `/trip-suggestions`.
 
 ---
 
@@ -82,7 +82,7 @@ Body de criação: `machineId`, `movementCube`, `typeMovimentPallet`, `isCritica
 | `POST` | `/tasks/:id/accept-pickup` | Aceita retirada |
 | `POST` | `/tasks/:id/complete-deliver` | Conclui entrega na máquina |
 | `POST` | `/tasks/:id/complete-pickup` | Conclui retirada na expedição |
-| `GET` | `/trip-suggestions` | Tela principal: par entrega+retirada (2 tarefas) **ou** tarefa avulsa **somente se** `isCritical`; tarefas do par nao repetem como avulsas |
+| `GET` | `/trip-suggestions` | Tela principal: par entrega+retirada (2 tarefas) **somente com** `DeliveryTask.preparedAt` preenchido; ou tarefa avulsa **somente se** `isCritical`; tarefas do par nao repetem como avulsas |
 | `POST` | `/trip-suggestions/:id/accept` | Aceita rota combinada |
 
 **Removido:** aceitar `MachineReplenishmentRequest`.
@@ -110,7 +110,7 @@ flowchart LR
 1. Supply antecipa ou responde aviso → `DeliveryTask` com `preparedAt`.
 2. Transporte entrega → `DeliveryTask` COMPLETED → prisma na máquina.
 3. Operador **só retirada** → `PickupTask`.
-4. Operador **retirada + abastecimento** → `PickupTask` + aviso supply + sugestão de viagem se entrega já na fila.
+4. Operador **retirada + abastecimento** → `PickupTask` + aviso supply; sugestão de viagem para o transporte **após** abastecimento marcar o pallet pronto (`preparedAt`).
 
 ---
 

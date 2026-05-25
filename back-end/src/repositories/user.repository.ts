@@ -40,9 +40,16 @@ export const userRepository = {
     })
   },
 
-  findManyForList(options?: { role?: RoleUser }) {
+  findManyForList(options?: { role?: RoleUser; sectorId?: string }) {
+    const where: Prisma.UserWhereInput = {}
+    if (options?.role !== undefined) {
+      where.role = options.role
+    }
+    if (options?.sectorId !== undefined) {
+      where.sectorId = options.sectorId
+    }
     return prisma.user.findMany({
-      ...(options?.role !== undefined ? { where: { role: options.role } } : {}),
+      ...(Object.keys(where).length > 0 ? { where } : {}),
       select: {
         id: true,
         name: true,

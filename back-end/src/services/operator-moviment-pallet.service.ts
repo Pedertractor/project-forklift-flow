@@ -40,6 +40,7 @@ import {
   movimentPalletTripSuggestionRepository,
   type MovimentPalletTripSuggestionWithTasks,
 } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
+import { syncOpenTripSuggestionsForSector } from './trip-suggestion-sync.service.js'
 import type { DeliveryTaskListRow } from '../repositories/delivery-task.repository.js'
 import type { PickupTaskListRow } from '../repositories/pickup-task.repository.js'
 import { movimentPalletRepository } from '../repositories/moviment-pallet.repository.js'
@@ -420,36 +421,7 @@ export async function listMyMovimentPalletTasks(
 }
 
 async function syncTripSuggestions(sectorId: string, types: TypeMovimentPallet[]) {
-  for (const type of types) {
-    const pickups = await pickupTaskRepository.findManyOpenWithReplenishmentForSector(
-      sectorId,
-      type === TypeMovimentPallet.FORKLIFT
-        ? MovimentPalletEquipmentType.FORKLIFT
-        : MovimentPalletEquipmentType.PALLET_TRUCK,
-    )
-    for (const pickup of pickups) {
-      const deliver = await deliveryTaskRepository.findOpenPreparedForMachine(
-        pickup.machineId,
-      )
-      if (
-        deliver &&
-        isOpenTripTaskPairValid(
-          deliver.status,
-          pickup.status,
-          deliver.machineId,
-          pickup.machineId,
-          deliver.preparedAt != null,
-        )
-      ) {
-        await movimentPalletTripSuggestionRepository.upsertOpenPair({
-          deliverTaskId: deliver.id,
-          pickupTaskId: pickup.id,
-          machineId: pickup.machineId,
-          typeMovimentPallet: deliver.typeMovimentPallet,
-        })
-      }
-    }
-  }
+  await syncOpenTripSuggestionsForSector(sectorId, types)
 }
 
 export async function listTripRouteSuggestionsForOperator(

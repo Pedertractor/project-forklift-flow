@@ -77,6 +77,19 @@ export const pickupTaskRepository = {
     })
   },
 
+  /** Retirada + abastecimento em aberto na maquina (candidata a sugestao de viagem). */
+  findFirstOpenWithReplenishmentForMachine(machineId: string) {
+    return prisma.pickupTask.findFirst({
+      where: {
+        machineId,
+        triggersReplenishment: true,
+        status: { in: openMachineTaskStatuses },
+      },
+      include: pickupTaskListInclude,
+      orderBy: { createdAt: 'asc' },
+    })
+  },
+
   findManyForMachine(machineId: string) {
     return prisma.pickupTask.findMany({
       where: { machineId },

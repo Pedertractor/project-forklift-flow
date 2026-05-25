@@ -150,30 +150,107 @@ export async function createUser(
   })
 }
 
-export async function listUsers(_viewerRole: RoleUser) {
-  return userRepository.findManyForList()
+export type ListUsersActor = {
+  userId: string
+  role: RoleUser
+}
+
+export async function listUsers(actor: ListUsersActor) {
+  if (actor.role === RoleUser.ADMIN) {
+    return userRepository.findManyForList()
+  }
+
+  if (actor.role === RoleUser.LEADER) {
+    const leader = await userRepository.findUniqueByIdWithSector(actor.userId)
+    if (!leader) {
+      throw new CreateUserError('Usuario autenticado nao encontrado.')
+    }
+    if (!leader.sectorId) {
+      throw new CreateUserError(
+        'Lider sem setor vinculado nao pode listar usuarios.',
+      )
+    }
+    return userRepository.findManyForList({ sectorId: leader.sectorId })
+  }
+
+  throw new CreateUserError('Sem permissao para listar usuarios.')
 }
 
 export function listRoleUserEnumValues(): RoleUser[] {
   return Object.values(RoleUser)
 }
 
+async function assertLeaderCanManageTargetUser(
+  actor: ListUsersActor,
+  target: UserModel,
+  actionLabel: string,
+): Promise<void> {
+  const leader = await userRepository.findUniqueByIdWithSector(actor.userId)
+  if (!leader) {
+    throw new CreateUserError('Usuario autenticado nao encontrado.')
+  }
+  if (!leader.sectorId) {
+    throw new CreateUserError(
+      `Lider sem setor vinculado nao pode ${actionLabel}.`,
+    )
+  }
+  if (target.sectorId !== leader.sectorId) {
+    throw new CreateUserError(
+      `Lider so pode ${actionLabel} usuarios do seu setor.`,
+    )
+  }
+  if (target.role === RoleUser.ADMIN || target.role === RoleUser.LEADER) {
+    throw new CreateUserError(
+      'Lider nao pode gerenciar administradores ou outros lideres.',
+    )
+  }
+}
+
 export async function updateUserRole(
   targetUserId: string,
   role: RoleUser,
+  actor: ListUsersActor,
 ): Promise<UserModel> {
   const user = await userRepository.findUniqueById(targetUserId)
   if (!user) {
     throw new UserNotFoundError()
   }
+
+  if (actor.role === RoleUser.LEADER) {
+    await assertLeaderCanManageTargetUser(actor, user, 'alterar o perfil de')
+    if (!LEADER_CREATABLE_ROLES.includes(role)) {
+      throw new CreateUserError(
+        'Lider so pode atribuir perfil OPERATOR_MACHINE, FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou SUPPLY_OPERATOR.',
+      )
+    }
+  } else if (actor.role !== RoleUser.ADMIN) {
+    throw new CreateUserError('Sem permissao para alterar perfil.')
+  }
+
   return userRepository.update(targetUserId, { role })
 }
 
-export async function resetUserPasswordToDefault(targetUserId: string) {
+export async function resetUserPasswordToDefault(
+  targetUserId: string,
+  actor: ListUsersActor,
+) {
   const plain = defaultFirstPasswordForReset()
   const user = await userRepository.findUniqueById(targetUserId)
   if (!user) {
     throw new UserPasswordError('Usuario nao encontrado.')
+  }
+
+  if (actor.role === RoleUser.LEADER) {
+    try {
+      await assertLeaderCanManageTargetUser(actor, user, 'redefinir senha de')
+    } catch (error) {
+      if (error instanceof CreateUserError) {
+        throw new UserPasswordError(error.message)
+      }
+      throw error
+    }
+  } else if (actor.role !== RoleUser.ADMIN) {
+    throw new UserPasswordError('Sem permissao para redefinir senha.')
   }
 
   await userRepository.update(targetUserId, {

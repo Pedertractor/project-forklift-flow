@@ -51,20 +51,6 @@ function itemVisibleForRole(
  */
 export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   {
-    id: 'geral',
-    title: 'Geral',
-    rolesDescription:
-      'Administrador (ADMIN) e líder (LEADER) — Início e Painel.',
-    items: [
-      { to: '/', label: 'Início', allowedRoles: ADMIN_OR_LEADER_ROLES },
-      {
-        to: '/dashboard',
-        label: 'Painel',
-        allowedRoles: ADMIN_OR_LEADER_ROLES,
-      },
-    ],
-  },
-  {
     id: 'supervisao',
     title: 'Supervisão',
     rolesDescription:
@@ -92,7 +78,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   },
   {
     id: 'supply-cadastros',
-    title: 'Abastecimento e cadastros',
+    title: 'Máquinas e equipamentos',
     rolesDescription:
       'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas e solicitações. Cadastro de equipamentos de movimentação: líder e administrador.',
     items: [
@@ -106,6 +92,14 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
         label: 'Equipamentos de movimentação',
         allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
+    ],
+  },
+  {
+    id: 'supply',
+    title: 'Abastecimento',
+    rolesDescription:
+      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas e solicitações. Cadastro de equipamentos de movimentação: líder e administrador.',
+    items: [
       {
         to: '/abastecimento/solicitacoes',
         label: 'Solicitações de reposição',

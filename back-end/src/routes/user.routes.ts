@@ -26,7 +26,10 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
       userRouter.get(
         "/",
         {
-          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+          preHandler: [
+            fastify.authenticate,
+            requireRoles(RoleUser.ADMIN, RoleUser.LEADER),
+          ],
         },
         getListUsers,
       );
@@ -50,14 +53,20 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
       userRouter.patch(
         "/:userId/role",
         {
-          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+          preHandler: [
+            fastify.authenticate,
+            requireRoles(RoleUser.ADMIN, RoleUser.LEADER),
+          ],
         },
         patchUserRole,
       );
       userRouter.post(
         "/:userId/reset-password",
         {
-          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+          preHandler: [
+            fastify.authenticate,
+            requireRoles(RoleUser.ADMIN, RoleUser.LEADER),
+          ],
         },
         postResetUserPassword,
       );

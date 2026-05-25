@@ -14,7 +14,12 @@ import { operatorMachineSupplyRequestRepository } from '../repositories/operator
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
-import { operatorMovimentPalletWsBroadcastQueueUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
+import { syncTripSuggestionPairForMachine } from './trip-suggestion-sync.service.js'
+import {
+  operatorMovimentPalletWsBroadcastQueueUpdated,
+  operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
+  operatorMovimentPalletWsNotifyDeliveryTaskChange,
+} from '../ws/operator-moviment-pallet-ws.hub.js'
 
 export type CreateDeliveryTaskInput = {
   requestedById: string
@@ -80,7 +85,12 @@ export async function createDeliveryTask(input: CreateDeliveryTaskInput) {
   })
 
   if (row.preparedAt && machine.sectorId) {
+    await syncTripSuggestionPairForMachine(machine.id)
     operatorMovimentPalletWsBroadcastQueueUpdated(
+      machine.sectorId,
+      row.typeMovimentPallet,
+    )
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
       machine.sectorId,
       row.typeMovimentPallet,
     )
@@ -121,9 +131,20 @@ export async function markDeliveryTaskPrepared(taskId: string) {
     statusSince: now,
   })
 
+  const refreshed = await deliveryTaskRepository.findById(taskId)
+  if (refreshed) {
+    operatorMovimentPalletWsNotifyDeliveryTaskChange(refreshed)
+  }
+
+  await syncTripSuggestionPairForMachine(current.machineId)
+
   const sectorId = current.machine.sectorId
   if (sectorId) {
     operatorMovimentPalletWsBroadcastQueueUpdated(
+      sectorId,
+      updated.typeMovimentPallet,
+    )
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
       sectorId,
       updated.typeMovimentPallet,
     )

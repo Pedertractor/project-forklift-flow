@@ -97,6 +97,22 @@ export const movimentPalletTripSuggestionRepository = {
     })
   },
 
+  /** Sugestao combinada so vale com entrega preparada; expira pares antecipados. */
+  expireOpenWithUnpreparedDeliveryInSector(
+    sectorId: string,
+    types: TypeMovimentPallet[],
+  ) {
+    return prisma.movimentPalletTripSuggestion.updateMany({
+      where: {
+        status: MovimentPalletTripSuggestionStatus.OPEN,
+        typeMovimentPallet: { in: types },
+        machine: { sectorId },
+        deliverTask: { preparedAt: null },
+      },
+      data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
+    })
+  },
+
   async upsertOpenPair(input: {
     deliverTaskId: string
     pickupTaskId: string
