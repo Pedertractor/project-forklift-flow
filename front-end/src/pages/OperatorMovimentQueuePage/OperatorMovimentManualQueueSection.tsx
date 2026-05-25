@@ -15,7 +15,10 @@ import type {
   OperatorPickupTaskQueueItem,
   OperatorReplenishmentRequestItem,
 } from '@/types/operator-moviment-pallet.types';
-import { formatTaskDate, priorityLabel } from '@/utils/operator-moviment-display';
+import {
+  formatTaskDate,
+  priorityLabel,
+} from '@/utils/operator-moviment-display';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { OperatorReplenishmentQueueResponse } from '@/types/operator-moviment-pallet.types';
 
@@ -62,12 +65,7 @@ function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
         size="compact"
         stepId="machine"
         label="Máquina"
-        details={[
-          machineLocationDetail(
-            req.destination?.name ?? '—',
-            req.destination?.position ?? '',
-          ),
-        ]}
+        details={[machineLocationDetail(req.destination?.name ?? '—')]}
         accent="mid"
       />
       <SuggestionFlowConnector size="compact" />

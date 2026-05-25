@@ -145,10 +145,7 @@ export function ReplenishmentCreateWizardModal({
 
   useEffect(() => {
     if (open) {
-      const step = Math.min(
-        Math.max(initialStep, 1),
-        TOTAL_STEPS,
-      );
+      const step = Math.min(Math.max(initialStep, 1), TOTAL_STEPS);
       setStep(step);
     }
   }, [open, initialStep]);
@@ -354,7 +351,7 @@ export function ReplenishmentCreateWizardModal({
             className="size-4"
           />
           <span className="text-sm font-medium text-zinc-900">
-            Marcar como crítico (prioridade máxima na fila do transporte)
+            Marcar como crítico
           </span>
         </label>
       ) : null}

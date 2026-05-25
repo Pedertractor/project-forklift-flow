@@ -217,7 +217,6 @@ function StandaloneDeliverRouteCard({
           </span>
           <Button
             type="button"
-            // variant="outline"
             className="shrink-0 bg-[#005fb8] text-white hover:bg-[#004a94]"
             disabled={!bound || busy || isAcceptingThisDeliver}
             onClick={() => onAcceptDeliver(row)}
@@ -470,9 +469,7 @@ export function TripSuggestionsFlowSection({
               bound={bound}
               busy={busy}
               taskId={taskId}
-              isAcceptingThisPickup={
-                pendingStandalonePickupTaskId === taskId
-              }
+              isAcceptingThisPickup={pendingStandalonePickupTaskId === taskId}
               onAcceptPickup={onAcceptStandalonePickup}
             />
           );
