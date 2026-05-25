@@ -1,14 +1,15 @@
 import type { FastifyInstance } from 'fastify'
 import {
   deleteUnbindOperatorMachine,
+  getListMachineTasksForOperator,
   getListMachinesForOperator,
   getListOperatorSupplyRequestsForOperator,
-  getListReplenishmentRequestsForOperator,
   getOperatorCurrentMachineHandler,
-  getReplenishmentPickupProgress,
   postBindOperatorMachine,
-  postFinalizeMachineCycle,
-  postRequestPalletPickup,
+  postCancelPickupRequest,
+  postRequestPickupOnly,
+  postRequestPickupWithReplenishment,
+  postRequestSupplyOnly,
 } from '../controllers/operator-machine-controller.js'
 import { requireOperatorMachineRole } from '../middleware/require-roles.js'
 
@@ -43,19 +44,12 @@ export async function registerOperatorMachineRoutes(fastify: FastifyInstance) {
         },
         deleteUnbindOperatorMachine,
       )
-      router.post(
-        '/my-machine/finalize',
-        {
-          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
-        },
-        postFinalizeMachineCycle,
-      )
       router.get(
-        '/replenishment-requests',
+        '/machine-tasks',
         {
           preHandler: [fastify.authenticate, requireOperatorMachineRole()],
         },
-        getListReplenishmentRequestsForOperator,
+        getListMachineTasksForOperator,
       )
       router.get(
         '/operator-supply-requests',
@@ -64,19 +58,33 @@ export async function registerOperatorMachineRoutes(fastify: FastifyInstance) {
         },
         getListOperatorSupplyRequestsForOperator,
       )
-      router.get(
-        '/replenishment-requests/:requestId/pickup-progress',
+      router.post(
+        '/pickup-only',
         {
           preHandler: [fastify.authenticate, requireOperatorMachineRole()],
         },
-        getReplenishmentPickupProgress,
+        postRequestPickupOnly,
       )
       router.post(
-        '/replenishment-requests/:requestId/pickup',
+        '/pickup-with-replenishment',
         {
           preHandler: [fastify.authenticate, requireOperatorMachineRole()],
         },
-        postRequestPalletPickup,
+        postRequestPickupWithReplenishment,
+      )
+      router.post(
+        '/supply-only',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        postRequestSupplyOnly,
+      )
+      router.post(
+        '/pickup-tasks/:pickupTaskId/cancel',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        postCancelPickupRequest,
       )
     },
     { prefix: '/operator-machine' },

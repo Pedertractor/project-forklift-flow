@@ -43,8 +43,8 @@ function DeliverRequestFlow({
         label="Máquina"
         details={[
           machineLocationDetail(
-            row.destination.name,
-            row.destination.position,
+            row.destination?.name ?? '—',
+            row.destination?.position ?? '',
           ),
           prismaDetail(row.movementCube, 'deliver-to-machine'),
         ]}
@@ -64,10 +64,9 @@ function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
         label="Máquina"
         details={[
           machineLocationDetail(
-            req.destination.name,
-            req.destination.position,
+            req.destination?.name ?? '—',
+            req.destination?.position ?? '',
           ),
-          prismaDetail(req.movementCube, 'pick-at-machine'),
         ]}
         accent="mid"
       />
@@ -76,10 +75,7 @@ function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
         size="compact"
         stepId="expedition"
         label="Expedição"
-        details={[
-          expeditionAreaDetail(),
-          prismaDetail(req.movementCube, 'carry-to-expedition'),
-        ]}
+        details={[expeditionAreaDetail()]}
         accent="end"
       />
     </div>
@@ -154,7 +150,7 @@ export function OperatorMovimentManualQueueSection({
                   </div>
                   <p className="mt-2 text-[0.625rem] leading-snug text-zinc-600">
                     <span className="font-medium text-zinc-700">Solic.</span>{' '}
-                    {row.requestedBy.name}
+                    {row.requestedBy?.name ?? '—'}
                   </p>
                   <div className="mt-2 flex justify-end border-t border-zinc-100 pt-2">
                     <Button

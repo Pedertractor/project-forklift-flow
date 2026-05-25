@@ -24,8 +24,15 @@ const listInclude = {
       role: true,
     },
   },
-  fulfilledByReplenishmentRequest: {
-    select: { id: true, movementCube: true, status: true },
+  deliveryTask: {
+    select: {
+      id: true,
+      movementCube: true,
+      status: true,
+      acceptedBySupply: true,
+      preparedAt: true,
+      isCritical: true,
+    },
   },
 } as const
 
@@ -76,43 +83,21 @@ export const operatorMachineSupplyRequestRepository = {
     })
   },
 
-  findFulfilledReplenishmentIds(replenishmentRequestIds: string[]) {
-    if (replenishmentRequestIds.length === 0) {
-      return new Set<string>();
-    }
-    return prisma.operatorMachineSupplyRequest
-      .findMany({
-        where: {
-          status: OperatorMachineSupplyRequestStatus.FULFILLED,
-          fulfilledByReplenishmentRequestId: { in: replenishmentRequestIds },
-        },
-        select: { fulfilledByReplenishmentRequestId: true },
-      })
-      .then(
-        (rows) =>
-          new Set(
-            rows
-              .map((r) => r.fulfilledByReplenishmentRequestId)
-              .filter((id): id is string => id != null),
-          ),
-      );
-  },
-
-  fulfillOpenForDestination(
-    destinationId: string,
-    replenishmentRequestId: string,
+  fulfillOpenForMachine(
+    machineId: string,
+    deliveryTaskId: string,
     tx: Prisma.TransactionClient,
   ) {
     const now = new Date()
     return tx.operatorMachineSupplyRequest.updateMany({
       where: {
-        machineId: destinationId,
+        machineId,
         status: OperatorMachineSupplyRequestStatus.OPEN,
       },
       data: {
         status: OperatorMachineSupplyRequestStatus.FULFILLED,
         fulfilledAt: now,
-        fulfilledByReplenishmentRequestId: replenishmentRequestId,
+        deliveryTaskId,
       },
     })
   },

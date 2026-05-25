@@ -5,32 +5,36 @@ import { toastApiError } from '@/lib/toast-helpers';
 import { ENV } from '@/constants/env';
 import {
   deleteOperatorUnbindMachine,
+  fetchOperatorMachineTasks,
   fetchOperatorMachinesForPicker,
   fetchOperatorMyMachine,
-  fetchOperatorPickupProgress,
-  fetchOperatorReplenishmentRequests,
   fetchOperatorSupplyRequests,
   postOperatorBindMachine,
-  postOperatorFinalizeCycle,
-  postOperatorRequestPickup,
+  postCancelOperatorPickup,
+  postOperatorPickupOnly,
+  postOperatorPickupWithReplenishment,
+  postOperatorSupplyOnly,
 } from '@/services/operator-machine-api';
+import {
+  canOpenServiceRequestDialog,
+  canRequestSupply,
+} from './operator-machine-flow';
 import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
 import {
-  selectPickupPanelReplenishment,
-  selectSupplyFlowReplenishment,
-  shouldFetchPickupProgress,
+  canRequestPickup,
+  deliveryTaskDrivingMachineUi,
+  deriveDeliveryFlowPhaseFromTask,
+  derivePickupFlowPhaseFromTask,
+  pickupBlockedReason,
+  pickupTaskDrivingMachineUi,
+  resolveOperationTimelineMode,
 } from './operator-machine-flow';
 import { useAuthStore } from '@/store/auth.store';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
-import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
-
-const FINALIZE_BLOCK_STATUSES = new Set<
-  ReplenishmentRequestListItem['status']
->(['PALLET_READY', 'IN_PROGRESS', 'ON_MACHINE']);
 
 const queryKeyMyMachine = ['operator-machine', 'my-machine'] as const;
 const queryKeyOperatorSupply = ['operator-machine', 'operator-supply-requests'] as const;
-const queryKeyRequests = ['operator-machine', 'replenishment-requests', 'active'] as const;
+const queryKeyTasks = ['operator-machine', 'machine-tasks'] as const;
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -48,7 +52,7 @@ export function useOperatorMachinePage() {
   const machinePollInterval = wsConnected ? false : MACHINE_POLL_MS_WS_DOWN;
 
   const [endShiftOpen, setEndShiftOpen] = useState(false);
-  const [pickupTargetId, setPickupTargetId] = useState<string | null>(null);
+  const [cancelPickupId, setCancelPickupId] = useState<string | null>(null);
   const [showMachinePicker, setShowMachinePicker] = useState(false);
   const [selectedMachineId, setSelectedMachineId] = useState('');
 
@@ -83,7 +87,7 @@ export function useOperatorMachinePage() {
     mutationFn: postOperatorBindMachine,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
-      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
+      void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       setShowMachinePicker(false);
       toast.success('Máquina vinculada ao turno.');
@@ -92,9 +96,7 @@ export function useOperatorMachinePage() {
   });
 
   const selectMachine = (machineId: string) => {
-    if (bindMut.isPending) {
-      return;
-    }
+    if (bindMut.isPending) return;
     setSelectedMachineId(machineId);
     if (current?.id === machineId) {
       setShowMachinePicker(false);
@@ -103,9 +105,9 @@ export function useOperatorMachinePage() {
     bindMut.mutate(machineId);
   };
 
-  const requestsQuery = useQuery({
-    queryKey: queryKeyRequests,
-    queryFn: () => fetchOperatorReplenishmentRequests(),
+  const tasksQuery = useQuery({
+    queryKey: queryKeyTasks,
+    queryFn: fetchOperatorMachineTasks,
     enabled: apiReady && Boolean(current),
     refetchInterval: machinePollInterval,
   });
@@ -117,50 +119,45 @@ export function useOperatorMachinePage() {
     refetchInterval: machinePollInterval,
   });
 
-  const replenishmentList = requestsQuery.data ?? [];
-
-  const hasBlockingReplenishment = useMemo(
-    () =>
-      replenishmentList.some((r) => FINALIZE_BLOCK_STATUSES.has(r.status)),
-    [replenishmentList],
-  );
+  const deliveryTasks = tasksQuery.data?.deliveryTasks ?? [];
+  const pickupTasks = tasksQuery.data?.pickupTasks ?? [];
 
   const openOperatorSupply = useMemo((): OperatorMachineSupplyRequestListItem | null => {
     const list = operatorSupplyQuery.data ?? [];
     return list.find((r) => r.status === 'OPEN') ?? null;
   }, [operatorSupplyQuery.data]);
 
-  const supplyFlowReplenishment = useMemo(
-    () => selectSupplyFlowReplenishment(replenishmentList),
-    [replenishmentList],
+  const canPickup = canRequestPickup(deliveryTasks, pickupTasks);
+  const timelineDelivery = useMemo(
+    () => deliveryTaskDrivingMachineUi(deliveryTasks),
+    [deliveryTasks],
   );
-
-  const pickupPanelReplenishment = useMemo(
-    () => selectPickupPanelReplenishment(replenishmentList),
-    [replenishmentList],
+  const timelinePickup = useMemo(
+    () => pickupTaskDrivingMachineUi(pickupTasks),
+    [pickupTasks],
   );
-
-  const pickupProgressQuery = useQuery({
-    queryKey: [
-      'operator-machine',
-      'pickup-progress',
-      pickupPanelReplenishment?.id ?? '',
-    ] as const,
-    queryFn: () => fetchOperatorPickupProgress(pickupPanelReplenishment!.id),
-    enabled:
-      apiReady &&
-      Boolean(current) &&
-      shouldFetchPickupProgress(pickupPanelReplenishment),
-    refetchInterval: machinePollInterval,
-  });
-
-  const canRequestPallet = !hasBlockingReplenishment && openOperatorSupply === null;
+  const operationTimelineMode = useMemo(
+    () => resolveOperationTimelineMode(deliveryTasks, pickupTasks),
+    [deliveryTasks, pickupTasks],
+  );
+  const pickupPhase = derivePickupFlowPhaseFromTask(
+    operationTimelineMode === 'pickup' ? timelinePickup : null,
+  );
+  const deliveryPhase = deriveDeliveryFlowPhaseFromTask(
+    operationTimelineMode === 'delivery' ? timelineDelivery : null,
+  );
+  const pickupBlockedMessage = pickupBlockedReason(deliveryTasks, pickupTasks);
+  const canRequestSupplyNow = canRequestSupply(openOperatorSupply);
+  const canOpenRequestDialog = canOpenServiceRequestDialog(
+    canPickup,
+    openOperatorSupply,
+  );
 
   const unbindMut = useMutation({
     mutationFn: deleteOperatorUnbindMachine,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
-      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
+      void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       setEndShiftOpen(false);
       setShowMachinePicker(true);
@@ -169,41 +166,79 @@ export function useOperatorMachinePage() {
     onError: toastApiError,
   });
 
-  const finalizeMut = useMutation({
-    mutationFn: () => postOperatorFinalizeCycle({}),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
-      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
-      void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
-      toast.success(data.message);
+  const pickupOnlyMut = useMutation({
+    mutationFn: postOperatorPickupOnly,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
+      toast.success('Retirada solicitada. O transporte será acionado.');
     },
     onError: toastApiError,
   });
 
-  const pickupMut = useMutation({
-    mutationFn: postOperatorRequestPickup,
-    onSuccess: (data, requestId) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeyRequests });
+  const pickupWithReplenishmentMut = useMutation({
+    mutationFn: postOperatorPickupWithReplenishment,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
-      void queryClient.invalidateQueries({
-        queryKey: ['operator-machine', 'pickup-progress', requestId],
-      });
-      setPickupTargetId(null);
       toast.success(
-        `Retirada solicitada. Tarefa criada (${data.pickupTask.status}). Acompanhe o fluxo no painel de reposição.`,
+        'Retirada solicitada e abastecimento avisado para o próximo prisma.',
       );
     },
     onError: toastApiError,
   });
 
-  const pickupRow = pickupTargetId
-    ? (requestsQuery.data ?? []).find((r) => r.id === pickupTargetId)
-    : undefined;
+  const supplyOnlyMut = useMutation({
+    mutationFn: postOperatorSupplyOnly,
+    onSuccess: (res) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
+      if (res.created) {
+        toast.success('Solicitação ao abastecimento registrada.');
+      } else {
+        toast.info('Já existe uma solicitação de abastecimento em aberto.');
+      }
+    },
+    onError: toastApiError,
+  });
+
+  const submitServiceRequest = async (selection: {
+    pickup: boolean;
+    supply: boolean;
+  }) => {
+    const { pickup, supply } = selection;
+    if (!pickup && !supply) return;
+
+    if (supply && !pickup) {
+      await supplyOnlyMut.mutateAsync();
+      return;
+    }
+
+    if (pickup && supply) {
+      await pickupWithReplenishmentMut.mutateAsync();
+      return;
+    }
+
+    if (pickup) {
+      await pickupOnlyMut.mutateAsync();
+    }
+  };
+
+  const cancelPickupMut = useMutation({
+    mutationFn: (pickupTaskId: string) => postCancelOperatorPickup(pickupTaskId),
+    onSuccess: () => {
+      setCancelPickupId(null);
+      void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
+      void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
+      toast.success('Solicitação de retirada cancelada.');
+    },
+    onError: toastApiError,
+  });
 
   const busy =
     unbindMut.isPending ||
-    finalizeMut.isPending ||
-    pickupMut.isPending ||
+    pickupOnlyMut.isPending ||
+    pickupWithReplenishmentMut.isPending ||
+    supplyOnlyMut.isPending ||
+    cancelPickupMut.isPending ||
     bindMut.isPending;
 
   return {
@@ -218,25 +253,34 @@ export function useOperatorMachinePage() {
     selectedMachineId,
     selectMachine,
     bindPending: bindMut.isPending,
-    requestsQuery,
-    replenishmentList,
+    tasksQuery,
+    deliveryTasks,
+    pickupTasks,
     operatorSupplyQuery,
     openOperatorSupply,
-    supplyFlowReplenishment,
-    pickupPanelReplenishment,
-    pickupProgressQuery,
-    pickupPhase: pickupProgressQuery.data?.phase ?? null,
-    pickupTransportLabel:
-      pickupProgressQuery.data?.transportLabel ?? 'transporte',
-    canRequestPallet,
+    timelineDelivery,
+    timelinePickup,
+    operationTimelineMode,
+    pickupPhase,
+    deliveryPhase,
+    canPickup,
+    canRequestSupplyNow,
+    canOpenRequestDialog,
+    pickupBlockedMessage,
+    operatorSupplyRequests: operatorSupplyQuery.data ?? [],
+    submitServiceRequest,
+    serviceRequestSubmitPending:
+      pickupOnlyMut.isPending ||
+      pickupWithReplenishmentMut.isPending ||
+      supplyOnlyMut.isPending,
     endShiftOpen,
     setEndShiftOpen,
     unbindMut,
-    finalizeMut,
-    pickupTargetId,
-    setPickupTargetId,
-    pickupMut,
-    pickupRow,
+    pickupOnlyMut,
+    pickupWithReplenishmentMut,
+    cancelPickupMut,
+    cancelPickupId,
+    setCancelPickupId,
     busy,
   };
 }

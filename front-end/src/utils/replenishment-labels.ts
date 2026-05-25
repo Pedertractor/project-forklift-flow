@@ -4,13 +4,13 @@ import type {
 } from '@/types/replenishment-request.types';
 
 const STATUS_LABELS: Record<RequestStatusValue, string> = {
-  CREATED: 'Criado',
-  IN_PROGRESS: 'Em andamento',
-  ON_MACHINE: 'Na máquina',
+  CREATED: 'Aguardando preparo',
+  IN_PROGRESS: 'Em transporte',
+  ON_MACHINE: 'Entregue na máquina',
   COMPLETED: 'Concluído',
   CANCELED: 'Cancelado',
-  AWAITING_PREPARATION: 'Pallet no recebimento',
-  PALLET_READY: 'Pallet no recebimento',
+  AWAITING_PREPARATION: 'Aguardando abastecimento',
+  PALLET_READY: 'Pronto — Aguardando retirada',
 };
 
 const PRIORITY_LABELS: Record<PriorityLevelValue, string> = {

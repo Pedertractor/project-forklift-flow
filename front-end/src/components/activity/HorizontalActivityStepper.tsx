@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { ForkliftLoader } from '../forklift-loader/forklifit-loader';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, InfoIcon } from 'lucide-react';
 
 export type FlowStepStatus = 'pending' | 'active' | 'done';
 
@@ -13,8 +13,24 @@ export interface HorizontalActivityStepperProps {
   steps: FlowStepDefinition[];
   statuses: FlowStepStatus[];
   headline?: string;
+  /** Se omitido, calcula a partir de `statuses` (etapa ativa = fração concluída). */
   progressPct?: number;
   className?: string;
+}
+
+/** Alinha a barra com o círculo ativo: etapa 1/3 → 33%, 2/3 → 67%, concluído → 100%. */
+export function progressPctFromFlowStepStatuses(
+  statuses: FlowStepStatus[],
+): number {
+  const n = statuses.length;
+  if (n === 0) return 0;
+  if (statuses.every((s) => s === 'done')) return 100;
+  const activeIdx = statuses.findIndex((s) => s === 'active');
+  if (activeIdx >= 0) {
+    return Math.round(((activeIdx + 1) / n) * 100);
+  }
+  const doneCount = statuses.filter((s) => s === 'done').length;
+  return Math.round((doneCount / n) * 100);
 }
 
 /** Etapas em que o indicador ativo usa o vídeo da empilhadeira (por título). */
@@ -25,7 +41,7 @@ export const FORKLIFT_LOADER_STEP_TITLES = [
 ] as const;
 
 /** Chaves dos passos no fluxo da máquina (`operator-machine-flow`). */
-export const FORKLIFT_LOADER_STEP_KEYS = ['deliver', 'removing'] as const;
+export const FORKLIFT_LOADER_STEP_KEYS = ['deliver', 'removing', 'pickup'] as const;
 
 export function stepTitleShowsForkliftLoader(title: string): boolean {
   return (FORKLIFT_LOADER_STEP_TITLES as readonly string[]).includes(title);
@@ -129,6 +145,7 @@ export function HorizontalActivityStepper({
   steps,
   statuses,
   headline,
+  progressPct: progressPctProp,
   className,
 }: HorizontalActivityStepperProps) {
   if (steps.length !== statuses.length) {
@@ -141,6 +158,10 @@ export function HorizontalActivityStepper({
     <div className={cn('w-full', className)}>
       {headline ? (
         <p className="mb-3 text-left text-sm leading-relaxed text-zinc-600">
+          <InfoIcon
+            className="inline size-4 shrink-0 text-blue-500"
+            aria-hidden
+          />{' '}
           {headline}
         </p>
       ) : null}
@@ -176,11 +197,7 @@ export function HorizontalActivityStepper({
                   className="flex justify-center justify-self-center"
                   style={{ gridColumn: circleColumn, gridRow: 1 }}
                 >
-                  <StepCircle
-                    index={index}
-                    status={status}
-                    step={step}
-                  />
+                  <StepCircle index={index} status={status} step={step} />
                 </div>
                 <p
                   className={cn(

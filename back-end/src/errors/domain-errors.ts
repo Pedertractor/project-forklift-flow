@@ -100,6 +100,45 @@ export class MachineReplenishmentRequestNotFoundError extends Error {
   }
 }
 
+export class DeliveryTaskNotFoundError extends Error {
+  constructor(message = 'Tarefa de entrega nao encontrada.') {
+    super(message)
+    this.name = 'DeliveryTaskNotFoundError'
+  }
+}
+
+export class PickupTaskNotFoundError extends Error {
+  constructor(message = 'Tarefa de retirada nao encontrada.') {
+    super(message)
+    this.name = 'PickupTaskNotFoundError'
+  }
+}
+
+export class PickupTaskCannotBeCanceledError extends Error {
+  constructor(
+    message = 'Nao e possivel cancelar: o transporte ja aceitou ou a retirada foi concluida.',
+  ) {
+    super(message)
+    this.name = 'PickupTaskCannotBeCanceledError'
+  }
+}
+
+export class PickupTaskNotOnOperatorMachineError extends Error {
+  constructor(message = 'Esta retirada nao pertence a maquina em operacao.') {
+    super(message)
+    this.name = 'PickupTaskNotOnOperatorMachineError'
+  }
+}
+
+export class MachineHasNoMaterialForPickupError extends Error {
+  constructor(
+    message = 'Nao ha prisma na maquina para solicitar retirada.',
+  ) {
+    super(message)
+    this.name = 'MachineHasNoMaterialForPickupError'
+  }
+}
+
 export class MachineReplenishmentRequestNotEditableError extends Error {
   constructor(
     message = "Solicitacao concluida ou cancelada; nao e possivel alterar.",

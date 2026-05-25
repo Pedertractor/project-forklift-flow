@@ -1,57 +1,35 @@
 import type { RouteHandlerMethod } from 'fastify'
+import { OperatorMachineSupplyRequestStatus } from '../generated/prisma/enums.js'
 import {
-  RequestStatus,
-  OperatorMachineSupplyRequestStatus,
-} from '../generated/prisma/enums.js'
-import {
+  MachineHasNoMaterialForPickupError,
   MachineNotFoundError,
   MachineNotInOperatorSectorError,
-  MachineReplenishmentRequestNotFoundError,
   OperatorMachineNotBoundError,
   OperatorWithoutSectorError,
   PickupTaskAlreadyOpenError,
-  ReplenishmentFinalizeBlockedByInboundError,
-  ReplenishmentFinalizeMissingFieldsError,
-  ReplenishmentRequestNotForOperatorMachineError,
-  ReplenishmentRequestNotOnMachineStatusError,
+  PickupTaskCannotBeCanceledError,
+  PickupTaskNotFoundError,
+  PickupTaskNotOnOperatorMachineError,
 } from '../errors/domain-errors.js'
 import {
   bindOperatorToMachine,
-  finalizeMachineProductionCycle,
+  cancelPickupRequestByOperator,
   getOperatorCurrentMachine,
-  getOperatorReplenishmentPickupProgress,
+  listMachineTasksForOperator,
   listMachinesForOperatorPicker,
   listOperatorSupplyRequestsForOperatorMachine,
-  listReplenishmentRequestsForOperatorMachine,
-  requestPalletPickupFromMachine,
+  requestPickupOnly,
+  requestPickupWithReplenishment,
+  requestSupplyOnly,
   unbindOperatorFromMachines,
 } from '../services/operator-machine.service.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
 
-function parseOptionalRequestStatus(
-  value: unknown,
-): RequestStatus | undefined {
-  if (value === undefined || value === '') {
-    return undefined
-  }
-  if (typeof value !== 'string') {
-    return undefined
-  }
-  if (!(Object.values(RequestStatus) as string[]).includes(value)) {
-    return undefined
-  }
-  return value as RequestStatus
-}
-
 function parseOptionalOperatorSupplyRequestStatus(
   value: unknown,
 ): OperatorMachineSupplyRequestStatus | undefined {
-  if (value === undefined || value === '') {
-    return undefined
-  }
-  if (typeof value !== 'string') {
-    return undefined
-  }
+  if (value === undefined || value === '') return undefined
+  if (typeof value !== 'string') return undefined
   if (
     !(Object.values(OperatorMachineSupplyRequestStatus) as string[]).includes(
       value,
@@ -115,28 +93,13 @@ export const getListMachinesForOperator: RouteHandlerMethod = async (
   return reply.send({ machines })
 }
 
-export const getListReplenishmentRequestsForOperator: RouteHandlerMethod =
-  async (request, reply) => {
-    const user = request.user as AppJwtPayload
-    const q = (request.query ?? {}) as { status?: string }
-    const status = parseOptionalRequestStatus(q.status)
-    if (q.status !== undefined && q.status !== '' && status === undefined) {
-      return reply.status(400).send({ error: 'status invalido.' })
-    }
-    const requests = await listReplenishmentRequestsForOperatorMachine(
-      user.sub,
-      status !== undefined ? { status } : undefined,
-    )
-    return reply.send({ requests })
-  }
-
-function isPrismaMissingRelationOrTable(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null || !('code' in error)) {
-    return false
-  }
-  const code = (error as { code?: string }).code
-  /** P2021: tabela inexistente; P2022: coluna inexistente (schema desatualizado). */
-  return code === 'P2021' || code === 'P2022'
+export const getListMachineTasksForOperator: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const payload = await listMachineTasksForOperator(user.sub)
+  return reply.send(payload)
 }
 
 export const getListOperatorSupplyRequestsForOperator: RouteHandlerMethod =
@@ -147,111 +110,100 @@ export const getListOperatorSupplyRequestsForOperator: RouteHandlerMethod =
     if (q.status !== undefined && q.status !== '' && status === undefined) {
       return reply.status(400).send({ error: 'status invalido.' })
     }
-    try {
-      const operatorSupplyRequests =
-        await listOperatorSupplyRequestsForOperatorMachine(
-          user.sub,
-          status !== undefined ? { status } : undefined,
-        )
-      return reply.send({ operatorSupplyRequests })
-    } catch (error) {
-      if (isPrismaMissingRelationOrTable(error)) {
-        request.log.error(
-          { err: error },
-          'operator-supply-requests: schema do banco sem tabela OperatorMachineSupplyRequest — rode as migracoes.',
-        )
-        return reply.status(503).send({
-          error:
-            'Servidor sem a tabela de solicitacoes ao abastecimento. No back-end, execute: npx prisma migrate deploy (ou migrate dev) e reinicie a API.',
-        })
-      }
-      throw error
-    }
+    const operatorSupplyRequests =
+      await listOperatorSupplyRequestsForOperatorMachine(
+        user.sub,
+        status !== undefined ? { status } : undefined,
+      )
+    return reply.send({ operatorSupplyRequests })
   }
 
-export const getReplenishmentPickupProgress: RouteHandlerMethod = async (
+export const postRequestPickupOnly: RouteHandlerMethod = async (
   request,
   reply,
 ) => {
   const user = request.user as AppJwtPayload
-  const { requestId } = request.params as { requestId?: string }
-  if (!requestId) {
-    return reply.status(400).send({ error: 'requestId invalido.' })
-  }
   try {
-    const payload = await getOperatorReplenishmentPickupProgress(
-      user.sub,
-      requestId,
-    )
-    return reply.send(payload)
-  } catch (error) {
-    if (error instanceof OperatorMachineNotBoundError) {
-      return reply.status(400).send({ error: error.message })
-    }
-    if (error instanceof MachineReplenishmentRequestNotFoundError) {
-      return reply.status(404).send({ error: error.message })
-    }
-    if (error instanceof ReplenishmentRequestNotForOperatorMachineError) {
-      return reply.status(403).send({ error: error.message })
-    }
-    throw error
-  }
-}
-
-export const postFinalizeMachineCycle: RouteHandlerMethod = async (
-  request,
-  reply,
-) => {
-  const user = request.user as AppJwtPayload
-  /**
-   * Rota exclusiva do operador de dobra (`OPERATOR_MACHINE` ou `ADMIN` em testes).
-   * Corpo vazio: cria aviso ao abastecimento (`OperatorMachineSupplyRequest`);
-   * cubo e tipo entram quando o supply registra o pedido de reposição.
-   */
-  const operatorDobraInitiated = true
-
-  try {
-    const result = await finalizeMachineProductionCycle(user.sub, {}, {
-      operatorDobraInitiated,
-    })
-    return reply.status(200).send(result)
-  } catch (error) {
-    if (error instanceof OperatorMachineNotBoundError) {
-      return reply.status(400).send({ error: error.message })
-    }
-    if (error instanceof ReplenishmentFinalizeMissingFieldsError) {
-      return reply.status(400).send({ error: error.message })
-    }
-    if (error instanceof ReplenishmentFinalizeBlockedByInboundError) {
-      return reply.status(409).send({ error: error.message })
-    }
-    throw error
-  }
-}
-
-export const postRequestPalletPickup: RouteHandlerMethod = async (
-  request,
-  reply,
-) => {
-  const user = request.user as AppJwtPayload
-  const { requestId } = request.params as { requestId?: string }
-  if (!requestId) {
-    return reply.status(400).send({ error: 'requestId invalido.' })
-  }
-  try {
-    const result = await requestPalletPickupFromMachine(user.sub, requestId)
+    const result = await requestPickupOnly(user.sub)
     return reply.status(201).send(result)
   } catch (error) {
-    if (error instanceof MachineReplenishmentRequestNotFoundError) {
-      return reply.status(404).send({ error: error.message })
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
     }
-    if (error instanceof ReplenishmentRequestNotForOperatorMachineError) {
-      return reply.status(403).send({ error: error.message })
-    }
-    if (error instanceof ReplenishmentRequestNotOnMachineStatusError) {
+    if (error instanceof MachineHasNoMaterialForPickupError) {
       return reply.status(409).send({ error: error.message })
     }
     if (error instanceof PickupTaskAlreadyOpenError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const postRequestSupplyOnly: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  try {
+    const result = await requestSupplyOnly(user.sub)
+    return reply.status(result.created ? 201 : 200).send(result)
+  } catch (error) {
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  try {
+    const result = await requestPickupWithReplenishment(user.sub)
+    return reply.status(201).send(result)
+  } catch (error) {
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof MachineHasNoMaterialForPickupError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof PickupTaskAlreadyOpenError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const postCancelPickupRequest: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const { pickupTaskId } = request.params as { pickupTaskId?: string }
+  if (typeof pickupTaskId !== 'string' || pickupTaskId.trim() === '') {
+    return reply.status(400).send({ error: 'Informe pickupTaskId.' })
+  }
+  try {
+    const result = await cancelPickupRequestByOperator(
+      user.sub,
+      pickupTaskId.trim(),
+    )
+    return reply.send(result)
+  } catch (error) {
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof PickupTaskNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof PickupTaskNotOnOperatorMachineError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    if (error instanceof PickupTaskCannotBeCanceledError) {
       return reply.status(409).send({ error: error.message })
     }
     throw error

@@ -110,8 +110,10 @@ export interface ReplenishmentCreateWizardModalProps {
   setMovementCube: (value: string) => void;
   typeMovimentPallet: ReplenishmentMovimentType;
   setTypeMovimentPallet: (value: ReplenishmentMovimentType) => void;
-  priorityLevel: PriorityLevelValue;
-  setPriorityLevel: (value: PriorityLevelValue) => void;
+  priorityLevel?: PriorityLevelValue;
+  setPriorityLevel?: (value: PriorityLevelValue) => void;
+  isCritical?: boolean;
+  setIsCritical?: (value: boolean) => void;
   /** Etapa inicial ao abrir (ex.: 2 quando a máquina já veio de um aviso do operador). */
   initialStep?: number;
   createError: string | null;
@@ -132,6 +134,8 @@ export function ReplenishmentCreateWizardModal({
   setTypeMovimentPallet,
   priorityLevel,
   setPriorityLevel,
+  isCritical,
+  setIsCritical,
   initialStep = 1,
   createError,
   onClose,
@@ -340,7 +344,22 @@ export function ReplenishmentCreateWizardModal({
         </ul>
       ) : null}
 
-      {step === 4 ? (
+      {step === 4 && setIsCritical ? (
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+          <input
+            type="checkbox"
+            checked={isCritical === true}
+            onChange={(e) => setIsCritical(e.target.checked)}
+            disabled={busy}
+            className="size-4"
+          />
+          <span className="text-sm font-medium text-zinc-900">
+            Marcar como crítico (prioridade máxima na fila do transporte)
+          </span>
+        </label>
+      ) : null}
+
+      {step === 4 && setPriorityLevel && priorityLevel !== undefined ? (
         <div className="space-y-4">
           <ul
             className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3"

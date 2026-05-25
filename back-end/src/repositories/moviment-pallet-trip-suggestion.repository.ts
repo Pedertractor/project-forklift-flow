@@ -1,55 +1,19 @@
 import type { Prisma } from '../generated/prisma/client.js'
 import {
-  ForkliftTaskStatus,
-  ForkliftTaskType,
+  MachineTaskStatus,
   MovimentPalletTripSuggestionStatus,
-  RequestStatus,
-  MovimentPalletEquipmentType,
+  TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
-
-const completedTaskStatus = ForkliftTaskStatus.COMPLETED
+import { openMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
-
-const openTaskStatuses: ForkliftTaskStatus[] = [
-  ForkliftTaskStatus.CREATED,
-  ForkliftTaskStatus.ASSIGNED,
-  ForkliftTaskStatus.IN_PROGRESS,
-]
-
-const taskWithRequestInclude = {
-  request: {
-    include: {
-      requestedBy: {
-        select: {
-          id: true,
-          name: true,
-          employeeId: true,
-          card: true,
-          unit: true,
-          role: true,
-        },
-      },
-      destination: {
-        select: {
-          id: true,
-          name: true,
-          position: true,
-          userId: true,
-          typeMachine: { select: { id: true, name: true } },
-          sector: { select: { id: true, typeSector: true } },
-        },
-      },
-      _count: { select: { movimentPalletTasks: true } },
-    },
-  },
-  assignedMovimentPallet: {
-    select: { id: true, code: true, type: true },
-  },
-} as const
+import {
+  deliveryTaskListInclude,
+} from './delivery-task.repository.js'
+import { pickupTaskListInclude } from './pickup-task.repository.js'
 
 const suggestionListInclude = {
-  deliverTask: { include: taskWithRequestInclude },
-  pickupTask: { include: taskWithRequestInclude },
+  deliverTask: { include: deliveryTaskListInclude },
+  pickupTask: { include: pickupTaskListInclude },
   machine: { select: { id: true, name: true, position: true, sectorId: true } },
 } as const
 
@@ -57,17 +21,15 @@ export type MovimentPalletTripSuggestionWithTasks = Prisma.MovimentPalletTripSug
   include: typeof suggestionListInclude
 }>
 
+const completedTaskStatus = MachineTaskStatus.COMPLETED
+
 export const movimentPalletTripSuggestionRepository = {
   findByIdWithTasks(id: string) {
     return prisma.movimentPalletTripSuggestion.findUnique({
       where: { id },
       include: {
-        deliverTask: { include: taskWithRequestInclude },
-        pickupTask: { include: taskWithRequestInclude },
-        machine: { select: { id: true, name: true, position: true, sectorId: true } },
-        acceptedBy: {
-          select: { id: true, name: true },
-        },
+        ...suggestionListInclude,
+        acceptedBy: { select: { id: true, name: true } },
         assignedMovimentPallet: {
           select: { id: true, code: true, type: true },
         },
@@ -75,10 +37,9 @@ export const movimentPalletTripSuggestionRepository = {
     })
   },
 
-  /** Apenas sugestoes ainda nao aceitas (fila de rotas combinadas). */
   findManyOpenListableForOperator(
     sectorId: string,
-    types: MovimentPalletEquipmentType[],
+    types: TypeMovimentPallet[],
   ) {
     return prisma.movimentPalletTripSuggestion.findMany({
       where: {
@@ -97,10 +58,6 @@ export const movimentPalletTripSuggestionRepository = {
         pickupTaskId,
         status: MovimentPalletTripSuggestionStatus.ACCEPTED,
       },
-      include: {
-        deliverTask: { select: { id: true, status: true } },
-        pickupTask: { select: { id: true, status: true } },
-      },
     })
   },
 
@@ -114,7 +71,7 @@ export const movimentPalletTripSuggestionRepository = {
     })
   },
 
-  reconcileCompletedAcceptedInSector(sectorId: string, types: MovimentPalletEquipmentType[]) {
+  reconcileCompletedAcceptedInSector(sectorId: string, types: TypeMovimentPallet[]) {
     return prisma.movimentPalletTripSuggestion.updateMany({
       where: {
         status: MovimentPalletTripSuggestionStatus.ACCEPTED,
@@ -124,17 +81,6 @@ export const movimentPalletTripSuggestionRepository = {
         pickupTask: { status: completedTaskStatus },
       },
       data: { status: MovimentPalletTripSuggestionStatus.COMPLETED },
-    })
-  },
-
-  findManyOpenForSector(sectorId: string, types: MovimentPalletEquipmentType[]) {
-    return prisma.movimentPalletTripSuggestion.findMany({
-      where: {
-        status: MovimentPalletTripSuggestionStatus.OPEN,
-        typeMovimentPallet: { in: types },
-        machine: { sectorId },
-      },
-      include: suggestionListInclude,
     })
   },
 
@@ -155,7 +101,7 @@ export const movimentPalletTripSuggestionRepository = {
     deliverTaskId: string
     pickupTaskId: string
     machineId: string
-    typeMovimentPallet: MovimentPalletEquipmentType
+    typeMovimentPallet: TypeMovimentPallet
   }): Promise<{ created: boolean }> {
     await prisma.movimentPalletTripSuggestion.updateMany({
       where: {
@@ -185,7 +131,6 @@ export const movimentPalletTripSuggestionRepository = {
           typeMovimentPallet: input.typeMovimentPallet,
           status: MovimentPalletTripSuggestionStatus.OPEN,
         },
-        include: suggestionListInclude,
       })
       return { created: false }
     }
@@ -202,7 +147,6 @@ export const movimentPalletTripSuggestionRepository = {
           machine: { connect: { id: input.machineId } },
           typeMovimentPallet: input.typeMovimentPallet,
         },
-        include: suggestionListInclude,
       })
       return { created: true }
     }
@@ -220,52 +164,28 @@ export const movimentPalletTripSuggestionRepository = {
         typeMovimentPallet: input.typeMovimentPallet,
         status: MovimentPalletTripSuggestionStatus.OPEN,
       },
-      include: suggestionListInclude,
     })
     return { created: false }
   },
 }
 
-const validDeliverRequestStatuses: RequestStatus[] = [
-  RequestStatus.PALLET_READY,
-  RequestStatus.CREATED,
-  RequestStatus.IN_PROGRESS,
-]
-
 export function isOpenTripTaskPairValid(
-  deliverType: ForkliftTaskType,
-  deliverStatus: ForkliftTaskStatus,
-  pickupType: ForkliftTaskType,
-  pickupStatus: ForkliftTaskStatus,
-  deliverRequestId: string,
-  pickupRequestId: string,
-  deliverDestinationId: string,
-  pickupDestinationId: string,
-  deliverRequestStatus: RequestStatus,
-  pickupRequestStatus: RequestStatus,
+  deliverStatus: MachineTaskStatus,
+  pickupStatus: MachineTaskStatus,
+  deliverMachineId: string,
+  pickupMachineId: string,
+  deliverPrepared: boolean,
 ): boolean {
-  if (deliverType !== ForkliftTaskType.DELIVER_TO_MACHINE) {
+  if (!openMachineTaskStatuses.includes(deliverStatus)) {
     return false
   }
-  if (pickupType !== ForkliftTaskType.PICKUP_TO_EXPEDITION) {
+  if (!openMachineTaskStatuses.includes(pickupStatus)) {
     return false
   }
-  if (!openTaskStatuses.includes(deliverStatus)) {
+  if (deliverMachineId !== pickupMachineId) {
     return false
   }
-  if (!openTaskStatuses.includes(pickupStatus)) {
-    return false
-  }
-  if (deliverRequestId === pickupRequestId) {
-    return false
-  }
-  if (deliverDestinationId !== pickupDestinationId) {
-    return false
-  }
-  if (!validDeliverRequestStatuses.includes(deliverRequestStatus)) {
-    return false
-  }
-  if (pickupRequestStatus !== RequestStatus.ON_MACHINE) {
+  if (!deliverPrepared) {
     return false
   }
   return true

@@ -163,7 +163,6 @@ function buildSteps(
     group.pickupTask !== null &&
     canCompletePickup(group.pickupTask, myPalletId);
   const deliverCube = group.deliverTask?.request.movementCube;
-  const pickupCube = group.pickupTask?.request.movementCube;
   const machineDetails = [
     machineLocationDetail(group.machineName, group.machinePosition),
   ];
@@ -191,19 +190,13 @@ function buildSteps(
       {
         id: 'pallet',
         label: 'Pallet na máquina',
-        details: [
-          ...machineDetails,
-          prismaDetail(pickupCube, 'pick-at-machine'),
-        ],
+        details: machineDetails,
         state: deliverOpen ? 'upcoming' : pickupOpen ? 'current' : 'done',
       },
       {
         id: 'expedition',
         label: 'Expedição',
-        details: [
-          expeditionAreaDetail('Entregar na expedição'),
-          prismaDetail(pickupCube, 'carry-to-expedition'),
-        ],
+        details: [expeditionAreaDetail('Entregar na expedição')],
         state: pickupOpen ? 'current' : deliverOpen ? 'upcoming' : 'done',
       },
     ];
@@ -242,22 +235,13 @@ function buildSteps(
     {
       id: 'machine',
       label: 'Retire o pallet na máquina',
-      details: [...machineDetails, prismaDetail(pickupCube, 'pick-at-machine')],
-      state: pickupOpen ? 'current' : 'done',
-    },
-    {
-      id: 'pallet',
-      label: 'Leve o pallet para a expedição',
-      details: [prismaDetail(pickupCube, 'pick-at-machine')],
+      details: machineDetails,
       state: pickupOpen ? 'current' : 'done',
     },
     {
       id: 'expedition',
       label: 'Expedição',
-      details: [
-        expeditionAreaDetail(),
-        prismaDetail(pickupCube, 'carry-to-expedition'),
-      ],
+      details: [expeditionAreaDetail()],
       state: pickupOpen ? 'current' : 'done',
     },
   ];

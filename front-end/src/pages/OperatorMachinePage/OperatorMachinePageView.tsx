@@ -4,9 +4,9 @@ import { Card } from '@/components/ui/card';
 import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { ENV } from '@/constants/env';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
-import { requestStatusLabel } from '@/utils/replenishment-labels';
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
+import { OperatorMachineTasksList } from './OperatorMachineTasksList';
 import { Undo2Icon } from 'lucide-react';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
@@ -22,23 +22,27 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     selectMachine,
     bindPending,
     operatorSupplyQuery,
-    requestsQuery,
-    replenishmentList,
+    tasksQuery,
     openOperatorSupply,
-    supplyFlowReplenishment,
-    pickupPanelReplenishment,
-    pickupProgressQuery,
     pickupPhase,
-    pickupTransportLabel,
-    canRequestPallet,
+    deliveryPhase,
+    deliveryTasks,
+    pickupTasks,
+    canPickup,
+    canOpenRequestDialog,
+    operationTimelineMode,
+    timelineDelivery,
+    timelinePickup,
+    pickupBlockedMessage,
+    submitServiceRequest,
+    serviceRequestSubmitPending,
+    operatorSupplyRequests,
     endShiftOpen,
     setEndShiftOpen,
     unbindMut,
-    finalizeMut,
-    pickupTargetId,
-    setPickupTargetId,
-    pickupMut,
-    pickupRow,
+    cancelPickupMut,
+    cancelPickupId,
+    setCancelPickupId,
     busy,
   } = vm;
 
@@ -56,10 +60,41 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
             </h1>
             <p className="mt-1 text-sm text-zinc-600">
               {pickingMachine
-                ? 'Toque na máquina em que você está operando para abrir o painel de operação.'
-                : 'Acompanhe sua solicitação ao abastecimento e o pedido de reposição do prisma.'}
+                ? 'Toque na máquina em que você está operando.'
+                : 'Solicite retirada do prisma ou retirada com aviso ao abastecimento.'}
             </p>
           </div>
+          {current ? (
+            <div className="flex items-center gap-3">
+              {current.typeMachine.urlImage?.trim() ? (
+                <img
+                  src={typeMachineImageSrc(current.typeMachine.urlImage)}
+                  alt=""
+                  className="size-16 shrink-0 rounded-lg bg-white p-2 object-cover"
+                />
+              ) : null}
+              <div className="flex w-full items-center justify-between">
+                <div>
+                  <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Máquina em operação
+                  </p>
+                  <p className="m-0 truncate text-lg font-bold text-zinc-900">
+                    {current.name}
+                  </p>
+                </div>
+              </div>
+              {/* <Button
+                type="button"
+                variant="outline"
+                className="text-red-700 hover:bg-red-50"
+                disabled={!apiReady || busy}
+                onClick={() => setEndShiftOpen(true)}
+              >
+                <Undo2Icon className="size-4" />
+                Sair da máquina
+              </Button> */}
+            </div>
+          ) : null}
         </header>
 
         {!ENV.API_URL ? (
@@ -72,8 +107,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
           <>
             {!hasSector ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                Seu usuário não tem <strong>setor</strong> vinculado. Solicite
-                ao administrador o ajuste do cadastro.
+                Seu usuário não tem <strong>setor</strong> vinculado.
               </p>
             ) : null}
 
@@ -102,97 +136,79 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                   ariaLabel="Máquina para operação"
                 />
               )}
-              {bindPending ? (
-                <p className="mt-4 text-center text-sm text-zinc-500">
-                  Vinculando máquina…
-                </p>
-              ) : null}
             </section>
           </>
         ) : (
           <>
-            {current ? (
-              <Card className="flex items-center gap-3 border border-zinc-200 p-4 shadow-sm">
-                {current.typeMachine.urlImage?.trim() ? (
-                  <img
-                    src={typeMachineImageSrc(current.typeMachine.urlImage)}
-                    alt=""
-                    className="size-16 shrink-0 rounded-lg border border-zinc-200 object-cover"
-                  />
-                ) : (
-                  <div
-                    className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400"
-                    aria-hidden
-                  >
-                    —
-                  </div>
-                )}
-                <div className="flex w-full items-center justify-between">
-                  <div className="flex flex-col gap-2">
-                    <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      Máquina em operação
-                    </p>
-                    <p className="m-0 truncate text-lg font-bold text-zinc-900">
-                      {current.name}
-                    </p>
-                    <p className="mt-0.5 text-sm text-zinc-600">
-                      {current.typeMachine.name} ·{' '}
-                      {`Posição: ${current.position}`}
-                    </p>
-                  </div>
-                  {current && !pickingMachine ? (
-                    <div className="flex shrink-0 flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className=" text-red-700 hover:bg-red-50"
-                        disabled={!apiReady || busy}
-                        onClick={() => setEndShiftOpen(true)}
-                      >
-                        <Undo2Icon className="size-4" />
-                        Sair da máquina
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              </Card>
-            ) : myMachineQuery.isLoading ? (
-              <p className="text-sm text-zinc-500">Carregando máquina…</p>
-            ) : null}
-
             <OperatorMachineOperationGrid
-              replenishmentRequests={replenishmentList}
+              deliveryTasks={deliveryTasks}
+              openSupply={openOperatorSupply}
               supplyLoading={operatorSupplyQuery.isLoading}
               supplyError={operatorSupplyQuery.error ?? null}
-              openSupply={openOperatorSupply}
-              replenishmentLoading={requestsQuery.isLoading}
-              replenishmentError={requestsQuery.error ?? null}
-              supplyFlowReplenishment={supplyFlowReplenishment}
-              pickupPanelReplenishment={pickupPanelReplenishment}
-              pickupProgressLoading={pickupProgressQuery.isLoading}
+              operationTimelineMode={operationTimelineMode}
+              timelineDelivery={timelineDelivery}
+              timelinePickup={timelinePickup}
+              canPickup={canPickup}
+              canOpenRequestDialog={canOpenRequestDialog}
+              pickupBlockedMessage={pickupBlockedMessage}
               pickupPhase={pickupPhase}
-              pickupTransportLabel={pickupTransportLabel}
-              canRequestPallet={canRequestPallet}
-              finalizePending={finalizeMut.isPending}
-              pickupMutationPending={pickupMut.isPending}
+              deliveryPhase={deliveryPhase}
+              serviceRequestSubmitPending={serviceRequestSubmitPending}
               busy={busy}
               apiReady={apiReady}
-              onSolicitarPallet={() => finalizeMut.mutate()}
-              onSolicitarRetirada={() => {
-                if (pickupPanelReplenishment?.id) {
-                  setPickupTargetId(pickupPanelReplenishment.id);
-                }
+              onSubmitServiceRequest={(selection) => {
+                void submitServiceRequest(selection);
               }}
+            />
+
+            <OperatorMachineTasksList
+              deliveryTasks={deliveryTasks}
+              pickupTasks={pickupTasks}
+              supplyRequests={operatorSupplyRequests}
+              loading={tasksQuery.isLoading || operatorSupplyQuery.isLoading}
+              error={tasksQuery.error ?? operatorSupplyQuery.error ?? null}
+              busy={busy}
+              cancelPickupPendingId={
+                cancelPickupMut.isPending ? cancelPickupMut.variables : null
+              }
+              onRequestCancelPickup={(id) => setCancelPickupId(id)}
             />
           </>
         )}
       </div>
 
       <SimpleModal
+        open={cancelPickupId !== null}
+        onClose={() => setCancelPickupId(null)}
+        title="Cancelar solicitação de retirada"
+        footer={
+          <ModalActions
+            onCancel={() => setCancelPickupId(null)}
+            submitLabel={
+              cancelPickupMut.isPending
+                ? 'Cancelando…'
+                : 'Confirmar cancelamento'
+            }
+            onSubmit={() => {
+              if (cancelPickupId) {
+                cancelPickupMut.mutate(cancelPickupId);
+              }
+            }}
+            disabled={cancelPickupMut.isPending}
+            danger
+          />
+        }
+      >
+        <p className="m-0 text-sm text-zinc-600">
+          O transporte ainda não aceitou esta retirada. Deseja cancelar a
+          solicitação? Esta ação não pode ser desfeita.
+        </p>
+      </SimpleModal>
+
+      <SimpleModal
         open={endShiftOpen}
         onClose={() => setEndShiftOpen(false)}
         title="Encerrar vínculo com a máquina"
-        description="Use ao fim do turno. Você poderá escolher outra máquina na mesma tela."
         footer={
           <ModalActions
             onCancel={() => setEndShiftOpen(false)}
@@ -206,40 +222,8 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         }
       >
         <p className="m-0 text-sm text-zinc-600">
-          Confirme se deseja desvincular sua sessão desta máquina neste momento.
+          Confirme se deseja desvincular sua sessão desta máquina.
         </p>
-      </SimpleModal>
-
-      <SimpleModal
-        open={Boolean(pickupTargetId)}
-        onClose={() => setPickupTargetId(null)}
-        title="Confirmar retirada"
-        description={
-          pickupRow
-            ? `Deseja solicitar retirada do pallet por um operador de movimentação?`
-            : undefined
-        }
-        footer={
-          <ModalActions
-            onCancel={() => setPickupTargetId(null)}
-            submitLabel={
-              pickupMut.isPending ? 'Enviando…' : 'Confirmar retirada'
-            }
-            onSubmit={() => {
-              if (pickupTargetId) {
-                pickupMut.mutate(pickupTargetId);
-              }
-            }}
-            disabled={pickupMut.isPending || !pickupTargetId}
-          />
-        }
-      >
-        {pickupRow ? (
-          <p className="m-0 text-sm text-zinc-600">
-            Status do pedido:{' '}
-            <strong>{requestStatusLabel(pickupRow.status)}</strong>.
-          </p>
-        ) : null}
       </SimpleModal>
     </main>
   );

@@ -1,27 +1,30 @@
 import {
-  ForkliftTaskStatus,
-  RequestStatus,
-  TypeMovimentPallet,
+  MachineTaskStatus,
+  MovimentPalletTripSuggestionStatus,
   OperatorMachineSupplyRequestStatus,
+  TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 import {
   MachineNotFoundError,
   MachineNotInOperatorSectorError,
-  MachineReplenishmentRequestNotFoundError,
+  MachineHasNoMaterialForPickupError,
   OperatorMachineNotBoundError,
   OperatorWithoutSectorError,
-  PickupTaskAlreadyOpenError,
-  ReplenishmentRequestNotForOperatorMachineError,
-  ReplenishmentRequestNotOnMachineStatusError,
+  PickupTaskCannotBeCanceledError,
+  PickupTaskNotFoundError,
+  PickupTaskNotOnOperatorMachineError,
 } from '../errors/domain-errors.js'
-import { movimentPalletTaskRepository } from '../repositories/moviment-pallet-task.repository.js'
-import { machineReplenishmentRequestRepository } from '../repositories/machine-replenishment-request.repository.js'
+import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
+import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
 import { operatorMachineSupplyRequestRepository } from '../repositories/operator-machine-supply-request.repository.js'
+import { movimentPalletTripSuggestionRepository } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
+import { prisma } from '../lib/prisma.js'
 import {
+  operatorMovimentPalletWsBroadcastQueueUpdated,
   operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
-  operatorMovimentPalletWsNotifyReplenishmentChange,
+  operatorMovimentPalletWsNotifyPickupTaskChange,
 } from '../ws/operator-moviment-pallet-ws.hub.js'
 
 export async function bindOperatorToMachine(
@@ -60,26 +63,19 @@ export async function listMachinesForOperatorPicker(operatorUserId: string) {
   return machineRepository.findManyForList({ sectorId: user.sectorId })
 }
 
-export async function listReplenishmentRequestsForOperatorMachine(
-  operatorUserId: string,
-  filters?: { status?: RequestStatus },
-) {
-  const rows =
-    await machineReplenishmentRequestRepository.findManyForDestinationOperator(
-      operatorUserId,
-      filters,
-    )
-  if (rows.length === 0) {
-    return rows
+export async function listMachineTasksForOperator(operatorUserId: string) {
+  const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!machine) {
+    return { deliveryTasks: [], pickupTasks: [], openSupply: null }
   }
-  const pickupIds =
-    await machineReplenishmentRequestRepository.findRequestIdsWithOpenPickup(
-      rows.map((r) => r.id),
-    )
-  return rows.map((row) => ({
-    ...row,
-    hasOpenPickupTask: pickupIds.has(row.id),
-  }))
+
+  const [deliveryTasks, pickupTasks, openSupply] = await Promise.all([
+    deliveryTaskRepository.findManyForMachine(machine.id),
+    pickupTaskRepository.findManyForMachine(machine.id),
+    operatorMachineSupplyRequestRepository.findFirstOpenByMachineId(machine.id),
+  ])
+
+  return { deliveryTasks, pickupTasks, openSupply }
 }
 
 export async function listOperatorSupplyRequestsForOperatorMachine(
@@ -92,124 +88,232 @@ export async function listOperatorSupplyRequestsForOperatorMachine(
   )
 }
 
-export type OperatorPickupProgressPhase =
-  | 'DELIVERY_IN_PROGRESS'
-  | 'AT_MACHINE_AWAITING_PICKUP'
-  | 'AWAITING_TRANSPORT_PICKUP'
-  | 'TRANSPORT_ASSIGNED'
-  | 'TRANSPORT_REMOVING'
-  | 'PICKUP_FINISHED'
-  | 'OTHER'
+/** Exige ao menos uma entrega concluída na máquina; várias retiradas são permitidas. */
+async function assertMaterialOnMachine(machineId: string) {
+  const lastDelivery =
+    await deliveryTaskRepository.findLatestCompletedForMachine(machineId)
+  if (!lastDelivery?.completedAt) {
+    throw new MachineHasNoMaterialForPickupError()
+  }
+}
 
-export async function getOperatorReplenishmentPickupProgress(
+async function resolveTypeForMachine(machineId: string): Promise<TypeMovimentPallet> {
+  const latestDelivery = await prisma.deliveryTask.findFirst({
+    where: { machineId },
+    orderBy: { createdAt: 'desc' },
+    select: { typeMovimentPallet: true },
+  })
+  return latestDelivery?.typeMovimentPallet ?? TypeMovimentPallet.FORKLIFT
+}
+
+/** Somente retirada do prisma na maquina. */
+export async function requestPickupOnly(operatorUserId: string) {
+  const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!machine) {
+    throw new OperatorMachineNotBoundError()
+  }
+
+  await assertMaterialOnMachine(machine.id)
+
+  const typeMovimentPallet = await resolveTypeForMachine(machine.id)
+  const pickupTask = await pickupTaskRepository.create({
+    machine: { connect: { id: machine.id } },
+    requestedBy: { connect: { id: operatorUserId } },
+    typeMovimentPallet,
+    triggersReplenishment: false,
+    status: MachineTaskStatus.CREATED,
+  })
+
+  if (pickupTask.machine) {
+    operatorMovimentPalletWsNotifyPickupTaskChange({
+      id: pickupTask.id,
+      status: pickupTask.status,
+      typeMovimentPallet: pickupTask.typeMovimentPallet,
+      machine: pickupTask.machine,
+    })
+  }
+
+  return { pickupTask }
+}
+
+/** Aviso ao abastecimento sem retirada; no maximo uma solicitacao OPEN por maquina. */
+export async function requestSupplyOnly(operatorUserId: string) {
+  const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!machine) {
+    throw new OperatorMachineNotBoundError()
+  }
+
+  const existingOpen =
+    await operatorMachineSupplyRequestRepository.findFirstOpenByMachineId(
+      machine.id,
+    )
+  if (existingOpen) {
+    return { operatorSupplyRequest: existingOpen, created: false as const }
+  }
+
+  const operatorSupplyRequest = await operatorMachineSupplyRequestRepository.create(
+    {
+      machine: { connect: { id: machine.id } },
+      requestedBy: { connect: { id: operatorUserId } },
+      status: OperatorMachineSupplyRequestStatus.OPEN,
+    },
+  )
+
+  return { operatorSupplyRequest, created: true as const }
+}
+
+/** Retirada + aviso ao abastecimento (cria sugestao de viagem quando houver entrega). */
+export async function requestPickupWithReplenishment(operatorUserId: string) {
+  const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!machine) {
+    throw new OperatorMachineNotBoundError()
+  }
+
+  await assertMaterialOnMachine(machine.id)
+
+  const typeMovimentPallet = await resolveTypeForMachine(machine.id)
+  const sectorId = machine.sectorId
+
+  const result = await prisma.$transaction(async (tx) => {
+    const existingOpenSupply =
+      await operatorMachineSupplyRequestRepository.findFirstOpenByMachineId(
+        machine.id,
+      )
+
+    let operatorSupplyRequest = existingOpenSupply
+    if (!operatorSupplyRequest) {
+      operatorSupplyRequest = await tx.operatorMachineSupplyRequest.create({
+        data: {
+          machine: { connect: { id: machine.id } },
+          requestedBy: { connect: { id: operatorUserId } },
+          status: OperatorMachineSupplyRequestStatus.OPEN,
+        },
+        include: {
+          machine: { select: { id: true, name: true, position: true, sectorId: true } },
+          requestedBy: { select: { id: true, name: true } },
+        },
+      })
+    }
+
+    const pickupTask = await tx.pickupTask.create({
+      data: {
+        machine: { connect: { id: machine.id } },
+        requestedBy: { connect: { id: operatorUserId } },
+        typeMovimentPallet,
+        triggersReplenishment: true,
+        status: MachineTaskStatus.CREATED,
+      },
+      include: {
+        machine: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+            sectorId: true,
+            userId: true,
+          },
+        },
+      },
+    })
+
+    return { pickupTask, operatorSupplyRequest }
+  })
+
+  const openDelivery =
+    await deliveryTaskRepository.findOpenPreparedForMachine(machine.id)
+
+  if (openDelivery && sectorId) {
+    await movimentPalletTripSuggestionRepository.upsertOpenPair({
+      deliverTaskId: openDelivery.id,
+      pickupTaskId: result.pickupTask.id,
+      machineId: machine.id,
+      typeMovimentPallet: openDelivery.typeMovimentPallet,
+    })
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+      sectorId,
+      openDelivery.typeMovimentPallet,
+    )
+  }
+
+  if (result.pickupTask.machine) {
+    operatorMovimentPalletWsNotifyPickupTaskChange({
+      id: result.pickupTask.id,
+      status: result.pickupTask.status,
+      typeMovimentPallet: result.pickupTask.typeMovimentPallet,
+      machine: result.pickupTask.machine,
+    })
+  }
+
+  return result
+}
+
+/** Cancela retirada enquanto ainda nao foi aceita pelo transporte (status CREATED). */
+export async function cancelPickupRequestByOperator(
   operatorUserId: string,
-  requestId: string,
+  pickupTaskId: string,
 ) {
   const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
   if (!machine) {
     throw new OperatorMachineNotBoundError()
   }
 
-  const request = await machineReplenishmentRequestRepository.findUniqueById(
-    requestId,
-  )
-  if (!request) {
-    throw new MachineReplenishmentRequestNotFoundError()
+  const task = await pickupTaskRepository.findById(pickupTaskId)
+  if (!task) {
+    throw new PickupTaskNotFoundError()
+  }
+  if (task.machineId !== machine.id) {
+    throw new PickupTaskNotOnOperatorMachineError()
+  }
+  if (task.status !== MachineTaskStatus.CREATED) {
+    throw new PickupTaskCannotBeCanceledError()
   }
 
-  if (request.destinationId !== machine.id) {
-    throw new ReplenishmentRequestNotForOperatorMachineError()
-  }
+  const now = new Date()
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.movimentPalletTripSuggestion.updateMany({
+      where: {
+        pickupTaskId,
+        status: MovimentPalletTripSuggestionStatus.OPEN,
+      },
+      data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
+    })
 
-  const transportLabel =
-    request.typeMovimentPallet === TypeMovimentPallet.ANY
-      ? 'Empilhadeira ou transpaleteira'
-      : 'Empilhadeira'
+    return tx.pickupTask.update({
+      where: { id: pickupTaskId },
+      data: {
+        status: MachineTaskStatus.CANCELED,
+        statusSince: now,
+      },
+      include: {
+        machine: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+            sectorId: true,
+            userId: true,
+          },
+        },
+      },
+    })
+  })
 
-  const openPickup =
-    await movimentPalletTaskRepository.findOpenPickupForRequest(requestId)
-  const latestPickup =
-    await movimentPalletTaskRepository.findLatestPickupTaskForRequest(requestId)
-
-  let phase: OperatorPickupProgressPhase = 'OTHER'
-
-  if (request.status === RequestStatus.COMPLETED) {
-    phase = 'PICKUP_FINISHED'
-  } else if (request.status === RequestStatus.IN_PROGRESS) {
-    phase = 'DELIVERY_IN_PROGRESS'
-  } else if (request.status === RequestStatus.ON_MACHINE) {
-    if (!openPickup) {
-      phase =
-        latestPickup?.status === ForkliftTaskStatus.COMPLETED
-          ? 'PICKUP_FINISHED'
-          : 'AT_MACHINE_AWAITING_PICKUP'
-    } else if (openPickup.status === ForkliftTaskStatus.CREATED) {
-      phase = 'AWAITING_TRANSPORT_PICKUP'
-    } else if (openPickup.status === ForkliftTaskStatus.ASSIGNED) {
-      phase = 'TRANSPORT_ASSIGNED'
-    } else {
-      phase = 'TRANSPORT_REMOVING'
-    }
-  }
-
-  const pickupTask = openPickup ?? latestPickup ?? null
-
-  return {
-    phase,
-    transportLabel,
-    request: {
-      id: request.id,
-      movementCube: request.movementCube,
-      status: request.status,
-      typeMovimentPallet: request.typeMovimentPallet,
-    },
-    pickupTask,
-  }
-}
-
-export async function requestPalletPickupFromMachine(
-  operatorUserId: string,
-  requestId: string,
-) {
-  const request = await machineReplenishmentRequestRepository.findUniqueById(
-    requestId,
-  )
-  if (!request) {
-    throw new MachineReplenishmentRequestNotFoundError()
-  }
-
-  if (request.destination.userId !== operatorUserId) {
-    throw new ReplenishmentRequestNotForOperatorMachineError()
-  }
-
-  if (request.status !== RequestStatus.ON_MACHINE) {
-    throw new ReplenishmentRequestNotOnMachineStatusError()
-  }
-
-  const openPickup = await movimentPalletTaskRepository.findOpenPickupForRequest(
-    requestId,
-  )
-  if (openPickup) {
-    throw new PickupTaskAlreadyOpenError()
-  }
-
-  const task = await movimentPalletTaskRepository.createPickupForRequest(
-    requestId,
-    operatorUserId,
-  )
-
-  operatorMovimentPalletWsNotifyReplenishmentChange(request)
-
-  const sectorId = request.destination.sector?.id
-  if (sectorId) {
+  if (updated.machine) {
+    operatorMovimentPalletWsNotifyPickupTaskChange({
+      id: updated.id,
+      status: updated.status,
+      typeMovimentPallet: updated.typeMovimentPallet,
+      machine: updated.machine,
+    })
+    operatorMovimentPalletWsBroadcastQueueUpdated(
+      updated.machine.sectorId,
+      updated.typeMovimentPallet,
+    )
     operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
-      sectorId,
-      request.typeMovimentPallet,
+      updated.machine.sectorId,
+      updated.typeMovimentPallet,
     )
   }
 
-  return { request, pickupTask: task }
+  return { pickupTask: updated }
 }
-
-export type { FinalizeMachineCycleInput } from './replenishment-orchestration.service.js'
-export { finalizeMachineProductionCycle } from './replenishment-orchestration.service.js'

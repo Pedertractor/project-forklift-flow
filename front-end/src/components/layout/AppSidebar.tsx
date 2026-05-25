@@ -160,10 +160,6 @@ export function AppSidebar({
                   <span className="font-medium text-zinc-600">
                     {roleMenuLabel(user.role)}
                   </span>
-                  <span className="font-mono text-zinc-400">
-                    {' '}
-                    ({user.role})
-                  </span>
                 </p>
               ) : null}
             </div>

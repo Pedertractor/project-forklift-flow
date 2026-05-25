@@ -1,95 +1,31 @@
-# Status de implementação — reposição e operadores
+# Status de implementação — tarefas entrega/retirada
 
-**Referência única** para saber o que **já existe na API**, o que está **só na documentação** e o que **falta fazer**.  
-Atualize este arquivo sempre que uma rota ou regra entrar em produção.
+**Atualizado:** arquitetura baseada em `DeliveryTask` + `PickupTask` (sem `MachineReplenishmentRequest`).
 
-Documentos relacionados:
+| Fluxo | Status |
+|-------|--------|
+| Schema + migração `20260522120000_task_based_flow` | ✅ |
+| API operador máquina (2 botões) | ✅ |
+| API delivery-tasks (supply) | ✅ |
+| API transporte (fila, aceitar, concluir, sugestões) | ✅ |
+| Front operador máquina | ⚠️ Parcial |
+| Front supply (criar entrega, crítico) | ⚠️ Parcial |
+| Front transporte (adaptar fila) | ❌ Pendente integração |
+| Testes de integração antigos | ❌ Removidos (reescrever) |
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [`REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`](./REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md) | Regras e pré-condições |
-| [`ROTAS_POR_ROLE.md`](./ROTAS_POR_ROLE.md) | Rotas HTTP por papel |
-| [`FLUXOS_TELAS_FRONTEND.md`](./FLUXOS_TELAS_FRONTEND.md) | Telas sugeridas por papel |
-| [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md) | Plano do mapa da planta (supervisão) — back + front |
+## Rotas principais
 
-**Como validar no código:** `back-end/src/routes/*.routes.ts`, `replenishment-orchestration.service.ts`.
+| Método | Caminho |
+|--------|---------|
+| `POST` | `/api/operator-machine/pickup-only` |
+| `POST` | `/api/operator-machine/pickup-with-replenishment` |
+| `GET` | `/api/operator-machine/machine-tasks` |
+| `POST` | `/api/delivery-tasks` |
+| `GET` | `/api/delivery-tasks/pending-supply-requests` |
+| `POST` | `/api/delivery-tasks/:taskId/mark-prepared` |
+| `GET` | `/api/operator-moviment-pallet/open-tasks` |
 
----
+## Modelo
 
-## Legenda
-
-| Símbolo | Significado |
-|---------|-------------|
-| ✅ | **Implementado** na API |
-| ⚠️ | **Parcial** |
-| ❌ | **Não implementado** |
-| 📋 | **Só documentação** |
-
----
-
-## Visão por fluxo de negócio
-
-| Fluxo | Status | Observação |
-|-------|--------|------------|
-| Supply / líder abre solicitação (CRUD) | ✅ | `palletReady: true` no `POST` libera direto na fila |
-| Supply cadastra máquinas, tipos, equipamentos | ✅ | |
-| Operador de máquina vincula máquina | ✅ | |
-| Operador de máquina lista pedidos / retirada | ✅ | `pickup` em `ON_MACHINE` |
-| Operador de máquina **“finalizei”** na dobra | ✅ | `POST /api/operator-machine/my-machine/finalize` |
-| Verificação **pallet pronto** após finalizar | ✅ | Serviço `finalizeMachineProductionCycle` |
-| Supply lista **preparo pendente** | ✅ | `GET .../pending-preparation` |
-| Supply **marca pallet pronto** | ✅ | `POST .../:requestId/mark-pallet-ready` |
-| Fila transporte só **pallet pronto** | ✅ | Status `PALLET_READY` (+ `CREATED` legado) |
-| Transporte: fila, aceitar, entregar, retirada | ✅ | |
-| `complete-deliver` → `ON_MACHINE` | ✅ | |
-| Sugestões de viagem | ✅ | |
-| Notificações transporte (polling) | ✅ | `GET .../notifications` |
-| Push / WebSocket em tempo real | ❌ | Opcional futuro |
-| Mapa da planta (supervisão: posição máquinas, processo + tempo, áreas expedição/recebimento) | ⚠️ | Tela + `GET` máquinas/pedidos para `SUPERVISOR`/`MANAGER`; áreas e coords dedicadas: [`MAPA_PLANTA_SUPERVISAO.md`](./MAPA_PLANTA_SUPERVISAO.md) |
-
----
-
-## Rotas §9 — implementadas ✅
-
-| Método | Caminho | Papel |
-|--------|---------|-------|
-| `POST` | `/api/operator-machine/my-machine/finalize` | `OPERATOR_MACHINE`, `ADMIN` |
-| `GET` | `/api/machine-replenishment-requests/pending-preparation` | `SUPPLY_OPERATOR`, `LEADER`, `ADMIN` |
-| `POST` | `/api/machine-replenishment-requests/:requestId/mark-pallet-ready` | `SUPPLY_OPERATOR`, `LEADER`, `ADMIN` |
-| `GET` | `/api/operator-moviment-pallet/notifications` | `FORKLIFT_OPERATOR`, `FOLLOW_UP_OPERATOR`, `ADMIN` |
-
----
-
-## Modelo de dados (Prisma)
-
-| Item | Status |
-|------|--------|
-| `RequestStatus.AWAITING_PREPARATION` | ✅ |
-| `RequestStatus.PALLET_READY` | ✅ |
-| `preparedAt`, `awaitingPreparationSince` | ✅ |
-| Migração `20260515120000_replenishment_pallet_ready_flow` | ✅ (rodar `prisma migrate deploy` no ambiente) |
-
----
-
-## Front-end
-
-| Módulo | Status |
-|--------|--------|
-| Telas operador / supply / transporte para §9 | ❌ | API pronta; integrar no app |
-| Mapa da planta (`/supervisao/mapa-planta`) | ⚠️ | Konva + sidebar; `GET` máquinas/pedidos; áreas desenhadas ainda não |
-
----
-
-## Deploy
-
-Após puxar o código, no back-end:
-
-```bash
-npx prisma migrate deploy
-```
-
-Pedidos `CREATED` existentes são migrados para `PALLET_READY` na migração.
-
----
-
-*Última atualização: orquestração §9 implementada no back-end.*
+- `isCritical: Boolean` em `DeliveryTask` e `PickupTask`
+- `MachineTaskStatus`: CREATED → ASSIGNED → IN_PROGRESS → COMPLETED

@@ -26,14 +26,12 @@ function useApiReady(): boolean {
   return Boolean(ENV.API_URL && token);
 }
 
-function canDeleteRequest(row: ReplenishmentRequestListItem): boolean {
-  const okStatus =
-    row.status === 'CREATED' || row.status === 'PALLET_READY';
-  return okStatus && row._count.movimentPalletTasks === 0;
+function canDeleteRequest(_row: ReplenishmentRequestListItem): boolean {
+  return false;
 }
 
-function canEditRequest(row: ReplenishmentRequestListItem): boolean {
-  return row.status !== 'COMPLETED' && row.status !== 'CANCELED';
+function canEditRequest(_row: ReplenishmentRequestListItem): boolean {
+  return false;
 }
 
 const QUEUE_STATUSES_FOR_TRANSPORT = new Set([
@@ -74,7 +72,7 @@ export function useReplenishmentRequestsPage() {
   const hasSector = Boolean(user?.sectorId);
 
   const pendingPreparationQuery = useQuery({
-    queryKey: ['pending-preparation-requests'],
+    queryKey: ['replenishment', 'pending-preparation'],
     queryFn: fetchPendingPreparationRequests,
     enabled: apiReady && hasSector,
   });
@@ -168,12 +166,14 @@ export function useReplenishmentRequestsPage() {
     useState<ReplenishmentMovimentType>('FORKLIFT');
   const [priorityLevel, setPriorityLevel] =
     useState<PriorityLevelValue>('NORMAL');
+  const [isCritical, setIsCritical] = useState(false);
 
   const resetForm = useCallback(() => {
     setDestinationId('');
     setMovementCube('');
     setTypeMovimentPallet('FORKLIFT');
     setPriorityLevel('NORMAL');
+    setIsCritical(false);
   }, []);
 
   const openCreate = () => {
@@ -205,7 +205,7 @@ export function useReplenishmentRequestsPage() {
         destinationId: destinationId.trim(),
         movementCube: cube,
         typeMovimentPallet: typeMovimentPallet,
-        priorityLevel,
+        isCritical,
       });
     },
     onSuccess: () => {
@@ -213,7 +213,7 @@ export function useReplenishmentRequestsPage() {
         queryKey: ['machine-replenishment-requests'],
       });
       void queryClient.invalidateQueries({
-        queryKey: ['pending-preparation-requests'],
+        queryKey: ['replenishment', 'pending-preparation'],
       });
       void queryClient.invalidateQueries({
         queryKey: ['operator-machine', 'operator-supply-requests'],
@@ -250,7 +250,7 @@ export function useReplenishmentRequestsPage() {
         queryKey: ['machine-replenishment-requests'],
       });
       void queryClient.invalidateQueries({
-        queryKey: ['pending-preparation-requests'],
+        queryKey: ['replenishment', 'pending-preparation'],
       });
       void queryClient.invalidateQueries({
         queryKey: ['operator-machine', 'operator-supply-requests'],
@@ -269,7 +269,7 @@ export function useReplenishmentRequestsPage() {
         queryKey: ['machine-replenishment-requests'],
       });
       void queryClient.invalidateQueries({
-        queryKey: ['pending-preparation-requests'],
+        queryKey: ['replenishment', 'pending-preparation'],
       });
       void queryClient.invalidateQueries({
         queryKey: ['operator-machine', 'operator-supply-requests'],
@@ -325,6 +325,8 @@ export function useReplenishmentRequestsPage() {
     setTypeMovimentPallet,
     priorityLevel,
     setPriorityLevel,
+    isCritical,
+    setIsCritical,
     openCreate,
     openEdit,
     createMut,

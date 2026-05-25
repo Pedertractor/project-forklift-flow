@@ -92,8 +92,8 @@ export function SupplyPendingPreparationPageView(
     setMovementCube,
     typeMovimentPallet,
     setTypeMovimentPallet,
-    priorityLevel,
-    setPriorityLevel,
+    isCritical,
+    setIsCritical,
     openCreateFromOperatorSupply,
     createMut,
     busy,
@@ -186,8 +186,8 @@ export function SupplyPendingPreparationPageView(
         setMovementCube={setMovementCube}
         typeMovimentPallet={typeMovimentPallet}
         setTypeMovimentPallet={setTypeMovimentPallet}
-        priorityLevel={priorityLevel}
-        setPriorityLevel={setPriorityLevel}
+        isCritical={isCritical}
+        setIsCritical={setIsCritical}
         initialStep={wizardInitialStep}
         createError={createError}
         onClose={() => setCreateOpen(false)}

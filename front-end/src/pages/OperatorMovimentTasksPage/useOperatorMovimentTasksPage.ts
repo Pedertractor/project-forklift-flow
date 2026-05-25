@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
+import { isQueryCancellationError } from '@/lib/query-errors';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
 import {
@@ -41,34 +42,65 @@ export function useOperatorMovimentTasksPage() {
   });
 
   const afterTaskComplete = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-    const [tasks, pallet] = await Promise.all([
-      queryClient.fetchQuery({
+    // Evita invalidate + fetchQuery: o WS invalida ao mesmo tempo e gera CancelledError.
+    await Promise.all([
+      queryClient.refetchQueries({
         queryKey: ['operator-moviment', 'my-tasks'],
-        queryFn: fetchOperatorMyTasks,
+        exact: true,
       }),
-      queryClient.fetchQuery({
+      queryClient.refetchQueries({
         queryKey: ['operator-moviment', 'my-pallet'],
-        queryFn: fetchOperatorMyMovimentPallet,
+        exact: true,
       }),
     ]);
+
+    let tasks =
+      queryClient.getQueryData<Awaited<ReturnType<typeof fetchOperatorMyTasks>>>([
+        'operator-moviment',
+        'my-tasks',
+      ]);
+    const pallet =
+      queryClient.getQueryData<
+        Awaited<ReturnType<typeof fetchOperatorMyMovimentPallet>>
+      >(['operator-moviment', 'my-pallet']) ?? null;
+
+    if (tasks === undefined) {
+      try {
+        tasks = await queryClient.fetchQuery({
+          queryKey: ['operator-moviment', 'my-tasks'],
+          queryFn: fetchOperatorMyTasks,
+        });
+      } catch (error) {
+        if (!isQueryCancellationError(error)) throw error;
+        tasks =
+          queryClient.getQueryData<
+            Awaited<ReturnType<typeof fetchOperatorMyTasks>>
+          >(['operator-moviment', 'my-tasks']) ?? [];
+      }
+    }
+
     return countOpenMovimentTasksForPallet(tasks, pallet?.id ?? null);
   }, [queryClient]);
 
   const completeDeliverMut = useMutation({
     mutationFn: (taskId: string) => postCompleteDeliverTask(taskId),
     onSuccess: async () => {
-      const stillOpenCount = await afterTaskComplete();
-      if (stillOpenCount > 0) {
-        toast.success(
-          'Entrega na máquina registrada. Continue na mesma rota para concluir a retirada na expedição.',
-        );
-        return;
+      try {
+        const stillOpenCount = await afterTaskComplete();
+        if (stillOpenCount > 0) {
+          toast.success(
+            'Entrega na máquina registrada. Continue na mesma rota para concluir a retirada na expedição.',
+          );
+          return;
+        }
+        toast.success('Entrega na máquina registrada.');
+        navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
+          state: { fromTaskCompletion: true },
+        });
+      } catch (error) {
+        if (!isQueryCancellationError(error)) throw error;
+        toast.success('Entrega na máquina registrada.');
       }
-      toast.success('Entrega na máquina registrada.');
-      navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
-        state: { fromTaskCompletion: true },
-      });
     },
     onError: toastApiError,
   });
@@ -76,15 +108,20 @@ export function useOperatorMovimentTasksPage() {
   const completePickupMut = useMutation({
     mutationFn: (taskId: string) => postCompletePickupTask(taskId),
     onSuccess: async () => {
-      const stillOpenCount = await afterTaskComplete();
-      if (stillOpenCount > 0) {
-        toast.success('Retirada registrada. Ainda há outras tarefas em aberto.');
-        return;
+      try {
+        const stillOpenCount = await afterTaskComplete();
+        if (stillOpenCount > 0) {
+          toast.success('Retirada registrada. Ainda há outras tarefas em aberto.');
+          return;
+        }
+        toast.success('Retirada para expedição registrada.');
+        navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
+          state: { fromTaskCompletion: true },
+        });
+      } catch (error) {
+        if (!isQueryCancellationError(error)) throw error;
+        toast.success('Retirada para expedição registrada.');
       }
-      toast.success('Retirada para expedição registrada.');
-      navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
-        state: { fromTaskCompletion: true },
-      });
     },
     onError: toastApiError,
   });

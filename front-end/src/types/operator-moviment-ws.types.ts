@@ -1,14 +1,19 @@
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
-import type { RequestStatusValue } from '@/types/replenishment-request.types';
+import type { MachineTaskStatusValue } from '@/types/machine-task.types';
 
 /**
  * Eventos do WebSocket `/ws/operator-moviment-pallet`.
  * Contrato alinhado ao back-end (`operator-moviment-pallet-ws.hub.ts`).
  */
 export type OperatorMovimentWsEventType =
+  | 'delivery_task_created'
+  | 'delivery_queue_updated'
+  | 'delivery_task_updated'
+  | 'pickup_task_updated'
+  | 'trip_suggestions_updated'
+  /** Legado — mantido para compatibilidade */
   | 'replenishment_request_created'
   | 'replenishment_queue_updated'
-  | 'trip_suggestions_updated'
   | 'replenishment_status_updated';
 
 export interface OperatorMovimentWsEventBase {
@@ -17,18 +22,40 @@ export interface OperatorMovimentWsEventBase {
   typeMovimentPallet?: ReplenishmentMovimentType;
 }
 
-export interface OperatorMovimentWsReplenishmentCreated extends OperatorMovimentWsEventBase {
-  type: 'replenishment_request_created';
-  typeMovimentPallet: ReplenishmentMovimentType;
+export interface OperatorMovimentWsSectorEvent extends OperatorMovimentWsEventBase {
   sectorId: string;
+  typeMovimentPallet?: ReplenishmentMovimentType;
 }
 
+export interface OperatorMovimentWsDeliveryTaskUpdated
+  extends OperatorMovimentWsEventBase {
+  type: 'delivery_task_updated';
+  sectorId: string;
+  taskId: string;
+  status: MachineTaskStatusValue;
+  typeMovimentPallet: ReplenishmentMovimentType;
+  machineId: string;
+  destinationUserId: string | null;
+}
+
+export interface OperatorMovimentWsPickupTaskUpdated
+  extends OperatorMovimentWsEventBase {
+  type: 'pickup_task_updated';
+  sectorId: string;
+  taskId: string;
+  status: MachineTaskStatusValue;
+  typeMovimentPallet: ReplenishmentMovimentType;
+  machineId: string;
+  destinationUserId: string | null;
+}
+
+/** @deprecated Preferir `delivery_task_updated`. */
 export interface OperatorMovimentWsReplenishmentStatusUpdated
   extends OperatorMovimentWsEventBase {
   type: 'replenishment_status_updated';
   sectorId: string;
   requestId: string;
-  status: RequestStatusValue;
+  status: string;
   typeMovimentPallet: ReplenishmentMovimentType;
   destinationId: string;
   destinationUserId: string | null;
@@ -36,5 +63,7 @@ export interface OperatorMovimentWsReplenishmentStatusUpdated
 
 export type OperatorMovimentWsEvent =
   | OperatorMovimentWsEventBase
-  | OperatorMovimentWsReplenishmentCreated
+  | OperatorMovimentWsSectorEvent
+  | OperatorMovimentWsDeliveryTaskUpdated
+  | OperatorMovimentWsPickupTaskUpdated
   | OperatorMovimentWsReplenishmentStatusUpdated;

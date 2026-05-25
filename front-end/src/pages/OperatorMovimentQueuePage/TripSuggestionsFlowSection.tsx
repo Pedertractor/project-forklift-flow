@@ -21,7 +21,6 @@ import { priorityLabel } from '@/utils/operator-moviment-display';
 
 function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
   const d1 = row.deliverTask.request.movementCube;
-  const d2 = row.pickupTask.request.movementCube;
   const machine = row.machine;
 
   return (
@@ -46,20 +45,14 @@ function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
       <SuggestionFlowStep
         stepId="pallet"
         label="Pallet na máquina"
-        details={[
-          machineLocationDetail(machine.name, machine.position),
-          prismaDetail(d2, 'pick-at-machine'),
-        ]}
+        details={[machineLocationDetail(machine.name, machine.position)]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="expedition"
         label="Expedição"
-        details={[
-          expeditionAreaDetail(),
-          prismaDetail(d2, 'carry-to-expedition'),
-        ]}
+        details={[expeditionAreaDetail()]}
         accent="end"
       />
     </div>
@@ -99,7 +92,6 @@ function StandaloneDeliverFlow({ row }: { row: TripStandaloneDeliverApi }) {
 }
 
 function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
-  const cube = row.pickupTask.request.movementCube;
   const machine = row.machine;
 
   return (
@@ -107,20 +99,14 @@ function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
       <SuggestionFlowStep
         stepId="machine"
         label="Retire na máquina"
-        details={[
-          machineLocationDetail(machine.name, machine.position),
-          prismaDetail(cube, 'pick-at-machine'),
-        ]}
+        details={[machineLocationDetail(machine.name, machine.position)]}
         accent="mid"
       />
       <SuggestionFlowConnector />
       <SuggestionFlowStep
         stepId="expedition"
         label="Leve à expedição"
-        details={[
-          expeditionAreaDetail(),
-          prismaDetail(cube, 'carry-to-expedition'),
-        ]}
+        details={[expeditionAreaDetail()]}
         accent="end"
       />
     </div>
@@ -272,7 +258,7 @@ function StandalonePickupRouteCard({
           Sugestão de retirada
         </p>
         <p className="mt-2 text-sm font-semibold text-zinc-900">
-          Retirada na máquina com prisma pronto para expedição.
+          Retirada na máquina — levar o pallet à expedição.
         </p>
         <div className="mt-5">
           <StandalonePickupFlow row={row} />

@@ -1,6 +1,6 @@
 import type { WebSocket } from 'ws'
 import {
-  RequestStatus,
+  MachineTaskStatus,
   type TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 
@@ -35,12 +35,12 @@ export function operatorMovimentPalletWsRegisterClient(socket: WebSocket): void 
   })
 }
 
-export function operatorMovimentPalletWsBroadcastReplenishmentRequestCreated(
+export function operatorMovimentPalletWsBroadcastDeliveryTaskCreated(
   sectorId: string,
   typeMovimentPallet: TypeMovimentPallet,
 ): void {
   broadcast({
-    type: 'replenishment_request_created' as const,
+    type: 'delivery_task_created' as const,
     sectorId,
     typeMovimentPallet,
   })
@@ -51,7 +51,7 @@ export function operatorMovimentPalletWsBroadcastQueueUpdated(
   typeMovimentPallet: TypeMovimentPallet,
 ): void {
   broadcast({
-    type: 'replenishment_queue_updated' as const,
+    type: 'delivery_queue_updated' as const,
     sectorId,
     typeMovimentPallet,
   })
@@ -68,60 +68,79 @@ export function operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
   })
 }
 
-export function operatorMovimentPalletWsBroadcastReplenishmentStatusUpdated(
-  input: {
-    sectorId: string
-    requestId: string
-    status: RequestStatus
-    typeMovimentPallet: TypeMovimentPallet
-    destinationId: string
-    destinationUserId: string | null
-  },
-): void {
-  broadcast({
-    type: 'replenishment_status_updated' as const,
-    sectorId: input.sectorId,
-    requestId: input.requestId,
-    status: input.status,
-    typeMovimentPallet: input.typeMovimentPallet,
-    destinationId: input.destinationId,
-    destinationUserId: input.destinationUserId,
-  })
-}
-
-/** Linha de pedido com destino/setor (include do repositório). */
-export type ReplenishmentRowForWs = {
+export type DeliveryTaskRowForWs = {
   id: string
-  status: RequestStatus
+  status: MachineTaskStatus
   typeMovimentPallet: TypeMovimentPallet
-  destination: {
+  preparedAt: Date | null
+  machine: {
     id: string
     userId: string | null
-    sector: { id: string }
+    sectorId: string
   }
 }
 
-/** Notifica todos os clientes WS sobre mudança de status (tempo real). */
-export function operatorMovimentPalletWsNotifyReplenishmentChange(
-  row: ReplenishmentRowForWs,
+export type PickupTaskRowForWs = {
+  id: string
+  status: MachineTaskStatus
+  typeMovimentPallet: TypeMovimentPallet
+  machine: {
+    id: string
+    userId: string | null
+    sectorId: string
+  }
+}
+
+export function operatorMovimentPalletWsNotifyPickupTaskChange(
+  row: PickupTaskRowForWs,
 ): void {
-  const sectorId = row.destination.sector.id
+  const sectorId = row.machine.sectorId
   const typeMovimentPallet = row.typeMovimentPallet
 
-  operatorMovimentPalletWsBroadcastReplenishmentStatusUpdated({
+  broadcast({
+    type: 'pickup_task_updated' as const,
     sectorId,
-    requestId: row.id,
+    taskId: row.id,
     status: row.status,
     typeMovimentPallet,
-    destinationId: row.destination.id,
-    destinationUserId: row.destination.userId,
+    machineId: row.machine.id,
+    destinationUserId: row.machine.userId,
   })
 
   if (
-    row.status === RequestStatus.PALLET_READY ||
-    row.status === RequestStatus.CREATED
+    row.status === MachineTaskStatus.ASSIGNED ||
+    row.status === MachineTaskStatus.IN_PROGRESS ||
+    row.status === MachineTaskStatus.COMPLETED
   ) {
-    operatorMovimentPalletWsBroadcastReplenishmentRequestCreated(
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+      sectorId,
+      typeMovimentPallet,
+    )
+    operatorMovimentPalletWsBroadcastQueueUpdated(sectorId, typeMovimentPallet)
+  }
+}
+
+export function operatorMovimentPalletWsNotifyDeliveryTaskChange(
+  row: DeliveryTaskRowForWs,
+): void {
+  const sectorId = row.machine.sectorId
+  const typeMovimentPallet = row.typeMovimentPallet
+
+  broadcast({
+    type: 'delivery_task_updated' as const,
+    sectorId,
+    taskId: row.id,
+    status: row.status,
+    typeMovimentPallet,
+    machineId: row.machine.id,
+    destinationUserId: row.machine.userId,
+  })
+
+  if (
+    row.status === MachineTaskStatus.CREATED &&
+    row.preparedAt != null
+  ) {
+    operatorMovimentPalletWsBroadcastDeliveryTaskCreated(
       sectorId,
       typeMovimentPallet,
     )
@@ -129,12 +148,10 @@ export function operatorMovimentPalletWsNotifyReplenishmentChange(
       sectorId,
       typeMovimentPallet,
     )
-  } else if (row.status === RequestStatus.AWAITING_PREPARATION) {
-    operatorMovimentPalletWsBroadcastQueueUpdated(sectorId, typeMovimentPallet)
   } else if (
-    row.status === RequestStatus.IN_PROGRESS ||
-    row.status === RequestStatus.ON_MACHINE ||
-    row.status === RequestStatus.COMPLETED
+    row.status === MachineTaskStatus.ASSIGNED ||
+    row.status === MachineTaskStatus.IN_PROGRESS ||
+    row.status === MachineTaskStatus.COMPLETED
   ) {
     operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
       sectorId,
@@ -143,9 +160,24 @@ export function operatorMovimentPalletWsNotifyReplenishmentChange(
   }
 }
 
-/** @deprecated Prefer {@link operatorMovimentPalletWsNotifyReplenishmentChange}. */
+/** @deprecated use operatorMovimentPalletWsNotifyDeliveryTaskChange */
 export function operatorMovimentPalletWsEmitAfterReplenishmentSave(
-  row: ReplenishmentRowForWs,
+  row: DeliveryTaskRowForWs,
 ): void {
-  operatorMovimentPalletWsNotifyReplenishmentChange(row)
+  operatorMovimentPalletWsNotifyDeliveryTaskChange(row)
+}
+
+/** @deprecated */
+export function operatorMovimentPalletWsNotifyReplenishmentChange(
+  row: DeliveryTaskRowForWs,
+): void {
+  operatorMovimentPalletWsNotifyDeliveryTaskChange(row)
+}
+
+/** @deprecated */
+export function operatorMovimentPalletWsBroadcastReplenishmentRequestCreated(
+  sectorId: string,
+  typeMovimentPallet: TypeMovimentPallet,
+): void {
+  operatorMovimentPalletWsBroadcastDeliveryTaskCreated(sectorId, typeMovimentPallet)
 }

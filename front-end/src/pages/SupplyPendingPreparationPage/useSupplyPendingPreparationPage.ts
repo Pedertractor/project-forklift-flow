@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { toastApiError } from '@/lib/toast-helpers';
 import { ENV } from '@/constants/env';
 import {
-  createReplenishmentRequest,
-  fetchPendingPreparationRequests,
-} from '@/services/machine-replenishment-requests-api';
+  fetchPendingSupplyRequests,
+  normalizeOperatorSupplyRequests,
+  postCreateDeliveryTask,
+  SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
+} from '@/services/delivery-tasks-api';
 import { fetchMachines } from '@/services/machines-api';
 import { useAuthStore } from '@/store/auth.store';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
-import type { PriorityLevelValue } from '@/types/replenishment-request.types';
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -27,8 +28,8 @@ export function useSupplyPendingPreparationPage() {
   const hasSector = Boolean(user?.sectorId);
 
   const pendingQuery = useQuery({
-    queryKey: ['pending-preparation-requests'],
-    queryFn: fetchPendingPreparationRequests,
+    queryKey: SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
+    queryFn: fetchPendingSupplyRequests,
     enabled: apiReady && hasSector,
   });
 
@@ -45,8 +46,10 @@ export function useSupplyPendingPreparationPage() {
   const machinesEmpty =
     apiReady && machinesQuery.isSuccess && machinesForSelect.length === 0;
 
-  const operatorSupplyRows =
-    pendingQuery.data?.operatorSupplyRequests ?? [];
+  const operatorSupplyRows = useMemo(
+    () => normalizeOperatorSupplyRequests(pendingQuery.data),
+    [pendingQuery.data],
+  );
 
   const [createOpen, setCreateOpen] = useState(false);
   const [wizardInitialStep, setWizardInitialStep] = useState(1);
@@ -54,14 +57,17 @@ export function useSupplyPendingPreparationPage() {
   const [movementCube, setMovementCube] = useState('');
   const [typeMovimentPallet, setTypeMovimentPallet] =
     useState<ReplenishmentMovimentType>('FORKLIFT');
-  const [priorityLevel, setPriorityLevel] =
-    useState<PriorityLevelValue>('NORMAL');
+  const [isCritical, setIsCritical] = useState(false);
+  const [operatorSupplyRequestId, setOperatorSupplyRequestId] = useState<
+    string | undefined
+  >(undefined);
 
   const resetForm = useCallback(() => {
     setDestinationId('');
     setMovementCube('');
     setTypeMovimentPallet('FORKLIFT');
-    setPriorityLevel('NORMAL');
+    setIsCritical(false);
+    setOperatorSupplyRequestId(undefined);
     setWizardInitialStep(1);
   }, []);
 
@@ -70,6 +76,7 @@ export function useSupplyPendingPreparationPage() {
   ) => {
     resetForm();
     setDestinationId(row.machineId);
+    setOperatorSupplyRequestId(row.id);
     setWizardInitialStep(2);
     setCreateOpen(true);
   };
@@ -83,16 +90,21 @@ export function useSupplyPendingPreparationPage() {
       if (!cube) {
         throw new Error('Informe o código do prisma / pallet.');
       }
-      return createReplenishmentRequest({
-        destinationId: destinationId.trim(),
+      return postCreateDeliveryTask({
+        machineId: destinationId.trim(),
         movementCube: cube,
         typeMovimentPallet,
-        priorityLevel,
+        isCritical,
+        markReady: true,
+        operatorSupplyRequestId,
       });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: ['pending-preparation-requests'],
+        queryKey: SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['replenishment', 'pending-preparation'],
       });
       void queryClient.invalidateQueries({
         queryKey: ['machine-replenishment-requests'],
@@ -103,7 +115,7 @@ export function useSupplyPendingPreparationPage() {
       void queryClient.invalidateQueries({ queryKey: ['moviment-pallets'] });
       setCreateOpen(false);
       resetForm();
-      toast.success('Solicitação de retirada criada.');
+      toast.success('Tarefa de entrega criada — pallet pronto para o transporte.');
     },
     onError: toastApiError,
   });
@@ -130,8 +142,8 @@ export function useSupplyPendingPreparationPage() {
     setMovementCube,
     typeMovimentPallet,
     setTypeMovimentPallet,
-    priorityLevel,
-    setPriorityLevel,
+    isCritical,
+    setIsCritical,
     openCreateFromOperatorSupply,
     createMut,
     busy,

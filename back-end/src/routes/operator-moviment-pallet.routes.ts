@@ -8,7 +8,6 @@ import {
   getListTripRouteSuggestions,
   getOperatorCurrentMovimentPalletHandler,
   getOperatorMovimentPalletActiveFlowHandler,
-  postAcceptReplenishmentRequestForMovimentOperator,
   postAcceptTripRouteSuggestion,
   postAcceptOpenDeliverTask,
   postAcceptOpenPickupTask,
@@ -72,6 +71,16 @@ export async function registerOperatorMovimentPalletRoutes(
           ],
         },
         getMovimentOperatorNotifications,
+      )
+      router.get(
+        '/open-tasks',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireForkliftOrFollowUpOperatorRole(),
+          ],
+        },
+        getListOpenReplenishmentRequestsForMovimentOperator,
       )
       router.get(
         '/replenishment-requests',
@@ -142,16 +151,6 @@ export async function registerOperatorMovimentPalletRoutes(
           ],
         },
         postAcceptOpenDeliverTask,
-      )
-      router.post(
-        '/replenishment-requests/:requestId/accept',
-        {
-          preHandler: [
-            fastify.authenticate,
-            requireForkliftOrFollowUpOperatorRole(),
-          ],
-        },
-        postAcceptReplenishmentRequestForMovimentOperator,
       )
       router.post(
         '/tasks/:taskId/complete-deliver',

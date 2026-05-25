@@ -6,10 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { replenishmentMovimentTypeLabel } from '@/utils/operator-moviment-display';
 import { ENV } from '@/constants/env';
-import {
-  priorityLevelLabel,
-  requestStatusLabel,
-} from '@/utils/replenishment-labels';
+import { requestStatusLabel } from '@/utils/replenishment-labels';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentRequestsPage';
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
@@ -65,6 +62,8 @@ export function ReplenishmentRequestsPageView(
     setTypeMovimentPallet,
     priorityLevel,
     setPriorityLevel,
+    isCritical,
+    setIsCritical,
     openCreate,
     openEdit,
     createMut,
@@ -235,7 +234,7 @@ export function ReplenishmentRequestsPageView(
                     Tipo mov.
                   </th>
                   <th className="px-3 py-3 font-semibold text-zinc-700">
-                    Prioridade
+                    Crítico
                   </th>
                   <th className="px-3 py-3 font-semibold text-zinc-700">
                     Status
@@ -287,16 +286,20 @@ export function ReplenishmentRequestsPageView(
                       </td>
                       <td className="px-3 py-3 text-zinc-700">
                         <p
-                          className={`${row.priorityLevel === 'VERY_HIGH' ? 'text-red-500' : row.priorityLevel === 'HIGH' ? 'text-yellow-500' : 'text-green-500'}`}
+                          className={
+                            row.priorityLevel === 'VERY_HIGH'
+                              ? 'font-semibold text-red-600'
+                              : 'text-zinc-500'
+                          }
                         >
-                          {priorityLevelLabel(row.priorityLevel)}
+                          {row.priorityLevel === 'VERY_HIGH' ? 'Sim' : 'Não'}
                         </p>
                       </td>
                       <td className="px-3 py-3 text-zinc-700">
                         <p
                           className={`flex items-center gap-2 ${row.status === 'CREATED' ? 'text-green-500' : row.status === 'IN_PROGRESS' ? 'text-yellow-500' : row.status === 'ON_MACHINE' ? 'text-blue-500' : row.status === 'COMPLETED' ? 'text-green-500' : row.status === 'CANCELED' ? 'text-red-500' : 'text-gray-500'}`}
                         >
-                          {priorityLevelLabel(row.status) === 'COMPLETED' && (
+                          {row.status === 'COMPLETED' && (
                             <CheckIcon className="w-4 h-4" />
                           )}
                           {requestStatusLabel(row.status)}
@@ -374,8 +377,8 @@ export function ReplenishmentRequestsPageView(
         setMovementCube={setMovementCube}
         typeMovimentPallet={typeMovimentPallet}
         setTypeMovimentPallet={setTypeMovimentPallet}
-        priorityLevel={priorityLevel}
-        setPriorityLevel={setPriorityLevel}
+        isCritical={isCritical}
+        setIsCritical={setIsCritical}
         createError={createError}
         onClose={() => setCreateOpen(false)}
         onSubmit={() => createMut.mutate()}

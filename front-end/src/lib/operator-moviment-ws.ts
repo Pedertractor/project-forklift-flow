@@ -5,6 +5,20 @@ import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types
 /** Caminho do WebSocket no servidor (sem prefixo `/api`). */
 const WS_PATH = '/ws/operator-moviment-pallet';
 
+const SECTOR_QUEUE_EVENT_TYPES = new Set([
+  'delivery_task_created',
+  'delivery_queue_updated',
+  'trip_suggestions_updated',
+  'replenishment_request_created',
+  'replenishment_queue_updated',
+]);
+
+const MACHINE_OPERATOR_EVENT_TYPES = new Set([
+  'delivery_task_updated',
+  'pickup_task_updated',
+  'replenishment_status_updated',
+]);
+
 export function resolveOperatorMovimentWsUrl(token: string): string | null {
   const explicit = (import.meta.env.VITE_WS_URL as string | undefined)?.trim();
   if (explicit) {
@@ -22,7 +36,9 @@ export function resolveOperatorMovimentWsUrl(token: string): string | null {
   return `${protocol}://${host}${WS_PATH}?token=${encodeURIComponent(token)}`;
 }
 
-export function parseOperatorMovimentWsMessage(raw: string): OperatorMovimentWsEvent | null {
+export function parseOperatorMovimentWsMessage(
+  raw: string,
+): OperatorMovimentWsEvent | null {
   try {
     const data = JSON.parse(raw) as { type?: string };
     if (typeof data.type !== 'string') {
@@ -39,6 +55,23 @@ export function wsEventMatchesMovimentOperator(
   sectorId: string | null | undefined,
   allowedMovimentTypes: readonly string[],
 ): boolean {
+  if (!SECTOR_QUEUE_EVENT_TYPES.has(event.type)) {
+    if (event.type === 'delivery_task_updated' || event.type === 'pickup_task_updated') {
+      if (event.sectorId && sectorId && event.sectorId !== sectorId) {
+        return false;
+      }
+      if (
+        event.typeMovimentPallet &&
+        allowedMovimentTypes.length > 0 &&
+        !allowedMovimentTypes.includes(event.typeMovimentPallet)
+      ) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
   if (event.sectorId && sectorId && event.sectorId !== sectorId) {
     return false;
   }
@@ -52,18 +85,25 @@ export function wsEventMatchesMovimentOperator(
   return true;
 }
 
-/** Operador de dobra: eventos da máquina em que está logado. */
+function destinationUserIdFromEvent(
+  event: OperatorMovimentWsEvent,
+): string | null | undefined {
+  if ('destinationUserId' in event) {
+    return event.destinationUserId;
+  }
+  return undefined;
+}
+
+/** Operador de dobra: tarefas da máquina em que está logado (`machine.userId`). */
 export function wsEventMatchesMachineOperator(
   event: OperatorMovimentWsEvent,
   operatorUserId: string | null | undefined,
 ): boolean {
-  if (event.type !== 'replenishment_status_updated') {
+  if (!operatorUserId || !MACHINE_OPERATOR_EVENT_TYPES.has(event.type)) {
     return false;
   }
-  if (!operatorUserId) {
-    return false;
-  }
-  return event.destinationUserId === operatorUserId;
+  const destinationUserId = destinationUserIdFromEvent(event);
+  return destinationUserId === operatorUserId;
 }
 
 export function wsEventMatchesSubscriber(
@@ -76,14 +116,20 @@ export function wsEventMatchesSubscriber(
     isMachineOperator: boolean;
   },
 ): boolean {
-  if (options.isMachineOperator && wsEventMatchesMachineOperator(event, options.userId)) {
+  if (
+    options.isMachineOperator &&
+    wsEventMatchesMachineOperator(event, options.userId)
+  ) {
     return true;
   }
-  if (options.isMovimentOperator && wsEventMatchesMovimentOperator(
-    event,
-    options.sectorId,
-    options.allowedMovimentTypes,
-  )) {
+  if (
+    options.isMovimentOperator &&
+    wsEventMatchesMovimentOperator(
+      event,
+      options.sectorId,
+      options.allowedMovimentTypes,
+    )
+  ) {
     return true;
   }
   return false;

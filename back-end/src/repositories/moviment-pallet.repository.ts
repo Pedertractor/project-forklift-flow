@@ -1,6 +1,6 @@
 import type { Prisma } from '../generated/prisma/client.js'
 import type { MovimentPalletEquipmentType } from '../generated/prisma/enums.js'
-import { incompleteAssignedMovimentTaskStatuses } from '../constants/moviment-pallet-task-status.js'
+import { incompleteAssignedMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
 
 const movimentPalletListSelect = {
@@ -23,13 +23,17 @@ const movimentPalletListSelect = {
   sector: {
     select: { id: true, typeSector: true },
   },
-  _count: { select: { movimentPalletTasks: true } },
+  _count: { select: { deliveryTasks: true, pickupTasks: true } },
 } as const
 
 const movimentPalletListWithAvailabilitySelect = {
   ...movimentPalletListSelect,
-  movimentPalletTasks: {
-    where: { status: { in: incompleteAssignedMovimentTaskStatuses } },
+  deliveryTasks: {
+    where: { status: { in: incompleteAssignedMachineTaskStatuses } },
+    select: { id: true },
+  },
+  pickupTasks: {
+    where: { status: { in: incompleteAssignedMachineTaskStatuses } },
     select: { id: true },
   },
 } as const
@@ -39,10 +43,10 @@ type MovimentPalletListWithAvailabilityRow = Prisma.MovimentPalletGetPayload<{
 }>
 
 function mapListRowWithAvailability(row: MovimentPalletListWithAvailabilityRow) {
-  const { movimentPalletTasks: incompleteTasks, ...rest } = row
+  const { deliveryTasks, pickupTasks, ...rest } = row
   return {
     ...rest,
-    incompleteAssignedTaskCount: incompleteTasks.length,
+    incompleteAssignedTaskCount: deliveryTasks.length + pickupTasks.length,
   }
 }
 

@@ -25,12 +25,12 @@ model User {
   sector   Sector? @relation(fields: [sectorId], references: [id])
   sectorId String?
 
-  machineReplenishmentRequests MachineReplenishmentRequest[]  @relation("UserMachineRequests")
   operatorMachineSupplyRequests OperatorMachineSupplyRequest[] @relation("UserOperatorMachineSupplyRequests")
-  movimentPalletTasks          MovimentPalletTask[]           @relation("UserMovimentPalletTasks")
-  machines                     Machine[]                      @relation("MachineOperator")
-  movimentPallets              MovimentPallet[]               @relation("MovimentPalletOperator")
-  tripSuggestionsAccepted      MovimentPalletTripSuggestion[] @relation("TripSuggestionAcceptedBy")
+  deliveryTasks                 DeliveryTask[]                 @relation("UserDeliveryTasks")
+  pickupTasks                   PickupTask[]                   @relation("UserPickupTasks")
+  machines                      Machine[]                      @relation("MachineOperator")
+  movimentPallets               MovimentPallet[]               @relation("MovimentPalletOperator")
+  tripSuggestionsAccepted       MovimentPalletTripSuggestion[] @relation("TripSuggestionAcceptedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -38,40 +38,76 @@ model User {
   @@unique([card, unit])
 }
 
-model MachineReplenishmentRequest {
+/// Tarefa de levar prisma/pallet at? a m?quina (criada pelo abastecimento).
+model DeliveryTask {
   id String @id @default(uuid())
 
-  requestedBy   User   @relation("UserMachineRequests", fields: [requestedById], references: [id])
-  requestedById String
+  machine   Machine @relation("MachineDeliveryTasks", fields: [machineId], references: [id])
+  machineId String
 
   movementCube String
-
-  destination   Machine @relation(fields: [destinationId], references: [id])
-  destinationId String
-
   typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
+  isCritical         Boolean           @default(false)
 
-  status        RequestStatus @default(AWAITING_PREPARATION)
-  /// Quando o pedido entrou no `status` atual (nao reinicia em edicao de prioridade/cubo).
-  statusSince   DateTime      @default(now())
-  priorityLevel PriorityLevel @default(NORMAL)
+  status      MachineTaskStatus @default(CREATED)
+  statusSince DateTime          @default(now())
 
-  /// Preenchido quando o abastecimento marca pallet pronto (ù9).
-  preparedAt               DateTime?
-  /// Quando o operador de dobra apontou "finalizei" sem pallet pronto.
-  awaitingPreparationSince DateTime?
+  /// Abastecimento aceitou/registrou a solicita??o de envio.
+  acceptedBySupply   Boolean   @default(false)
+  supplyAcceptedAt   DateTime?
+  /// Pallet/prisma pronto no recebimento para o transporte buscar.
+  preparedAt         DateTime?
 
-  movimentPalletTasks MovimentPalletTask[]
+  requestedBy   User   @relation("UserDeliveryTasks", fields: [requestedById], references: [id])
+  requestedById String
 
-  fulfilledOperatorSupplyRequests OperatorMachineSupplyRequest[] @relation("OperatorSupplyFulfilledByReplenishment")
+  assignedMovimentPallet   MovimentPallet? @relation("DeliveryTaskAssignedPallet", fields: [assignedMovimentPalletId], references: [id])
+  assignedMovimentPalletId String?
+
+  operatorSupplyRequest   OperatorMachineSupplyRequest? @relation("SupplyRequestDeliveryTask")
+
+  tripSuggestionAsDeliver MovimentPalletTripSuggestion? @relation("TripSuggestionDeliverTask")
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
+
+  @@index([machineId, status])
 }
 
-/// Aviso do operador da mùquina ao abastecimento: ùpreciso de palletù sem cubo na dobra.
-/// Encerrada (FULFILLED) quando o abastecimento registra um pedido de reposiùùo para a mesma mùquina.
+/// Tarefa de retirar prisma/pallet da m?quina at? a expedi??o (criada pelo operador da m?quina).
+model PickupTask {
+  id String @id @default(uuid())
+
+  machine   Machine @relation("MachinePickupTasks", fields: [machineId], references: [id])
+  machineId String
+
+  typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
+  isCritical         Boolean            @default(false)
+
+  status      MachineTaskStatus @default(CREATED)
+  statusSince DateTime          @default(now())
+
+  /// Operador pediu retirada e j? avisou abastecimento para o pr?ximo prisma.
+  triggersReplenishment Boolean @default(false)
+
+  requestedBy   User   @relation("UserPickupTasks", fields: [requestedById], references: [id])
+  requestedById String
+
+  assignedMovimentPallet   MovimentPallet? @relation("PickupTaskAssignedPallet", fields: [assignedMovimentPalletId], references: [id])
+  assignedMovimentPalletId String?
+
+  tripSuggestionAsPickup MovimentPalletTripSuggestion? @relation("TripSuggestionPickupTask")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([machineId, status])
+}
+
+/// Aviso do operador da m?quina ao abastecimento: precisa de pallet.
+/// Encerrada quando o abastecimento cria uma DeliveryTask para a mesma m?quina.
 model OperatorMachineSupplyRequest {
   id String @id @default(uuid())
 
@@ -85,8 +121,8 @@ model OperatorMachineSupplyRequest {
 
   fulfilledAt DateTime?
 
-  fulfilledByReplenishmentRequest   MachineReplenishmentRequest? @relation("OperatorSupplyFulfilledByReplenishment", fields: [fulfilledByReplenishmentRequestId], references: [id], onDelete: SetNull)
-  fulfilledByReplenishmentRequestId String?
+  deliveryTask   DeliveryTask? @relation("SupplyRequestDeliveryTask", fields: [deliveryTaskId], references: [id], onDelete: SetNull)
+  deliveryTaskId String?       @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,42 +130,19 @@ model OperatorMachineSupplyRequest {
   @@index([machineId, status])
 }
 
-model MovimentPalletTask {
-  id String @id @default(uuid())
-
-  request   MachineReplenishmentRequest @relation(fields: [requestId], references: [id])
-  requestId String
-
-  type   ForkliftTaskType   @default(DELIVER_TO_MACHINE)
-  status ForkliftTaskStatus @default(CREATED)
-
-  assignedMovimentPallet   MovimentPallet? @relation(fields: [assignedMovimentPalletId], references: [id])
-  assignedMovimentPalletId String?
-
-  requestedBy   User   @relation("UserMovimentPalletTasks", fields: [requestedById], references: [id])
-  requestedById String
-
-  tripSuggestionAsDeliver MovimentPalletTripSuggestion? @relation("TripSuggestionDeliverTask")
-  tripSuggestionAsPickup  MovimentPalletTripSuggestion? @relation("TripSuggestionPickupTask")
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  completedAt DateTime?
-}
-
 model MovimentPalletTripSuggestion {
   id     String                             @id @default(uuid())
   status MovimentPalletTripSuggestionStatus @default(OPEN)
 
-  deliverTask   MovimentPalletTask @relation("TripSuggestionDeliverTask", fields: [deliverTaskId], references: [id], onDelete: Cascade)
-  deliverTaskId String             @unique
-  pickupTask    MovimentPalletTask @relation("TripSuggestionPickupTask", fields: [pickupTaskId], references: [id], onDelete: Cascade)
-  pickupTaskId  String             @unique
+  deliverTask   DeliveryTask @relation("TripSuggestionDeliverTask", fields: [deliverTaskId], references: [id], onDelete: Cascade)
+  deliverTaskId String       @unique
+  pickupTask    PickupTask   @relation("TripSuggestionPickupTask", fields: [pickupTaskId], references: [id], onDelete: Cascade)
+  pickupTaskId  String       @unique
 
   machine   Machine @relation(fields: [machineId], references: [id])
   machineId String
 
-  typeMovimentPallet MovimentPalletEquipmentType
+  typeMovimentPallet TypeMovimentPallet
 
   acceptedBy       User?   @relation("TripSuggestionAcceptedBy", fields: [acceptedByUserId], references: [id])
   acceptedByUserId String?
@@ -159,7 +172,8 @@ model Machine {
   user   User?   @relation("MachineOperator", fields: [userId], references: [id])
   userId String?
 
-  machineReplenishmentRequests MachineReplenishmentRequest[]
+  deliveryTasks DeliveryTask[] @relation("MachineDeliveryTasks")
+  pickupTasks   PickupTask[]   @relation("MachinePickupTasks")
 
   operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
 
@@ -214,7 +228,8 @@ model MovimentPallet {
   sector   Sector? @relation(fields: [sectorId], references: [id])
   sectorId String?
 
-  movimentPalletTasks MovimentPalletTask[]
+  deliveryTasks DeliveryTask[] @relation("DeliveryTaskAssignedPallet")
+  pickupTasks   PickupTask[]   @relation("PickupTaskAssignedPallet")
 
   tripSuggestions MovimentPalletTripSuggestion[] @relation("TripSuggestionAssignedPallet")
 
@@ -222,13 +237,13 @@ model MovimentPallet {
   updatedAt DateTime @updatedAt
 }
 
-/// Equipamento fÌsico no setor.
+/// Equipamento f?sico no setor.
 enum MovimentPalletEquipmentType {
   FORKLIFT
   PALLET_TRUCK
 }
 
-/// Tipo de movimentaÁ„o em solicitaÁıes de reposiÁ„o (fila de transporte).
+/// Tipo de movimenta??o em tarefas (fila de transporte).
 enum TypeMovimentPallet {
   FORKLIFT
   /// Aceito por empilhadeirista ou transpaleteirista (qualquer equipamento do setor).
@@ -246,31 +261,12 @@ enum RoleUser {
   ADMIN
 }
 
-enum RequestStatus {
-  /// Legado: pedidos antigos; novos usam AWAITING_PREPARATION ou PALLET_READY.
-  CREATED
-  /// Abastecimento deve preparar o prisma (ou pedido recùm-criado sem marcar pronto).
-  AWAITING_PREPARATION
-  /// Prisma pronto ù visùvel na fila do transporte.
-  PALLET_READY
-  IN_PROGRESS
-  ON_MACHINE
-  COMPLETED
-  CANCELED
-}
-
-enum ForkliftTaskStatus {
+enum MachineTaskStatus {
   CREATED
   ASSIGNED
   IN_PROGRESS
   COMPLETED
   CANCELED
-}
-
-enum ForkliftTaskType {
-  DELIVER_TO_MACHINE
-  ON_MACHINE
-  PICKUP_TO_EXPEDITION
 }
 
 enum MovimentPalletTripSuggestionStatus {
@@ -279,12 +275,6 @@ enum MovimentPalletTripSuggestionStatus {
   COMPLETED
   CANCELLED
   EXPIRED
-}
-
-enum PriorityLevel {
-  VERY_HIGH
-  HIGH
-  NORMAL
 }
 
 /// Unidade/planta exibida no mapa de supervisao (imagens em public/).
@@ -298,7 +288,7 @@ enum PlantMapAreaKind {
   RECEIVING
 }
 
-/// Retangulo normalizado (0..1) sobre a imagem da planta ù uma area por tipo por unidade.
+/// Retangulo normalizado (0..1) sobre a imagem da planta ? uma area por tipo por unidade.
 model PlantMapArea {
   id        String           @id @default(uuid())
   plantUnit PlantMapUnit

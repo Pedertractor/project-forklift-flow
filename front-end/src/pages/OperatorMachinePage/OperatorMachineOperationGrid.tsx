@@ -1,258 +1,204 @@
+import { useState } from 'react';
 import { HorizontalActivityStepper } from '@/components/activity/HorizontalActivityStepper';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
-import type { OperatorPickupProgressPhase } from '@/types/operator-machine.types';
+import type { DeliveryTaskListItem, PickupTaskListItem } from '@/types/machine-task.types';
 import type {
-  PriorityLevelValue,
-  ReplenishmentRequestListItem,
-} from '@/types/replenishment-request.types';
-import { priorityLevelLabel } from '@/utils/replenishment-labels';
+  DeliveryFlowPhase,
+  OperationTimelineMode,
+  PickupFlowPhase,
+} from './operator-machine-flow';
 import {
+  COMBINED_FLOW_STEPS,
+  combinedFlowHeadline,
+  combinedFlowStepStatusesFromTasks,
+  DELIVERY_FLOW_STEPS,
+  deliveryFlowHeadline,
+  deliveryFlowStepStatusesFromTask,
+  operationTimelineTitle,
   PICKUP_FLOW_STEPS,
-  SUPPLY_FLOW_STEPS,
-  deriveSupplyFlowPhase,
   pickupFlowHeadline,
-  pickupFlowProgressPct,
-  pickupFlowStepStatuses,
-  shouldShowPickupFlow,
-  shouldShowReplenishmentPanel,
-  shouldShowSupplyFlow,
+  pickupFlowStepStatusesFromTask,
   shouldShowSupplyPanel,
   supplyFlowHeadline,
-  supplyFlowProgressPct,
-  supplyFlowStepStatuses,
 } from './operator-machine-flow';
-import { InboxIcon } from 'lucide-react';
-
-function replenishmentPriorityBadgeClass(level: PriorityLevelValue): string {
-  switch (level) {
-    case 'VERY_HIGH':
-      return 'bg-red-600 text-white';
-    case 'HIGH':
-      return 'bg-amber-500 text-white';
-    default:
-      return 'bg-zinc-600 text-white';
-  }
-}
-
-function statusToneClass(tone: 'neutral' | 'active' | 'success' | 'warning') {
-  switch (tone) {
-    case 'active':
-      return 'border-[#005fb8]/30 bg-[#005fb8]/[0.06] text-[#005fb8]';
-    case 'success':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-    case 'warning':
-      return 'border-amber-200 bg-amber-50 text-amber-900';
-    default:
-      return 'border-zinc-200 bg-zinc-50 text-zinc-600';
-  }
-}
+import { OperatorMachineOpenRequestDialog } from './OperatorMachineOpenRequestDialog';
+import type { OperatorServiceSelection } from './OperatorMachineOpenRequestDialog';
+import { ArrowDownLeft, ArrowUpRight, ClipboardList, InfoIcon, Route } from 'lucide-react';
 
 export interface OperatorMachineOperationGridProps {
-  replenishmentRequests: ReplenishmentRequestListItem[];
+  deliveryTasks: DeliveryTaskListItem[];
+  openSupply: OperatorMachineSupplyRequestListItem | null;
   supplyLoading: boolean;
   supplyError: Error | null;
-  openSupply: OperatorMachineSupplyRequestListItem | null;
-  supplyFlowReplenishment: ReplenishmentRequestListItem | null;
-  replenishmentLoading: boolean;
-  replenishmentError: Error | null;
-  pickupPanelReplenishment: ReplenishmentRequestListItem | null;
-  pickupProgressLoading: boolean;
-  pickupPhase: OperatorPickupProgressPhase | null;
-  pickupTransportLabel: string;
-  canRequestPallet: boolean;
-  finalizePending: boolean;
-  pickupMutationPending: boolean;
+  operationTimelineMode: OperationTimelineMode;
+  timelineDelivery: DeliveryTaskListItem | null;
+  timelinePickup: PickupTaskListItem | null;
+  pickupPhase: PickupFlowPhase;
+  deliveryPhase: DeliveryFlowPhase;
+  canPickup: boolean;
+  canOpenRequestDialog: boolean;
+  pickupBlockedMessage: string | null;
+  serviceRequestSubmitPending: boolean;
   busy: boolean;
   apiReady: boolean;
-  onSolicitarPallet: () => void;
-  onSolicitarRetirada: () => void;
+  onSubmitServiceRequest: (
+    selection: OperatorServiceSelection,
+  ) => void | Promise<void>;
+}
+
+function TimelineSectionIcon({ mode }: { mode: OperationTimelineMode }) {
+  if (mode === 'combined') {
+    return <Route className="size-4 shrink-0 text-violet-700" aria-hidden />;
+  }
+  if (mode === 'delivery') {
+    return (
+      <ArrowUpRight
+        className="size-4 shrink-0 rounded-full bg-green-200"
+        aria-hidden
+      />
+    );
+  }
+  return (
+    <ArrowDownLeft
+      className="size-4 shrink-0 rounded-full bg-red-200"
+      aria-hidden
+    />
+  );
 }
 
 export function OperatorMachineOperationGrid({
-  replenishmentRequests,
+  deliveryTasks,
+  openSupply,
   supplyLoading,
   supplyError,
-  openSupply,
-  supplyFlowReplenishment,
-  replenishmentLoading,
-  replenishmentError,
-  pickupPanelReplenishment,
-  pickupProgressLoading,
+  operationTimelineMode,
+  timelineDelivery,
+  timelinePickup,
   pickupPhase,
-  pickupTransportLabel,
-  canRequestPallet,
-  finalizePending,
-  pickupMutationPending,
+  deliveryPhase,
+  canPickup,
+  canOpenRequestDialog,
+  pickupBlockedMessage,
+  serviceRequestSubmitPending,
   busy,
   apiReady,
-  onSolicitarPallet,
-  onSolicitarRetirada,
+  onSubmitServiceRequest,
 }: OperatorMachineOperationGridProps) {
-  const supplyPhase = deriveSupplyFlowPhase(
-    openSupply,
-    supplyFlowReplenishment,
-  );
-  const showSupplyFlow = shouldShowSupplyFlow(
-    openSupply,
-    supplyFlowReplenishment,
-  );
-  const showPickupFlow = shouldShowPickupFlow(pickupPanelReplenishment);
-  const showReplenishmentPanel = shouldShowReplenishmentPanel(
-    pickupPanelReplenishment,
-    pickupPhase,
-  );
-  const showSupplyPanel = shouldShowSupplyPanel(
-    replenishmentRequests,
-    openSupply,
-    pickupPanelReplenishment,
-    pickupPhase,
-  );
-  const phase = pickupPhase ?? 'OTHER';
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const showSupply = shouldShowSupplyPanel(openSupply);
+  const showTimeline = operationTimelineMode !== null;
 
-  if (!showSupplyPanel && !showReplenishmentPanel) {
-    return null;
-  }
+  const handleSubmit = async (selection: OperatorServiceSelection) => {
+    try {
+      await onSubmitServiceRequest(selection);
+      setRequestDialogOpen(false);
+    } catch {
+      /* toast via mutation */
+    }
+  };
 
   return (
-    <div
-      className={cn(
-        'grid grid-cols-1 gap-4',
-        showSupplyPanel && showReplenishmentPanel && 'lg:grid-cols-2',
-      )}
-    >
-      {showSupplyPanel ? (
-      <Card className="flex flex-col border border-zinc-200 p-0 shadow-sm">
-        <div className="border-b border-zinc-100 px-4 py-3">
-          <h3 className="m-0 text-sm font-semibold tracking-tight text-zinc-900">
-            Solicitação ao abastecimento
-          </h3>
-          <p className="mt-1 mb-0 text-xs leading-relaxed text-zinc-500">
-            Fluxo após você avisar que precisa de pallet.
-          </p>
-        </div>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <Button
+        type="button"
+        className="w-full lg:col-span-2"
+        disabled={!apiReady || busy || !canOpenRequestDialog}
+        onClick={() => setRequestDialogOpen(true)}
+      >
+        <ClipboardList className="size-4 shrink-0" aria-hidden />
+        Abrir solicitação
+      </Button>
 
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          {supplyLoading ? (
-            <p className="m-0 text-sm text-zinc-500">Carregando…</p>
-          ) : supplyError ? (
-            <p className="m-0 text-sm text-red-700">
-              {supplyError.message || 'Erro ao carregar.'}
-            </p>
-          ) : showSupplyFlow ? (
-            <HorizontalActivityStepper
-              steps={[...SUPPLY_FLOW_STEPS]}
-              statuses={supplyFlowStepStatuses(supplyPhase)}
-              headline={supplyFlowHeadline(supplyPhase)}
-              progressPct={supplyFlowProgressPct(supplyPhase)}
-            />
-          ) : (
-            <div className="flex flex-col items-center py-4 text-center">
-              <p
-                className={cn(
-                  'm-0 inline-flex items-center gap-2 rounded-2xl  px-5 py-3 text-base font-semibold',
-                  statusToneClass('neutral'),
+      <OperatorMachineOpenRequestDialog
+        open={requestDialogOpen}
+        onClose={() => setRequestDialogOpen(false)}
+        deliveryTasks={deliveryTasks}
+        openSupply={openSupply}
+        canPickup={canPickup}
+        pickupBlockedMessage={pickupBlockedMessage}
+        submitPending={serviceRequestSubmitPending}
+        onSubmit={handleSubmit}
+      />
+
+      {showTimeline ? (
+        <Card className="flex flex-col border border-zinc-200 p-0 shadow-sm lg:col-span-2">
+          <div className="border-b border-zinc-100 px-4 py-3">
+            <h3 className="m-0 flex items-center gap-2 text-sm font-semibold tracking-tight text-zinc-900">
+              <TimelineSectionIcon mode={operationTimelineMode} />
+              {operationTimelineTitle(operationTimelineMode)}
+            </h3>
+            {operationTimelineMode === 'combined' ? (
+              <p className="mb-0 mt-1 text-xs text-zinc-500">
+                Entrega preparada e retirada na mesma máquina — fluxo sugerido ao
+                transporte.
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-1 flex-col gap-4 p-4">
+            {operationTimelineMode === 'combined' ? (
+              <HorizontalActivityStepper
+                steps={[...COMBINED_FLOW_STEPS]}
+                statuses={combinedFlowStepStatusesFromTasks(
+                  timelineDelivery,
+                  timelinePickup,
                 )}
-              >
-                <InboxIcon className="size-4 text-blue-500" />
-                Nenhuma solicitação em andamento
-              </p>
-              <p className="mt-3 mb-0 max-w-xs text-xs leading-relaxed text-zinc-500">
-                Quando não houver pallet na máquina, solicite o abastecimento.
-              </p>
-            </div>
-          )}
+                headline={combinedFlowHeadline(timelineDelivery, timelinePickup)}
+              />
+            ) : null}
 
-          {!showSupplyFlow ? (
-            <Button
-              type="button"
-              className="w-full"
-              disabled={
-                !apiReady || !canRequestPallet || finalizePending || busy
-              }
-              onClick={onSolicitarPallet}
-            >
-              {finalizePending
-                ? 'Enviando…'
-                : 'Solicitar pallet (abastecimento)'}
-            </Button>
-          ) : null}
-        </div>
-      </Card>
+            {operationTimelineMode === 'delivery' ? (
+              <HorizontalActivityStepper
+                steps={[...DELIVERY_FLOW_STEPS]}
+                statuses={deliveryFlowStepStatusesFromTask(timelineDelivery)}
+                headline={deliveryFlowHeadline(deliveryPhase, timelineDelivery)}
+              />
+            ) : null}
+
+            {operationTimelineMode === 'pickup' ? (
+              <HorizontalActivityStepper
+                steps={[...PICKUP_FLOW_STEPS]}
+                statuses={pickupFlowStepStatusesFromTask(timelinePickup)}
+                headline={pickupFlowHeadline(pickupPhase, timelinePickup)}
+              />
+            ) : null}
+          </div>
+        </Card>
       ) : null}
 
-      {showReplenishmentPanel ? (
-        <Card className="flex flex-col border border-zinc-200 p-0 shadow-sm">
+      {!showTimeline && !canPickup && pickupBlockedMessage ? (
+        <p className="m-0 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 lg:col-span-2">
+          {pickupBlockedMessage}
+        </p>
+      ) : null}
+
+      {showSupply ? (
+        <Card className="flex flex-col border border-zinc-200 p-0 shadow-sm lg:col-span-2">
           <div className="border-b border-zinc-100 px-4 py-3">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h3 className="m-0 text-sm font-semibold tracking-tight text-zinc-900">
-                  Pedido de reposição
-                </h3>
-                <p className="mt-1 mb-0 text-xs leading-relaxed text-zinc-500">
-                  Prisma do setor e fluxo após solicitar retirada na máquina.
-                </p>
-              </div>
-              {pickupPanelReplenishment ? (
-                <span
-                  className={cn(
-                    'shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold',
-                    replenishmentPriorityBadgeClass(
-                      pickupPanelReplenishment.priorityLevel,
-                    ),
-                  )}
-                >
-                  {priorityLevelLabel(pickupPanelReplenishment.priorityLevel)}
-                </span>
-              ) : null}
-            </div>
+            <h3 className="m-0 text-sm font-semibold tracking-tight text-zinc-900">
+              Solicitação ao abastecimento
+            </h3>
+            <p className="mt-1 mb-0 text-xs leading-relaxed text-zinc-500">
+              Aguardando o abastecimento registrar a próxima entrega.
+            </p>
           </div>
-
           <div className="flex flex-1 flex-col gap-4 p-4">
-            {replenishmentLoading ? (
+            {supplyLoading ? (
               <p className="m-0 text-sm text-zinc-500">Carregando…</p>
-            ) : replenishmentError ? (
+            ) : supplyError ? (
               <p className="m-0 text-sm text-red-700">
-                {replenishmentError.message || 'Erro ao carregar.'}
+                {supplyError.message || 'Erro ao carregar.'}
               </p>
-            ) : pickupPanelReplenishment ? (
-              <>
-                {showPickupFlow ? (
-                  pickupProgressLoading && !pickupPhase ? (
-                    <p className="m-0 text-sm text-zinc-500">
-                      Carregando andamento…
-                    </p>
-                  ) : (
-                    <HorizontalActivityStepper
-                      steps={[...PICKUP_FLOW_STEPS]}
-                      statuses={pickupFlowStepStatuses(phase)}
-                      headline={pickupFlowHeadline(phase, pickupTransportLabel)}
-                      progressPct={pickupFlowProgressPct(phase)}
-                    />
-                  )
-                ) : (
-                  <p className="m-0 text-center text-sm text-zinc-500">
-                    O andamento da retirada aparece aqui quando o pallet estiver
-                    na máquina.
-                  </p>
-                )}
-              </>
-            ) : null}
-
-            {pickupPanelReplenishment?.status === 'ON_MACHINE' &&
-            (pickupPhase === null ||
-              pickupPhase === 'AT_MACHINE_AWAITING_PICKUP') ? (
-              <Button
-                type="button"
-                className="w-full"
-                disabled={pickupMutationPending || busy}
-                onClick={onSolicitarRetirada}
-              >
-                {pickupMutationPending ? 'Enviando…' : 'Solicitar retirada'}
-              </Button>
-            ) : null}
+            ) : (
+              <p className="m-0 flex items-center gap-2 text-sm text-zinc-700">
+                <InfoIcon
+                  className="inline size-4 shrink-0 text-blue-500"
+                  aria-hidden
+                />
+                {supplyFlowHeadline(openSupply)}
+              </p>
+            )}
           </div>
         </Card>
       ) : null}

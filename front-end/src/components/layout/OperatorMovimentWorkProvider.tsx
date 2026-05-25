@@ -129,8 +129,14 @@ export function OperatorMovimentWorkProvider({
 
   const refreshRealtimeData = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['operator-moviment'] }),
-      queryClient.invalidateQueries({ queryKey: ['operator-machine'] }),
+      queryClient.invalidateQueries({
+        queryKey: ['operator-moviment'],
+        cancelRefetch: false,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['operator-machine'],
+        cancelRefetch: false,
+      }),
     ]);
     await queryClient.refetchQueries({ type: 'active' });
   }, [queryClient]);
@@ -280,7 +286,8 @@ export function OperatorMovimentWorkProvider({
 
   const value = useMemo<OperatorMovimentWorkContextValue>(
     () => ({
-      enabled: realtimeEnabled && isMovimentOperator,
+      enabled:
+        realtimeEnabled && (isMovimentOperator || isMachineOperator),
       incompleteTaskCount,
       isLoadingTasks: myTasksQuery.isLoading,
       wsConnected,
@@ -290,6 +297,7 @@ export function OperatorMovimentWorkProvider({
     [
       realtimeEnabled,
       isMovimentOperator,
+      isMachineOperator,
       incompleteTaskCount,
       invalidateOperatorQueues,
       myTasksQuery.isLoading,

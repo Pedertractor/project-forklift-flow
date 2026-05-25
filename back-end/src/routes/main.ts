@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { registerAuthRoutes } from './auth.routes.js'
-import { registerMachineReplenishmentRequestRoutes } from './machine-replenishment-request.routes.js'
+import { registerDeliveryTaskRoutes } from './delivery-task.routes.js'
 import { registerMachineRoutes } from './machine.routes.js'
 import { registerMovimentPalletRoutes } from './moviment-pallet.routes.js'
 import { registerOperatorMachineRoutes } from './operator-machine.routes.js'
@@ -17,7 +17,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await registerTypeMachineRoutes(fastify)
   await registerMachineRoutes(fastify)
   await registerMovimentPalletRoutes(fastify)
-  await registerMachineReplenishmentRequestRoutes(fastify)
+  await registerDeliveryTaskRoutes(fastify)
   await registerOperatorMachineRoutes(fastify)
   await registerOperatorMovimentPalletRoutes(fastify)
   await registerPlantMapAreaRoutes(fastify)
