@@ -139,16 +139,24 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </select>
           </div>
           <div className="min-w-48 space-y-2">
-            <Label htmlFor="machine-plant-unit-filter">Filtrar por unidade</Label>
+            <Label htmlFor="machine-plant-unit-filter">
+              Filtrar por unidade
+            </Label>
             <select
               id="machine-plant-unit-filter"
               className={selectClass}
               value={plantUnitFilter}
-              onChange={(e) => setPlantUnitFilter(e.target.value as '' | 'PEDERTRACTOR' | 'TRACTOR')}
+              onChange={(e) =>
+                setPlantUnitFilter(
+                  e.target.value as '' | 'PEDERTRACTOR' | 'TRACTOR',
+                )
+              }
               disabled={!apiReady}
             >
               <option value="">Todas</option>
-              <option value="PEDERTRACTOR">{plantUnitLabel.PEDERTRACTOR}</option>
+              <option value="PEDERTRACTOR">
+                {plantUnitLabel.PEDERTRACTOR}
+              </option>
               <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
             </select>
           </div>
@@ -175,7 +183,9 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                   Tipo (produção)
                 </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">Unidade</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Unidade
+                </th>
                 <th className="px-4 py-3 text-right font-semibold text-zinc-700">
                   Ações
                 </th>
@@ -333,9 +343,13 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               id="m-plant-unit"
               className={selectClass}
               value={plantUnit}
-              onChange={(e) => setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')}
+              onChange={(e) =>
+                setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')
+              }
             >
-              <option value="PEDERTRACTOR">{plantUnitLabel.PEDERTRACTOR}</option>
+              <option value="PEDERTRACTOR">
+                {plantUnitLabel.PEDERTRACTOR}
+              </option>
               <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
             </select>
           </div>
@@ -416,27 +430,25 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-edit-pos">Posição</Label>
-            <Input
-              id="m-edit-pos"
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="m-edit-plant-unit">Unidade (planta no mapa)</Label>
             <select
               id="m-edit-plant-unit"
               className={selectClass}
               value={plantUnit}
-              onChange={(e) => setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')}
+              onChange={(e) =>
+                setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')
+              }
             >
-              <option value="PEDERTRACTOR">{plantUnitLabel.PEDERTRACTOR}</option>
+              <option value="PEDERTRACTOR">
+                {plantUnitLabel.PEDERTRACTOR}
+              </option>
               <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-edit-type">Tipo de máquina (modelo de produção)</Label>
+            <Label htmlFor="m-edit-type">
+              Tipo de máquina (modelo de produção)
+            </Label>
             <select
               id="m-edit-type"
               className={selectClass}
@@ -469,14 +481,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-edit-user">Operador (UUID)</Label>
-            <Input
-              id="m-edit-user"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              className="font-mono text-xs"
-              disabled={clearOperator}
-            />
             <label className="flex items-center gap-2 text-sm text-zinc-700">
               <input
                 type="checkbox"
