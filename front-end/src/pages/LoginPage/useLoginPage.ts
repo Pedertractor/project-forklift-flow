@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { shouldClearSessionAfterMeFailure } from '@/hooks/useAuthMe';
+import {
+  authMeQueryKeyBase,
+  shouldClearSessionAfterMeFailure,
+} from '@/hooks/useAuthMe';
 import { performLogout } from '@/lib/auth-session';
 import { fetchAuthMe } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
 import { mapLoginUserToAppUser } from '@/types/auth-api.types';
 import { resolvePostLoginPath } from '@/lib/route-access';
-
-const loginBootstrapQueryKey = ['auth', 'me', 'login-bootstrap'] as const;
 
 type LoginLocationState = { from?: { pathname?: string } } | null | undefined;
 
@@ -22,11 +23,11 @@ export function useLoginPage(): { isRestoringSession: boolean } {
   const fromPath = fromState ?? '/';
 
   const bootstrapQuery = useQuery({
-    queryKey: [...loginBootstrapQueryKey, token ?? ''],
+    queryKey: [...authMeQueryKeyBase, token ?? ''],
     queryFn: fetchAuthMe,
     enabled: Boolean(token),
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     retry: false,
   });
 

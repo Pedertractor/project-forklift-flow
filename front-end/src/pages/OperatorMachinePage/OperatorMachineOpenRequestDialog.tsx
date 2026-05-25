@@ -64,8 +64,7 @@ export function OperatorMachineOpenRequestDialog({
     }
   }, [open]);
 
-  const canConfirmSelect =
-    (pickup && canPickup) || (supply && supplyAvailable);
+  const canConfirmSelect = (pickup && canPickup) || (supply && supplyAvailable);
 
   const handlePrimary = async () => {
     if (step === 'suggestion') {
@@ -115,11 +114,7 @@ export function OperatorMachineOpenRequestDialog({
       }
       footer={
         <ModalActions
-          onCancel={
-            step === 'suggestion'
-              ? () => setStep('select')
-              : onClose
-          }
+          onCancel={step === 'suggestion' ? () => setStep('select') : onClose}
           submitLabel={primaryLabel}
           onSubmit={handlePrimary}
           disabled={submitPending || (step === 'select' && !canConfirmSelect)}
@@ -148,15 +143,16 @@ export function OperatorMachineOpenRequestDialog({
             title="Solicitar retirada"
             description="Aciona o transporte para retirar o prisma na máquina."
             hint={!canPickup ? pickupBlockedMessage : undefined}
-          />
-
-          {pickup && canPickup ? (
-            <PickupCriticalCheckbox
-              checked={pickupIsCritical}
-              disabled={submitPending}
-              onChange={setPickupIsCritical}
-            />
-          ) : null}
+          >
+            {canPickup ? (
+              <PickupCriticalCheckbox
+                insideCard
+                checked={pickupIsCritical}
+                disabled={submitPending}
+                onChange={setPickupIsCritical}
+              />
+            ) : null}
+          </ServiceOptionCard>
 
           <ServiceOptionCard
             selected={(supply && supplyAvailable) || supplyAlreadyOpen}
@@ -191,25 +187,27 @@ export function OperatorMachineOpenRequestDialog({
             </p>
           </div>
 
-          {pickup && canPickup ? (
-            <PickupCriticalCheckbox
-              checked={pickupIsCritical}
-              disabled={submitPending}
-              onChange={setPickupIsCritical}
-            />
-          ) : null}
-
           <ul className="m-0 list-none space-y-2 p-0 text-sm text-zinc-700">
-            <li className="flex items-center gap-2">
-              <ArrowDownLeft
-                className="size-4 shrink-0 rounded-full bg-red-200"
-                aria-hidden
-              />
-              Retirada do prisma na máquina
-              {pickupIsCritical ? (
-                <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">
-                  Crítica
-                </span>
+            <li className="flex flex-col gap-2">
+              <span className="flex items-center gap-2">
+                <ArrowDownLeft
+                  className="size-4 shrink-0 rounded-full bg-red-200"
+                  aria-hidden
+                />
+                Retirada do prisma na máquina
+                {pickupIsCritical ? (
+                  <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">
+                    Crítica
+                  </span>
+                ) : null}
+              </span>
+              {pickup && canPickup ? (
+                <PickupCriticalCheckbox
+                  nested
+                  checked={pickupIsCritical}
+                  disabled={submitPending}
+                  onChange={setPickupIsCritical}
+                />
               ) : null}
             </li>
             <li className="flex items-center gap-2">
@@ -225,7 +223,10 @@ export function OperatorMachineOpenRequestDialog({
 
           {supplyAlreadyOpen ? (
             <p className="m-0 flex items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-              <InfoIcon className="mt-0.5 size-4 shrink-0 text-blue-500" aria-hidden />
+              <InfoIcon
+                className="mt-0.5 size-4 shrink-0 text-blue-500"
+                aria-hidden
+              />
               Só é permitida uma solicitação de abastecimento em aberto por vez.
             </p>
           ) : null}
@@ -238,21 +239,46 @@ export function OperatorMachineOpenRequestDialog({
 function PickupCriticalCheckbox({
   checked,
   disabled,
+  insideCard = false,
+  nested = false,
   onChange,
 }: {
   checked: boolean;
   disabled?: boolean;
+  /** Dentro do card «Solicitar retirada». */
+  insideCard?: boolean;
+  /** Abaixo do título na etapa de confirmação. */
+  nested?: boolean;
   onChange: (value: boolean) => void;
 }) {
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3',
-        checked
-          ? 'border-red-200 bg-red-50/80'
-          : 'border-zinc-200 bg-zinc-50',
+        'flex cursor-pointer items-start gap-2.5 text-left',
+        insideCard &&
+          cn(
+            'rounded-lg px-1 py-2',
+            checked ? 'bg-red-50/70' : 'bg-zinc-50/50',
+          ),
+        !insideCard &&
+          nested &&
+          cn(
+            'ml-1 rounded-lg border-l-[3px] py-2 pl-3 pr-2',
+            checked
+              ? 'border-l-red-400 bg-red-50/60'
+              : 'border-l-zinc-300 bg-zinc-50/80',
+          ),
+        !insideCard &&
+          !nested &&
+          cn(
+            'rounded-xl border px-4 py-3',
+            checked
+              ? 'border-red-200 bg-red-50/80'
+              : 'border-zinc-200 bg-zinc-50',
+          ),
         disabled && 'cursor-not-allowed opacity-55',
       )}
+      onClick={(e) => e.stopPropagation()}
     >
       <input
         type="checkbox"
@@ -261,11 +287,15 @@ function PickupCriticalCheckbox({
         onChange={(e) => onChange(e.target.checked)}
         className="mt-0.5 size-4 shrink-0"
       />
-      <span className="text-sm leading-snug text-zinc-800">
+      <span
+        className={cn(
+          'leading-snug text-zinc-800',
+          insideCard || nested ? 'text-xs' : 'text-sm',
+        )}
+      >
         <span className="font-semibold text-zinc-900">Retirada crítica</span>
         <span className="mt-0.5 block text-zinc-600">
-          Prioridade máxima na fila do transporte (sugestão imediata se estiver
-          sozinha).
+          Prioridade máxima na fila do transporte.
         </span>
       </span>
     </label>
@@ -280,6 +310,7 @@ function ServiceOptionCard({
   title,
   description,
   hint,
+  children,
 }: {
   selected: boolean;
   disabled: boolean;
@@ -288,26 +319,49 @@ function ServiceOptionCard({
   title: string;
   description: string;
   hint?: string | null;
+  /** Conteúdo extra dentro do card (ex.: prioridade), só quando selecionado. */
+  children?: ReactNode;
 }) {
+  const showInner = selected && !disabled && children != null;
+
   return (
-    <button
-      type="button"
+    <div
       className={cn(
         serviceCardBase,
         selected && !disabled ? serviceCardSelected : serviceCardIdle,
+        disabled && 'opacity-55',
       )}
-      onClick={onToggle}
-      disabled={disabled}
-      aria-pressed={selected}
     >
-      <span className="flex items-center gap-2 font-semibold text-zinc-900">
-        {icon}
-        {title}
-      </span>
-      <span className="text-sm text-zinc-600">{description}</span>
-      {hint ? (
-        <span className="text-xs leading-relaxed text-amber-800">{hint}</span>
+      <button
+        type="button"
+        className={cn(
+          'flex w-full flex-col gap-2 rounded-2xl text-left outline-none transition-colors',
+          'focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25',
+          disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+          showInner && 'rounded-b-none',
+        )}
+        onClick={onToggle}
+        disabled={disabled}
+        aria-pressed={selected}
+      >
+        <span className="flex items-center gap-2 font-semibold text-zinc-900">
+          {icon}
+          {title}
+        </span>
+        <span className="text-sm text-zinc-600">{description}</span>
+        {hint ? (
+          <span className="text-xs leading-relaxed text-amber-800">{hint}</span>
+        ) : null}
+      </button>
+      {showInner ? (
+        <div
+          className="border-t border-zinc-200/90 px-3 pb-3 pt-2"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
       ) : null}
-    </button>
+    </div>
   );
 }

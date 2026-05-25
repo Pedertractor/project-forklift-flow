@@ -19,7 +19,13 @@ export function PrivateRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (token && meQuery.isPending) {
+  /** Sessão já restaurada do localStorage: entra no app e valida /auth/me em segundo plano. */
+  const awaitingProfile =
+    Boolean(token) &&
+    !user &&
+    (meQuery.isPending || meQuery.isFetching);
+
+  if (awaitingProfile) {
     return <PageLoader />;
   }
 

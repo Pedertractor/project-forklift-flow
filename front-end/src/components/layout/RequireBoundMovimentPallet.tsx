@@ -24,7 +24,7 @@ export function RequireBoundMovimentPallet() {
     return <Outlet />;
   }
 
-  if (myPalletQuery.isLoading) {
+  if (myPalletQuery.isPending && myPalletQuery.fetchStatus !== 'idle') {
     return <PageLoader />;
   }
 

@@ -30,8 +30,9 @@ export function useAuthMe() {
     queryKey: [...authMeQueryKeyBase, token ?? ''],
     queryFn: fetchAuthMe,
     enabled: Boolean(token),
-    staleTime: 0,
-    refetchOnMount: 'always',
+    /** Perfil muda raramente; evita bloquear a UI a cada reload/navegação. */
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     refetchOnWindowFocus: true,
     retry: false,
   });
