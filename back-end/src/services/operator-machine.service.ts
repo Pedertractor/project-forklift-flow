@@ -37,11 +37,11 @@ export async function bindOperatorToMachine(
     throw new OperatorWithoutSectorError()
   }
 
-  const machine = await machineRepository.findUniqueById(machineId)
-  if (!machine) {
+  const targetMachine = await machineRepository.findUniqueById(machineId)
+  if (!targetMachine) {
     throw new MachineNotFoundError()
   }
-  if (machine.sectorId !== user.sectorId) {
+  if (targetMachine.sectorId !== user.sectorId) {
     throw new MachineNotInOperatorSectorError()
   }
 
