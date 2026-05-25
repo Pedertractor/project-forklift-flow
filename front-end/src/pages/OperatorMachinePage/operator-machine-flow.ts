@@ -28,6 +28,7 @@ export const PICKUP_FLOW_STEPS = [
 export const DELIVERY_FLOW_STEPS = [
   { key: 'supply', title: 'Preparo no recebimento' },
   { key: 'awaiting', title: 'Aguardando transporte' },
+  { key: 'transporting', title: 'Transporte a caminho' },
   { key: 'delivering', title: 'Entrega na máquina' },
 ] as const;
 
@@ -210,14 +211,15 @@ export function deriveDeliveryFlowPhaseFromTask(
 export function deliveryFlowStepStatusesFromTask(
   task: DeliveryTaskListItem | null,
 ): FlowStepStatus[] {
-  if (!task) return ['pending', 'pending', 'pending'];
-  if (task.status === 'COMPLETED') return ['done', 'done', 'done'];
+  const pending4: FlowStepStatus[] = ['pending', 'pending', 'pending', 'pending'];
+  if (!task) return pending4;
+  if (task.status === 'COMPLETED') return ['done', 'done', 'done', 'done'];
   if (task.status === 'ASSIGNED' || task.status === 'IN_PROGRESS') {
-    return ['done', 'done', 'active'];
+    return ['done', 'done', 'active', 'pending'];
   }
-  if (task.preparedAt) return ['done', 'active', 'pending'];
-  if (task.acceptedBySupply) return ['active', 'pending', 'pending'];
-  return ['pending', 'pending', 'pending'];
+  if (task.preparedAt) return ['done', 'active', 'pending', 'pending'];
+  if (task.acceptedBySupply) return ['active', 'pending', 'pending', 'pending'];
+  return pending4;
 }
 
 export function deliveryFlowHeadline(

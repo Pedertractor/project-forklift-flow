@@ -36,12 +36,18 @@ export function progressPctFromFlowStepStatuses(
 /** Etapas em que o indicador ativo usa o vídeo da empilhadeira (por título). */
 export const FORKLIFT_LOADER_STEP_TITLES = [
   'Retirada em curso',
+  'Transporte a caminho',
   'Movimentação de empilhadeira em andamento',
   'Movimento em curso',
 ] as const;
 
 /** Chaves dos passos no fluxo da máquina (`operator-machine-flow`). */
-export const FORKLIFT_LOADER_STEP_KEYS = ['deliver', 'removing', 'pickup'] as const;
+export const FORKLIFT_LOADER_STEP_KEYS = [
+  'deliver',
+  'removing',
+  'pickup',
+  'transporting',
+] as const;
 
 export function stepTitleShowsForkliftLoader(title: string): boolean {
   return (FORKLIFT_LOADER_STEP_TITLES as readonly string[]).includes(title);
