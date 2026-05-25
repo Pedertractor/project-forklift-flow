@@ -35,17 +35,13 @@ export function PlantMapMachineDetail({
     <div className={cn('space-y-3', className)}>
       {!hideTitle ? (
         <>
-          <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-zinc-500">Detalhe</h3>
-          <p className="m-0 text-base font-semibold text-zinc-900">{detail.machine.name}</p>
+          <h3 className="m-0 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Detalhe
+          </h3>
+          <p className="m-0 text-base font-semibold text-zinc-900">
+            {detail.machine.name}
+          </p>
         </>
-      ) : null}
-      {!detail.hasMapPlacement ? (
-        <p className="m-0 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-950">
-          <span className="lg:hidden">Posição no mapa ainda não definida (grade automática no desktop).</span>
-          <span className="hidden lg:inline">
-            Posição no mapa: grade automática — arraste o ponto no mapa para fixar a posição.
-          </span>
-        </p>
       ) : null}
       <div className="flex gap-3">
         <img
@@ -56,11 +52,15 @@ export function PlantMapMachineDetail({
         <dl className="min-w-0 flex-1 space-y-2.5 text-xs">
           <div>
             <dt className="text-zinc-500">Setor</dt>
-            <dd className="font-medium text-zinc-900">{detail.machine.sector.typeSector}</dd>
+            <dd className="font-medium text-zinc-900">
+              {detail.machine.sector.typeSector}
+            </dd>
           </div>
           <div>
             <dt className="text-zinc-500">Tipo</dt>
-            <dd className="font-medium text-zinc-900">{detail.machine.typeMachine.name}</dd>
+            <dd className="font-medium text-zinc-900">
+              {detail.machine.typeMachine.name}
+            </dd>
           </div>
           <div>
             <dt className="text-zinc-500">Processo</dt>
@@ -87,11 +87,15 @@ export function PlantMapMachineDetail({
           <dl className="mt-2 grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-md bg-slate-50 px-2 py-1.5">
               <dt className="text-zinc-500">ID</dt>
-              <dd className="font-mono font-medium text-zinc-900">{shortId(detail.openRequest.id)}</dd>
+              <dd className="font-mono font-medium text-zinc-900">
+                {shortId(detail.openRequest.id)}
+              </dd>
             </div>
             <div className="rounded-md bg-slate-50 px-2 py-1.5">
               <dt className="text-zinc-500">Cubo</dt>
-              <dd className="font-medium text-zinc-900">{detail.openRequest.movementCube}</dd>
+              <dd className="font-medium text-zinc-900">
+                {detail.openRequest.movementCube}
+              </dd>
             </div>
             <div className="rounded-md bg-slate-50 px-2 py-1.5">
               <dt className="text-zinc-500">Prioridade</dt>

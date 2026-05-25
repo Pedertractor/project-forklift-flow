@@ -42,17 +42,15 @@ export function PlantMapCreateMachineModal({
   onSectorIdChange,
   types,
   sectors,
-  plantUnit,
   onClose,
   onSubmit,
 }: PlantMapCreateMachineModalProps) {
-  const positionPreview = formatMapPlacement(draftNx, draftNy);
 
   return (
     <SimpleModal
       open={open}
       title="Nova máquina no mapa"
-      description="A posição no desenho já foi definida pelo clique no mapa. Preencha os dados e salve."
+      description="Preencha os dados e salve."
       onClose={() => (!busy ? onClose() : undefined)}
       footer={
         <ModalActions
@@ -69,14 +67,6 @@ export function PlantMapCreateMachineModal({
         </p>
       ) : null}
       <div className="space-y-4">
-        <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-950">
-          <span className="font-medium">Unidade:</span> {PLANT_MAP_UNIT_SHORT_LABEL[plantUnit]}
-          <span className="mx-2 text-sky-300" aria-hidden>
-            ·
-          </span>
-          <span className="font-medium">Posição no mapa:</span>{' '}
-          <span className="font-mono">{positionPreview}</span>
-        </div>
         <div className="space-y-2">
           <Label htmlFor="plant-map-m-name">Nome</Label>
           <Input
@@ -115,7 +105,9 @@ export function PlantMapCreateMachineModal({
             {sectors.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.typeSector}
-                {typeof s.sectorIdAPI === 'number' ? ` (#${s.sectorIdAPI})` : ''}
+                {typeof s.sectorIdAPI === 'number'
+                  ? ` (#${s.sectorIdAPI})`
+                  : ''}
               </option>
             ))}
           </select>
