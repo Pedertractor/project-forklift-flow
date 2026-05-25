@@ -12,6 +12,8 @@ import { ArrowDownLeft, ArrowUpRight, InfoIcon, Lightbulb } from 'lucide-react';
 export type OperatorServiceSelection = {
   pickup: boolean;
   supply: boolean;
+  /** Quando `pickup` é true: prioridade máxima na fila do transporte. */
+  pickupIsCritical?: boolean;
 };
 
 const serviceCardBase =
@@ -43,6 +45,7 @@ export function OperatorMachineOpenRequestDialog({
   onSubmit,
 }: OperatorMachineOpenRequestDialogProps) {
   const [pickup, setPickup] = useState(false);
+  const [pickupIsCritical, setPickupIsCritical] = useState(false);
   const [supply, setSupply] = useState(false);
   const [step, setStep] = useState<'select' | 'suggestion'>('select');
 
@@ -55,6 +58,7 @@ export function OperatorMachineOpenRequestDialog({
   useEffect(() => {
     if (!open) {
       setPickup(false);
+      setPickupIsCritical(false);
       setSupply(false);
       setStep('select');
     }
@@ -65,7 +69,11 @@ export function OperatorMachineOpenRequestDialog({
 
   const handlePrimary = async () => {
     if (step === 'suggestion') {
-      await onSubmit({ pickup, supply: supplyInRequest });
+      await onSubmit({
+        pickup,
+        supply: supplyInRequest,
+        pickupIsCritical: pickup && pickupIsCritical,
+      });
       return;
     }
     if (!canConfirmSelect) return;
@@ -76,6 +84,7 @@ export function OperatorMachineOpenRequestDialog({
     await onSubmit({
       pickup: pickup && canPickup,
       supply: (supply && supplyAvailable) || supplyAlreadyOpen,
+      pickupIsCritical: pickup && canPickup && pickupIsCritical,
     });
   };
 
@@ -122,7 +131,14 @@ export function OperatorMachineOpenRequestDialog({
           <ServiceOptionCard
             selected={pickup}
             disabled={!canPickup}
-            onToggle={() => canPickup && setPickup((v) => !v)}
+            onToggle={() => {
+              if (!canPickup) return;
+              setPickup((v) => {
+                const next = !v;
+                if (!next) setPickupIsCritical(false);
+                return next;
+              });
+            }}
             icon={
               <ArrowDownLeft
                 className="size-5 shrink-0 rounded-full bg-red-200 p-0.5"
@@ -133,6 +149,14 @@ export function OperatorMachineOpenRequestDialog({
             description="Aciona o transporte para retirar o prisma na máquina."
             hint={!canPickup ? pickupBlockedMessage : undefined}
           />
+
+          {pickup && canPickup ? (
+            <PickupCriticalCheckbox
+              checked={pickupIsCritical}
+              disabled={submitPending}
+              onChange={setPickupIsCritical}
+            />
+          ) : null}
 
           <ServiceOptionCard
             selected={(supply && supplyAvailable) || supplyAlreadyOpen}
@@ -167,6 +191,14 @@ export function OperatorMachineOpenRequestDialog({
             </p>
           </div>
 
+          {pickup && canPickup ? (
+            <PickupCriticalCheckbox
+              checked={pickupIsCritical}
+              disabled={submitPending}
+              onChange={setPickupIsCritical}
+            />
+          ) : null}
+
           <ul className="m-0 list-none space-y-2 p-0 text-sm text-zinc-700">
             <li className="flex items-center gap-2">
               <ArrowDownLeft
@@ -174,6 +206,11 @@ export function OperatorMachineOpenRequestDialog({
                 aria-hidden
               />
               Retirada do prisma na máquina
+              {pickupIsCritical ? (
+                <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">
+                  Crítica
+                </span>
+              ) : null}
             </li>
             <li className="flex items-center gap-2">
               <ArrowUpRight
@@ -195,6 +232,43 @@ export function OperatorMachineOpenRequestDialog({
         </div>
       )}
     </SimpleModal>
+  );
+}
+
+function PickupCriticalCheckbox({
+  checked,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        'flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3',
+        checked
+          ? 'border-red-200 bg-red-50/80'
+          : 'border-zinc-200 bg-zinc-50',
+        disabled && 'cursor-not-allowed opacity-55',
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 size-4 shrink-0"
+      />
+      <span className="text-sm leading-snug text-zinc-800">
+        <span className="font-semibold text-zinc-900">Retirada crítica</span>
+        <span className="mt-0.5 block text-zinc-600">
+          Prioridade máxima na fila do transporte (sugestão imediata se estiver
+          sozinha).
+        </span>
+      </span>
+    </label>
   );
 }
 

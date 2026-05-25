@@ -123,8 +123,11 @@ export const postRequestPickupOnly: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
+  const body = (request.body ?? {}) as { isCritical?: boolean }
   try {
-    const result = await requestPickupOnly(user.sub)
+    const result = await requestPickupOnly(user.sub, {
+      isCritical: body.isCritical === true,
+    })
     return reply.status(201).send(result)
   } catch (error) {
     if (error instanceof OperatorMachineNotBoundError) {
@@ -161,8 +164,11 @@ export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
+  const body = (request.body ?? {}) as { isCritical?: boolean }
   try {
-    const result = await requestPickupWithReplenishment(user.sub)
+    const result = await requestPickupWithReplenishment(user.sub, {
+      isCritical: body.isCritical === true,
+    })
     return reply.status(201).send(result)
   } catch (error) {
     if (error instanceof OperatorMachineNotBoundError) {

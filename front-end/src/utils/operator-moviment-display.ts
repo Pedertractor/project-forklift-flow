@@ -1,15 +1,17 @@
 import type { PriorityLevelApi, TypeMovimentPalletApi } from '@/types/operator-moviment-pallet.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
+/** `VERY_HIGH` / `HIGH` legados = crítico; demais = normal. */
+export function isCriticalPriority(level: PriorityLevelApi): boolean {
+  return level === 'VERY_HIGH' || level === 'HIGH';
+}
+
+export function criticalLabel(isCritical: boolean): string {
+  return isCritical ? 'Crítico' : 'Normal';
+}
+
 export function priorityLabel(level: PriorityLevelApi): string {
-  switch (level) {
-    case 'VERY_HIGH':
-      return 'Muito alta';
-    case 'HIGH':
-      return 'Alta';
-    default:
-      return 'Normal';
-  }
+  return criticalLabel(isCriticalPriority(level));
 }
 
 export function movimentTypeLabel(type: TypeMovimentPalletApi): string {

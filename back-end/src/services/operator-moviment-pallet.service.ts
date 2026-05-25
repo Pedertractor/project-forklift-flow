@@ -38,7 +38,10 @@ import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
 import {
   isOpenTripTaskPairValid,
   movimentPalletTripSuggestionRepository,
+  type MovimentPalletTripSuggestionWithTasks,
 } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
+import type { DeliveryTaskListRow } from '../repositories/delivery-task.repository.js'
+import type { PickupTaskListRow } from '../repositories/pickup-task.repository.js'
 import { movimentPalletRepository } from '../repositories/moviment-pallet.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import {
@@ -79,6 +82,175 @@ function sortByCritical<T extends { isCritical: boolean; createdAt: Date }>(item
     }
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   })
+}
+
+type LinkedOpenTripTaskIds = {
+  deliverIds: Set<string>
+  pickupIds: Set<string>
+}
+
+function linkedOpenTripTaskIdsFromRows(
+  rows: MovimentPalletTripSuggestionWithTasks[],
+): LinkedOpenTripTaskIds {
+  const deliverIds = new Set<string>()
+  const pickupIds = new Set<string>()
+  for (const row of rows) {
+    const d = row.deliverTask
+    const p = row.pickupTask
+    if (
+      !isOpenTripTaskPairValid(
+        d.status,
+        p.status,
+        d.machineId,
+        p.machineId,
+        d.preparedAt != null,
+      )
+    ) {
+      continue
+    }
+    deliverIds.add(row.deliverTaskId)
+    pickupIds.add(row.pickupTaskId)
+  }
+  return { deliverIds, pickupIds }
+}
+
+async function linkedOpenTripTaskIdsForSector(
+  sectorId: string,
+  types: TypeMovimentPallet[],
+): Promise<LinkedOpenTripTaskIds> {
+  const rows =
+    await movimentPalletTripSuggestionRepository.findManyOpenListableForOperator(
+      sectorId,
+      types,
+    )
+  return linkedOpenTripTaskIdsFromRows(rows)
+}
+
+type StandalonePickupSuggestionRow = {
+  kind: 'PICKUP_ONLY_AT_MACHINE'
+  typeMovimentPallet: TypeMovimentPallet
+  effectiveCritical: boolean
+  deferRecommended: boolean
+  machine: { id: string; name: string; position: string }
+  message: string
+  suggestedOrder: []
+  pickupTask: PickupTaskListRow
+}
+
+type StandaloneDeliverSuggestionRow = {
+  kind: 'DELIVER_ONLY_TO_MACHINE'
+  typeMovimentPallet: TypeMovimentPallet
+  effectiveCritical: boolean
+  deferRecommended: boolean
+  machine: { id: string; name: string; position: string }
+  message: string
+  suggestedOrder: []
+  requestId: string
+  deliverTask: DeliveryTaskListRow
+}
+
+function mapStandalonePickupRow(task: PickupTaskListRow): StandalonePickupSuggestionRow {
+  const machine = task.machine!
+  return {
+    kind: 'PICKUP_ONLY_AT_MACHINE',
+    typeMovimentPallet: task.typeMovimentPallet,
+    effectiveCritical: task.isCritical,
+    deferRecommended: false,
+    machine: {
+      id: machine.id,
+      name: machine.name,
+      position: machine.position,
+    },
+    message: `Na maquina ${machine.name} (${machine.position}): retirada solicitada — aceite para levar o pallet a expedicao.`,
+    suggestedOrder: [],
+    pickupTask: task,
+  }
+}
+
+function mapStandaloneDeliverRow(task: DeliveryTaskListRow): StandaloneDeliverSuggestionRow {
+  const machine = task.machine!
+  return {
+    kind: 'DELIVER_ONLY_TO_MACHINE',
+    typeMovimentPallet: task.typeMovimentPallet,
+    effectiveCritical: task.isCritical,
+    deferRecommended: false,
+    machine: {
+      id: machine.id,
+      name: machine.name,
+      position: machine.position,
+    },
+    message: `Entregar prisma ${task.movementCube} na maquina ${machine.name} (${machine.position}).`,
+    suggestedOrder: [],
+    requestId: task.id,
+    deliverTask: task,
+  }
+}
+
+async function listStandaloneTripTasksForSector(
+  sectorId: string,
+  role: RoleUser,
+  linked: LinkedOpenTripTaskIds,
+): Promise<{
+  standalonePickupTasks: StandalonePickupSuggestionRow[]
+  standaloneDeliverTasks: StandaloneDeliverSuggestionRow[]
+}> {
+  const standalonePickupTasks: StandalonePickupSuggestionRow[] = []
+  const standaloneDeliverTasks: StandaloneDeliverSuggestionRow[] = []
+  const equipmentTypes = equipmentTypesAllowedForRole(role)
+
+  for (const equipmentType of equipmentTypes) {
+    const [deliveries, pickups] = await Promise.all([
+      deliveryTaskRepository.findManyOpenPoolForSectorAndMovimentType(
+        sectorId,
+        equipmentType,
+      ),
+      pickupTaskRepository.findManyOpenPickupForSectorAndMovimentType(
+        sectorId,
+        equipmentType,
+      ),
+    ])
+
+    for (const pickup of pickups) {
+      if (pickup.status !== MachineTaskStatus.CREATED) continue
+      if (pickup.assignedMovimentPalletId) continue
+      if (linked.pickupIds.has(pickup.id)) continue
+      if (!pickup.isCritical) continue
+      if (!pickup.machine) continue
+      standalonePickupTasks.push(mapStandalonePickupRow(pickup))
+    }
+
+    for (const deliver of deliveries) {
+      if (linked.deliverIds.has(deliver.id)) continue
+      if (!deliver.isCritical) continue
+      if (!deliver.machine) continue
+      standaloneDeliverTasks.push(mapStandaloneDeliverRow(deliver))
+    }
+  }
+
+  const byTaskUrgency = (
+    a: { effectiveCritical: boolean; createdAt: Date },
+    b: { effectiveCritical: boolean; createdAt: Date },
+  ) => {
+    if (a.effectiveCritical !== b.effectiveCritical) {
+      return a.effectiveCritical ? -1 : 1
+    }
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  }
+
+  standalonePickupTasks.sort((a, b) =>
+    byTaskUrgency(
+      { effectiveCritical: a.effectiveCritical, createdAt: a.pickupTask.createdAt },
+      { effectiveCritical: b.effectiveCritical, createdAt: b.pickupTask.createdAt },
+    ),
+  )
+  standaloneDeliverTasks.sort((a, b) =>
+    byTaskUrgency(
+      { effectiveCritical: a.effectiveCritical, createdAt: a.deliverTask.createdAt },
+      { effectiveCritical: b.effectiveCritical, createdAt: b.deliverTask.createdAt },
+    ),
+  )
+
+  return { standalonePickupTasks, standaloneDeliverTasks }
 }
 
 async function assertNoIncompleteTasks(palletId: string, excludeIds: string[] = []) {
@@ -151,6 +323,10 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId)
   if (!user?.sectorId) return { deliveryTasks: [], pickupTasks: [] }
 
+  const poolTypes = openPoolTypesForEquipment(pallet.type)
+  await syncTripSuggestions(user.sectorId, poolTypes)
+  const linked = await linkedOpenTripTaskIdsForSector(user.sectorId, poolTypes)
+
   const [deliveryTasks, pickupTasks] = await Promise.all([
     deliveryTaskRepository.findManyOpenPoolForSectorAndMovimentType(
       user.sectorId,
@@ -162,11 +338,23 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
     ),
   ])
 
+  /** Fila manual: avulsas nao criticas e fora de sugestao combinada (criticas vao na tela principal). */
+  const openDeliveryTasks = deliveryTasks.filter(
+    (t) => !linked.deliverIds.has(t.id) && !t.isCritical,
+  )
+  const openPickupTasks = pickupTasks.filter(
+    (t) =>
+      t.status === MachineTaskStatus.CREATED &&
+      !t.assignedMovimentPalletId &&
+      !linked.pickupIds.has(t.id) &&
+      !t.isCritical,
+  )
+
   return {
-    deliveryTasks: sortByCritical(deliveryTasks),
-    pickupTasks: sortByCritical(pickupTasks),
-    requests: deliveryTasks,
-    onMachinePickupTasks: pickupTasks,
+    deliveryTasks: sortByCritical(openDeliveryTasks),
+    pickupTasks: sortByCritical(openPickupTasks),
+    requests: openDeliveryTasks,
+    onMachinePickupTasks: openPickupTasks,
   }
 }
 
@@ -270,12 +458,22 @@ export async function listTripRouteSuggestionsForOperator(
 ) {
   const types = poolTypesForRole(role)
   if (types.length === 0) {
-    return { suggestions: [], priorityContext: { hasCritical: false } }
+    return {
+      suggestions: [],
+      standalonePickupTasks: [],
+      standaloneDeliverTasks: [],
+      priorityContext: { hasCritical: false },
+    }
   }
 
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId)
   if (!user?.sectorId) {
-    return { suggestions: [], priorityContext: { hasCritical: false } }
+    return {
+      suggestions: [],
+      standalonePickupTasks: [],
+      standaloneDeliverTasks: [],
+      priorityContext: { hasCritical: false },
+    }
   }
 
   await syncTripSuggestions(user.sectorId, types)
@@ -319,13 +517,34 @@ export async function listTripRouteSuggestionsForOperator(
         updatedAt: row.updatedAt,
       },
     }))
+    .sort((a, b) => {
+      if (a.effectiveCritical !== b.effectiveCritical) {
+        return a.effectiveCritical ? -1 : 1
+      }
+      const aAt = Math.min(
+        new Date(a.deliverTask.createdAt).getTime(),
+        new Date(a.pickupTask.createdAt).getTime(),
+      )
+      const bAt = Math.min(
+        new Date(b.deliverTask.createdAt).getTime(),
+        new Date(b.pickupTask.createdAt).getTime(),
+      )
+      return aAt - bAt
+    })
 
-  const hasCritical = suggestions.some((s) => s.effectiveCritical)
+  const linked = linkedOpenTripTaskIdsFromRows(rows)
+  const { standalonePickupTasks, standaloneDeliverTasks } =
+    await listStandaloneTripTasksForSector(user.sectorId, role, linked)
+
+  const hasCritical =
+    suggestions.some((s) => s.effectiveCritical) ||
+    standalonePickupTasks.some((s) => s.effectiveCritical) ||
+    standaloneDeliverTasks.some((s) => s.effectiveCritical)
 
   return {
     suggestions,
-    standalonePickupTasks: [],
-    standaloneDeliverTasks: [],
+    standalonePickupTasks,
+    standaloneDeliverTasks,
     priorityContext: {
       hasCritical,
       hint: hasCritical

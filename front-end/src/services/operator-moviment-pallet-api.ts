@@ -17,6 +17,7 @@ import type {
   OperatorRequestUserBrief,
   PriorityLevelApi,
   TripSuggestionsResponse,
+  TypeMovimentPalletApi,
 } from '@/types/operator-moviment-pallet.types';
 
 type DeliveryTaskApiRow = DeliveryTaskListItem & {
@@ -294,11 +295,32 @@ type TripSuggestionApiRow = {
   tripSuggestion: TripSuggestionsResponse['suggestions'][0]['tripSuggestion'];
 };
 
+type TripStandalonePickupApiRow = {
+  kind: string;
+  typeMovimentPallet?: TypeMovimentPalletApi;
+  effectiveCritical?: boolean;
+  deferRecommended?: boolean;
+  machine: { id: string; name: string; position: string };
+  message: string;
+  pickupTask: PickupTaskApiRow;
+};
+
+type TripStandaloneDeliverApiRow = {
+  kind: string;
+  typeMovimentPallet?: TypeMovimentPalletApi;
+  effectiveCritical?: boolean;
+  deferRecommended?: boolean;
+  machine: { id: string; name: string; position: string };
+  message: string;
+  requestId: string;
+  deliverTask: DeliveryTaskApiRow;
+};
+
 export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsResponse> {
   const res = await apiAuthFetch<{
     suggestions?: TripSuggestionApiRow[];
-    standalonePickupTasks?: unknown[];
-    standaloneDeliverTasks?: unknown[];
+    standalonePickupTasks?: TripStandalonePickupApiRow[];
+    standaloneDeliverTasks?: TripStandaloneDeliverApiRow[];
     priorityContext?: { hasCritical?: boolean; hint?: string };
   }>(API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.TRIP_SUGGESTIONS, { method: 'GET' });
 
@@ -324,8 +346,27 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
       pickupTask: mapPickupTaskToQueueItem(s.pickupTask),
       tripSuggestion: s.tripSuggestion,
     })),
-    standalonePickupTasks: [],
-    standaloneDeliverTasks: [],
+    standalonePickupTasks: (res.standalonePickupTasks ?? []).map((row) => ({
+      kind: 'PICKUP_ONLY_AT_MACHINE' as const,
+      typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
+      effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+      deferRecommended: row.deferRecommended ?? false,
+      machine: row.machine,
+      message: row.message,
+      suggestedOrder: [],
+      pickupTask: mapPickupTaskToQueueItem(row.pickupTask),
+    })),
+    standaloneDeliverTasks: (res.standaloneDeliverTasks ?? []).map((row) => ({
+      kind: 'DELIVER_ONLY_TO_MACHINE' as const,
+      typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
+      effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+      deferRecommended: row.deferRecommended ?? false,
+      machine: row.machine,
+      message: row.message,
+      suggestedOrder: [],
+      requestId: row.requestId,
+      deliverTask: mapDeliveryToTaskItem(row.deliverTask),
+    })),
     priorityContext: {
       mostUrgentOpenInSector: res.priorityContext?.hasCritical ? 'VERY_HIGH' : null,
       hint: res.priorityContext?.hint,

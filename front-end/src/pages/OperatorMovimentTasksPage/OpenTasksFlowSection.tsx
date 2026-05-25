@@ -122,7 +122,7 @@ function groupOpenTasks(
     ) {
       group.createdAt = task.createdAt;
     }
-    const rank = { VERY_HIGH: 0, HIGH: 1, NORMAL: 2 };
+    const rank = { VERY_HIGH: 0, HIGH: 0, NORMAL: 1 };
     if (rank[task.request.priorityLevel] < rank[group.priority]) {
       group.priority = task.request.priorityLevel;
     }

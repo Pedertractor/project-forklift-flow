@@ -2,22 +2,38 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 /**
- * Contrato: retiradas PICKUP em ON_MACHINE sem entrega DELIVER em aberto na
- * mesma rodada de pareamento entram como "standalone" para o empilhadeirista.
- * (Antes da correcao, o servico ignorava pickups quando delivers.length === 0.)
+ * Contrato: tarefas em sugestao de viagem OPEN nao aparecem como avulsas;
+ * apenas pickups/entregas fora do par vinculado entram na fila standalone.
  */
 test('pickup-only queue: todos os pickups ficam sem par quando nao ha entregas', () => {
-  const pairedPickupIds = new Set<string>()
+  const linkedPickupIds = new Set<string>()
   const openPickupIds = ['pickup-a']
-  const standalone = openPickupIds.filter((id) => !pairedPickupIds.has(id))
+  const standalone = openPickupIds.filter((id) => !linkedPickupIds.has(id))
   assert.deepEqual(standalone, ['pickup-a'])
 })
 
-test('pickup-only queue: pickup pareado com entrega nao entra duas vezes', () => {
-  const pairedPickupIds = new Set(['pickup-a'])
+test('pickup-only queue: pickup vinculado a sugestao nao lista como avulso', () => {
+  const linkedPickupIds = new Set(['pickup-a'])
   const openPickupIds = ['pickup-a', 'pickup-b']
-  const standalone = openPickupIds.filter((id) => !pairedPickupIds.has(id))
+  const standalone = openPickupIds.filter((id) => !linkedPickupIds.has(id))
   assert.deepEqual(standalone, ['pickup-b'])
+})
+
+test('entrega vinculada a sugestao nao lista como avulsa', () => {
+  const linkedDeliverIds = new Set(['deliver-a'])
+  const openDeliverIds = ['deliver-a', 'deliver-b']
+  const standalone = openDeliverIds.filter((id) => !linkedDeliverIds.has(id))
+  assert.deepEqual(standalone, ['deliver-b'])
+})
+
+test('tela principal: avulsa so entra se for critica', () => {
+  const tasks = [
+    { id: 'd1', isCritical: true, linked: false },
+    { id: 'd2', isCritical: false, linked: false },
+    { id: 'd3', isCritical: true, linked: true },
+  ]
+  const mainScreen = tasks.filter((t) => !t.linked && t.isCritical).map((t) => t.id)
+  assert.deepEqual(mainScreen, ['d1'])
 })
 
 test('pickup-only queue: mesmo pickup id nao deve aparecer duas vezes na lista', () => {

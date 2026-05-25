@@ -53,8 +53,8 @@ Par **entrega + retirada** na mesma máquina. Criada quando operador solicita **
 
 | Método | Rota | Efeito |
 |--------|------|--------|
-| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) se há ao menos uma entrega concluída na máquina; **várias retiradas** permitidas |
-| `POST` | `/pickup-with-replenishment` | Cria `PickupTask` + `OperatorMachineSupplyRequest` OPEN (se ainda não houver); sincroniza sugestão de viagem se houver `DeliveryTask` pronta |
+| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) se há ao menos uma entrega concluída na máquina; body opcional `{ isCritical?: boolean }` |
+| `POST` | `/pickup-with-replenishment` | Cria `PickupTask` + `OperatorMachineSupplyRequest` OPEN (se ainda não houver); body opcional `{ isCritical?: boolean }`; sincroniza sugestão de viagem se houver `DeliveryTask` pronta |
 | `GET` | `/machine-tasks` | Lista `deliveryTasks` e `pickupTasks` da máquina vinculada |
 
 **Removido:** `finalize`, `replenishment-requests`, pickup por `requestId`.
@@ -82,12 +82,14 @@ Body de criação: `machineId`, `movementCube`, `typeMovimentPallet`, `isCritica
 | `POST` | `/tasks/:id/accept-pickup` | Aceita retirada |
 | `POST` | `/tasks/:id/complete-deliver` | Conclui entrega na máquina |
 | `POST` | `/tasks/:id/complete-pickup` | Conclui retirada na expedição |
-| `GET` | `/trip-suggestions` | Pares entrega+retirada (retirada com `triggersReplenishment`) |
+| `GET` | `/trip-suggestions` | Tela principal: par entrega+retirada (2 tarefas) **ou** tarefa avulsa **somente se** `isCritical`; tarefas do par nao repetem como avulsas |
 | `POST` | `/trip-suggestions/:id/accept` | Aceita rota combinada |
 
 **Removido:** aceitar `MachineReplenishmentRequest`.
 
-Ordenação da fila: `isCritical` desc, depois `createdAt` asc.
+Ordenação: `isCritical` desc, depois `createdAt` asc (sugestoes combinadas e avulsas criticas na mesma ordem de prioridade).
+
+**Fila manual** (`/open-tasks`): somente avulsas **nao criticas** e fora de sugestao combinada.
 
 ---
 

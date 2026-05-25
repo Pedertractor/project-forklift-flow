@@ -77,6 +77,11 @@ export type OperatorMachineTaskListRow =
       triggersReplenishment?: false;
     };
 
+const TERMINAL_MACHINE_TASK_STATUSES = new Set<MachineTaskStatusValue>([
+  'COMPLETED',
+  'CANCELED',
+]);
+
 export function buildOperatorMachineTaskRows(
   deliveryTasks: DeliveryTaskListItem[],
   pickupTasks: PickupTaskListItem[],
@@ -85,6 +90,7 @@ export function buildOperatorMachineTaskRows(
   const rows: OperatorMachineTaskListRow[] = [];
 
   for (const t of deliveryTasks) {
+    if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
     rows.push({
       kind: 'DELIVERY',
       id: t.id,
@@ -97,6 +103,7 @@ export function buildOperatorMachineTaskRows(
   }
 
   for (const t of pickupTasks) {
+    if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
     rows.push({
       kind: 'PICKUP',
       id: t.id,
@@ -115,6 +122,7 @@ export function buildOperatorMachineTaskRows(
   }
 
   for (const s of supplyRequests) {
+    if (s.status !== 'OPEN') continue;
     const statusLabel =
       s.status === 'OPEN'
         ? 'Aguardando abastecimento registrar entrega'

@@ -167,7 +167,8 @@ export function useOperatorMachinePage() {
   });
 
   const pickupOnlyMut = useMutation({
-    mutationFn: postOperatorPickupOnly,
+    mutationFn: (isCritical?: boolean) =>
+      postOperatorPickupOnly({ isCritical: isCritical === true }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       toast.success('Retirada solicitada. O transporte será acionado.');
@@ -176,7 +177,8 @@ export function useOperatorMachinePage() {
   });
 
   const pickupWithReplenishmentMut = useMutation({
-    mutationFn: postOperatorPickupWithReplenishment,
+    mutationFn: (isCritical?: boolean) =>
+      postOperatorPickupWithReplenishment({ isCritical: isCritical === true }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
@@ -203,9 +205,11 @@ export function useOperatorMachinePage() {
   const submitServiceRequest = async (selection: {
     pickup: boolean;
     supply: boolean;
+    pickupIsCritical?: boolean;
   }) => {
-    const { pickup, supply } = selection;
+    const { pickup, supply, pickupIsCritical } = selection;
     if (!pickup && !supply) return;
+    const critical = pickupIsCritical === true;
 
     if (supply && !pickup) {
       await supplyOnlyMut.mutateAsync();
@@ -213,12 +217,12 @@ export function useOperatorMachinePage() {
     }
 
     if (pickup && supply) {
-      await pickupWithReplenishmentMut.mutateAsync();
+      await pickupWithReplenishmentMut.mutateAsync(critical);
       return;
     }
 
     if (pickup) {
-      await pickupOnlyMut.mutateAsync();
+      await pickupOnlyMut.mutateAsync(critical);
     }
   };
 

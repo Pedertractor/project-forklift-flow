@@ -279,6 +279,63 @@ function StandalonePickupRouteCard({
   );
 }
 
+type MainTripQueueItem =
+  | {
+      displayKind: 'combined';
+      critical: boolean;
+      sortAt: number;
+      combined: TripCombinedSuggestionApi;
+    }
+  | {
+      displayKind: 'deliver';
+      critical: boolean;
+      sortAt: number;
+      deliver: TripStandaloneDeliverApi;
+    }
+  | {
+      displayKind: 'pickup';
+      critical: boolean;
+      sortAt: number;
+      pickup: TripStandalonePickupApi;
+    };
+
+function buildMainTripQueueItems(
+  combined: TripCombinedSuggestionApi[],
+  standaloneDelivers: TripStandaloneDeliverApi[],
+  standalonePickups: TripStandalonePickupApi[],
+): MainTripQueueItem[] {
+  const items: MainTripQueueItem[] = [
+    ...combined.map((row) => ({
+      displayKind: 'combined' as const,
+      critical: row.effectivePriority === 'VERY_HIGH',
+      sortAt: Math.min(
+        new Date(row.deliverTask.createdAt).getTime(),
+        new Date(row.pickupTask.createdAt).getTime(),
+      ),
+      combined: row,
+    })),
+    ...standaloneDelivers.map((row) => ({
+      displayKind: 'deliver' as const,
+      critical: row.effectivePriority === 'VERY_HIGH',
+      sortAt: new Date(row.deliverTask.createdAt).getTime(),
+      deliver: row,
+    })),
+    ...standalonePickups.map((row) => ({
+      displayKind: 'pickup' as const,
+      critical: row.effectivePriority === 'VERY_HIGH',
+      sortAt: new Date(row.pickupTask.createdAt).getTime(),
+      pickup: row,
+    })),
+  ];
+
+  return items.sort((a, b) => {
+    if (a.critical !== b.critical) {
+      return a.critical ? -1 : 1;
+    }
+    return a.sortAt - b.sortAt;
+  });
+}
+
 export interface TripSuggestionsFlowSectionProps {
   tripQuery: UseQueryResult<TripSuggestionsResponse, Error>;
   bound: boolean;
@@ -338,15 +395,25 @@ export function TripSuggestionsFlowSection({
   const seenCombinedPickupIds = new Set(
     combined.map((row) => row.pickupTask.id),
   );
+  const seenCombinedDeliverIds = new Set(
+    combined.map((row) => row.deliverTask.id),
+  );
   const standalonePickupsWithoutCombinedOverlap = standalonePickups.filter(
     (row) => !seenCombinedPickupIds.has(row.pickupTask.id),
   );
-  const standaloneDelivers = data.standaloneDeliverTasks ?? [];
-  if (
-    combined.length === 0 &&
-    standalonePickupsWithoutCombinedOverlap.length === 0 &&
-    standaloneDelivers.length === 0
-  ) {
+  const standaloneDelivers = (data.standaloneDeliverTasks ?? []).filter(
+    (row) => {
+      const deliverId = row.deliverTask?.id ?? row.requestId;
+      return !seenCombinedDeliverIds.has(deliverId);
+    },
+  );
+  const mainQueue = buildMainTripQueueItems(
+    combined,
+    standaloneDelivers,
+    standalonePickupsWithoutCombinedOverlap,
+  );
+
+  if (mainQueue.length === 0) {
     return null;
   }
 
@@ -362,32 +429,39 @@ export function TripSuggestionsFlowSection({
       ) : null}
 
       <div className="space-y-5">
-        {combined.map((row) => (
-          <CombinedRouteCard
-            key={row.tripSuggestion.id}
-            row={row}
-            bound={bound}
-            busy={busy}
-            isAcceptingThisTrip={
-              pendingTripSuggestionId === row.tripSuggestion.id
-            }
-            onAcceptTrip={onAcceptTrip}
-          />
-        ))}
-        {standaloneDelivers.map((row) => {
-          const acceptKey = row.deliverTask?.id ?? `pool:${row.requestId}`;
-          return (
-            <StandaloneDeliverRouteCard
-              key={`deliver-${row.machine.id}-${acceptKey}`}
-              row={row}
-              bound={bound}
-              busy={busy}
-              isAcceptingThisDeliver={pendingStandaloneDeliverKey === acceptKey}
-              onAcceptDeliver={onAcceptStandaloneDeliver}
-            />
-          );
-        })}
-        {standalonePickupsWithoutCombinedOverlap.map((row) => {
+        {mainQueue.map((item) => {
+          if (item.displayKind === 'combined') {
+            const row = item.combined;
+            return (
+              <CombinedRouteCard
+                key={row.tripSuggestion.id}
+                row={row}
+                bound={bound}
+                busy={busy}
+                isAcceptingThisTrip={
+                  pendingTripSuggestionId === row.tripSuggestion.id
+                }
+                onAcceptTrip={onAcceptTrip}
+              />
+            );
+          }
+          if (item.displayKind === 'deliver') {
+            const row = item.deliver;
+            const acceptKey = row.deliverTask?.id ?? `pool:${row.requestId}`;
+            return (
+              <StandaloneDeliverRouteCard
+                key={`deliver-${row.machine.id}-${acceptKey}`}
+                row={row}
+                bound={bound}
+                busy={busy}
+                isAcceptingThisDeliver={
+                  pendingStandaloneDeliverKey === acceptKey
+                }
+                onAcceptDeliver={onAcceptStandaloneDeliver}
+              />
+            );
+          }
+          const row = item.pickup;
           const taskId = row.pickupTask.id;
           return (
             <StandalonePickupRouteCard
@@ -396,7 +470,9 @@ export function TripSuggestionsFlowSection({
               bound={bound}
               busy={busy}
               taskId={taskId}
-              isAcceptingThisPickup={pendingStandalonePickupTaskId === taskId}
+              isAcceptingThisPickup={
+                pendingStandalonePickupTaskId === taskId
+              }
               onAcceptPickup={onAcceptStandalonePickup}
             />
           );

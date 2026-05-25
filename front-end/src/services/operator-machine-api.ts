@@ -73,10 +73,13 @@ export async function fetchOperatorSupplyRequests(status?: string) {
   return res?.operatorSupplyRequests ?? [];
 }
 
-export async function postOperatorPickupOnly() {
+export async function postOperatorPickupOnly(options?: { isCritical?: boolean }) {
   const res = await apiAuthFetch<{ pickupTask: PickupTaskListItem }>(
     API_ENDPOINTS.OPERATOR_MACHINE.PICKUP_ONLY,
-    { method: 'POST' },
+    {
+      method: 'POST',
+      body: JSON.stringify({ isCritical: options?.isCritical === true }),
+    },
   );
   if (!res?.pickupTask) {
     throw new Error('Resposta inválida ao solicitar retirada.');
@@ -106,11 +109,16 @@ export async function postOperatorSupplyOnly() {
   return res;
 }
 
-export async function postOperatorPickupWithReplenishment() {
+export async function postOperatorPickupWithReplenishment(options?: {
+  isCritical?: boolean;
+}) {
   const res = await apiAuthFetch<{
     pickupTask: PickupTaskListItem;
     operatorSupplyRequest: { id: string; status: string };
-  }>(API_ENDPOINTS.OPERATOR_MACHINE.PICKUP_WITH_REPLENISHMENT, { method: 'POST' });
+  }>(API_ENDPOINTS.OPERATOR_MACHINE.PICKUP_WITH_REPLENISHMENT, {
+    method: 'POST',
+    body: JSON.stringify({ isCritical: options?.isCritical === true }),
+  });
   if (!res?.pickupTask) {
     throw new Error('Resposta inválida ao solicitar retirada e abastecimento.');
   }

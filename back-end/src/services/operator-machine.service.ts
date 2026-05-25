@@ -107,7 +107,10 @@ async function resolveTypeForMachine(machineId: string): Promise<TypeMovimentPal
 }
 
 /** Somente retirada do prisma na maquina. */
-export async function requestPickupOnly(operatorUserId: string) {
+export async function requestPickupOnly(
+  operatorUserId: string,
+  options?: { isCritical?: boolean },
+) {
   const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
   if (!machine) {
     throw new OperatorMachineNotBoundError()
@@ -121,6 +124,7 @@ export async function requestPickupOnly(operatorUserId: string) {
     requestedBy: { connect: { id: operatorUserId } },
     typeMovimentPallet,
     triggersReplenishment: false,
+    isCritical: options?.isCritical === true,
     status: MachineTaskStatus.CREATED,
   })
 
@@ -163,7 +167,10 @@ export async function requestSupplyOnly(operatorUserId: string) {
 }
 
 /** Retirada + aviso ao abastecimento (cria sugestao de viagem quando houver entrega). */
-export async function requestPickupWithReplenishment(operatorUserId: string) {
+export async function requestPickupWithReplenishment(
+  operatorUserId: string,
+  options?: { isCritical?: boolean },
+) {
   const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
   if (!machine) {
     throw new OperatorMachineNotBoundError()
@@ -201,6 +208,7 @@ export async function requestPickupWithReplenishment(operatorUserId: string) {
         requestedBy: { connect: { id: operatorUserId } },
         typeMovimentPallet,
         triggersReplenishment: true,
+        isCritical: options?.isCritical === true,
         status: MachineTaskStatus.CREATED,
       },
       include: {

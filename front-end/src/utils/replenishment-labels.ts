@@ -14,8 +14,8 @@ const STATUS_LABELS: Record<RequestStatusValue, string> = {
 };
 
 const PRIORITY_LABELS: Record<PriorityLevelValue, string> = {
-  VERY_HIGH: 'Muito alta',
-  HIGH: 'Alta',
+  VERY_HIGH: 'Crítico',
+  HIGH: 'Crítico',
   NORMAL: 'Normal',
 };
 
