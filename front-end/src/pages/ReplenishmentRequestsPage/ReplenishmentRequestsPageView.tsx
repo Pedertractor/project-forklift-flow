@@ -95,7 +95,7 @@ export function ReplenishmentRequestsPageView(
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
-              Solicitações de reposição
+              Reposição
             </h1>
             <p className="mt-1.5 text-sm text-zinc-600">
               Abra pedidos para a máquina de destino, acompanhe status e edite

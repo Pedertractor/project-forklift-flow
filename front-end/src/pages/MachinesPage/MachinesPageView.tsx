@@ -236,9 +236,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     <td className="px-4 py-3 text-zinc-700">
                       {row.sector.typeSector}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {plantUnitLabel[row.plantUnit]}
-                    </td>
+                    <td className="px-4 py-3 text-zinc-700">{row.plantUnit}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <Button
