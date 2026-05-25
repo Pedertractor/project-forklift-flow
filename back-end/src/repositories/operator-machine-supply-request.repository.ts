@@ -11,7 +11,7 @@ const listInclude = {
       name: true,
       position: true,
       sectorId: true,
-      typeMachine: { select: { id: true, name: true } },
+      typeMachine: { select: { id: true, name: true, urlImage: true } },
     },
   },
   requestedBy: {

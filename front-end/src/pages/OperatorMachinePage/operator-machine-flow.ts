@@ -65,7 +65,7 @@ export const SUPPLY_FLOW_STEPS = [
   { key: 'supply', title: 'Aviso ao abastecimento' },
   { key: 'ready', title: 'Pallet no recebimento' },
   { key: 'deliver', title: 'Movimento em curso' },
-  { key: 'on-machine', title: 'Na máquina de dobra' },
+  { key: 'on-machine', title: 'Entregue na máquina' },
 ] as const;
 
 export const PICKUP_FLOW_STEPS = [

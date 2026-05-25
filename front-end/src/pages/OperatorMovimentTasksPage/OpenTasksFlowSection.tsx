@@ -404,7 +404,8 @@ function OpenTaskRouteCard({
     group.deliverTask !== null &&
     canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
   const pickupOpen =
-    group.pickupTask !== null && canCompletePickup(group.pickupTask, myPalletId);
+    group.pickupTask !== null &&
+    canCompletePickup(group.pickupTask, myPalletId);
 
   const isCombined = deliverOpen && pickupOpen;
   const activeTask = deliverOpen
@@ -429,12 +430,12 @@ function OpenTaskRouteCard({
         <>
           <Button
             type="button"
-            className="h-auto min-h-[2.75rem] w-full shrink-0 whitespace-normal bg-[#005fb8] px-2 py-2.5 text-center text-xs leading-snug text-white hover:bg-[#004a94] sm:px-3 sm:text-sm"
+            className="h-auto min-h-[2.75rem] w-full shrink-0 whitespace-normal bg-[#005fb8] py-2.5 text-center text-xs leading-snug text-white hover:bg-[#004a94] sm:px-3 sm:text-sm"
             disabled={!bound || busy}
             onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
           >
-            <CheckIcon strokeWidth={2.5} className="size-4" />
-            {deliverPending ? 'Registrando…' : 'Concluir entrega na máquina'}
+            <CheckIcon className="size-5" />
+            {deliverPending ? 'Registrando…' : 'Concluir entrega'}
           </Button>
           {deliverPending ? <TaskConfirmationProgressBar /> : null}
         </>
@@ -459,7 +460,9 @@ function OpenTaskRouteCard({
               disabled={!bound || busy}
               onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
             >
-              {pickupPending ? 'Registrando…' : 'Confirmar entrega na expedição'}
+              {pickupPending
+                ? 'Registrando…'
+                : 'Confirmar entrega na expedição'}
             </Button>
             {pickupPending ? <TaskConfirmationProgressBar /> : null}
           </>

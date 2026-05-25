@@ -5,7 +5,8 @@ import { formatOperatorSupplyCreatedAt } from '@/pages/OperatorMachinePage/opera
 import { cn } from '@/lib/utils';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { SupplyPendingPreparationPageViewModel } from './useSupplyPendingPreparationPage';
-import { Box } from 'lucide-react';
+import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
+import { CalendarIcon, MapPinIcon } from 'lucide-react';
 
 function OperatorSupplyRequestCard({
   row,
@@ -30,18 +31,27 @@ function OperatorSupplyRequestCard({
         aria-label={`Criar solicitação de retirada para ${row.machine.name}`}
       >
         <div className="flex items-start gap-3">
-          <div
-            className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600"
-            aria-hidden
-          >
-            <Box className="size-8 stroke-[1.75]" />
-          </div>
+          {row.machine.typeMachine.urlImage?.trim() ? (
+            <img
+              src={typeMachineImageSrc(row.machine.typeMachine.urlImage)}
+              alt=""
+              className="size-14 shrink-0 rounded-xl border border-zinc-200 object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div
+              className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400"
+              aria-hidden
+            >
+              —
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="m-0 text-base font-bold text-zinc-900">
               {row.machine.name}
             </p>
             <p className="mt-0.5 text-sm text-zinc-600">
-              {row.machine.position}
+              Posição: {row.machine.position}
             </p>
             <p className="mt-2 text-xs text-zinc-500">
               Operador:{' '}

@@ -1,12 +1,6 @@
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { cn } from '@/lib/utils';
-import {
-  Box,
-  MapPin,
-  Truck,
-  Warehouse,
-  type LucideIcon,
-} from 'lucide-react';
+import { Box, MapPin, Truck, Warehouse, type LucideIcon } from 'lucide-react';
 
 export type RouteFlowDetailKind =
   | 'location'
@@ -38,7 +32,11 @@ export function machineLocationDetail(
 
 export function prismaDetail(
   cube: string | undefined | null,
-  variant: 'pick-at-receiving' | 'deliver-to-machine' | 'pick-at-machine' | 'carry-to-expedition',
+  variant:
+    | 'pick-at-receiving'
+    | 'deliver-to-machine'
+    | 'pick-at-machine'
+    | 'carry-to-expedition',
 ): RouteFlowDetailItem {
   const display = cube
     ? formatReplenishmentMovementCubeDisplay(cube)

@@ -16,7 +16,7 @@ export interface OperatorMachineSupplyRequestListItem {
     name: string;
     position: string;
     sectorId: string;
-    typeMachine: { id: string; name: string };
+    typeMachine: { id: string; name: string; urlImage: string };
   };
   requestedBy: {
     id: string;

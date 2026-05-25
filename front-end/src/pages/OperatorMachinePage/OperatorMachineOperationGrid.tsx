@@ -4,7 +4,11 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { OperatorPickupProgressPhase } from '@/types/operator-machine.types';
-import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
+import type {
+  PriorityLevelValue,
+  ReplenishmentRequestListItem,
+} from '@/types/replenishment-request.types';
+import { priorityLevelLabel } from '@/utils/replenishment-labels';
 import {
   PICKUP_FLOW_STEPS,
   SUPPLY_FLOW_STEPS,
@@ -21,6 +25,17 @@ import {
   supplyFlowStepStatuses,
 } from './operator-machine-flow';
 import { InboxIcon } from 'lucide-react';
+
+function replenishmentPriorityBadgeClass(level: PriorityLevelValue): string {
+  switch (level) {
+    case 'VERY_HIGH':
+      return 'bg-red-600 text-white';
+    case 'HIGH':
+      return 'bg-amber-500 text-white';
+    default:
+      return 'bg-zinc-600 text-white';
+  }
+}
 
 function statusToneClass(tone: 'neutral' | 'active' | 'success' | 'warning') {
   switch (tone) {
@@ -171,12 +186,28 @@ export function OperatorMachineOperationGrid({
       {showReplenishmentPanel ? (
         <Card className="flex flex-col border border-zinc-200 p-0 shadow-sm">
           <div className="border-b border-zinc-100 px-4 py-3">
-            <h3 className="m-0 text-sm font-semibold tracking-tight text-zinc-900">
-              Pedido de reposição
-            </h3>
-            <p className="mt-1 mb-0 text-xs leading-relaxed text-zinc-500">
-              Prisma do setor e fluxo após solicitar retirada na máquina.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="m-0 text-sm font-semibold tracking-tight text-zinc-900">
+                  Pedido de reposição
+                </h3>
+                <p className="mt-1 mb-0 text-xs leading-relaxed text-zinc-500">
+                  Prisma do setor e fluxo após solicitar retirada na máquina.
+                </p>
+              </div>
+              {pickupPanelReplenishment ? (
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold',
+                    replenishmentPriorityBadgeClass(
+                      pickupPanelReplenishment.priorityLevel,
+                    ),
+                  )}
+                >
+                  {priorityLevelLabel(pickupPanelReplenishment.priorityLevel)}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex flex-1 flex-col gap-4 p-4">
