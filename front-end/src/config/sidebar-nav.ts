@@ -92,7 +92,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   },
   {
     id: 'supply-cadastros',
-    title: 'Abastecimento e cadastros de chão',
+    title: 'Abastecimento e cadastros',
     rolesDescription:
       'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas e solicitações. Cadastro de equipamentos de movimentação: líder e administrador.',
     items: [
