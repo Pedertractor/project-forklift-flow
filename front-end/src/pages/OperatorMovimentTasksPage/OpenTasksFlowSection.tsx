@@ -476,10 +476,6 @@ function OpenTaskRouteCard({
             </p>
             <p className="mt-1 text-sm font-semibold text-zinc-900">
               {group.machineName}
-              <span className="font-normal text-zinc-500">
-                {' · '}
-                {group.machinePosition}
-              </span>
             </p>
           </div>
           <span className="rounded-full bg-zinc-900 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-white">
