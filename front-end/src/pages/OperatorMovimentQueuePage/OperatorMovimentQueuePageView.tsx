@@ -1,5 +1,6 @@
 import { ChevronDown, List, Repeat, RouteOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { OperatorMovimentTaskEntryOverlay } from '@/components/operator-moviment/OperatorMovimentTaskEntryOverlay';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/constants/env';
@@ -34,7 +35,10 @@ export function OperatorMovimentQueuePageView(
   } = vm;
 
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
+    <main className="relative px-4 py-8 max-[800px]:px-3">
+      {busy ? (
+        <OperatorMovimentTaskEntryOverlay message="Aceitando e abrindo tarefa…" />
+      ) : null}
       <div className="mx-auto w-full max-w-6xl">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

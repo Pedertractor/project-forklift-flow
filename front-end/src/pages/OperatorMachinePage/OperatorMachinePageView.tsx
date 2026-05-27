@@ -7,7 +7,7 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
-import { Undo2Icon } from 'lucide-react';
+import { LogOut, Undo2Icon } from 'lucide-react';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   const {
@@ -61,11 +61,11 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
             <p className="mt-1 text-sm text-zinc-600">
               {pickingMachine
                 ? 'Toque na máquina em que você está operando.'
-                : 'Solicite retirada do prisma ou retirada com aviso ao abastecimento.'}
+                : 'Solicite retirada do pallet ou retirada com aviso ao abastecimento.'}
             </p>
           </div>
           {current ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ">
               {current.typeMachine.urlImage?.trim() ? (
                 <img
                   src={typeMachineImageSrc(current.typeMachine.urlImage)}
@@ -73,7 +73,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                   className="size-16 shrink-0 rounded-lg bg-white p-2 object-cover"
                 />
               ) : null}
-              <div className="flex w-full items-center justify-between">
+              <div className="flex w-full items-center justify-between h-full">
                 <div>
                   <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Máquina em operação
@@ -83,16 +83,13 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                   </p>
                 </div>
               </div>
-              {/* <Button
+              <Button
                 type="button"
-                variant="outline"
-                className="text-red-700 hover:bg-red-50"
                 disabled={!apiReady || busy}
                 onClick={() => setEndShiftOpen(true)}
               >
-                <Undo2Icon className="size-4" />
-                Sair da máquina
-              </Button> */}
+                <LogOut className="size-4" />
+              </Button>
             </div>
           ) : null}
         </header>

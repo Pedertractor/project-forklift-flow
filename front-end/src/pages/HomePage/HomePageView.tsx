@@ -75,7 +75,6 @@ export function HomePageView({ user, unitLabel, envApiUrl }: HomePageViewModel) 
               <p className="mt-4 text-sm text-zinc-600">Nenhum usuário carregado.</p>
             )}
           </Card>
-
         </div>
 
         {showSupplyModule ? (

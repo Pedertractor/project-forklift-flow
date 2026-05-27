@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { OperatorMovimentTaskEntryOverlay } from '@/components/operator-moviment/OperatorMovimentTaskEntryOverlay';
 import { ENV } from '@/constants/env';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { OpenTasksFlowSection } from './OpenTasksFlowSection';
@@ -15,6 +16,8 @@ export function OperatorMovimentTasksPageView(
     currentPallet,
     myTasksQuery,
     tasks,
+    tasksLoading,
+    showEntryOverlay,
     completeDeliverMut,
     completePickupMut,
     busy,
@@ -22,7 +25,10 @@ export function OperatorMovimentTasksPageView(
 
   const bound = currentPallet !== null;
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
+    <main className="relative px-4 py-8 max-[800px]:px-3">
+      {showEntryOverlay ? (
+        <OperatorMovimentTaskEntryOverlay message="Abrindo fluxo da tarefa…" />
+      ) : null}
       <div className="mx-auto w-full max-w-6xl">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -45,7 +51,7 @@ export function OperatorMovimentTasksPageView(
         <OpenTasksFlowSection
           tasks={tasks}
           myPalletId={currentPallet?.id ?? null}
-          isLoading={myTasksQuery.isLoading}
+          isLoading={tasksLoading}
           bound={bound}
           busy={busy}
           completeDeliverMut={completeDeliverMut}

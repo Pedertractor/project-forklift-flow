@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  OPERATOR_MOVIMENT_MY_TASKS_PATH,
-} from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
+import { isQueryCancellationError } from '@/lib/query-errors';
+import {
+  completeOperatorTaskAccept,
+  navigateToMyTasksAfterAccept,
+} from '@/lib/operator-moviment-after-accept';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
 import {
@@ -26,9 +28,26 @@ export function useOperatorMovimentManualQueuePage() {
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
 
-  const goToMyTasks = useCallback(() => {
-    void navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH);
-  }, [navigate]);
+  const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
+
+  const afterAcceptSuccess = useCallback(
+    async (successMessage: string) => {
+      setIsEnteringTaskFlow(true);
+      try {
+        await completeOperatorTaskAccept(queryClient, navigate);
+        toast.success(successMessage);
+      } catch (error) {
+        if (!isQueryCancellationError(error)) {
+          throw error;
+        }
+        toast.success(successMessage);
+        navigateToMyTasksAfterAccept(navigate);
+      } finally {
+        setIsEnteringTaskFlow(false);
+      }
+    },
+    [navigate, queryClient],
+  );
 
   const myPalletQuery = useQuery({
     queryKey: ['operator-moviment', 'my-pallet'],
@@ -42,31 +61,22 @@ export function useOperatorMovimentManualQueuePage() {
     enabled: apiReady && myPalletQuery.isSuccess && myPalletQuery.data !== null,
   });
 
-  const invalidateOperator = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-  }, [queryClient]);
-
   const acceptReplenishmentMut = useMutation({
     mutationFn: (requestId: string) => postAcceptReplenishmentRequest(requestId),
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Tarefa de entrega aceita.');
-      goToMyTasks();
-    },
+    onSuccess: () => afterAcceptSuccess('Tarefa de entrega aceita.'),
     onError: toastApiError,
   });
 
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Tarefa de retirada aceita.');
-      goToMyTasks();
-    },
+    onSuccess: () => afterAcceptSuccess('Tarefa de retirada aceita.'),
     onError: toastApiError,
   });
 
-  const busy = acceptReplenishmentMut.isPending || acceptPickupMut.isPending;
+  const busy =
+    isEnteringTaskFlow ||
+    acceptReplenishmentMut.isPending ||
+    acceptPickupMut.isPending;
   const queue = queueQuery.data ?? { requests: [], onMachinePickupTasks: [] };
 
   return {

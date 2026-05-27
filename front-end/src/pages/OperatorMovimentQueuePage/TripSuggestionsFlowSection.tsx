@@ -265,8 +265,7 @@ function StandalonePickupRouteCard({
         <div className="mt-5 flex justify-end">
           <Button
             type="button"
-            variant="outline"
-            className="shrink-0 border-[#005fb8] text-[#005fb8] hover:bg-[#005fb8]/10"
+            className="shrink-0 "
             disabled={!bound || busy || isAcceptingThisPickup}
             onClick={() => onAcceptPickup(taskId)}
           >

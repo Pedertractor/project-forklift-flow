@@ -194,7 +194,7 @@ export function OperatorMachineOpenRequestDialog({
                   className="size-4 shrink-0 rounded-full bg-red-200"
                   aria-hidden
                 />
-                Retirada do prisma na máquina
+                Retirada do pallet na máquina
                 {pickupIsCritical ? (
                   <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">
                     Crítica

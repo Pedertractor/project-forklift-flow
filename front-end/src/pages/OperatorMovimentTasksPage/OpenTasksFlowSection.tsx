@@ -12,6 +12,7 @@ import {
   SuggestionFlowConnector,
   type RouteFlowStepId,
 } from '@/components/operator-moviment/route-flow-icons';
+import { ForkliftLoader } from '@/components/forklift-loader/forklifit-loader';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import {
@@ -286,13 +287,13 @@ function FlowStepColumn({
       )}
     >
       {/* Faixa com a mesma altura do conector — seta alinha ao centro do ícone */}
-      <div className="flex h-12 w-full shrink-0 items-center justify-center sm:h-14">
+      <div className="flex h-12 w-full shrink-0 items-center justify-center sm:h-14 ">
         <div
           className={cn(
             'relative flex size-12 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors sm:size-14',
-            isDone && 'border-emerald-500 bg-emerald-50 text-emerald-700',
+            isDone && 'border-emerald-500 bg-emerald-50  text-emerald-700',
             isCurrent &&
-              'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8] ring-4 ring-[#005fb8]/20',
+              'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8] ring-4  ring-[#005fb8]/20',
             !isDone && !isCurrent && 'border-zinc-200 text-zinc-400',
           )}
         >
@@ -535,9 +536,16 @@ export function OpenTasksFlowSection({
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
       {isLoading ? (
-        <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-600">
-          {'Carregando tarefas\u2026'}
-        </p>
+        <div
+          className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-10"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="h-24 w-24 shrink-0">
+            <ForkliftLoader />
+          </div>
+          <p className="mt-3 text-sm text-zinc-600">Carregando tarefas…</p>
+        </div>
       ) : null}
 
       {!isLoading && !hasOpenWork ? (

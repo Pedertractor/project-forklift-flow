@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { OperatorMovimentTaskEntryOverlay } from '@/components/operator-moviment/OperatorMovimentTaskEntryOverlay';
 import { ENV } from '@/constants/env';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { OperatorMovimentManualQueueSection } from './OperatorMovimentManualQueueSection';
@@ -21,7 +22,10 @@ export function OperatorMovimentManualQueuePageView(
   } = vm;
 
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
+    <main className="relative px-4 py-8 max-[800px]:px-3">
+      {busy ? (
+        <OperatorMovimentTaskEntryOverlay message="Aceitando e abrindo tarefa…" />
+      ) : null}
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
