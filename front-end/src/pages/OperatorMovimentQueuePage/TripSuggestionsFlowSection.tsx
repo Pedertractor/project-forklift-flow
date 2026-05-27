@@ -93,10 +93,7 @@ function buildStandaloneDeliverSteps(
       stepNumber: 2,
       stepId: 'pallet',
       label: 'Pegue o pallet no recebimento',
-      details: [
-        receivingAreaDetail(),
-        prismaDetail(cube, 'pick-at-receiving'),
-      ],
+      details: [receivingAreaDetail(), prismaDetail(cube, 'pick-at-receiving')],
       theme: 'purple',
     },
     {
@@ -217,17 +214,13 @@ function StandaloneDeliverRouteCard({
   const statusLabel = deliverTask
     ? taskStatusLabelPt(deliverTask.status)
     : 'Sugerida';
-  const sinceLabel = deliverTask
-    ? formatTaskDate(deliverTask.createdAt)
-    : null;
+  const sinceLabel = deliverTask ? formatTaskDate(deliverTask.createdAt) : null;
 
   return (
     <Card
       className={cn(
         'overflow-hidden border border-zinc-200/90 shadow-lg',
-        row.deferRecommended
-          ? 'ring-2 ring-amber-300/70'
-          : 'bg-white',
+        row.deferRecommended ? 'ring-2 ring-amber-300/70' : 'bg-white',
       )}
     >
       {row.deferRecommended ? (

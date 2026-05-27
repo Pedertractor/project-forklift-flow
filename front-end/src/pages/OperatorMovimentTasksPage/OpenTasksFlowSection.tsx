@@ -535,7 +535,11 @@ export function OpenTasksFlowSection({
 
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
-      {isLoading ? <ForkliftLoader /> : null}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <ForkliftLoader size="lg" />
+        </div>
+      ) : null}
 
       {!isLoading && !hasOpenWork ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-4 py-10 text-center">

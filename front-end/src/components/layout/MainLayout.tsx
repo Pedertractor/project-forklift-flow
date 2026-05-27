@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { performLogout } from '@/lib/auth-session';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { APP_MAIN_PANE_ID } from '@/components/layout/main-content-portal';
 import { OperatorMovimentWorkProvider } from '@/components/layout/OperatorMovimentWorkProvider';
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/Button';
@@ -98,7 +99,10 @@ export function MainLayout() {
           onRequestLogout={() => setLogoutOpen(true)}
         />
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div
+          id={APP_MAIN_PANE_ID}
+          className="relative flex min-h-0 min-w-0 flex-1 flex-col"
+        >
           <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3">
             <button
               type="button"

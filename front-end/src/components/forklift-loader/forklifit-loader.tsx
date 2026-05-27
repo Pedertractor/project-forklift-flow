@@ -1,23 +1,47 @@
-export function ForkliftLoader() {
+import { cn } from '@/lib/utils';
+
+const SIZE_CLASS = {
+  sm: 'size-14',
+  md: 'size-24',
+  lg: 'size-36',
+} as const;
+
+export type ForkliftLoaderProps = {
+  size?: keyof typeof SIZE_CLASS;
+  className?: string;
+  /** Sem sombra/anel — para encaixar em círculos já existentes (ex.: stepper) */
+  bare?: boolean;
+};
+
+export function ForkliftLoader({
+  size = 'md',
+  className,
+  bare = false,
+}: ForkliftLoaderProps) {
   return (
-    <div
-    className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-10"
-    role="status"
-    aria-live="polite"
-  >
-    <div className="h-24 w-24 shrink-0">
-    <div className="flex w-full h-full items-center justify-center ">
-      <div className=" flex items-center justify-center bg-white rounded-full p-2">
+    <div className="flex flex-col items-center justify-center">
+      <div
+        className={cn(
+          'relative aspect-square shrink-0 overflow-hidden rounded-full',
+          SIZE_CLASS[size],
+          !bare && 'bg-white shadow-md ring-2 ring-brand/20',
+          className,
+        )}
+        role="status"
+        aria-live="polite"
+        aria-label="Carregando"
+      >
         <video
           src="/forklift-loader/forklift-loader.mp4"
           autoPlay
           loop
           muted
-          className="w-full h-full object-cover"
+          playsInline
+          className="absolute inset-0 size-full object-cover"
+          aria-hidden
         />
       </div>
-      </div>
-      </div>
+      <p>Carregando...</p>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
   replenishmentMovimentTypeLabel,
 } from '@/utils/operator-moviment-display';
 import { priorityLevelLabel } from '@/utils/replenishment-labels';
-import { Box, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Box, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TOTAL_STEPS = 4;
 
@@ -350,7 +350,8 @@ export function ReplenishmentCreateWizardModal({
             disabled={busy}
             className="size-4"
           />
-          <span className="text-sm font-medium text-zinc-900">
+          <span className="flex items-center gap-2 text-sm font-medium text-zinc-900">
+            <AlertTriangle className="size-4 text-red-500" />
             Marcar como crítico
           </span>
         </label>

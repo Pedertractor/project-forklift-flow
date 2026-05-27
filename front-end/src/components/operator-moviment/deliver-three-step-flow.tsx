@@ -85,12 +85,7 @@ function DeliverFlowDashedConnector({
       )}
       aria-hidden
     >
-      <div
-        className={cn(
-          'h-0 w-full border-t-2 border-dashed',
-          lineClass,
-        )}
-      />
+      <div className={cn('h-0 w-full border-t-2 border-dashed', lineClass)} />
       <div
         className={cn(
           'absolute left-1/2 top-1/2 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-sm',
@@ -146,10 +141,7 @@ function DeliverFlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
       >
         <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
           {step.details.map((item, index) => (
-            <DeliverFlowDetailRow
-              key={`${item.kind}-${index}`}
-              item={item}
-            />
+            <DeliverFlowDetailRow key={`${item.kind}-${index}`} item={item} />
           ))}
         </ul>
       </div>
@@ -157,7 +149,11 @@ function DeliverFlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
   );
 }
 
-export function DeliverThreeStepFlow({ steps }: { steps: DeliverFlowStepConfig[] }) {
+export function DeliverThreeStepFlow({
+  steps,
+}: {
+  steps: DeliverFlowStepConfig[];
+}) {
   return (
     <div className="w-full min-w-0 overflow-x-auto py-1 [-webkit-overflow-scrolling:touch]">
       <div className="flex min-w-max items-start justify-center gap-0 px-1">
@@ -215,10 +211,7 @@ export function DeliverFlowCardHeader({
             {statusLabel ? (
               <>
                 <span className="inline-flex items-center gap-1.5">
-                  <span
-                    className="size-2 rounded-full bg-brand"
-                    aria-hidden
-                  />
+                  <span className="size-2 rounded-full bg-brand" aria-hidden />
                   Status:{' '}
                   <span className="font-medium text-zinc-800">
                     {statusLabel}
@@ -233,34 +226,37 @@ export function DeliverFlowCardHeader({
             ) : null}
             {sinceLabel ? (
               <span className="inline-flex items-center gap-1.5">
-                <Calendar className="size-4 shrink-0 text-zinc-500" aria-hidden />
+                <Calendar
+                  className="size-4 shrink-0 text-zinc-500"
+                  aria-hidden
+                />
                 Desde {sinceLabel}
               </span>
             ) : null}
           </div>
         ) : null}
       </div>
-      {isCritical ? (
-        criticalBadge ?? (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-800">
-            <svg
-              className="size-4 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden
-            >
-              <path
-                d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Crítico
-          </span>
-        )
-      ) : null}
+      {isCritical
+        ? (criticalBadge ?? (
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-800">
+              <svg
+                className="size-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden
+              >
+                <path
+                  d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Crítico
+            </span>
+          ))
+        : null}
     </div>
   );
 }

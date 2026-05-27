@@ -87,7 +87,7 @@ export function OperatorMachineTasksList({
             {error.message || 'Erro ao carregar solicitações.'}
           </p>
         ) : rows.length === 0 ? (
-          <EmptyStateMessage title="Nenhuma solicitação de operador de máquina no setor." />
+          <EmptyStateMessage title="Nenhuma solicitação em aberto." />
         ) : (
           <ul className="m-0 divide-y divide-zinc-100 p-0 list-none">
             {rows.map((row) => (

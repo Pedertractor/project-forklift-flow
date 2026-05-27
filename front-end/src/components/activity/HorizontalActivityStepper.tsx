@@ -139,7 +139,7 @@ function StepCircle({
       {done ? (
         <CheckIcon className="size-8" />
       ) : active && stepShowsForkliftLoader(step) ? (
-        <ForkliftLoader />
+        <ForkliftLoader bare size="sm" className="size-full" />
       ) : (
         index + 1
       )}
