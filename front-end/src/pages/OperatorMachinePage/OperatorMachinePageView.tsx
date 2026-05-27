@@ -1,13 +1,12 @@
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
-import { Card } from '@/components/ui/card';
 import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { ENV } from '@/constants/env';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
-import { LogOut, Undo2Icon } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   const {
@@ -138,7 +137,6 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         ) : (
           <>
             <OperatorMachineOperationGrid
-              deliveryTasks={deliveryTasks}
               openSupply={openOperatorSupply}
               supplyLoading={operatorSupplyQuery.isLoading}
               supplyError={operatorSupplyQuery.error ?? null}

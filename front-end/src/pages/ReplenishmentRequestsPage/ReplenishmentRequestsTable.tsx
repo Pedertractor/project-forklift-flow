@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
 import type { RequestStatusValue } from '@/types/replenishment-request.types';
 import { Box, CheckIcon } from 'lucide-react';
+import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
 
 function movementTypeLabel(t: string): string {
   if (t === 'FORKLIFT' || t === 'ANY') {
@@ -90,7 +91,7 @@ export function ReplenishmentRequestsTable({
                 colSpan={colSpan}
                 className="px-4 py-8 text-center text-zinc-500"
               >
-                {emptyMessage}
+                <EmptyStateMessage title={emptyMessage} />
               </td>
             </tr>
           ) : (

@@ -3,7 +3,10 @@ import { HorizontalActivityStepper } from '@/components/activity/HorizontalActiv
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
-import type { DeliveryTaskListItem, PickupTaskListItem } from '@/types/machine-task.types';
+import type {
+  DeliveryTaskListItem,
+  PickupTaskListItem,
+} from '@/types/machine-task.types';
 import type {
   DeliveryFlowPhase,
   OperationTimelineMode,
@@ -25,10 +28,15 @@ import {
 } from './operator-machine-flow';
 import { OperatorMachineOpenRequestDialog } from './OperatorMachineOpenRequestDialog';
 import type { OperatorServiceSelection } from './OperatorMachineOpenRequestDialog';
-import { ArrowDownLeft, ArrowUpRight, ClipboardList, InfoIcon, Route } from 'lucide-react';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ClipboardList,
+  InfoIcon,
+  Route,
+} from 'lucide-react';
 
 export interface OperatorMachineOperationGridProps {
-  deliveryTasks: DeliveryTaskListItem[];
   openSupply: OperatorMachineSupplyRequestListItem | null;
   supplyLoading: boolean;
   supplyError: Error | null;
@@ -69,7 +77,6 @@ function TimelineSectionIcon({ mode }: { mode: OperationTimelineMode }) {
 }
 
 export function OperatorMachineOperationGrid({
-  deliveryTasks,
   openSupply,
   supplyLoading,
   supplyError,
@@ -103,7 +110,7 @@ export function OperatorMachineOperationGrid({
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Button
         type="button"
-        className="w-full lg:col-span-2"
+        className="w-full lg:col-span-2 hover:cursor-pointer"
         disabled={!apiReady || busy || !canOpenRequestDialog}
         onClick={() => setRequestDialogOpen(true)}
       >
@@ -114,7 +121,6 @@ export function OperatorMachineOperationGrid({
       <OperatorMachineOpenRequestDialog
         open={requestDialogOpen}
         onClose={() => setRequestDialogOpen(false)}
-        deliveryTasks={deliveryTasks}
         openSupply={openSupply}
         canPickup={canPickup}
         pickupBlockedMessage={pickupBlockedMessage}
@@ -131,8 +137,8 @@ export function OperatorMachineOperationGrid({
             </h3>
             {operationTimelineMode === 'combined' ? (
               <p className="mb-0 mt-1 text-xs text-zinc-500">
-                Entrega preparada e retirada na mesma máquina — fluxo sugerido ao
-                transporte.
+                Entrega preparada e retirada na mesma máquina — fluxo sugerido
+                ao transporte.
               </p>
             ) : null}
           </div>
@@ -144,7 +150,10 @@ export function OperatorMachineOperationGrid({
                   timelineDelivery,
                   timelinePickup,
                 )}
-                headline={combinedFlowHeadline(timelineDelivery, timelinePickup)}
+                headline={combinedFlowHeadline(
+                  timelineDelivery,
+                  timelinePickup,
+                )}
               />
             ) : null}
 

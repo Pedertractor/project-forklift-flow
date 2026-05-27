@@ -33,7 +33,10 @@ import { useAuthStore } from '@/store/auth.store';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 
 const queryKeyMyMachine = ['operator-machine', 'my-machine'] as const;
-const queryKeyOperatorSupply = ['operator-machine', 'operator-supply-requests'] as const;
+const queryKeyOperatorSupply = [
+  'operator-machine',
+  'operator-supply-requests',
+] as const;
 const queryKeyTasks = ['operator-machine', 'machine-tasks'] as const;
 
 function useApiReady(): boolean {
@@ -90,7 +93,7 @@ export function useOperatorMachinePage() {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       setShowMachinePicker(false);
-      toast.success('Máquina vinculada ao turno.');
+      toast.success('Máquina vinculada com sucesso!');
     },
     onError: toastApiError,
   });
@@ -122,10 +125,11 @@ export function useOperatorMachinePage() {
   const deliveryTasks = tasksQuery.data?.deliveryTasks ?? [];
   const pickupTasks = tasksQuery.data?.pickupTasks ?? [];
 
-  const openOperatorSupply = useMemo((): OperatorMachineSupplyRequestListItem | null => {
-    const list = operatorSupplyQuery.data ?? [];
-    return list.find((r) => r.status === 'OPEN') ?? null;
-  }, [operatorSupplyQuery.data]);
+  const openOperatorSupply =
+    useMemo((): OperatorMachineSupplyRequestListItem | null => {
+      const list = operatorSupplyQuery.data ?? [];
+      return list.find((r) => r.status === 'OPEN') ?? null;
+    }, [operatorSupplyQuery.data]);
 
   const canPickup = canRequestPickup(deliveryTasks, pickupTasks);
   const timelineDelivery = useMemo(
@@ -227,7 +231,8 @@ export function useOperatorMachinePage() {
   };
 
   const cancelPickupMut = useMutation({
-    mutationFn: (pickupTaskId: string) => postCancelOperatorPickup(pickupTaskId),
+    mutationFn: (pickupTaskId: string) =>
+      postCancelOperatorPickup(pickupTaskId),
     onSuccess: () => {
       setCancelPickupId(null);
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
@@ -289,4 +294,6 @@ export function useOperatorMachinePage() {
   };
 }
 
-export type OperatorMachinePageViewModel = ReturnType<typeof useOperatorMachinePage>;
+export type OperatorMachinePageViewModel = ReturnType<
+  typeof useOperatorMachinePage
+>;
