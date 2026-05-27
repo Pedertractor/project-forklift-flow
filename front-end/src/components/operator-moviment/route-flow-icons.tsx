@@ -3,8 +3,21 @@ import {
   RouteFlowStepDetails,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { Cpu, PackageSearch, Truck, Warehouse, type LucideIcon } from 'lucide-react';
 
 export type RouteFlowStepId = 'receiving' | 'machine' | 'pallet' | 'expedition';
+
+const ROUTE_FLOW_STEP_LUCIDE: Record<RouteFlowStepId, LucideIcon> = {
+  receiving: Warehouse,
+  pallet: PackageSearch,
+  machine: Cpu,
+  expedition: Truck,
+};
+
+/** Ícones Lucide por etapa — altere aqui para trocar em todo o fluxo. */
+export function routeFlowStepLucideIcon(id: RouteFlowStepId): LucideIcon {
+  return ROUTE_FLOW_STEP_LUCIDE[id];
+}
 
 export function ReceivingIcon({ className }: { className?: string }) {
   return (

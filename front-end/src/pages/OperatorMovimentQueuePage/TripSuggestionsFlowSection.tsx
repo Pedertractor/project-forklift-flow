@@ -2,6 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import {
+  DeliverFlowCard,
   DeliverFlowCardFooter,
   DeliverFlowCardHeader,
   DeliverThreeStepFlow,
@@ -9,6 +10,7 @@ import {
 } from '@/components/operator-moviment/deliver-three-step-flow';
 import {
   expeditionAreaDetail,
+  goToReceivingDetail,
   machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
@@ -30,7 +32,6 @@ import {
 } from '@/utils/operator-moviment-display';
 import { taskStatusLabelPt } from '@/utils/operator-moviment-labels';
 import { Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
   const d1 = row.deliverTask.request.movementCube;
@@ -86,15 +87,13 @@ function buildStandaloneDeliverSteps(
       stepNumber: 1,
       stepId: 'receiving',
       label: 'Vá ao recebimento',
-      details: [receivingAreaDetail('Deslocar-se até o recebimento')],
-      theme: 'blue',
+      details: [goToReceivingDetail()],
     },
     {
       stepNumber: 2,
       stepId: 'pallet',
       label: 'Pegue o pallet no recebimento',
       details: [receivingAreaDetail(), prismaDetail(cube, 'pick-at-receiving')],
-      theme: 'purple',
     },
     {
       stepNumber: 3,
@@ -104,7 +103,6 @@ function buildStandaloneDeliverSteps(
         machineLocationDetail(machine.name),
         prismaDetail(cube, 'deliver-to-machine'),
       ],
-      theme: 'green',
     },
   ];
 }
@@ -217,31 +215,29 @@ function StandaloneDeliverRouteCard({
   const sinceLabel = deliverTask ? formatTaskDate(deliverTask.createdAt) : null;
 
   return (
-    <Card
-      className={cn(
-        'overflow-hidden border border-zinc-200/90 shadow-lg',
-        row.deferRecommended ? 'ring-2 ring-amber-300/70' : 'bg-white',
-      )}
+    <DeliverFlowCard
+      className={row.deferRecommended ? 'ring-2 ring-amber-300/80' : undefined}
+      deferBanner={
+        row.deferRecommended ? (
+          <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
+            Existem itens mais urgentes no setor — avalie antes de aceitar esta
+            entrega.
+          </div>
+        ) : undefined
+      }
     >
-      {row.deferRecommended ? (
-        <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
-          Existem itens mais urgentes no setor — avalie antes de aceitar esta
-          entrega.
-        </div>
-      ) : null}
-
       <DeliverFlowCardHeader
-        title="Entrega em andamento"
+        title="Sugestão de rota"
         machineName={row.machine.name}
         statusLabel={statusLabel}
         sinceLabel={sinceLabel}
         isCritical={isCritical}
       />
 
-      <div className="px-3 py-5 sm:px-5 sm:py-6">
+      <div className="px-5 py-8 sm:px-8 sm:py-10">
         <DeliverThreeStepFlow steps={steps} />
         {row.message ? (
-          <p className="mt-4 text-center text-xs leading-relaxed text-zinc-600">
+          <p className="mt-5 text-center text-xs leading-relaxed text-zinc-500">
             {row.message}
           </p>
         ) : null}
@@ -250,7 +246,7 @@ function StandaloneDeliverRouteCard({
       <DeliverFlowCardFooter>
         <Button
           type="button"
-          className="h-11 min-w-[14rem] gap-2 rounded-full bg-brand px-8 text-base font-semibold text-white shadow-md hover:bg-[#004a94]"
+          className="h-12 min-w-[17rem] gap-2.5 rounded-full bg-zinc-900 px-10 text-base font-semibold text-white shadow-sm hover:bg-zinc-800"
           disabled={!bound || busy || isAcceptingThisDeliver}
           onClick={() => onAcceptDeliver(row)}
         >
@@ -264,7 +260,7 @@ function StandaloneDeliverRouteCard({
           )}
         </Button>
       </DeliverFlowCardFooter>
-    </Card>
+    </DeliverFlowCard>
   );
 }
 

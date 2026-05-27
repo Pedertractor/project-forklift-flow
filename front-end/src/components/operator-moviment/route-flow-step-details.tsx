@@ -8,7 +8,7 @@ export type RouteFlowDetailKind =
   | 'receiving'
   | 'expedition';
 
-const DETAIL_META: Record<
+export const ROUTE_FLOW_DETAIL_META: Record<
   RouteFlowDetailKind,
   { Icon: LucideIcon; iconClass: string }
 > = {
@@ -53,6 +53,13 @@ export function receivingAreaDetail(
   return { kind: 'receiving', text: label };
 }
 
+/** Deslocamento até o recebimento (ícone de pin no card). */
+export function goToReceivingDetail(
+  label = 'Deslocar-se até o recebimento',
+): RouteFlowDetailItem {
+  return { kind: 'location', text: label };
+}
+
 export function expeditionAreaDetail(
   label = 'Expedição — destino final',
 ): RouteFlowDetailItem {
@@ -83,7 +90,7 @@ export function RouteFlowStepDetails({
       )}
     >
       {items.map((item, index) => {
-        const { Icon, iconClass } = DETAIL_META[item.kind];
+        const { Icon, iconClass } = ROUTE_FLOW_DETAIL_META[item.kind];
         return (
           <li
             key={`${item.kind}-${index}`}

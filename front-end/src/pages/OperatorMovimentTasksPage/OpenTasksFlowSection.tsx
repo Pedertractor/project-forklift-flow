@@ -479,9 +479,7 @@ function OpenTaskRouteCard({
               {group.machineName}
             </p>
           </div>
-          <span className="rounded-full bg-zinc-900 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-white">
-            {priorityLabel(group.priority)}
-          </span>
+    
         </div>
         {statusLabel && activeTask ? (
           <p className="mt-2 text-xs text-zinc-600">
@@ -494,7 +492,9 @@ function OpenTaskRouteCard({
       </div>
 
       <div className="px-3 py-5 sm:px-5 sm:py-6">
-        <RouteFlowTrack steps={steps} renderStepAction={renderStepAction} />
+        <RouteFlowTrack steps={steps} renderStepActi      <span className="rounded-full bg-zinc-900 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-white">
+            {priorityLabel(group.priority)}
+          </span>on={renderStepAction} />
       </div>
     </Card>
   );

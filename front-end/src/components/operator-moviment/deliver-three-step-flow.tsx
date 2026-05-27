@@ -1,150 +1,113 @@
 import type { ReactNode } from 'react';
+import { routeFlowStepLucideIcon } from '@/components/operator-moviment/route-flow-icons';
+import type { RouteFlowStepId } from '@/components/operator-moviment/route-flow-icons';
 import {
-  routeFlowStepIcon,
-  type RouteFlowStepId,
-} from '@/components/operator-moviment/route-flow-icons';
-import type { RouteFlowDetailItem } from '@/components/operator-moviment/route-flow-step-details';
+  ROUTE_FLOW_DETAIL_META,
+  type RouteFlowDetailItem,
+} from '@/components/operator-moviment/route-flow-step-details';
 import { cn } from '@/lib/utils';
-import { Box, Calendar, ChevronRight, MapPin, Truck } from 'lucide-react';
+import { AlertTriangle, Calendar, Truck } from 'lucide-react';
 
 export interface DeliverFlowStepConfig {
   stepNumber: number;
   stepId: RouteFlowStepId;
   label: string;
   details: RouteFlowDetailItem[];
-  theme: 'blue' | 'purple' | 'green';
+  /** @deprecated Ignorado — layout monocromático do mockup. */
+  theme?: 'blue' | 'purple' | 'green';
 }
 
-const STEP_THEMES = {
-  blue: {
-    number: 'bg-blue-100 text-blue-800',
-    ring: 'border-blue-500 text-blue-600 ring-blue-200',
-    title: 'text-blue-800',
-    cardAccent: 'border-l-blue-500',
-    connector: 'border-blue-300',
-    chevron: 'bg-blue-600',
-  },
-  purple: {
-    number: 'bg-violet-100 text-violet-800',
-    ring: 'border-violet-500 text-violet-600 ring-violet-200',
-    title: 'text-violet-800',
-    cardAccent: 'border-l-violet-500',
-    connector: 'border-violet-300',
-    chevron: 'bg-violet-600',
-  },
-  green: {
-    number: 'bg-emerald-100 text-emerald-800',
-    ring: 'border-emerald-500 text-emerald-600 ring-emerald-200',
-    title: 'text-emerald-800',
-    cardAccent: 'border-l-emerald-500',
-    connector: 'border-emerald-300',
-    chevron: 'bg-emerald-600',
-  },
-} as const;
+/** Altura mínima da área título — alinha o topo dos cards entre colunas. */
+const STEP_TITLE_MIN_H = 'min-h-[2.75rem] sm:min-h-[3rem]';
 
-function detailRowIconClass(kind: RouteFlowDetailItem['kind']): string {
-  switch (kind) {
-    case 'location':
-      return 'text-brand';
-    case 'prisma':
-      return 'text-amber-600';
-    case 'receiving':
-      return 'text-emerald-600';
-    case 'expedition':
-      return 'text-sky-600';
-  }
-}
+/** Altura mínima dos cards de detalhe (2 linhas) — mesma altura em todos os passos. */
+const STEP_DETAILS_MIN_H = 'min-h-[5.5rem] sm:min-h-[6rem]';
 
-function DeliverFlowDetailRow({ item }: { item: RouteFlowDetailItem }) {
-  const Icon = item.kind === 'prisma' ? Box : MapPin;
-  return (
-    <li className="flex items-start gap-2">
-      <Icon
-        className={cn('mt-0.5 size-4 shrink-0', detailRowIconClass(item.kind))}
-        aria-hidden
-      />
-      <span className="min-w-0 flex-1 text-left text-sm leading-snug text-zinc-800">
-        {item.text}
-      </span>
-    </li>
-  );
-}
-
-function DeliverFlowDashedConnector({
-  chevronClass,
-  lineClass,
-}: {
-  chevronClass: string;
-  lineClass: string;
-}) {
+function FlowStepDotConnector() {
   return (
     <div
-      className={cn(
-        'relative flex min-w-[2.5rem] max-w-[4rem] flex-1 items-center self-start',
-        'pt-7 sm:pt-8',
-      )}
+      className="relative flex w-10 shrink-0 items-center self-center sm:w-40"
       aria-hidden
     >
-      <div className={cn('h-0 w-full border-t-2 border-dashed', lineClass)} />
-      <div
-        className={cn(
-          'absolute left-1/2 top-1/2 flex size-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-sm',
-          chevronClass,
-        )}
-      >
-        <ChevronRight className="size-4" strokeWidth={2.5} />
-      </div>
+      <div className="h-0 w-full border-t border-dashed border-zinc-400" />
+      <span className="absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-900" />
     </div>
   );
 }
 
-function DeliverFlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
-  const theme = STEP_THEMES[step.theme];
-  const Icon = routeFlowStepIcon(step.stepId);
-  const stepLabel = String(step.stepNumber).padStart(2, '0');
+function FlowStepDetailsCard({
+  items,
+  className,
+}: {
+  items: RouteFlowDetailItem[];
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex w-full flex-col justify-center overflow-hidden',
+        STEP_DETAILS_MIN_H,
+        className,
+      )}
+    >
+      {items.map((item, index) => {
+        const { Icon } = ROUTE_FLOW_DETAIL_META[item.kind];
+        return (
+          <div
+            key={`${item.kind}-${index}`}
+            className={cn(
+              'flex flex-1 items-center gap-2.5 px-3.5 py-3',
+              index > 0 && 'border-t border-zinc-200',
+            )}
+          >
+            <Icon className="size-4 shrink-0 text-brand" aria-hidden />
+            <span className="min-w-0 flex-1 text-left text-xs leading-snug text-zinc-800 sm:text-sm">
+              {item.text}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
+  const StepIcon = routeFlowStepLucideIcon(step.stepId);
 
   return (
-    <div className="flex w-[10.5rem] shrink-0 flex-col items-center sm:w-[11.5rem]">
-      <span
-        className={cn(
-          'flex size-8 items-center justify-center rounded-full text-xs font-bold',
-          theme.number,
-        )}
-      >
-        {stepLabel}
-      </span>
+    <div className="flex w-[9rem] shrink-0 flex-col sm:w-[10.5rem]">
+      <div className="flex flex-col items-center">
+        <span className="flex size-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white">
+          {step.stepNumber}
+        </span>
 
-      <div
-        className={cn(
-          'mt-3 flex size-[4.25rem] items-center justify-center rounded-full border-[3px] bg-white ring-4 ring-offset-2 sm:size-[4.75rem]',
-          theme.ring,
-        )}
-      >
-        <Icon className="size-9 sm:size-10" />
+        <div className="relative mt-3 flex size-14 items-center justify-center rounded-full bg-white sm:mt-4 sm:size-16">
+          <span
+            className="absolute inset-0 rounded-full ring-1 ring-zinc-300"
+            aria-hidden
+          />
+          <span
+            className="absolute inset-1 rounded-full ring-1 ring-zinc-200"
+            aria-hidden
+          />
+          <StepIcon
+            className="relative z-10 size-7 text-zinc-800 sm:size-8"
+            strokeWidth={1.5}
+            aria-hidden
+          />
+        </div>
+
+        <p
+          className={cn(
+            'mt-4 flex w-full items-center justify-center px-1 text-center text-xs font-bold leading-snug text-zinc-900 sm:mt-5 sm:text-sm',
+            STEP_TITLE_MIN_H,
+          )}
+        >
+          {step.label}
+        </p>
       </div>
 
-      <p
-        className={cn(
-          'mt-4 px-1 text-center text-sm font-bold leading-snug',
-          theme.title,
-        )}
-      >
-        {step.label}
-      </p>
-
-      <div
-        className={cn(
-          'mt-3 w-full rounded-lg border border-zinc-200/90 bg-white px-3 py-2.5 shadow-sm',
-          'border-l-[5px]',
-          theme.cardAccent,
-        )}
-      >
-        <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-          {step.details.map((item, index) => (
-            <DeliverFlowDetailRow key={`${item.kind}-${index}`} item={item} />
-          ))}
-        </ul>
-      </div>
+      <FlowStepDetailsCard items={step.details} className="mt-5 sm:mt-6" />
     </div>
   );
 }
@@ -155,17 +118,12 @@ export function DeliverThreeStepFlow({
   steps: DeliverFlowStepConfig[];
 }) {
   return (
-    <div className="w-full min-w-0 overflow-x-auto py-1 [-webkit-overflow-scrolling:touch]">
-      <div className="flex min-w-max items-start justify-center gap-0 px-1">
+    <div className="w-full min-w-0 overflow-x-auto py-2 [-webkit-overflow-scrolling:touch]">
+      <div className="flex min-w-max items-stretch justify-center gap-6 px-2 sm:gap-10">
         {steps.map((step, index) => (
-          <div key={step.stepNumber} className="flex items-start">
-            <DeliverFlowStepColumn step={step} />
-            {index < steps.length - 1 ? (
-              <DeliverFlowDashedConnector
-                lineClass={STEP_THEMES[step.theme].connector}
-                chevronClass={STEP_THEMES[step.theme].chevron}
-              />
-            ) : null}
+          <div key={step.stepNumber} className="flex items-stretch">
+            <FlowStepColumn step={step} />
+            {index < steps.length - 1 ? <FlowStepDotConnector /> : null}
           </div>
         ))}
       </div>
@@ -185,86 +143,94 @@ export interface DeliverFlowCardHeaderProps {
 export function DeliverFlowCardHeader({
   title,
   machineName,
-  statusLabel,
-  sinceLabel,
   isCritical,
   criticalBadge,
 }: DeliverFlowCardHeaderProps) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100/90 px-4 py-4 sm:px-6 sm:py-5">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-brand">
+    <div className="border-b border-zinc-200 px-5 py-5 sm:px-6 sm:py-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700">
             <Truck className="size-5" aria-hidden />
           </span>
           <div className="min-w-0">
-            <h3 className="m-0 text-lg font-bold leading-tight text-[#0a2d5c] sm:text-xl">
+            <h3 className="m-0 text-lg font-bold leading-tight text-zinc-900 sm:text-xl">
               {title}
             </h3>
-            <p className="mt-0.5 text-base font-semibold text-zinc-800">
+            <p className="mt-1 text-base font-normal text-zinc-800">
               {machineName}
             </p>
-          </div>
-        </div>
-        {statusLabel || sinceLabel ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600">
-            {statusLabel ? (
-              <>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-brand" aria-hidden />
-                  Status:{' '}
-                  <span className="font-medium text-zinc-800">
-                    {statusLabel}
-                  </span>
-                </span>
+            {/* {statusLabel || sinceLabel ? (
+              <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600">
+                {statusLabel ? (
+                  <>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className="size-1.5 rounded-full bg-zinc-900"
+                        aria-hidden
+                      />
+                      Status:{' '}
+                      <span className="font-semibold text-zinc-900">
+                        {statusLabel}
+                      </span>
+                    </span>
+                  </>
+                ) : null}
                 {sinceLabel ? (
-                  <span className="hidden text-zinc-300 sm:inline" aria-hidden>
-                    |
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar
+                      className="size-3.5 shrink-0 text-zinc-500"
+                      aria-hidden
+                    />
+                    Desde {sinceLabel}
                   </span>
                 ) : null}
-              </>
-            ) : null}
-            {sinceLabel ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar
-                  className="size-4 shrink-0 text-zinc-500"
+              </p>
+            ) : null} */}
+          </div>
+        </div>
+        {isCritical
+          ? (criticalBadge ?? (
+              <span className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800">
+                <AlertTriangle
+                  className="size-4 shrink-0 text-red-500"
                   aria-hidden
                 />
-                Desde {sinceLabel}
+                Crítico
               </span>
-            ) : null}
-          </div>
-        ) : null}
+            ))
+          : null}
       </div>
-      {isCritical
-        ? (criticalBadge ?? (
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-800">
-              <svg
-                className="size-4 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden
-              >
-                <path
-                  d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Crítico
-            </span>
-          ))
-        : null}
     </div>
   );
 }
 
 export function DeliverFlowCardFooter({ children }: { children: ReactNode }) {
   return (
-    <div className="border-t border-zinc-100 bg-gradient-to-b from-white to-blue-50/40 px-4 py-5 sm:px-6">
+    <div className="border-t border-zinc-200 px-5 py-6 sm:px-6">
       <div className="flex justify-center">{children}</div>
+    </div>
+  );
+}
+
+export function DeliverFlowCard({
+  deferBanner,
+  children,
+  className,
+}: {
+  deferBanner?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md',
+        className,
+      )}
+    >
+      {deferBanner}
+      {children}
     </div>
   );
 }
