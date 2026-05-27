@@ -293,7 +293,7 @@ function FlowStepColumn({
             'relative flex size-12 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors sm:size-14',
             isDone && 'border-emerald-500 bg-emerald-50  text-emerald-700',
             isCurrent &&
-              'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8] ring-4  ring-[#005fb8]/20',
+              'border-black bg-[#005fb8]/10 text-black ring-4 ring-black/20',
             !isDone && !isCurrent && 'border-zinc-200 text-zinc-400',
           )}
         >
@@ -320,7 +320,7 @@ function FlowStepColumn({
           ) : null}
         </div>
       </div>
-
+      
       {action ? (
         <div className="mt-2 flex w-full flex-col items-center gap-1.5">
           {action}

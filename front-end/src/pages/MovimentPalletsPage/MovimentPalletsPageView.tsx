@@ -67,7 +67,9 @@ function EquipmentTypePicker({
                 className="h-12 w-auto max-w-[4.5rem] object-contain"
               />
             </div>
-            <span className="text-sm font-semibold text-zinc-900">{opt.label}</span>
+            <span className="text-sm font-semibold text-zinc-900">
+              {opt.label}
+            </span>
           </button>
         );
       })}
@@ -211,9 +213,6 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Operador
                 </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Tarefas
-                </th>
                 <th className="px-4 py-3 text-right font-semibold text-zinc-700">
                   Ações
                 </th>
@@ -263,9 +262,6 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {row.operator ? row.operator.name : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {row._count.movimentPalletTasks}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
