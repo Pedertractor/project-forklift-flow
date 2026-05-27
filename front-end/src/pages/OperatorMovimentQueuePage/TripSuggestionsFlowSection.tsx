@@ -1,13 +1,14 @@
 import type { UseQueryResult } from '@tanstack/react-query';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/card';
+
 import {
+  DeliverFlowAcceptButton,
+  DeliverFlowActionFooter,
   DeliverFlowCard,
-  DeliverFlowCardFooter,
-  DeliverFlowCardHeader,
+  DeliverFlowDeferBanner,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
+
 import {
   expeditionAreaDetail,
   goToReceivingDetail,
@@ -15,62 +16,70 @@ import {
   prismaDetail,
   receivingAreaDetail,
 } from '@/components/operator-moviment/route-flow-step-details';
-import {
-  SuggestionFlowConnector,
-  SuggestionFlowStep,
-} from '@/components/operator-moviment/route-flow-icons';
+
 import type {
   TripCombinedSuggestionApi,
   TripStandaloneDeliverApi,
   TripStandalonePickupApi,
   TripSuggestionsResponse,
 } from '@/types/operator-moviment-pallet.types';
-import {
-  formatTaskDate,
-  isCriticalPriority,
-  priorityLabel,
-} from '@/utils/operator-moviment-display';
-import { taskStatusLabelPt } from '@/utils/operator-moviment-labels';
+
+import { isCriticalPriority } from '@/utils/operator-moviment-display';
+
 import { Check } from 'lucide-react';
 
-function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
+function buildCombinedSteps(
+  row: TripCombinedSuggestionApi,
+): DeliverFlowStepConfig[] {
   const d1 = row.deliverTask.request.movementCube;
+
   const machine = row.machine;
 
-  return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
-      <SuggestionFlowStep
-        stepId="receiving"
-        label="Recebimento"
-        details={[receivingAreaDetail(), prismaDetail(d1, 'pick-at-receiving')]}
-        accent="start"
-      />
-      <SuggestionFlowConnector />
-      <SuggestionFlowStep
-        stepId="machine"
-        label="Entregar na máquina"
-        details={[
-          machineLocationDetail(machine.name),
-          prismaDetail(d1, 'deliver-to-machine'),
-        ]}
-        accent="mid"
-      />
-      <SuggestionFlowConnector />
-      <SuggestionFlowStep
-        stepId="pallet"
-        label="Pallet na máquina"
-        details={[machineLocationDetail(machine.name)]}
-        accent="mid"
-      />
-      <SuggestionFlowConnector />
-      <SuggestionFlowStep
-        stepId="expedition"
-        label="Expedição"
-        details={[expeditionAreaDetail()]}
-        accent="end"
-      />
-    </div>
-  );
+  return [
+    {
+      stepNumber: 1,
+
+      stepId: 'receiving',
+
+      label: 'Recebimento',
+
+      details: [receivingAreaDetail(), prismaDetail(d1, 'pick-at-receiving')],
+    },
+
+    {
+      stepNumber: 2,
+
+      stepId: 'machine',
+
+      label: 'Entregue na máquina',
+
+      details: [
+        machineLocationDetail(machine.name),
+
+        prismaDetail(d1, 'deliver-to-machine'),
+      ],
+    },
+
+    {
+      stepNumber: 3,
+
+      stepId: 'pallet',
+
+      label: 'Pallet na máquina',
+
+      details: [machineLocationDetail(machine.name)],
+    },
+
+    {
+      stepNumber: 4,
+
+      stepId: 'expedition',
+
+      label: 'Expedição',
+
+      details: [expeditionAreaDetail()],
+    },
+  ];
 }
 
 function buildStandaloneDeliverSteps(
@@ -80,173 +89,212 @@ function buildStandaloneDeliverSteps(
     row.deliverTask?.request.movementCube ??
     row.suggestedOrder[0]?.movementCube ??
     null;
+
   const machine = row.machine;
 
   return [
     {
       stepNumber: 1,
+
       stepId: 'receiving',
+
       label: 'Vá ao recebimento',
+
       details: [goToReceivingDetail()],
     },
+
     {
       stepNumber: 2,
+
       stepId: 'pallet',
+
       label: 'Pegue o pallet no recebimento',
+
       details: [receivingAreaDetail(), prismaDetail(cube, 'pick-at-receiving')],
     },
+
     {
       stepNumber: 3,
+
       stepId: 'machine',
+
       label: 'Entregue o pallet na máquina',
+
       details: [
         machineLocationDetail(machine.name),
+
         prismaDetail(cube, 'deliver-to-machine'),
       ],
     },
   ];
 }
 
-function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
+function buildStandalonePickupSteps(
+  row: TripStandalonePickupApi,
+): DeliverFlowStepConfig[] {
   const machine = row.machine;
 
+  return [
+    {
+      stepNumber: 1,
+
+      stepId: 'machine',
+
+      label: 'Retire na máquina',
+
+      details: [machineLocationDetail(machine.name)],
+    },
+
+    {
+      stepNumber: 2,
+
+      stepId: 'expedition',
+
+      label: 'Leve à expedição',
+
+      details: [expeditionAreaDetail()],
+    },
+  ];
+}
+
+function SuggestionFlowCardBody({
+  title,
+
+  steps,
+
+  hint,
+}: {
+  title?: string;
+
+  steps: DeliverFlowStepConfig[];
+
+  message?: string | null;
+
+  hint?: string | null;
+}) {
   return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
-      <SuggestionFlowStep
-        stepId="machine"
-        label="Retire na máquina"
-        details={[machineLocationDetail(machine.name)]}
-        accent="mid"
-      />
-      <SuggestionFlowConnector />
-      <SuggestionFlowStep
-        stepId="expedition"
-        label="Leve à expedição"
-        details={[expeditionAreaDetail()]}
-        accent="end"
-      />
+    <div className="px-5 py-4 sm:px-8">
+      {title ? (
+        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
+          {title}
+        </p>
+      ) : null}
+
+      <DeliverThreeStepFlow steps={steps} />
+
+      {hint ? (
+        <p className=" text-center text-xs leading-relaxed text-zinc-500">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 function CombinedRouteCard({
   row,
+
   bound,
+
   busy,
+
   isAcceptingThisTrip,
+
   onAcceptTrip,
 }: {
   row: TripCombinedSuggestionApi;
+
   bound: boolean;
+
   busy: boolean;
+
   isAcceptingThisTrip: boolean;
+
   onAcceptTrip: (tripSuggestionId: string) => void;
 }) {
-  return (
-    <Card
-    // className={`relative overflow-hidden border-2 shadow-md ${
-    //   row.deferRecommended
-    //     ? 'border-amber-300/90 bg-gradient-to-br from-amber-50/95 via-white to-white'
-    //     : 'border-brand/35 bg-gradient-to-br from-brand/[0.07] via-white to-white'
-    // }`}
-    >
-      {row.deferRecommended ? (
-        <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
-          Existem itens mais urgentes no setor — avalie antes de seguir esta
-          rota.
-        </div>
-      ) : null}
-      <div className="p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="m-0 text-xs font-semibold uppercase tracking-wider text-brand">
-            Rota combinada sugerida
-          </p>
-          <span className="rounded-full bg-zinc-900/90 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-white">
-            Prioridade: {priorityLabel(row.effectivePriority)}
-          </span>
-        </div>
-        <p className="mt-2 text-sm font-semibold text-zinc-900">
-          Uma ida: recebimento → máquina → retirada → expedição.
-        </p>
-        <div className="mt-5">
-          <CombinedRouteFlow row={row} />
-        </div>
-        <p className="mt-4 text-xs leading-relaxed text-zinc-600">
-          {/* {row.message} */}
-        </p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="m-0 text-xs text-zinc-500">
-            Ao aceitar, ambas as tarefas ficam no seu equipamento, na ordem
-            acima.
-          </p>
-          <Button
-            type="button"
-            className="shrink-0 bg-brand text-white hover:bg-[#004a94]"
-            disabled={!bound || busy || isAcceptingThisTrip}
-            onClick={() => onAcceptTrip(row.tripSuggestion.id)}
-          >
-            {isAcceptingThisTrip ? 'Aceitando…' : 'Aceitar rota sugerida'}
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function StandaloneDeliverRouteCard({
-  row,
-  bound,
-  busy,
-  isAcceptingThisDeliver,
-  onAcceptDeliver,
-}: {
-  row: TripStandaloneDeliverApi;
-  bound: boolean;
-  busy: boolean;
-  isAcceptingThisDeliver: boolean;
-  onAcceptDeliver: (row: TripStandaloneDeliverApi) => void;
-}) {
   const isCritical = isCriticalPriority(row.effectivePriority);
-  const steps = buildStandaloneDeliverSteps(row);
-  const deliverTask = row.deliverTask;
-  const statusLabel = deliverTask
-    ? taskStatusLabelPt(deliverTask.status)
-    : 'Sugerida';
-  const sinceLabel = deliverTask ? formatTaskDate(deliverTask.createdAt) : null;
+
+  const steps = buildCombinedSteps(row);
 
   return (
     <DeliverFlowCard
       className={row.deferRecommended ? 'ring-2 ring-amber-300/80' : undefined}
       deferBanner={
         row.deferRecommended ? (
-          <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
-            Existem itens mais urgentes no setor — avalie antes de aceitar esta
-            entrega.
-          </div>
+          <DeliverFlowDeferBanner>
+            Existem itens mais urgentes no setor — avalie antes de seguir esta
+            rota.
+          </DeliverFlowDeferBanner>
         ) : undefined
       }
     >
-      <DeliverFlowCardHeader
-        title="Sugestão de rota"
-        machineName={row.machine.name}
-        statusLabel={statusLabel}
-        sinceLabel={sinceLabel}
-        isCritical={isCritical}
+      <SuggestionFlowCardBody
+        title="Rota combinada sugerida"
+        steps={steps}
+        message={row.message}
+        hint="Ao aceitar, ambas as tarefas ficam no seu equipamento, na ordem acima."
       />
 
-      <div className="px-5 py-8 sm:px-8 sm:py-10">
-        <DeliverThreeStepFlow steps={steps} />
-        {row.message ? (
-          <p className="mt-5 text-center text-xs leading-relaxed text-zinc-500">
-            {row.message}
-          </p>
-        ) : null}
-      </div>
+      <DeliverFlowActionFooter isCritical={isCritical}>
+        <DeliverFlowAcceptButton
+          disabled={!bound || busy || isAcceptingThisTrip}
+          onClick={() => onAcceptTrip(row.tripSuggestion.id)}
+        >
+          {isAcceptingThisTrip ? (
+            'Aceitando…'
+          ) : (
+            <>
+              <Check className="size-5 shrink-0" aria-hidden />
+              Aceitar rota sugerida
+            </>
+          )}
+        </DeliverFlowAcceptButton>
+      </DeliverFlowActionFooter>
+    </DeliverFlowCard>
+  );
+}
 
-      <DeliverFlowCardFooter>
-        <Button
-          type="button"
-          className="h-12 min-w-[17rem] gap-2.5 rounded-full bg-zinc-900 px-10 text-base font-semibold text-white shadow-sm hover:bg-zinc-800"
+function StandaloneDeliverRouteCard({
+  row,
+
+  bound,
+
+  busy,
+
+  isAcceptingThisDeliver,
+
+  onAcceptDeliver,
+}: {
+  row: TripStandaloneDeliverApi;
+
+  bound: boolean;
+
+  busy: boolean;
+
+  isAcceptingThisDeliver: boolean;
+
+  onAcceptDeliver: (row: TripStandaloneDeliverApi) => void;
+}) {
+  const isCritical = isCriticalPriority(row.effectivePriority);
+
+  const steps = buildStandaloneDeliverSteps(row);
+
+  return (
+    <DeliverFlowCard
+      className={row.deferRecommended ? 'ring-2 ring-amber-300/80' : undefined}
+      deferBanner={
+        row.deferRecommended ? (
+          <DeliverFlowDeferBanner>
+            Existem itens mais urgentes no setor — avalie antes de aceitar esta
+            entrega.
+          </DeliverFlowDeferBanner>
+        ) : undefined
+      }
+    >
+      <SuggestionFlowCardBody steps={steps} message={row.message} />
+
+      <DeliverFlowActionFooter isCritical={isCritical}>
+        <DeliverFlowAcceptButton
           disabled={!bound || busy || isAcceptingThisDeliver}
           onClick={() => onAcceptDeliver(row)}
         >
@@ -258,105 +306,148 @@ function StandaloneDeliverRouteCard({
               Aceitar entrega sugerida
             </>
           )}
-        </Button>
-      </DeliverFlowCardFooter>
+        </DeliverFlowAcceptButton>
+      </DeliverFlowActionFooter>
     </DeliverFlowCard>
   );
 }
 
 function StandalonePickupRouteCard({
   row,
+
   bound,
+
   busy,
+
   taskId,
+
   isAcceptingThisPickup,
+
   onAcceptPickup,
 }: {
   row: TripStandalonePickupApi;
+
   bound: boolean;
+
   busy: boolean;
+
   taskId: string;
+
   isAcceptingThisPickup: boolean;
+
   onAcceptPickup: (id: string) => void;
 }) {
+  const isCritical = isCriticalPriority(row.effectivePriority);
+
+  const steps = buildStandalonePickupSteps(row);
+
   return (
-    <Card
-      className={`overflow-hidden border-2 shadow-md ${
-        row.deferRecommended
-          ? 'border-amber-300/80 bg-amber-50/40'
-          : 'border-zinc-200 bg-white'
-      }`}
+    <DeliverFlowCard
+      className={row.deferRecommended ? 'ring-2 ring-amber-300/80' : undefined}
+      deferBanner={
+        row.deferRecommended ? (
+          <DeliverFlowDeferBanner>
+            Existem itens mais urgentes no setor — avalie antes de aceitar esta
+            retirada.
+          </DeliverFlowDeferBanner>
+        ) : undefined
+      }
     >
-      <div className="p-4 sm:p-5">
-        <p className="m-0 text-xs font-semibold uppercase tracking-wider text-zinc-600">
-          Sugestão de retirada
-        </p>
-        <p className="mt-2 text-sm font-semibold text-zinc-900">
-          Retirada na máquina — levar o pallet à expedição.
-        </p>
-        <div className="mt-5">
-          <StandalonePickupFlow row={row} />
-        </div>
-        <div className="mt-5 flex justify-end">
-          <Button
-            type="button"
-            className="shrink-0 "
-            disabled={!bound || busy || isAcceptingThisPickup}
-            onClick={() => onAcceptPickup(taskId)}
-          >
-            {isAcceptingThisPickup ? 'Aceitando…' : 'Aceitar retirada sugerida'}
-          </Button>
-        </div>
-      </div>
-    </Card>
+      <SuggestionFlowCardBody
+        title="Sugestão de retirada"
+        steps={steps}
+        message={row.message}
+      />
+
+      <DeliverFlowActionFooter isCritical={isCritical}>
+        <DeliverFlowAcceptButton
+          disabled={!bound || busy || isAcceptingThisPickup}
+          onClick={() => onAcceptPickup(taskId)}
+        >
+          {isAcceptingThisPickup ? (
+            'Aceitando…'
+          ) : (
+            <>
+              <Check className="size-5 shrink-0" aria-hidden />
+              Aceitar retirada sugerida
+            </>
+          )}
+        </DeliverFlowAcceptButton>
+      </DeliverFlowActionFooter>
+    </DeliverFlowCard>
   );
 }
 
 type MainTripQueueItem =
   | {
       displayKind: 'combined';
+
       critical: boolean;
+
       sortAt: number;
+
       combined: TripCombinedSuggestionApi;
     }
   | {
       displayKind: 'deliver';
+
       critical: boolean;
+
       sortAt: number;
+
       deliver: TripStandaloneDeliverApi;
     }
   | {
       displayKind: 'pickup';
+
       critical: boolean;
+
       sortAt: number;
+
       pickup: TripStandalonePickupApi;
     };
 
 function buildMainTripQueueItems(
   combined: TripCombinedSuggestionApi[],
+
   standaloneDelivers: TripStandaloneDeliverApi[],
+
   standalonePickups: TripStandalonePickupApi[],
 ): MainTripQueueItem[] {
   const items: MainTripQueueItem[] = [
     ...combined.map((row) => ({
       displayKind: 'combined' as const,
+
       critical: row.effectivePriority === 'VERY_HIGH',
+
       sortAt: Math.min(
         new Date(row.deliverTask.createdAt).getTime(),
+
         new Date(row.pickupTask.createdAt).getTime(),
       ),
+
       combined: row,
     })),
+
     ...standaloneDelivers.map((row) => ({
       displayKind: 'deliver' as const,
+
       critical: row.effectivePriority === 'VERY_HIGH',
-      sortAt: new Date(row.deliverTask.createdAt).getTime(),
+
+      sortAt: row.deliverTask
+        ? new Date(row.deliverTask.createdAt).getTime()
+        : 0,
+
       deliver: row,
     })),
+
     ...standalonePickups.map((row) => ({
       displayKind: 'pickup' as const,
+
       critical: row.effectivePriority === 'VERY_HIGH',
+
       sortAt: new Date(row.pickupTask.createdAt).getTime(),
+
       pickup: row,
     })),
   ];
@@ -365,31 +456,48 @@ function buildMainTripQueueItems(
     if (a.critical !== b.critical) {
       return a.critical ? -1 : 1;
     }
+
     return a.sortAt - b.sortAt;
   });
 }
 
 export interface TripSuggestionsFlowSectionProps {
   tripQuery: UseQueryResult<TripSuggestionsResponse, Error>;
+
   bound: boolean;
+
   busy: boolean;
+
   pendingTripSuggestionId: string | null;
+
   pendingStandalonePickupTaskId: string | null;
+
   pendingStandaloneDeliverKey: string | null;
+
   onAcceptTrip: (tripSuggestionId: string) => void;
+
   onAcceptStandalonePickup: (taskId: string) => void;
+
   onAcceptStandaloneDeliver: (row: TripStandaloneDeliverApi) => void;
 }
 
 export function TripSuggestionsFlowSection({
   tripQuery,
+
   bound,
+
   busy,
+
   pendingTripSuggestionId,
+
   pendingStandalonePickupTaskId,
+
   pendingStandaloneDeliverKey,
+
   onAcceptTrip,
+
   onAcceptStandalonePickup,
+
   onAcceptStandaloneDeliver,
 }: TripSuggestionsFlowSectionProps) {
   if (tripQuery.isError) {
@@ -411,38 +519,52 @@ export function TripSuggestionsFlowSection({
   }
 
   const data = tripQuery.data;
+
   if (!data) {
     return null;
   }
 
   const combined = data.suggestions;
+
   const seenPickupIds = new Set<string>();
+
   const standalonePickups = data.standalonePickupTasks.filter((row) => {
     const id = row.pickupTask.id;
+
     if (seenPickupIds.has(id)) {
       return false;
     }
+
     seenPickupIds.add(id);
+
     return true;
   });
+
   const seenCombinedPickupIds = new Set(
     combined.map((row) => row.pickupTask.id),
   );
+
   const seenCombinedDeliverIds = new Set(
     combined.map((row) => row.deliverTask.id),
   );
+
   const standalonePickupsWithoutCombinedOverlap = standalonePickups.filter(
     (row) => !seenCombinedPickupIds.has(row.pickupTask.id),
   );
+
   const standaloneDelivers = (data.standaloneDeliverTasks ?? []).filter(
     (row) => {
       const deliverId = row.deliverTask?.id ?? row.requestId;
+
       return !seenCombinedDeliverIds.has(deliverId);
     },
   );
+
   const mainQueue = buildMainTripQueueItems(
     combined,
+
     standaloneDelivers,
+
     standalonePickupsWithoutCombinedOverlap,
   );
 
@@ -465,6 +587,7 @@ export function TripSuggestionsFlowSection({
         {mainQueue.map((item) => {
           if (item.displayKind === 'combined') {
             const row = item.combined;
+
             return (
               <CombinedRouteCard
                 key={row.tripSuggestion.id}
@@ -478,9 +601,12 @@ export function TripSuggestionsFlowSection({
               />
             );
           }
+
           if (item.displayKind === 'deliver') {
             const row = item.deliver;
+
             const acceptKey = row.deliverTask?.id ?? `pool:${row.requestId}`;
+
             return (
               <StandaloneDeliverRouteCard
                 key={`deliver-${row.machine.id}-${acceptKey}`}
@@ -494,8 +620,11 @@ export function TripSuggestionsFlowSection({
               />
             );
           }
+
           const row = item.pickup;
+
           const taskId = row.pickupTask.id;
+
           return (
             <StandalonePickupRouteCard
               key={`pickup-${taskId}`}

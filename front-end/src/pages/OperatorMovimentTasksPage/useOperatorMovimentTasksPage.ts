@@ -95,9 +95,7 @@ export function useOperatorMovimentTasksPage() {
       try {
         const stillOpenCount = await afterTaskComplete();
         if (stillOpenCount > 0) {
-          toast.success(
-            'Entrega na máquina registrada. Continue na mesma rota para concluir a retirada na expedição.',
-          );
+          toast.success('Entrega na máquina registrada.');
           return;
         }
         toast.success('Entrega na máquina registrada.');

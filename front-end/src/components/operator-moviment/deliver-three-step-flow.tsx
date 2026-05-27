@@ -6,7 +6,69 @@ import {
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Calendar, Truck } from 'lucide-react';
+import { AlertTriangle, MapPinned, Truck } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+
+export const deliverFlowAcceptButtonClass =
+  'h-12 min-w-[17rem] gap-2.5 rounded-full bg-brand px-10 text-base font-semibold text-white shadow-sm hover:bg-brand/80';
+
+export function DeliverFlowCriticalBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800">
+      <AlertTriangle className="size-4 shrink-0 text-red-500" aria-hidden />
+      Crítico
+    </span>
+  );
+}
+
+export function DeliverFlowDeferBanner({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
+      {children}
+    </div>
+  );
+}
+
+export function DeliverFlowActionFooter({
+  children,
+  isCritical = false,
+}: {
+  children: ReactNode;
+  isCritical?: boolean;
+}) {
+  return (
+    <DeliverFlowCardFooter>
+      <div className="flex items-center gap-2">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand text-white">
+          <MapPinned className="size-5" aria-hidden />
+        </span>
+      </div>
+      {children}
+      {isCritical ? <DeliverFlowCriticalBadge /> : null}
+    </DeliverFlowCardFooter>
+  );
+}
+
+export function DeliverFlowAcceptButton({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      className={deliverFlowAcceptButtonClass}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
+}
 
 export interface DeliverFlowStepConfig {
   stepNumber: number;
@@ -26,7 +88,7 @@ const STEP_DETAILS_MIN_H = 'min-h-[5.5rem] sm:min-h-[6rem]';
 function FlowStepDotConnector() {
   return (
     <div
-      className="relative flex w-10 shrink-0 items-center self-center sm:w-40"
+      className="relative flex w-10 shrink-0 items-center self-center sm:w-10"
       aria-hidden
     >
       <div className="h-0 w-full border-t border-dashed border-zinc-400" />
@@ -61,7 +123,7 @@ function FlowStepDetailsCard({
             )}
           >
             <Icon className="size-4 shrink-0 text-brand" aria-hidden />
-            <span className="min-w-0 flex-1 text-left text-xs leading-snug text-zinc-800 sm:text-sm">
+            <span className="min-w-0 flex-1 text-left text-xs leading-snug text-zinc-800 ">
               {item.text}
             </span>
           </div>
@@ -81,7 +143,7 @@ function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
           {step.stepNumber}
         </span>
 
-        <div className="relative mt-3 flex size-14 items-center justify-center rounded-full bg-white sm:mt-4 sm:size-16">
+        <div className="relative mt-3 flex size-14 items-center justify-center rounded-full bg-white  sm:size-16">
           <span
             className="absolute inset-0 rounded-full ring-1 ring-zinc-300"
             aria-hidden
@@ -107,7 +169,7 @@ function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
         </p>
       </div>
 
-      <FlowStepDetailsCard items={step.details} className="mt-5 sm:mt-6" />
+      <FlowStepDetailsCard items={step.details} />
     </div>
   );
 }
@@ -118,7 +180,7 @@ export function DeliverThreeStepFlow({
   steps: DeliverFlowStepConfig[];
 }) {
   return (
-    <div className="w-full min-w-0 overflow-x-auto py-2 [-webkit-overflow-scrolling:touch]">
+    <div className="w-full min-w-0 overflow-x-auto  [-webkit-overflow-scrolling:touch]">
       <div className="flex min-w-max items-stretch justify-center gap-6 px-2 sm:gap-10">
         {steps.map((step, index) => (
           <div key={step.stepNumber} className="flex items-stretch">
@@ -189,17 +251,7 @@ export function DeliverFlowCardHeader({
             ) : null} */}
           </div>
         </div>
-        {isCritical
-          ? (criticalBadge ?? (
-              <span className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800">
-                <AlertTriangle
-                  className="size-4 shrink-0 text-red-500"
-                  aria-hidden
-                />
-                Crítico
-              </span>
-            ))
-          : null}
+        {isCritical ? (criticalBadge ?? <DeliverFlowCriticalBadge />) : null}
       </div>
     </div>
   );
@@ -207,8 +259,8 @@ export function DeliverFlowCardHeader({
 
 export function DeliverFlowCardFooter({ children }: { children: ReactNode }) {
   return (
-    <div className="border-t border-zinc-200 px-5 py-6 sm:px-6">
-      <div className="flex justify-center">{children}</div>
+    <div className="border-t border-zinc-200 px-5 py-2 sm:px-6 ">
+      <div className="flex justify-between">{children}</div>
     </div>
   );
 }

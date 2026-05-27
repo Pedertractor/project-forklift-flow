@@ -104,7 +104,6 @@ export function OperatorMovimentQueuePageView(
                 </dl>
                 <Button
                   type="button"
-                  variant="outline"
                   className="mt-4 w-full gap-2 sm:w-auto"
                   onClick={goToEquipment}
                 >
