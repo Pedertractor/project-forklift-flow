@@ -180,7 +180,6 @@ function mapStandaloneDeliverRow(task: DeliveryTaskListRow): StandaloneDeliverSu
       name: machine.name,
       position: machine.position,
     },
-    message: `Entregar prisma ${task.movementCube} na maquina ${machine.name} (${machine.position}).`,
     suggestedOrder: [],
     requestId: task.id,
     deliverTask: task,

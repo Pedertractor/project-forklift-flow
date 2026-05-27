@@ -535,18 +535,7 @@ export function OpenTasksFlowSection({
 
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
-      {isLoading ? (
-        <div
-          className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-10"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="h-24 w-24 shrink-0">
-            <ForkliftLoader />
-          </div>
-          <p className="mt-3 text-sm text-zinc-600">Carregando tarefas…</p>
-        </div>
-      ) : null}
+      {isLoading ? <ForkliftLoader /> : null}
 
       {!isLoading && !hasOpenWork ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-4 py-10 text-center">

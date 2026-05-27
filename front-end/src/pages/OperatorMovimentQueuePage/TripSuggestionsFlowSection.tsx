@@ -2,6 +2,12 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import {
+  DeliverFlowCardFooter,
+  DeliverFlowCardHeader,
+  DeliverThreeStepFlow,
+  type DeliverFlowStepConfig,
+} from '@/components/operator-moviment/deliver-three-step-flow';
+import {
   expeditionAreaDetail,
   machineLocationDetail,
   prismaDetail,
@@ -17,7 +23,14 @@ import type {
   TripStandalonePickupApi,
   TripSuggestionsResponse,
 } from '@/types/operator-moviment-pallet.types';
-import { priorityLabel } from '@/utils/operator-moviment-display';
+import {
+  formatTaskDate,
+  isCriticalPriority,
+  priorityLabel,
+} from '@/utils/operator-moviment-display';
+import { taskStatusLabelPt } from '@/utils/operator-moviment-labels';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
   const d1 = row.deliverTask.request.movementCube;
@@ -36,7 +49,7 @@ function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
         stepId="machine"
         label="Entregar na máquina"
         details={[
-          machineLocationDetail(machine.name, machine.position),
+          machineLocationDetail(machine.name),
           prismaDetail(d1, 'deliver-to-machine'),
         ]}
         accent="mid"
@@ -45,7 +58,7 @@ function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
       <SuggestionFlowStep
         stepId="pallet"
         label="Pallet na máquina"
-        details={[machineLocationDetail(machine.name, machine.position)]}
+        details={[machineLocationDetail(machine.name)]}
         accent="mid"
       />
       <SuggestionFlowConnector />
@@ -59,36 +72,44 @@ function CombinedRouteFlow({ row }: { row: TripCombinedSuggestionApi }) {
   );
 }
 
-function StandaloneDeliverFlow({ row }: { row: TripStandaloneDeliverApi }) {
+function buildStandaloneDeliverSteps(
+  row: TripStandaloneDeliverApi,
+): DeliverFlowStepConfig[] {
   const cube =
     row.deliverTask?.request.movementCube ??
     row.suggestedOrder[0]?.movementCube ??
-    '—';
+    null;
   const machine = row.machine;
 
-  return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-2 pt-1 [-webkit-overflow-scrolling:touch]">
-      <SuggestionFlowStep
-        stepId="receiving"
-        label="Busque no recebimento"
-        details={[
-          receivingAreaDetail(),
-          prismaDetail(cube, 'pick-at-receiving'),
-        ]}
-        accent="start"
-      />
-      <SuggestionFlowConnector />
-      <SuggestionFlowStep
-        stepId="machine"
-        label="Entregue na máquina"
-        details={[
-          machineLocationDetail(machine.name, machine.position),
-          prismaDetail(cube, 'deliver-to-machine'),
-        ]}
-        accent="end"
-      />
-    </div>
-  );
+  return [
+    {
+      stepNumber: 1,
+      stepId: 'receiving',
+      label: 'Vá ao recebimento',
+      details: [receivingAreaDetail('Deslocar-se até o recebimento')],
+      theme: 'blue',
+    },
+    {
+      stepNumber: 2,
+      stepId: 'pallet',
+      label: 'Pegue o pallet no recebimento',
+      details: [
+        receivingAreaDetail(),
+        prismaDetail(cube, 'pick-at-receiving'),
+      ],
+      theme: 'purple',
+    },
+    {
+      stepNumber: 3,
+      stepId: 'machine',
+      label: 'Entregue o pallet na máquina',
+      details: [
+        machineLocationDetail(machine.name),
+        prismaDetail(cube, 'deliver-to-machine'),
+      ],
+      theme: 'green',
+    },
+  ];
 }
 
 function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
@@ -99,7 +120,7 @@ function StandalonePickupFlow({ row }: { row: TripStandalonePickupApi }) {
       <SuggestionFlowStep
         stepId="machine"
         label="Retire na máquina"
-        details={[machineLocationDetail(machine.name, machine.position)]}
+        details={[machineLocationDetail(machine.name)]}
         accent="mid"
       />
       <SuggestionFlowConnector />
@@ -165,7 +186,7 @@ function CombinedRouteCard({
           </p>
           <Button
             type="button"
-            className="shrink-0 bg-brand text-white hover:bg-brand-hover"
+            className="shrink-0 bg-brand text-white hover:bg-[#004a94]"
             disabled={!bound || busy || isAcceptingThisTrip}
             onClick={() => onAcceptTrip(row.tripSuggestion.id)}
           >
@@ -190,41 +211,66 @@ function StandaloneDeliverRouteCard({
   isAcceptingThisDeliver: boolean;
   onAcceptDeliver: (row: TripStandaloneDeliverApi) => void;
 }) {
+  const isCritical = isCriticalPriority(row.effectivePriority);
+  const steps = buildStandaloneDeliverSteps(row);
+  const deliverTask = row.deliverTask;
+  const statusLabel = deliverTask
+    ? taskStatusLabelPt(deliverTask.status)
+    : 'Sugerida';
+  const sinceLabel = deliverTask
+    ? formatTaskDate(deliverTask.createdAt)
+    : null;
+
   return (
     <Card
-      className={`overflow-hidden border-2 shadow-md ${
+      className={cn(
+        'overflow-hidden border border-zinc-200/90 shadow-lg',
         row.deferRecommended
-          ? 'border-amber-300/80 bg-amber-50/40'
-          : 'border-zinc-200 bg-white'
-      }`}
+          ? 'ring-2 ring-amber-300/70'
+          : 'bg-white',
+      )}
     >
-      <div className="p-4 sm:p-5">
-        <p className="m-0 text-xs font-semibold uppercase tracking-wider text-zinc-600">
-          Sugestão de entrega
-        </p>
-        <p className="mt-2 text-sm font-semibold text-zinc-900">
-          Levar prisma do recebimento até a máquina (sem retirada combinada).
-        </p>
-        <div className="mt-5">
-          <StandaloneDeliverFlow row={row} />
+      {row.deferRecommended ? (
+        <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
+          Existem itens mais urgentes no setor — avalie antes de aceitar esta
+          entrega.
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-zinc-600">
-          {row.message}
-        </p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-zinc-800">
-            Prioridade: {priorityLabel(row.effectivePriority)}
-          </span>
-          <Button
-            type="button"
-            className="shrink-0 bg-brand text-white hover:bg-brand-hover"
-            disabled={!bound || busy || isAcceptingThisDeliver}
-            onClick={() => onAcceptDeliver(row)}
-          >
-            {isAcceptingThisDeliver ? 'Aceitando…' : 'Aceitar entrega sugerida'}
-          </Button>
-        </div>
+      ) : null}
+
+      <DeliverFlowCardHeader
+        title="Entrega em andamento"
+        machineName={row.machine.name}
+        statusLabel={statusLabel}
+        sinceLabel={sinceLabel}
+        isCritical={isCritical}
+      />
+
+      <div className="px-3 py-5 sm:px-5 sm:py-6">
+        <DeliverThreeStepFlow steps={steps} />
+        {row.message ? (
+          <p className="mt-4 text-center text-xs leading-relaxed text-zinc-600">
+            {row.message}
+          </p>
+        ) : null}
       </div>
+
+      <DeliverFlowCardFooter>
+        <Button
+          type="button"
+          className="h-11 min-w-[14rem] gap-2 rounded-full bg-brand px-8 text-base font-semibold text-white shadow-md hover:bg-[#004a94]"
+          disabled={!bound || busy || isAcceptingThisDeliver}
+          onClick={() => onAcceptDeliver(row)}
+        >
+          {isAcceptingThisDeliver ? (
+            'Aceitando…'
+          ) : (
+            <>
+              <Check className="size-5 shrink-0" aria-hidden />
+              Aceitar entrega sugerida
+            </>
+          )}
+        </Button>
+      </DeliverFlowCardFooter>
     </Card>
   );
 }

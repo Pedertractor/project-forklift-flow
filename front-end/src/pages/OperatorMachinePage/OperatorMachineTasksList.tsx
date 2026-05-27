@@ -11,6 +11,7 @@ import {
   formatTaskDate,
   type OperatorMachineTaskListRow,
 } from './operator-machine-display';
+import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
 
 function TaskKindIcon({ kind }: { kind: OperatorMachineTaskListRow['kind'] }) {
   if (kind === 'DELIVERY') {
@@ -76,7 +77,7 @@ export function OperatorMachineTasksList({
         Entregas, retiradas e avisos em aberto nesta máquina.
       </p>
 
-      <Card className="border border-zinc-200 p-0 shadow-sm">
+      <Card className="border border-zinc-200 p-2 shadow-sm">
         {loading ? (
           <p className="px-4 py-6 text-sm text-zinc-500">
             Carregando solicitações…
@@ -86,9 +87,7 @@ export function OperatorMachineTasksList({
             {error.message || 'Erro ao carregar solicitações.'}
           </p>
         ) : rows.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-zinc-500">
-            Nenhuma solicitação em aberto no momento.
-          </p>
+          <EmptyStateMessage title="Nenhuma solicitação de operador de máquina no setor." />
         ) : (
           <ul className="m-0 divide-y divide-zinc-100 p-0 list-none">
             {rows.map((row) => (

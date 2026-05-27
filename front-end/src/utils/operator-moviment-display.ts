@@ -1,4 +1,7 @@
-import type { PriorityLevelApi, TypeMovimentPalletApi } from '@/types/operator-moviment-pallet.types';
+import type {
+  PriorityLevelApi,
+  TypeMovimentPalletApi,
+} from '@/types/operator-moviment-pallet.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
 /** `VERY_HIGH` / `HIGH` legados = crítico; demais = normal. */
@@ -28,7 +31,9 @@ export function replenishmentMovimentTypeLabel(
 }
 
 /** Caminho em `public/` para uso em `<img src={…} />`. */
-export function movimentTypePublicIconPath(type: TypeMovimentPalletApi): string {
+export function movimentTypePublicIconPath(
+  type: TypeMovimentPalletApi,
+): string {
   return type === 'FORKLIFT' ? '/FORKLIFT.png' : '/PALLET_TRUCK.png';
 }
 
