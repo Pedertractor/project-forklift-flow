@@ -17,11 +17,11 @@ export type OperatorServiceSelection = {
 };
 
 const serviceCardBase =
-  'flex w-full flex-col gap-2 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-55';
+  'flex w-full flex-col gap-2 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-55';
 
 const serviceCardIdle = 'border-zinc-200 hover:border-zinc-300';
 const serviceCardSelected =
-  'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white ring-2 ring-[#005fb8]/20';
+  'border-brand bg-gradient-to-br from-brand/[0.08] to-white ring-2 ring-brand/20';
 
 export interface OperatorMachineOpenRequestDialogProps {
   open: boolean;
@@ -336,7 +336,7 @@ function ServiceOptionCard({
         type="button"
         className={cn(
           'flex w-full flex-col gap-2 rounded-2xl text-left outline-none transition-colors',
-          'focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25',
+          'focus-visible:ring-[3px] focus-visible:ring-brand/25',
           disabled ? 'cursor-not-allowed' : 'cursor-pointer',
           showInner && 'rounded-b-none',
         )}

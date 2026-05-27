@@ -9,9 +9,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClass: Record<NonNullable<ButtonProps['variant']>, string> = {
   default:
-    'border-2 border-transparent bg-[#005fb8] text-white shadow-sm hover:bg-[#004a94] focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/40',
-  outline:
-    'border-2 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50',
+    'border-2 border-transparent bg-brand text-white shadow-sm hover:bg-brand-hover focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/40',
+  outline: 'border-2 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50',
   ghost:
     'border-2 border-transparent text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900',
   secondary:
@@ -19,8 +18,7 @@ const variantClass: Record<NonNullable<ButtonProps['variant']>, string> = {
 };
 
 const sizeClass: Record<NonNullable<ButtonProps['size']>, string> = {
-  default:
-    'h-[var(--control-height,2.5rem)] gap-2 px-4 text-sm font-semibold',
+  default: 'h-[var(--control-height,2.5rem)] gap-2 px-4 text-sm font-semibold',
   'icon-sm':
     'size-10 rounded-[min(0.75rem,12px)] p-0 text-zinc-600 [&_svg]:size-4',
 };

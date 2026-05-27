@@ -1,5 +1,8 @@
 import { Button } from '@/components/ui/Button';
-import type { PlantMapArea, PlantMapAreaKindValue } from '@/types/plant-map-area.types';
+import type {
+  PlantMapArea,
+  PlantMapAreaKindValue,
+} from '@/types/plant-map-area.types';
 import { PLANT_MAP_AREA_KIND_LABEL } from '@/utils/plantMapAreaStyles';
 
 interface PlantMapAreasToolbarProps {
@@ -43,13 +46,20 @@ export function PlantMapAreasToolbar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#005fb8]/30 bg-sky-50 px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-brand/30 bg-sky-50 px-2 py-1.5">
       {areaDrawKind ? (
         <>
           <span className="text-xs font-medium text-sky-950">
-            Arraste no mapa para marcar {PLANT_MAP_AREA_KIND_LABEL[areaDrawKind].toLowerCase()}
+            Arraste no mapa para marcar{' '}
+            {PLANT_MAP_AREA_KIND_LABEL[areaDrawKind].toLowerCase()}
           </span>
-          <Button type="button" variant="outline" size="default" className="h-8 text-xs" onClick={onCancelDraw}>
+          <Button
+            type="button"
+            variant="outline"
+            size="default"
+            className="h-8 text-xs"
+            onClick={onCancelDraw}
+          >
             Cancelar desenho
           </Button>
         </>
@@ -99,7 +109,13 @@ export function PlantMapAreasToolbar({
               Remover expedição
             </Button>
           ) : null}
-          <Button type="button" variant="default" size="default" className="h-8 text-xs" onClick={onCloseEdit}>
+          <Button
+            type="button"
+            variant="default"
+            size="default"
+            className="h-8 text-xs"
+            onClick={onCloseEdit}
+          >
             Concluir
           </Button>
         </>

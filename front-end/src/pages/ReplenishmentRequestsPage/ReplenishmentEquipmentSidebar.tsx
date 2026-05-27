@@ -86,7 +86,7 @@ export function ReplenishmentEquipmentSidebar({
                 {queueTotal > 0 ? (
                   <>
                     <span className="text-zinc-400"> · </span>
-                    <span className="text-[#005fb8]">
+                    <span className="text-brand">
                       {queueTotal} pedido{queueTotal === 1 ? '' : 's'} na fila
                     </span>
                   </>

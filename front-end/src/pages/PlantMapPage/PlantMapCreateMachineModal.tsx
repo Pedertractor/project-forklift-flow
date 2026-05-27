@@ -7,7 +7,7 @@ import { PLANT_MAP_UNIT_SHORT_LABEL } from '@/constants/plant-map';
 import { formatMapPlacement } from '@/utils/mapPlantPosition';
 
 const selectClass =
-  'flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005fb8]';
+  'flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand';
 
 interface PlantMapCreateMachineModalProps {
   open: boolean;
@@ -45,7 +45,6 @@ export function PlantMapCreateMachineModal({
   onClose,
   onSubmit,
 }: PlantMapCreateMachineModalProps) {
-
   return (
     <SimpleModal
       open={open}

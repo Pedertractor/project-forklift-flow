@@ -101,7 +101,7 @@ function StepRow({
             done
               ? 'border-emerald-500 bg-emerald-500 text-white'
               : active
-                ? 'border-[#005fb8] bg-[#005fb8]/12 text-[#005fb8]'
+                ? 'border-brand bg-brand/12 text-brand'
                 : 'border-zinc-200 bg-zinc-50 text-zinc-400',
           )}
           aria-hidden
@@ -202,7 +202,7 @@ export function OperatorMachinePickupProgressPageView(
                 aria-label="Andamento da retirada"
               >
                 <div
-                  className="h-full rounded-full bg-[#005fb8] transition-[width] duration-500 ease-out"
+                  className="h-full rounded-full bg-brand transition-[width] duration-500 ease-out"
                   style={{ width: `${bar.pct}%` }}
                 />
               </div>

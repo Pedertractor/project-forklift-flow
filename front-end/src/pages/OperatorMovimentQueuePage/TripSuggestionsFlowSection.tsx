@@ -131,7 +131,7 @@ function CombinedRouteCard({
     // className={`relative overflow-hidden border-2 shadow-md ${
     //   row.deferRecommended
     //     ? 'border-amber-300/90 bg-gradient-to-br from-amber-50/95 via-white to-white'
-    //     : 'border-[#005fb8]/35 bg-gradient-to-br from-[#005fb8]/[0.07] via-white to-white'
+    //     : 'border-brand/35 bg-gradient-to-br from-brand/[0.07] via-white to-white'
     // }`}
     >
       {row.deferRecommended ? (
@@ -142,7 +142,7 @@ function CombinedRouteCard({
       ) : null}
       <div className="p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
+          <p className="m-0 text-xs font-semibold uppercase tracking-wider text-brand">
             Rota combinada sugerida
           </p>
           <span className="rounded-full bg-zinc-900/90 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-white">
@@ -165,7 +165,7 @@ function CombinedRouteCard({
           </p>
           <Button
             type="button"
-            className="shrink-0 bg-[#005fb8] text-white hover:bg-[#004a94]"
+            className="shrink-0 bg-brand text-white hover:bg-brand-hover"
             disabled={!bound || busy || isAcceptingThisTrip}
             onClick={() => onAcceptTrip(row.tripSuggestion.id)}
           >
@@ -217,7 +217,7 @@ function StandaloneDeliverRouteCard({
           </span>
           <Button
             type="button"
-            className="shrink-0 bg-[#005fb8] text-white hover:bg-[#004a94]"
+            className="shrink-0 bg-brand text-white hover:bg-brand-hover"
             disabled={!bound || busy || isAcceptingThisDeliver}
             onClick={() => onAcceptDeliver(row)}
           >

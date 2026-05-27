@@ -1,8 +1,6 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { MachineListItem } from '@/types/machine.types';
-import type {
-  OperatorMachineSupplyRequestListItem,
-} from '@/types/operator-machine.types';
+import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
 
 export const OPERATOR_MACHINE_REQUEST_STATUS_OPTIONS = [
@@ -16,7 +14,7 @@ export const OPERATOR_MACHINE_REQUEST_STATUS_OPTIONS = [
 ] as const;
 
 export const OPERATOR_MACHINE_REQUEST_FILTER_SELECT_CLASS =
-  'flex h-[var(--control-height,2.5rem)] w-full max-w-xs rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'flex h-[var(--control-height,2.5rem)] w-full max-w-xs rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function operatorMachineMovimentTypeLabel(type: string): string {
   if (type === 'ANY') {
@@ -28,7 +26,9 @@ export function operatorMachineMovimentTypeLabel(type: string): string {
 /** Exibe link «Ver andamento» da retirada / entrega. */
 export function operatorRequestShowsPickupProgress(status: string): boolean {
   return (
-    status === 'IN_PROGRESS' || status === 'ON_MACHINE' || status === 'COMPLETED'
+    status === 'IN_PROGRESS' ||
+    status === 'ON_MACHINE' ||
+    status === 'COMPLETED'
   );
 }
 
@@ -58,7 +58,10 @@ export function formatOperatorSupplyCreatedAt(iso: string): string {
 
 export interface OperatorMachineRequestsSectionProps {
   machineBound: MachineListItem | null;
-  operatorSupplyQuery: UseQueryResult<OperatorMachineSupplyRequestListItem[], Error>;
+  operatorSupplyQuery: UseQueryResult<
+    OperatorMachineSupplyRequestListItem[],
+    Error
+  >;
   requestsQuery: UseQueryResult<ReplenishmentRequestListItem[], Error>;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;

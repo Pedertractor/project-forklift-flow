@@ -25,11 +25,11 @@ const STEP_LABELS = [
 ] as const;
 
 const selectCardBase =
-  'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-60';
+  'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
 
 const selectCardIdle = 'border-zinc-200 hover:border-zinc-300 hover:shadow-sm';
 const selectCardSelected =
-  'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white shadow-sm ring-2 ring-[#005fb8]/20';
+  'border-brand bg-gradient-to-br from-brand/[0.08] to-white shadow-sm ring-2 ring-brand/20';
 
 const MOVEMENT_OPTIONS: {
   value: ReplenishmentMovimentType;
@@ -91,7 +91,7 @@ function WizardProgressBar({ step }: { step: number }) {
         aria-label="Progresso da nova solicitação"
       >
         <div
-          className="h-full rounded-full bg-[#005fb8] transition-[width] duration-300 ease-out"
+          className="h-full rounded-full bg-brand transition-[width] duration-300 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>

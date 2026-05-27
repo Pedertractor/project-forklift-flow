@@ -139,7 +139,7 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
                 variant="ghost"
                 className={
                   plantUnit === u
-                    ? 'bg-[#005fb8] text-white hover:bg-[#004a94] hover:text-white'
+                    ? 'bg-brand text-white hover:bg-brand-hover hover:text-white'
                     : 'text-zinc-600'
                 }
                 onClick={() => setPlantUnit(u)}
@@ -223,7 +223,7 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
       </header>
 
       {placementMode ? (
-        <p className="hidden shrink-0 rounded-lg border border-[#005fb8]/30 bg-sky-50 px-3 py-2 text-xs text-sky-950 lg:block">
+        <p className="hidden shrink-0 rounded-lg border border-brand/30 bg-sky-50 px-3 py-2 text-xs text-sky-950 lg:block">
           <MapPin
             className="mr-1 inline size-3.5 align-text-bottom"
             aria-hidden
@@ -288,7 +288,7 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
       </div>
 
       {areaEditMode ? (
-        <p className="hidden shrink-0 rounded-lg border border-[#005fb8]/30 bg-sky-50 px-3 py-2 text-xs text-sky-950 lg:block">
+        <p className="hidden shrink-0 rounded-lg border border-brand/30 bg-sky-50 px-3 py-2 text-xs text-sky-950 lg:block">
           <strong>Edição de áreas:</strong> use os botões acima para desenhar
           recebimento (laranja) ou expedição (roxo) na planta da unidade
           selecionada. Cada tipo permite uma área por unidade.
@@ -307,7 +307,7 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
           ref={containerRef}
           className={
             placementMode
-              ? 'relative hidden min-h-0 min-w-0 flex-1 cursor-crosshair overflow-hidden rounded-xl border-2 border-[#005fb8] bg-white lg:block lg:min-h-[360px]'
+              ? 'relative hidden min-h-0 min-w-0 flex-1 cursor-crosshair overflow-hidden rounded-xl border-2 border-brand bg-white lg:block lg:min-h-[360px]'
               : 'relative hidden min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border border-zinc-200 bg-white lg:block lg:min-h-[360px]'
           }
         >
@@ -451,7 +451,7 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
                         className={cn(
                           'w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors active:scale-[0.99]',
                           active
-                            ? 'border-2 border-[#005fb8] bg-sky-50 shadow-sm'
+                            ? 'border-2 border-brand bg-sky-50 shadow-sm'
                             : 'border border-transparent hover:bg-zinc-50',
                         )}
                       >

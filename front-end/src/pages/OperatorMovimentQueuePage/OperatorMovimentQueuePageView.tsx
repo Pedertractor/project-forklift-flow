@@ -13,7 +13,7 @@ import { TripSuggestionsFlowSection } from './TripSuggestionsFlowSection';
 import type { OperatorMovimentQueuePageViewModel } from './useOperatorMovimentQueuePage';
 
 const linkOutlineClass =
-  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function OperatorMovimentQueuePageView(
   vm: OperatorMovimentQueuePageViewModel,
@@ -158,7 +158,7 @@ export function OperatorMovimentQueuePageView(
               <List className="size-4 shrink-0" aria-hidden />
               Filas manuais
               <span
-                className="inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#005fb8] px-1.5 py-0.5 text-xs font-bold tabular-nums text-white"
+                className="inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-brand px-1.5 py-0.5 text-xs font-bold tabular-nums text-white"
                 aria-label={`${manualQueueActivityCount} atividades na fila manual`}
               >
                 {manualQueueActivityCount}

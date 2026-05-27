@@ -260,7 +260,7 @@ function TaskConfirmationProgressBar() {
       aria-valuetext="Enviando confirmação"
       aria-busy="true"
     >
-      <div className="absolute inset-y-0 w-[38%] rounded-full bg-[#005fb8] motion-safe:animate-task-confirm-progress" />
+      <div className="absolute inset-y-0 w-[38%] rounded-full bg-brand motion-safe:animate-task-confirm-progress" />
     </div>
   );
 }
@@ -293,7 +293,7 @@ function FlowStepColumn({
             'relative flex size-12 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors sm:size-14',
             isDone && 'border-emerald-500 bg-emerald-50  text-emerald-700',
             isCurrent &&
-              'border-black bg-[#005fb8]/10 text-black ring-4 ring-black/20',
+              'border-black bg-brand/10 text-black ring-4 ring-black/20',
             !isDone && !isCurrent && 'border-zinc-200 text-zinc-400',
           )}
         >
@@ -316,11 +316,11 @@ function FlowStepColumn({
             <Icon className="size-6 sm:size-7" />
           )}
           {isCurrent ? (
-            <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-[#005fb8] animate-pulse ring-2 ring-white" />
+            <span className="absolute -bottom-1 left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-brand animate-pulse ring-2 ring-white" />
           ) : null}
         </div>
       </div>
-      
+
       {action ? (
         <div className="mt-2 flex w-full flex-col items-center gap-1.5">
           {action}
@@ -331,7 +331,7 @@ function FlowStepColumn({
         className={cn(
           'mt-2.5 text-[0.6875rem] font-bold uppercase tracking-wide',
           isCurrent
-            ? 'text-[#005fb8]'
+            ? 'text-brand'
             : isDone
               ? 'text-emerald-700'
               : 'text-zinc-500',
@@ -419,7 +419,7 @@ function OpenTaskRouteCard({
             type="button"
             className={cn(
               flowStepActionButtonClass,
-              'inline-flex items-center justify-center gap-1.5 bg-[#005fb8] text-white hover:bg-[#004a94]',
+              'inline-flex items-center justify-center gap-1.5 bg-brand text-white hover:bg-brand-hover',
             )}
             disabled={!bound || busy}
             onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
@@ -447,7 +447,7 @@ function OpenTaskRouteCard({
               type="button"
               className={cn(
                 flowStepActionButtonClass,
-                'bg-[#005fb8] text-white hover:bg-[#004a94]',
+                'bg-brand text-white hover:bg-brand-hover',
               )}
               disabled={!bound || busy}
               onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
@@ -468,7 +468,7 @@ function OpenTaskRouteCard({
       <div className="border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
+            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-brand">
               {isCombined
                 ? 'Rota completa na máquina'
                 : deliverOpen

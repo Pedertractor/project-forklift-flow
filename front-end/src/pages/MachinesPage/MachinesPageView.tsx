@@ -10,7 +10,7 @@ import { type MachinesPageViewModel } from './useMachinesPage';
 import { typeMachineImageSrc } from '../TypeMachinesPage/useTypeMachinesPage';
 
 const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function MachinesPageView(vm: MachinesPageViewModel) {
   const {
@@ -101,7 +101,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 com nome e imagem em{' '}
                 <Link
                   to="/cadastro/tipos-maquina"
-                  className="font-semibold text-[#005fb8] underline underline-offset-2 hover:text-[#004a8f]"
+                  className="font-semibold text-brand underline underline-offset-2 hover:text-[#004a8f]"
                 >
                   Tipos de máquina
                 </Link>{' '}
@@ -295,7 +295,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 Cadastre um tipo em{' '}
                 <Link
                   to="/cadastro/tipos-maquina"
-                  className="font-semibold text-[#005fb8] underline underline-offset-2"
+                  className="font-semibold text-brand underline underline-offset-2"
                   onClick={() => !busy && setCreateOpen(false)}
                 >
                   Tipos de máquina

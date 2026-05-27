@@ -12,12 +12,12 @@ import type { OperatorMovimentEquipmentPageViewModel } from './useOperatorMovime
 import { Undo2Icon } from 'lucide-react';
 
 const equipmentCardBaseClass =
-  'group flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-60';
+  'group flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
 
 const equipmentCardIdleClass =
   'border-zinc-200 hover:border-zinc-300 hover:shadow-sm';
 const equipmentCardSelectedClass =
-  'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white shadow-sm ring-2 ring-[#005fb8]/20';
+  'border-brand bg-gradient-to-br from-brand/[0.08] to-white shadow-sm ring-2 ring-brand/20';
 const equipmentCardOccupiedClass =
   'cursor-not-allowed border-zinc-200 bg-zinc-50 opacity-75';
 
@@ -81,7 +81,7 @@ export function OperatorMovimentEquipmentPageView(
 
         {changeEquipment && bound && currentPallet ? (
           <Card className="mb-6 p-5 shadow-sm">
-            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-[#005fb8]">
+            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-brand">
               Equipamento ativo
             </p>
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
@@ -143,8 +143,7 @@ export function OperatorMovimentEquipmentPageView(
                     const selected = pickerMovimentId === p.id;
                     const isActive = currentPallet?.id === p.id;
                     const occupiedByOther =
-                      p.operatorId !== null &&
-                      p.operatorId !== currentUserId;
+                      p.operatorId !== null && p.operatorId !== currentUserId;
                     const operatorName = p.operator?.name?.trim();
                     return (
                       <li key={p.id} className="min-w-0">
@@ -170,8 +169,7 @@ export function OperatorMovimentEquipmentPageView(
                           <div
                             className={cn(
                               'flex items-center justify-center rounded-xl bg-zinc-50 px-3 py-5 min-[480px]:py-4',
-                              !occupiedByOther &&
-                                'group-hover:bg-zinc-100/90',
+                              !occupiedByOther && 'group-hover:bg-zinc-100/90',
                             )}
                           >
                             <img
@@ -194,7 +192,7 @@ export function OperatorMovimentEquipmentPageView(
                                 {operatorName}
                               </p>
                             ) : isActive ? (
-                              <p className="mt-1 text-xs font-semibold text-[#005fb8]">
+                              <p className="mt-1 text-xs font-semibold text-brand">
                                 Em uso
                               </p>
                             ) : null}

@@ -12,7 +12,7 @@ const DETAIL_META: Record<
   RouteFlowDetailKind,
   { Icon: LucideIcon; iconClass: string }
 > = {
-  location: { Icon: MapPin, iconClass: 'text-[#005fb8]' },
+  location: { Icon: MapPin, iconClass: 'text-brand' },
   prisma: { Icon: Box, iconClass: 'text-amber-700' },
   receiving: { Icon: Warehouse, iconClass: 'text-emerald-700' },
   expedition: { Icon: Truck, iconClass: 'text-sky-700' },
@@ -23,9 +23,7 @@ export interface RouteFlowDetailItem {
   text: string;
 }
 
-export function machineLocationDetail(
-  name: string,
-): RouteFlowDetailItem {
+export function machineLocationDetail(name: string): RouteFlowDetailItem {
   return { kind: 'location', text: `${name}` };
 }
 

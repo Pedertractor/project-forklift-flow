@@ -6,7 +6,7 @@ import { OpenTasksFlowSection } from './OpenTasksFlowSection';
 import type { OperatorMovimentTasksPageViewModel } from './useOperatorMovimentTasksPage';
 
 const linkOutlineClass =
-  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function OperatorMovimentTasksPageView(
   vm: OperatorMovimentTasksPageViewModel,

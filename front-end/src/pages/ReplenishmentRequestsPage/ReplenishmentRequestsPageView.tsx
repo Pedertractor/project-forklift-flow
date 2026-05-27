@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function ReplenishmentRequestsPageView(
   vm: ReplenishmentRequestsPageViewModel,
@@ -110,7 +110,7 @@ export function ReplenishmentRequestsPageView(
                     </span>
                   ) : null}
                   {equipmentQueueTotal > 0 ? (
-                    <span className="rounded-full bg-[#005fb8]/10 px-1.5 py-0.5 font-semibold text-[#005fb8]">
+                    <span className="rounded-full bg-brand/10 px-1.5 py-0.5 font-semibold text-brand">
                       {equipmentQueueTotal} fila
                     </span>
                   ) : null}

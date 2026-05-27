@@ -9,6 +9,7 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import { ArrowLeftIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
+import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
 
 function OperatorSupplyRequestCard({
   row,
@@ -27,7 +28,7 @@ function OperatorSupplyRequestCard({
         onClick={onSelect}
         className={cn(
           'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 border-zinc-200 bg-white p-4 text-left outline-none transition-all max-[800px]:p-3.5',
-          'hover:border-[#005fb8]/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25',
+          'hover:border-brand/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-brand/25',
           'disabled:cursor-not-allowed disabled:opacity-60',
         )}
         aria-label={`Criar solicitação de retirada para ${row.machine.name}`}
@@ -66,7 +67,7 @@ function OperatorSupplyRequestCard({
             </p>
           </div>
         </div>
-        <p className="m-0 text-xs font-medium text-[#005fb8]">
+        <p className="m-0 text-xs font-medium text-brand">
           Toque para registrar a retirada com o cubo
         </p>
       </button>
@@ -172,7 +173,7 @@ export function SupplyPendingPreparationPageView(
           </Card>
         ) : operatorSupplyRows.length === 0 ? (
           <Card className="mt-6 border border-zinc-200 px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
-            Nenhuma solicitação de operador de máquina no setor.
+            <EmptyStateMessage title="Nenhuma solicitação de operador de máquina no setor." />
           </Card>
         ) : (
           <ul

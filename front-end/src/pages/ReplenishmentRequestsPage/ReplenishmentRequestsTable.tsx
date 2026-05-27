@@ -97,7 +97,7 @@ export function ReplenishmentRequestsTable({
             rows.map((row) => (
               <tr
                 key={row.id}
-                className="cursor-pointer border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/80 focus-visible:bg-zinc-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#005fb8]/30"
+                className="cursor-pointer border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/80 focus-visible:bg-zinc-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/30"
                 tabIndex={0}
                 role="button"
                 aria-label={`Ver detalhe da solicitação para ${row.destination.name}`}

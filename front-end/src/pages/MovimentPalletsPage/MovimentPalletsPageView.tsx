@@ -11,7 +11,7 @@ import { movimentTypePublicIconPath } from '@/utils/operator-moviment-display';
 import { PlusIcon } from 'lucide-react';
 
 const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 function typeLabel(t: string): string {
   return t === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
@@ -53,9 +53,9 @@ function EquipmentTypePicker({
             id={`${idPrefix}-${opt.value}`}
             disabled={disabled}
             className={cn(
-              'flex flex-col items-center gap-2.5 rounded-2xl border-2 bg-white p-4 text-center outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-60',
+              'flex flex-col items-center gap-2.5 rounded-2xl border-2 bg-white p-4 text-center outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60',
               selected
-                ? 'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white shadow-sm ring-2 ring-[#005fb8]/20'
+                ? 'border-brand bg-gradient-to-br from-brand/[0.08] to-white shadow-sm ring-2 ring-brand/20'
                 : 'border-zinc-200 hover:border-zinc-300 hover:shadow-sm',
             )}
             onClick={() => onChange(opt.value)}

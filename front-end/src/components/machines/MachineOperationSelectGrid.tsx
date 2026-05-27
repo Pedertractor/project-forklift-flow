@@ -3,11 +3,11 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import type { MachineListItem } from '@/types/machine.types';
 
 const selectCardBase =
-  'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-60';
+  'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
 
 const selectCardIdle = 'border-zinc-200 hover:border-zinc-300 hover:shadow-sm';
 const selectCardSelected =
-  'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white shadow-sm ring-2 ring-[#005fb8]/20';
+  'border-brand bg-gradient-to-br from-brand/[0.08] to-white shadow-sm ring-2 ring-brand/20';
 
 export interface MachineOperationSelectGridProps {
   machines: MachineListItem[];
@@ -68,8 +68,12 @@ export function MachineOperationSelectGrid({
                 )}
               </div>
               <div className="min-w-0">
-                <p className="m-0 text-base font-bold text-zinc-900">{m.name}</p>
-                <p className="mt-1 text-sm text-zinc-600">{m.typeMachine.name}</p>
+                <p className="m-0 text-base font-bold text-zinc-900">
+                  {m.name}
+                </p>
+                <p className="mt-1 text-sm text-zinc-600">
+                  {m.typeMachine.name}
+                </p>
                 <p className="mt-0.5 text-xs text-zinc-500">
                   {m.sector.typeSector} · {m.position}
                 </p>

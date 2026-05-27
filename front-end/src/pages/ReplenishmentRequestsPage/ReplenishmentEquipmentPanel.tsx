@@ -226,7 +226,7 @@ function EquipmentColumn({
             ) : null}
           </p>
           {stats.queuePending > 0 ? (
-            <p className="mt-0.5 m-0 text-[0.625rem] font-medium text-[#005fb8]">
+            <p className="mt-0.5 m-0 text-[0.625rem] font-medium text-brand">
               {stats.queuePending} pedido{stats.queuePending === 1 ? '' : 's'}{' '}
               na fila
             </p>

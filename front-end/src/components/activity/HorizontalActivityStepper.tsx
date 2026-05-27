@@ -107,7 +107,7 @@ function StepConnectorLine({ variant }: { variant: StepConnectorVariant }) {
       className="relative block h-0.5 w-full overflow-hidden rounded-full bg-zinc-200"
       aria-hidden
     >
-      <span className="absolute inset-y-0 left-0 w-[28%] min-w-5 max-w-14 rounded-full bg-linear-to-r from-[#005fb8]/40 via-[#005fb8] to-[#005fb8]/70 shadow-[0_0_6px_rgba(0,95,184,0.35)] animate-step-connector-flow" />
+      <span className="absolute inset-y-0 left-0 w-[28%] min-w-5 max-w-14 rounded-full bg-linear-to-r from-brand/40 via-brand to-brand/70 shadow-[0_0_6px_rgba(0,95,184,0.35)] animate-step-connector-flow" />
     </span>
   );
 }
@@ -131,7 +131,7 @@ function StepCircle({
         done
           ? 'border-emerald-500 bg-emerald-500 text-white'
           : active
-            ? 'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8]'
+            ? 'border-brand bg-brand/10 text-brand'
             : 'border-zinc-200 bg-zinc-50 text-zinc-400',
       )}
       aria-hidden
@@ -211,7 +211,7 @@ export function HorizontalActivityStepper({
                     done
                       ? 'text-emerald-800'
                       : active
-                        ? 'text-[#005fb8]'
+                        ? 'text-brand'
                         : 'text-zinc-400',
                   )}
                   style={{ gridColumn: circleColumn, gridRow: 2 }}

@@ -111,7 +111,7 @@ export function SuggestionFlowConnector({
         className={cn(
           'w-full rounded-full',
           compact ? 'h-px' : 'h-0.5',
-          active ? 'bg-[#005fb8]' : 'bg-zinc-200',
+          active ? 'bg-brand' : 'bg-zinc-200',
         )}
       />
       <div
@@ -120,7 +120,7 @@ export function SuggestionFlowConnector({
           compact
             ? 'border-y-[3px] border-l-[5px]'
             : 'border-y-[5px] border-l-[7px]',
-          active ? 'border-l-[#005fb8]' : 'border-l-zinc-300',
+          active ? 'border-l-brand' : 'border-l-zinc-300',
         )}
         aria-hidden
       />
@@ -147,7 +147,7 @@ export function SuggestionFlowStep({
       ? 'border-emerald-500/50 bg-emerald-50 text-emerald-700'
       : accent === 'end'
         ? 'border-sky-500/50 bg-sky-50 text-sky-700'
-        : 'border-[#005fb8]/40 bg-[#005fb8]/[0.08] text-[#005fb8]';
+        : 'border-brand/40 bg-brand/[0.08] text-brand';
 
   const compact = size === 'compact';
 
