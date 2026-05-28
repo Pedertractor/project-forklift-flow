@@ -10,6 +10,7 @@ import {
 } from '@/utils/operator-moviment-display';
 import type { OperatorMovimentEquipmentPageViewModel } from './useOperatorMovimentEquipmentPage';
 import { Undo2Icon } from 'lucide-react';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 const equipmentCardBaseClass =
   'group flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
@@ -125,7 +126,9 @@ export function OperatorMovimentEquipmentPageView(
             Equipamentos do seu setor
           </h2>
           {myPalletQuery.isLoading || pickerQuery.isLoading ? (
-            <p className="mt-3 text-sm text-zinc-600">Carregando…</p>
+            <div className="mt-3 flex items-center justify-center py-6">
+              <AccordionLoader />
+            </div>
           ) : (
             <div className="mt-4 space-y-4">
               <div className="space-y-2">

@@ -6,6 +6,7 @@ import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-mac
 import { cn } from '@/lib/utils';
 import type { OperatorPickupProgressPhase } from '@/types/operator-machine.types';
 import type { OperatorMachinePickupProgressPageViewModel } from './useOperatorMachinePickupProgressPage';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 type StepStatus = 'pending' | 'active' | 'done';
 
@@ -162,7 +163,9 @@ export function OperatorMachinePickupProgressPageView(
         ) : !requestId ? (
           <p className="text-sm text-red-700">Pedido inválido.</p>
         ) : query.isLoading ? (
-          <p className="text-sm text-zinc-500">Carregando…</p>
+          <div className="flex items-center justify-center py-6">
+            <AccordionLoader />
+          </div>
         ) : query.isError ? (
           <p className="text-sm text-red-700">
             {query.error instanceof Error

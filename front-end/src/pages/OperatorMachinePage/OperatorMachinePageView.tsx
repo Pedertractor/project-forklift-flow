@@ -7,6 +7,7 @@ import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
 import { LogOut } from 'lucide-react';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   const {
@@ -116,7 +117,9 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
               </h2>
 
               {machinesQuery.isLoading || myMachineQuery.isLoading ? (
-                <p className="text-sm text-zinc-500">Carregando máquinas…</p>
+                <div className="flex items-center justify-center py-6">
+                  <AccordionLoader />
+                </div>
               ) : machinesQuery.isError ? (
                 <p className="text-sm text-red-700">
                   {machinesQuery.error instanceof Error

@@ -13,7 +13,7 @@ import { TripSuggestionsFlowSection } from './TripSuggestionsFlowSection';
 import type { OperatorMovimentQueuePageViewModel } from './useOperatorMovimentQueuePage';
 
 const linkOutlineClass =
-  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25';
+  'inline-flex h-[var(--control-height,2.5rem)] w-full min-w-0 items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 md:w-auto md:shrink-0';
 
 export function OperatorMovimentQueuePageView(
   vm: OperatorMovimentQueuePageViewModel,
@@ -35,27 +35,27 @@ export function OperatorMovimentQueuePageView(
   } = vm;
 
   return (
-    <main className="relative px-4 py-8 max-[800px]:px-3">
+    <main className="relative min-w-0 px-3 py-4 pb-6 md:px-4 md:py-8">
       {busy ? (
         <OperatorMovimentTaskEntryOverlay message="Aceitando e abrindo tarefa…" />
       ) : null}
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full min-w-0 max-w-6xl">
         {!ENV.API_URL ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 md:px-4 md:py-3">
             Defina <code className="font-mono">VITE_API_URL</code> e faça login.
           </p>
         ) : !token ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 md:px-4 md:py-3">
             Faça login para acessar as tarefas.
           </p>
         ) : null}
 
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-4 flex min-w-0 flex-col gap-3 md:mb-6 sm:flex-row sm:items-start sm:justify-between">
           {currentPallet ? (
             <details className="group min-w-0 flex-1 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
               <summary
                 className={cn(
-                  'flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3',
+                  'flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 md:gap-3 md:px-4 md:py-3',
                   '[&::-webkit-details-marker]:hidden',
                 )}
               >
@@ -85,8 +85,8 @@ export function OperatorMovimentQueuePageView(
                 />
               </summary>
 
-              <div className="border-t border-zinc-100 px-4 pb-4 pt-3">
-                <dl className="m-0 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="border-t border-zinc-100 px-3 pb-3 pt-2.5 md:px-4 md:pb-4 md:pt-3">
+                <dl className="m-0 grid gap-2.5 text-sm sm:grid-cols-2 md:gap-3">
                   <div>
                     <dt className="text-xs font-medium text-zinc-500">
                       Código
@@ -144,11 +144,11 @@ export function OperatorMovimentQueuePageView(
         tripSuggestionsQuery.data?.standalonePickupTasks.length === 0 &&
         (tripSuggestionsQuery.data?.standaloneDeliverTasks?.length ?? 0) ===
           0 ? (
-          <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white p-4 gap-3">
+          <div className="mt-4 flex w-full min-w-0 flex-col items-stretch justify-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 md:mt-6 md:items-center md:p-4">
             <RouteOff className="size-10 text-blue-500" />
             <p className="m-0 text-center text-sm text-zinc-600">
-              Nenhuma sugestão de rota disponível. Acesse as filas manuais para
-              aceitar tarefas.
+              Nenhuma atividade disponível no momento. Use as filas manuais se
+              houver outras tarefas pendentes.
             </p>
             <Link
               to={OPERATOR_MOVIMENT_MANUAL_QUEUE_PATH}

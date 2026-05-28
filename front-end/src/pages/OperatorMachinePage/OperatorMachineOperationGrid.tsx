@@ -35,6 +35,7 @@ import {
   InfoIcon,
   Route,
 } from 'lucide-react';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 export interface OperatorMachineOperationGridProps {
   openSupply: OperatorMachineSupplyRequestListItem | null;
@@ -194,7 +195,9 @@ export function OperatorMachineOperationGrid({
           </div>
           <div className="flex flex-1 flex-col gap-4 p-4">
             {supplyLoading ? (
-              <p className="m-0 text-sm text-zinc-500">Carregando…</p>
+              <div className="flex flex-1 items-center justify-center py-8">
+                <AccordionLoader />
+              </div>
             ) : supplyError ? (
               <p className="m-0 text-sm text-red-700">
                 {supplyError.message || 'Erro ao carregar.'}

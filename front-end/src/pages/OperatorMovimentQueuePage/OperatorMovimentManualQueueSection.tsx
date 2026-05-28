@@ -21,6 +21,7 @@ import {
 } from '@/utils/operator-moviment-display';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { OperatorReplenishmentQueueResponse } from '@/types/operator-moviment-pallet.types';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function DeliverRequestFlow({
   row,
@@ -120,9 +121,9 @@ export function OperatorMovimentManualQueueSection({
         ) : (
           <div className="p-2.5 sm:p-3">
             {queueQuery.isLoading ? (
-              <p className="py-4 text-center text-xs text-zinc-600">
-                Carregando…
-              </p>
+              <div className="flex items-center justify-center py-4">
+                <AccordionLoader />
+              </div>
             ) : null}
             {!queueQuery.isLoading && deliverRows.length === 0 ? (
               <p className="py-4 text-center text-xs text-zinc-600">
@@ -188,9 +189,9 @@ export function OperatorMovimentManualQueueSection({
         ) : (
           <div className="p-2.5 sm:p-3">
             {queueQuery.isLoading ? (
-              <p className="py-4 text-center text-xs text-zinc-600">
-                Carregando…
-              </p>
+              <div className="flex items-center justify-center py-4">
+                <AccordionLoader />
+              </div>
             ) : null}
             {!queueQuery.isLoading && pickupRows.length === 0 ? (
               <p className="py-4 text-center text-xs text-zinc-600">

@@ -27,6 +27,7 @@ import type {
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
 
 import { Check } from 'lucide-react';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function buildCombinedSteps(
   row: TripCombinedSuggestionApi,
@@ -169,7 +170,7 @@ function SuggestionFlowCardBody({
   hint?: string;
 }) {
   return (
-    <div className="px-5 py-4 sm:px-8">
+    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4">
       {title ? (
         <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
           {title}
@@ -501,7 +502,7 @@ export function TripSuggestionsFlowSection({
 }: TripSuggestionsFlowSectionProps) {
   if (tripQuery.isError) {
     return (
-      <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800 md:px-4 md:py-3">
         {tripQuery.error instanceof Error
           ? tripQuery.error.message
           : 'Erro ao carregar sugestões de rota.'}
@@ -511,9 +512,9 @@ export function TripSuggestionsFlowSection({
 
   if (tripQuery.isLoading) {
     return (
-      <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-        Carregando sugestões de rota…
-      </p>
+      <div className="flex items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-8 md:px-4 md:py-10">
+        <AccordionLoader />
+      </div>
     );
   }
 
@@ -573,16 +574,16 @@ export function TripSuggestionsFlowSection({
 
   return (
     <section
-      className="mt-8 space-y-4"
+      className="mt-4 min-w-0 space-y-3 md:mt-8 md:space-y-4"
       aria-labelledby="trip-suggestions-heading"
     >
       {!bound ? (
-        <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+        <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 md:px-4 md:py-3">
           Vincule-se a um equipamento para aceitar uma sugestão de rota.
         </p>
       ) : null}
 
-      <div className="space-y-5">
+      <div className="flex min-w-0 flex-col gap-4 md:gap-5">
         {mainQueue.map((item) => {
           if (item.displayKind === 'combined') {
             const row = item.combined;

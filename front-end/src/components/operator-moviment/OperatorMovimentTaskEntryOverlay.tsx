@@ -1,7 +1,7 @@
-import { ForkliftLoader } from '@/components/forklift-loader/forklifit-loader';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { APP_MAIN_PANE_ID } from '@/components/layout/main-content-portal';
 import { createPortal } from 'react-dom';
-
+ 
 type OperatorMovimentTaskEntryOverlayProps = {
   message?: string;
 };
@@ -14,7 +14,7 @@ function OverlayContent({ message }: { message: string }) {
       aria-live="polite"
       aria-busy="true"
     >
-      <ForkliftLoader size="lg" />
+      <AccordionLoader />
       <p className="mt-4 text-sm font-medium text-zinc-700">{message}</p>
     </div>
   );

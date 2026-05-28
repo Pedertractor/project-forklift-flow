@@ -9,6 +9,7 @@ import type { ReplenishmentRequestListItem } from '@/types/replenishment-request
 import type { RequestStatusValue } from '@/types/replenishment-request.types';
 import { Box, CheckIcon } from 'lucide-react';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function movementTypeLabel(t: string): string {
   if (t === 'FORKLIFT' || t === 'ANY') {
@@ -80,9 +81,11 @@ export function ReplenishmentRequestsTable({
             <tr>
               <td
                 colSpan={colSpan}
-                className="px-4 py-8 text-center text-zinc-500"
+                className="px-4 py-8 text-zinc-500"
               >
-                Carregando…
+                <div className="flex items-center justify-center">
+                  <AccordionLoader />
+                </div>
               </td>
             </tr>
           ) : rows.length === 0 ? (

@@ -3,15 +3,22 @@ import {
   RouteFlowStepDetails,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
-import { Cpu, PackageSearch, Truck, Warehouse, type LucideIcon } from 'lucide-react';
+import {
+  AudioWaveform,
+  Box,
+  Forklift,
+  PackageSearch,
+  Warehouse,
+  type LucideIcon,
+} from 'lucide-react';
 
 export type RouteFlowStepId = 'receiving' | 'machine' | 'pallet' | 'expedition';
 
 const ROUTE_FLOW_STEP_LUCIDE: Record<RouteFlowStepId, LucideIcon> = {
   receiving: Warehouse,
   pallet: PackageSearch,
-  machine: Cpu,
-  expedition: Truck,
+  machine: Box,
+  expedition: Forklift,
 };
 
 /** Ícones Lucide por etapa — altere aqui para trocar em todo o fluxo. */
@@ -70,21 +77,9 @@ export function PalletIcon({ className }: { className?: string }) {
   );
 }
 
+/** Expedição / movimentação — ícone de empilhadeira (AudioWaveform). */
 export function ExpeditionIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      aria-hidden
-    >
-      <path d="M3 17h13l3-6H6l-2 6z" strokeLinejoin="round" />
-      <circle cx="7" cy="19" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="17" cy="19" r="1.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
+  return <AudioWaveform className={className} aria-hidden strokeWidth={1.75} />;
 }
 
 export function routeFlowStepIcon(id: RouteFlowStepId) {

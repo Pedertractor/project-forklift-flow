@@ -14,7 +14,6 @@ import {
   prismaDetail,
   receivingAreaDetail,
 } from '@/components/operator-moviment/route-flow-step-details';
-import { ForkliftLoader } from '@/components/forklift-loader/forklifit-loader';
 import {
   formatTaskDate,
   isCriticalPriority,
@@ -25,7 +24,8 @@ import type {
   OperatorMovimentTaskItem,
 } from '@/types/operator-moviment-pallet.types';
 import { isOpenMovimentTaskStatus } from '@/utils/operator-moviment-work';
-import { Check } from 'lucide-react';
+import { Check, Layers2 } from 'lucide-react';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 interface TaskRouteGroup {
   machineId: string;
@@ -212,6 +212,20 @@ function buildOpenTaskSteps(
   ];
 }
 
+function OpenActivityHeading() {
+  return (
+    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 md:text-base">
+      <span
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand"
+        aria-hidden
+      >
+        <Layers2 className="size-4" strokeWidth={2.25} />
+      </span>
+      Atividade em andamento
+    </p>
+  );
+}
+
 function TaskConfirmationProgressBar() {
   return (
     <div
@@ -280,6 +294,7 @@ function OpenTaskRouteCard({
 
   return (
     <DeliverFlowCard>
+       
       <div className="px-5 py-4 sm:px-8">
         <DeliverThreeStepFlow steps={steps} />
         {footerHint ? (
@@ -365,8 +380,8 @@ export function OpenTasksFlowSection({
   return (
     <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <ForkliftLoader size="lg" />
+        <div className="flex items-center justify-center py-12">
+          <AccordionLoader />
         </div>
       ) : null}
 
@@ -382,7 +397,8 @@ export function OpenTasksFlowSection({
       {!isLoading && hasOpenWork && groups.length > 0 ? (
         <ul className="m-0 flex list-none flex-col gap-5 p-0">
           {groups.map((group) => (
-            <li key={group.machineId}>
+            <li key={group.machineId} className="flex flex-col gap-2.5">
+              <OpenActivityHeading />
               <OpenTaskRouteCard
                 group={group}
                 bound={bound}

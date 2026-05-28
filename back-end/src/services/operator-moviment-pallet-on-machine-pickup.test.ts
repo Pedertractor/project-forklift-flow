@@ -36,6 +36,18 @@ test('tela principal: avulsa so entra se for critica', () => {
   assert.deepEqual(mainScreen, ['d1'])
 })
 
+test('tela principal vazia: promove uma avulsa nao critica (mais antiga)', () => {
+  const candidates = [
+    { id: 'd1', createdAt: new Date('2026-01-02') },
+    { id: 'p1', createdAt: new Date('2026-01-01') },
+    { id: 'd2', createdAt: new Date('2026-01-03') },
+  ]
+  const oldest = candidates.reduce((best, cur) =>
+    cur.createdAt.getTime() < best.createdAt.getTime() ? cur : best,
+  )
+  assert.equal(oldest.id, 'p1')
+})
+
 test('pickup-only queue: mesmo pickup id nao deve aparecer duas vezes na lista', () => {
   const ids = ['pickup-a', 'pickup-a', 'pickup-b']
   const seen = new Set<string>()

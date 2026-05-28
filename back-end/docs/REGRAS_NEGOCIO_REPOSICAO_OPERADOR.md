@@ -82,7 +82,7 @@ Body de criação: `machineId`, `movementCube`, `typeMovimentPallet`, `isCritica
 | `POST` | `/tasks/:id/accept-pickup` | Aceita retirada |
 | `POST` | `/tasks/:id/complete-deliver` | Conclui entrega na máquina |
 | `POST` | `/tasks/:id/complete-pickup` | Conclui retirada na expedição |
-| `GET` | `/trip-suggestions` | Tela principal: par entrega+retirada (2 tarefas) **somente com** `DeliveryTask.preparedAt` preenchido; ou tarefa avulsa **somente se** `isCritical`; tarefas do par nao repetem como avulsas |
+| `GET` | `/trip-suggestions` | Tela principal: par entrega+retirada (2 tarefas) **somente com** `DeliveryTask.preparedAt` preenchido; ou tarefa avulsa **somente se** `isCritical`; tarefas do par nao repetem como avulsas. Se nao houver nenhuma sugestao/avulsa critica, promove **uma** avulsa nao critica (a mais antiga da fila manual) para o empilhadeirista/follow-up nao precisar abrir a fila manual |
 | `POST` | `/trip-suggestions/:id/accept` | Aceita rota combinada |
 
 **Removido:** aceitar `MachineReplenishmentRequest`.

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import type { SectorsPageViewModel } from './useSectorsPage';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 export function SectorsPageView(vm: SectorsPageViewModel) {
   const {
@@ -87,9 +88,11 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
                 <tr>
                   <td
                     colSpan={2}
-                    className="px-4 py-8 text-center text-zinc-500"
+                    className="px-4 py-8 text-zinc-500"
                   >
-                    Carregando…
+                    <div className="flex items-center justify-center">
+                      <AccordionLoader />
+                    </div>
                   </td>
                 </tr>
               ) : listQuery.data?.length === 0 ? (

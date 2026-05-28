@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { type MachinesPageViewModel } from './useMachinesPage';
 import { typeMachineImageSrc } from '../TypeMachinesPage/useTypeMachinesPage';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 const selectClass =
   'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
@@ -194,9 +195,11 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-4 py-8 text-center text-zinc-500"
+                    className="px-4 py-8 text-zinc-500"
                   >
-                    Carregando…
+                    <div className="flex items-center justify-center">
+                      <AccordionLoader />
+                    </div>
                   </td>
                 </tr>
               ) : machinesQuery.data?.length === 0 ? (

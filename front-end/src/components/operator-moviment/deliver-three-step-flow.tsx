@@ -9,9 +9,18 @@ import { cn } from '@/lib/utils';
 import { AlertTriangle, MapPinned, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-export function DeliverFlowCriticalBadge() {
+export function DeliverFlowCriticalBadge({
+  className,
+}: {
+  className?: string;
+}) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800">
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800',
+        className,
+      )}
+    >
       <AlertTriangle className="size-4 shrink-0 text-red-500" aria-hidden />
       Crítico
     </span>
@@ -20,7 +29,7 @@ export function DeliverFlowCriticalBadge() {
 
 export function DeliverFlowDeferBanner({ children }: { children: ReactNode }) {
   return (
-    <div className="border-b border-amber-200/80 bg-amber-100/60 px-4 py-2 text-center text-xs font-medium text-amber-950">
+    <div className="border-b border-amber-200/80 bg-amber-100/60 px-3 py-2 text-center text-xs font-medium leading-snug text-amber-950 md:px-4">
       {children}
     </div>
   );
@@ -35,13 +44,15 @@ export function DeliverFlowActionFooter({
 }) {
   return (
     <DeliverFlowCardFooter>
-      <div className="flex items-center gap-2">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand text-white">
-          <MapPinned className="size-5" aria-hidden />
-        </span>
+      <span className="hidden size-11 shrink-0 items-center justify-center rounded-lg bg-brand text-white md:flex">
+        <MapPinned className="size-5" aria-hidden />
+      </span>
+      <div className="min-w-0 w-full md:flex md:flex-1 md:justify-center">
+        {children}
       </div>
-      {children}
-      {isCritical ? <DeliverFlowCriticalBadge /> : null}
+      {isCritical ? (
+        <DeliverFlowCriticalBadge className="self-start md:self-auto" />
+      ) : null}
     </DeliverFlowCardFooter>
   );
 }
@@ -59,7 +70,10 @@ export function DeliverFlowAcceptButton({
   return (
     <Button
       type="button"
-      className={`hover:cursor-pointer h-12 animate-pulse min-w-[17rem] gap-2.5 rounded-full bg-brand px-10 text-base font-semibold text-white shadow-sm hover:bg-brand/80 `}
+      className={cn(
+        'h-11 w-full min-w-0 max-w-full animate-pulse gap-2 rounded-full bg-brand px-4 text-sm font-semibold text-white shadow-sm hover:cursor-pointer hover:bg-brand/80',
+        'md:h-12 md:w-auto md:min-w-[17rem] md:max-w-none md:gap-2.5 md:px-10 md:text-base',
+      )}
       disabled={disabled}
       onClick={onClick}
     >
@@ -95,6 +109,52 @@ function FlowStepDotConnector() {
   );
 }
 
+function FlowStepVerticalConnector() {
+  return (
+    <div
+      className="my-1 w-px min-h-4 flex-1 bg-zinc-500"
+      aria-hidden
+    />
+  );
+}
+
+function FlowStepIconRing({
+  stepId,
+  size = 'default',
+}: {
+  stepId: RouteFlowStepId;
+  size?: 'default' | 'compact';
+}) {
+  const StepIcon = routeFlowStepLucideIcon(stepId);
+  const compact = size === 'compact';
+
+  return (
+    <div
+      className={cn(
+        'relative flex shrink-0 items-center justify-center rounded-full bg-white',
+        compact ? 'size-12' : 'size-14 sm:size-16',
+      )}
+    >
+      <span
+        className="absolute inset-0 rounded-full ring-1 ring-zinc-300"
+        aria-hidden
+      />
+      <span
+        className="absolute inset-1 rounded-full ring-1 ring-zinc-200"
+        aria-hidden
+      />
+      <StepIcon
+        className={cn(
+          'relative z-10 text-zinc-800',
+          compact ? 'size-6' : 'size-7 sm:size-8',
+        )}
+        strokeWidth={1.5}
+        aria-hidden
+      />
+    </div>
+  );
+}
+
 function FlowStepDetailsCard({
   items,
   className,
@@ -102,11 +162,15 @@ function FlowStepDetailsCard({
   items: RouteFlowDetailItem[];
   className?: string;
 }) {
+  const compact = items.length <= 1;
+
   return (
     <div
       className={cn(
-        'flex w-full flex-col justify-center overflow-hidden',
-        STEP_DETAILS_MIN_H,
+        'flex w-full flex-col overflow-hidden',
+        compact
+          ? 'mt-1.5'
+          : cn('justify-center max-md:min-h-0', STEP_DETAILS_MIN_H),
         className,
       )}
     >
@@ -116,7 +180,8 @@ function FlowStepDetailsCard({
           <div
             key={`${item.kind}-${index}`}
             className={cn(
-              'flex flex-1 items-center gap-2.5 px-3.5 py-3',
+              'flex items-center gap-2.5 px-3.5',
+              compact ? 'py-2' : 'flex-1 py-3',
               index > 0 && 'border-t border-zinc-200',
             )}
           >
@@ -132,8 +197,6 @@ function FlowStepDetailsCard({
 }
 
 function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
-  const StepIcon = routeFlowStepLucideIcon(step.stepId);
-
   return (
     <div className="flex w-[9rem] shrink-0 flex-col sm:w-[10.5rem]">
       <div className="flex flex-col items-center">
@@ -141,25 +204,13 @@ function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
           {step.stepNumber}
         </span>
 
-        <div className="relative mt-3 flex size-14 items-center justify-center rounded-full bg-white sm:size-16">
-          <span
-            className="absolute inset-0 rounded-full ring-1 ring-zinc-300"
-            aria-hidden
-          />
-          <span
-            className="absolute inset-1 rounded-full ring-1 ring-zinc-200"
-            aria-hidden
-          />
-          <StepIcon
-            className="relative z-10 size-7 text-zinc-800 sm:size-8"
-            strokeWidth={1.5}
-            aria-hidden
-          />
+        <div className="mt-3">
+          <FlowStepIconRing stepId={step.stepId} />
         </div>
 
         <p
           className={cn(
-            'mt-4 flex w-full items-center justify-center px-1 text-center text-xs font-bold leading-snug text-zinc-900 sm:mt-5 sm:text-sm',
+            'mt-3 flex w-full items-end justify-center px-1 text-center text-xs font-bold leading-snug text-zinc-900 sm:text-sm',
             STEP_TITLE_MIN_H,
           )}
         >
@@ -172,13 +223,66 @@ function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
   );
 }
 
-export function DeliverThreeStepFlow({
+function FlowStepVerticalRow({
+  step,
+  isLast,
+}: {
+  step: DeliverFlowStepConfig;
+  isLast: boolean;
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className="flex w-8 shrink-0 flex-col items-center">
+        <span
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-sm font-bold text-white"
+          aria-label={`Etapa ${step.stepNumber}`}
+        >
+          {step.stepNumber}
+        </span>
+        {!isLast ? <FlowStepVerticalConnector /> : null}
+      </div>
+
+      <div className={cn('min-w-0 flex-1', !isLast && 'pb-4 md:pb-5')}>
+        <div className="flex min-w-0 flex-col gap-2">
+          <FlowStepIconRing stepId={step.stepId} size="compact" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold leading-snug text-zinc-900">
+              {step.label}
+            </p>
+            <FlowStepDetailsCard items={step.details} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeliverThreeStepFlowVertical({
   steps,
 }: {
   steps: DeliverFlowStepConfig[];
 }) {
   return (
-    <div className="w-full min-w-0 overflow-x-auto  [-webkit-overflow-scrolling:touch]">
+    <ol className="m-0 list-none space-y-0 p-0">
+      {steps.map((step, index) => (
+        <li key={step.stepNumber}>
+          <FlowStepVerticalRow
+            step={step}
+            isLast={index === steps.length - 1}
+          />
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function DeliverThreeStepFlowHorizontal({
+  steps,
+}: {
+  steps: DeliverFlowStepConfig[];
+}) {
+  return (
+    <div className="w-full min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch]">
       <div className="flex min-w-max items-stretch justify-center gap-6 px-2 sm:gap-10">
         {steps.map((step, index) => (
           <div key={step.stepNumber} className="flex items-stretch">
@@ -188,6 +292,23 @@ export function DeliverThreeStepFlow({
         ))}
       </div>
     </div>
+  );
+}
+
+export function DeliverThreeStepFlow({
+  steps,
+}: {
+  steps: DeliverFlowStepConfig[];
+}) {
+  return (
+    <>
+      <div className="md:hidden">
+        <DeliverThreeStepFlowVertical steps={steps} />
+      </div>
+      <div className="hidden md:block">
+        <DeliverThreeStepFlowHorizontal steps={steps} />
+      </div>
+    </>
   );
 }
 
@@ -257,8 +378,10 @@ export function DeliverFlowCardHeader({
 
 export function DeliverFlowCardFooter({ children }: { children: ReactNode }) {
   return (
-    <div className="border-t border-zinc-200 px-5 py-2 sm:px-6 ">
-      <div className="flex justify-between">{children}</div>
+    <div className="border-t border-zinc-200 px-3 py-3 md:px-5 md:py-2 lg:px-6">
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-2">
+        {children}
+      </div>
     </div>
   );
 }
@@ -275,7 +398,7 @@ export function DeliverFlowCard({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md',
+        'min-w-0 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md md:rounded-2xl',
         className,
       )}
     >

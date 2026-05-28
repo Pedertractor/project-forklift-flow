@@ -15,6 +15,7 @@ import {
   queueInsightMessage,
   type EquipmentColumnStats,
 } from './replenishment-equipment-status';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 export type { EquipmentColumnStats };
 
@@ -287,9 +288,9 @@ export function ReplenishmentEquipmentPanel({
       ) : null}
 
       {isLoading ? (
-        <p className="py-6 text-center text-sm text-zinc-500">
-          Carregando equipamentos…
-        </p>
+        <div className="flex items-center justify-center py-6">
+          <AccordionLoader />
+        </div>
       ) : isError ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
           {errorMessage ?? 'Erro ao carregar equipamentos.'}

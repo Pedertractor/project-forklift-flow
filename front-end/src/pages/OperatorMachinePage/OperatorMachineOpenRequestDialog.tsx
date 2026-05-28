@@ -84,6 +84,7 @@ export function OperatorMachineOpenRequestDialog({
     setCombinedSelected(false);
     setPickup((v) => {
       const next = !v;
+      if (next) setSupply(false);
       if (!next) setPickupIsCritical(false);
       return next;
     });
@@ -92,7 +93,14 @@ export function OperatorMachineOpenRequestDialog({
   function toggleSupplyOnly() {
     if (!supplyAvailable) return;
     setCombinedSelected(false);
-    setSupply((v) => !v);
+    setSupply((v) => {
+      const next = !v;
+      if (next) {
+        setPickup(false);
+        setPickupIsCritical(false);
+      }
+      return next;
+    });
   }
 
   const handlePrimary = async () => {
@@ -112,7 +120,7 @@ export function OperatorMachineOpenRequestDialog({
       open={open}
       onClose={onClose}
       title="Abrir solicitação"
-      description="Selecione os dois de uma vez ou escolha cada serviço separadamente."
+      description="Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo."
       footer={
         <ModalActions
           onCancel={onClose}
@@ -148,7 +156,7 @@ export function OperatorMachineOpenRequestDialog({
         </ServiceOptionCard>
 
         <p className="m-0 text-center text-xs font-medium text-zinc-500">
-          ou selecione separadamente
+          ou escolha apenas um
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">

@@ -10,6 +10,7 @@ import { ArrowLeftIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function OperatorSupplyRequestCard({
   row,
@@ -168,8 +169,8 @@ export function SupplyPendingPreparationPageView(
             —
           </Card>
         ) : pendingQuery.isLoading ? (
-          <Card className="mt-6 border border-zinc-200 px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">
-            Carregando solicitações…
+          <Card className="mt-6 flex items-center justify-center border border-zinc-200 px-4 py-10 shadow-sm">
+            <AccordionLoader />
           </Card>
         ) : operatorSupplyRows.length === 0 ? (
           <Card className="mt-6 border border-zinc-200 px-4 py-10 text-center text-sm text-zinc-500 shadow-sm">

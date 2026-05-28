@@ -12,6 +12,7 @@ import {
   type OperatorMachineTaskListRow,
 } from './operator-machine-display';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function TaskKindIcon({ kind }: { kind: OperatorMachineTaskListRow['kind'] }) {
   if (kind === 'DELIVERY') {
@@ -79,9 +80,9 @@ export function OperatorMachineTasksList({
 
       <Card className="border border-zinc-200 p-2 shadow-sm">
         {loading ? (
-          <p className="px-4 py-6 text-sm text-zinc-500">
-            Carregando solicitações…
-          </p>
+          <div className="flex items-center justify-center px-4 py-6">
+            <AccordionLoader />
+          </div>
         ) : error ? (
           <p className="px-4 py-6 text-sm text-red-700">
             {error.message || 'Erro ao carregar solicitações.'}

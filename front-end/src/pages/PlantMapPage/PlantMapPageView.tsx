@@ -14,6 +14,7 @@ import {
   plantMapNodeFill,
 } from '@/utils/plantMapNodeColors';
 import { plantMapAreaLegendItems } from '@/utils/plantMapAreaStyles';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 export function PlantMapPageView(props: PlantMapPageViewModel) {
   const {
@@ -313,7 +314,7 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
         >
           {mapInitialLoading ? (
             <div className="flex h-full min-h-[240px] items-center justify-center text-sm text-zinc-500">
-              Carregando máquinas…
+              <AccordionLoader />
             </div>
           ) : null}
           {machinesError && !mapStageReady ? (
@@ -385,9 +386,9 @@ export function PlantMapPageView(props: PlantMapPageViewModel) {
 
         <aside className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-2 lg:w-[22rem] lg:max-w-[min(100%,22rem)] lg:flex-none">
           {mapInitialLoading ? (
-            <p className="shrink-0 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 lg:hidden">
-              Carregando máquinas…
-            </p>
+            <div className="flex shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-8 lg:hidden">
+              <AccordionLoader />
+            </div>
           ) : null}
           {machinesError && !mapStageReady ? (
             <p className="shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900 lg:hidden">

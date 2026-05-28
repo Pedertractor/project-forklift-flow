@@ -45,18 +45,18 @@ model DeliveryTask {
   machine   Machine @relation("MachineDeliveryTasks", fields: [machineId], references: [id])
   machineId String
 
-  movementCube String
+  movementCube       String
   typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
-  isCritical         Boolean           @default(false)
+  isCritical         Boolean            @default(false)
 
   status      MachineTaskStatus @default(CREATED)
   statusSince DateTime          @default(now())
 
   /// Abastecimento aceitou/registrou a solicita??o de envio.
-  acceptedBySupply   Boolean   @default(false)
-  supplyAcceptedAt   DateTime?
+  acceptedBySupply Boolean   @default(false)
+  supplyAcceptedAt DateTime?
   /// Pallet/prisma pronto no recebimento para o transporte buscar.
-  preparedAt         DateTime?
+  preparedAt       DateTime?
 
   requestedBy   User   @relation("UserDeliveryTasks", fields: [requestedById], references: [id])
   requestedById String
@@ -64,7 +64,7 @@ model DeliveryTask {
   assignedMovimentPallet   MovimentPallet? @relation("DeliveryTaskAssignedPallet", fields: [assignedMovimentPalletId], references: [id])
   assignedMovimentPalletId String?
 
-  operatorSupplyRequest   OperatorMachineSupplyRequest? @relation("SupplyRequestDeliveryTask")
+  operatorSupplyRequest OperatorMachineSupplyRequest? @relation("SupplyRequestDeliveryTask")
 
   tripSuggestionAsDeliver MovimentPalletTripSuggestion? @relation("TripSuggestionDeliverTask")
 
@@ -157,9 +157,9 @@ model MovimentPalletTripSuggestion {
 }
 
 model Machine {
-  id       String @id @default(uuid())
-  name     String
-  position String
+  id        String       @id @default(uuid())
+  name      String
+  position  String
   /// Planta do mapa de supervisao em que a maquina aparece (P ou T).
   plantUnit PlantMapUnit @default(PEDERTRACTOR)
 
@@ -218,8 +218,8 @@ model Sector {
 }
 
 model MovimentPallet {
-  id   String                     @id @default(uuid())
-  code String                     @unique
+  id   String                      @id @default(uuid())
+  code String                      @unique
   type MovimentPalletEquipmentType
 
   operator   User?   @relation("MovimentPalletOperator", fields: [operatorId], references: [id])
@@ -252,8 +252,7 @@ enum TypeMovimentPallet {
 
 enum RoleUser {
   OPERATOR_MACHINE
-  FORKLIFT_OPERATOR
-  FOLLOW_UP_OPERATOR
+  PALLET_TRANSPORTER
   SUPPLY_OPERATOR
   LEADER
   SUPERVISOR

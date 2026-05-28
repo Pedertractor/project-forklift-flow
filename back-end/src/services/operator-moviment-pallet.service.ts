@@ -174,7 +174,7 @@ function mapStandalonePickupRow(
       name: machine.name,
       position: machine.position,
     },
-    message: `Na maquina ${machine.name} (${machine.position}): retirada solicitada — aceite para levar o pallet a expedicao.`,
+    message: `Na maquina ${machine.name}: retirada solicitada — aceite para levar o pallet a expedicao.`,
     suggestedOrder: [],
     pickupTask: task,
   };
@@ -280,6 +280,84 @@ async function listStandaloneTripTasksForSector(
   );
 
   return { standalonePickupTasks, standaloneDeliverTasks };
+}
+
+/** Quando a tela principal estaria vazia, promove uma avulsa nao critica (fila manual). */
+async function listOneNonCriticalStandaloneFallback(
+  sectorId: string,
+  role: RoleUser,
+  linked: LinkedOpenTripTaskIds,
+): Promise<{
+  standalonePickupTasks: StandalonePickupSuggestionRow[];
+  standaloneDeliverTasks: StandaloneDeliverSuggestionRow[];
+}> {
+  const empty = {
+    standalonePickupTasks: [] as StandalonePickupSuggestionRow[],
+    standaloneDeliverTasks: [] as StandaloneDeliverSuggestionRow[],
+  };
+  const equipmentTypes = equipmentTypesAllowedForRole(role);
+  const candidates: Array<
+    | {
+        kind: "pickup";
+        createdAt: Date;
+        row: StandalonePickupSuggestionRow;
+      }
+    | {
+        kind: "deliver";
+        createdAt: Date;
+        row: StandaloneDeliverSuggestionRow;
+      }
+  > = [];
+
+  for (const equipmentType of equipmentTypes) {
+    const [deliveries, pickups] = await Promise.all([
+      deliveryTaskRepository.findManyOpenPoolForSectorAndMovimentType(
+        sectorId,
+        equipmentType,
+      ),
+      pickupTaskRepository.findManyOpenPickupForSectorAndMovimentType(
+        sectorId,
+        equipmentType,
+      ),
+    ]);
+
+    for (const pickup of pickups) {
+      if (pickup.status !== MachineTaskStatus.CREATED) continue;
+      if (pickup.assignedMovimentPalletId) continue;
+      if (linked.pickupIds.has(pickup.id)) continue;
+      if (pickup.isCritical) continue;
+      if (!pickup.machine) continue;
+      candidates.push({
+        kind: "pickup",
+        createdAt: pickup.createdAt,
+        row: mapStandalonePickupRow(pickup),
+      });
+    }
+
+    for (const deliver of deliveries) {
+      if (linked.deliverIds.has(deliver.id)) continue;
+      if (deliver.isCritical) continue;
+      if (!deliver.machine) continue;
+      candidates.push({
+        kind: "deliver",
+        createdAt: deliver.createdAt,
+        row: mapStandaloneDeliverRow(deliver),
+      });
+    }
+  }
+
+  if (candidates.length === 0) return empty;
+
+  const oldest = candidates.reduce((best, cur) =>
+    new Date(cur.createdAt).getTime() < new Date(best.createdAt).getTime()
+      ? cur
+      : best,
+  );
+
+  if (oldest.kind === "pickup") {
+    return { standalonePickupTasks: [oldest.row], standaloneDeliverTasks: [] };
+  }
+  return { standalonePickupTasks: [], standaloneDeliverTasks: [oldest.row] };
 }
 
 async function assertNoIncompleteTasks(
@@ -555,8 +633,22 @@ export async function listTripRouteSuggestionsForOperator(
     });
 
   const linked = linkedOpenTripTaskIdsFromRows(rows);
-  const { standalonePickupTasks, standaloneDeliverTasks } =
+  let { standalonePickupTasks, standaloneDeliverTasks } =
     await listStandaloneTripTasksForSector(user.sectorId, role, linked);
+
+  if (
+    suggestions.length === 0 &&
+    standalonePickupTasks.length === 0 &&
+    standaloneDeliverTasks.length === 0
+  ) {
+    const fallback = await listOneNonCriticalStandaloneFallback(
+      user.sectorId,
+      role,
+      linked,
+    );
+    standalonePickupTasks = fallback.standalonePickupTasks;
+    standaloneDeliverTasks = fallback.standaloneDeliverTasks;
+  }
 
   const hasCritical =
     suggestions.some((s) => s.effectiveCritical) ||
