@@ -232,7 +232,6 @@ function CombinedRouteCard({
         title="Rota combinada sugerida"
         steps={steps}
         message={row.message}
-        hint="Ao aceitar, ambas as tarefas ficam no seu equipamento, na ordem acima."
       />
 
       <DeliverFlowActionFooter isCritical={isCritical}>

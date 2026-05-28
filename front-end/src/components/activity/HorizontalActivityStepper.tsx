@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { ForkliftLoader } from '../forklift-loader/forklifit-loader';
+import { ForkliftCircleLoader } from '../forklift-loader/forklift-circle-loader';
 import { CheckIcon, InfoIcon } from 'lucide-react';
 
 export type FlowStepStatus = 'pending' | 'active' | 'done';
@@ -139,7 +139,7 @@ function StepCircle({
       {done ? (
         <CheckIcon className="size-8" />
       ) : active && stepShowsForkliftLoader(step) ? (
-        <ForkliftLoader bare size="sm" className="size-full" />
+        <ForkliftCircleLoader />
       ) : (
         index + 1
       )}
@@ -151,7 +151,6 @@ export function HorizontalActivityStepper({
   steps,
   statuses,
   headline,
-  progressPct: progressPctProp,
   className,
 }: HorizontalActivityStepperProps) {
   if (steps.length !== statuses.length) {

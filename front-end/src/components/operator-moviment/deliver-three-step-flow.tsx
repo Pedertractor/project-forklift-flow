@@ -9,9 +9,6 @@ import { cn } from '@/lib/utils';
 import { AlertTriangle, MapPinned, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-export const deliverFlowAcceptButtonClass =
-  'h-12 min-w-[17rem] gap-2.5 rounded-full bg-brand px-10 text-base font-semibold text-white shadow-sm hover:bg-brand/80';
-
 export function DeliverFlowCriticalBadge() {
   return (
     <span className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-800">
@@ -57,11 +54,12 @@ export function DeliverFlowAcceptButton({
   children: ReactNode;
   disabled?: boolean;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <Button
       type="button"
-      className={deliverFlowAcceptButtonClass}
+      className={`hover:cursor-pointer h-12 animate-pulse min-w-[17rem] gap-2.5 rounded-full bg-brand px-10 text-base font-semibold text-white shadow-sm hover:bg-brand/80 `}
       disabled={disabled}
       onClick={onClick}
     >
