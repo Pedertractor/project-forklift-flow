@@ -180,7 +180,7 @@ export function ReplenishmentRequestsPageView(
               <PlusIcon className="size-4 shrink-0" />
               <span className="sm:hidden">Nova solicitação</span>
               <span className="hidden sm:inline">
-                Nova solicitação de retirada
+                Novo pallet para reposição
               </span>
             </Button>
             <Button

@@ -2,8 +2,8 @@ import { type ReactNode } from 'react';
 import {
   DeliverFlowAcceptButton,
   DeliverFlowActionFooter,
+  DeliverFlowActivitySubtitle,
   DeliverFlowCard,
-  DeliverFlowCardHeader,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
@@ -13,12 +13,9 @@ import {
   machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
+  type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
-import {
-  formatTaskDate,
-  isCriticalPriority,
-} from '@/utils/operator-moviment-display';
-import { taskStatusLabelPt } from '@/utils/operator-moviment-labels';
+import { isCriticalPriority } from '@/utils/operator-moviment-display';
 import type {
   ForkliftTaskTypeApi,
   OperatorMovimentTaskItem,
@@ -119,9 +116,73 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
   return Array.from(byMachine.values());
 }
 
+function isCombinedRouteGroup(
+  group: TaskRouteGroup,
+  allTasks: OperatorMovimentTaskItem[],
+): boolean {
+  if (group.deliverTask && group.pickupTask) {
+    return true;
+  }
+  if (!group.pickupTask) {
+    return false;
+  }
+  return allTasks.some(
+    (task) =>
+      task.type === 'DELIVER_TO_MACHINE' &&
+      task.request.destination.id === group.machineId &&
+      task.status === 'COMPLETED',
+  );
+}
+
+function buildCombinedDeliverPhaseSteps(
+  deliverCube: string | undefined,
+  machineDetails: RouteFlowDetailItem[],
+): DeliverFlowStepConfig[] {
+  return [
+    {
+      stepNumber: 1,
+      stepId: 'receiving',
+      label: 'Pegue o pallet no recebimento',
+      details: [
+        receivingAreaDetail(),
+        prismaDetail(deliverCube, 'pick-at-receiving'),
+      ],
+    },
+    {
+      stepNumber: 2,
+      stepId: 'machine',
+      label: 'Entregue o pallet na máquina',
+      details: [
+        ...machineDetails,
+        prismaDetail(deliverCube, 'deliver-to-machine'),
+      ],
+    },
+  ];
+}
+
+function buildCombinedPickupPhaseSteps(
+  machineDetails: RouteFlowDetailItem[],
+): DeliverFlowStepConfig[] {
+  return [
+    {
+      stepNumber: 1,
+      stepId: 'pallet',
+      label: 'Pallet na máquina',
+      details: machineDetails,
+    },
+    {
+      stepNumber: 2,
+      stepId: 'expedition',
+      label: 'Expedição',
+      details: [expeditionAreaDetail('Entregar na expedição')],
+    },
+  ];
+}
+
 function buildOpenTaskSteps(
   group: TaskRouteGroup,
   myPalletId: string | null,
+  allTasks: OperatorMovimentTaskItem[],
 ): DeliverFlowStepConfig[] {
   const deliverOpen =
     group.deliverTask !== null &&
@@ -131,40 +192,14 @@ function buildOpenTaskSteps(
     canCompletePickup(group.pickupTask, myPalletId);
   const deliverCube = group.deliverTask?.request.movementCube;
   const machineDetails = [machineLocationDetail(group.machineName)];
+  const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
 
-  if (deliverOpen && pickupOpen) {
-    return [
-      {
-        stepNumber: 1,
-        stepId: 'receiving',
-        label: 'Pegue o pallet no recebimento',
-        details: [
-          receivingAreaDetail(),
-          prismaDetail(deliverCube, 'pick-at-receiving'),
-        ],
-      },
-      {
-        stepNumber: 2,
-        stepId: 'machine',
-        label: 'Entregue o pallet na máquina',
-        details: [
-          ...machineDetails,
-          prismaDetail(deliverCube, 'deliver-to-machine'),
-        ],
-      },
-      {
-        stepNumber: 3,
-        stepId: 'pallet',
-        label: 'Pallet na máquina',
-        details: machineDetails,
-      },
-      {
-        stepNumber: 4,
-        stepId: 'expedition',
-        label: 'Expedição',
-        details: [expeditionAreaDetail('Entregar na expedição')],
-      },
-    ];
+  if (deliverOpen && pickupOpen && isCombinedRoute) {
+    return buildCombinedDeliverPhaseSteps(deliverCube, machineDetails);
+  }
+
+  if (pickupOpen && !deliverOpen && isCombinedRoute) {
+    return buildCombinedPickupPhaseSteps(machineDetails);
   }
 
   if (deliverOpen && group.deliverTask) {
@@ -239,8 +274,25 @@ function TaskConfirmationProgressBar() {
   );
 }
 
+function resolveFlowActivitySubtitle(
+  deliverOpen: boolean,
+  pickupOpen: boolean,
+  isCombinedRoute: boolean,
+): string | null {
+  if (deliverOpen) {
+    return isCombinedRoute && pickupOpen
+      ? 'Entrega — atividade 1 de 2'
+      : 'Entrega';
+  }
+  if (pickupOpen) {
+    return isCombinedRoute ? 'Retirada — atividade 2 de 2' : 'Retirada';
+  }
+  return null;
+}
+
 function OpenTaskRouteCard({
   group,
+  allTasks,
   bound,
   busy,
   myPalletId,
@@ -248,35 +300,28 @@ function OpenTaskRouteCard({
   completePickupMut,
 }: {
   group: TaskRouteGroup;
+  allTasks: OperatorMovimentTaskItem[];
   bound: boolean;
   busy: boolean;
   myPalletId: string | null;
   completeDeliverMut: CompleteMutationHandlers;
   completePickupMut: CompleteMutationHandlers;
 }) {
-  const steps = buildOpenTaskSteps(group, myPalletId);
   const deliverOpen =
     group.deliverTask !== null &&
     canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
   const pickupOpen =
     group.pickupTask !== null &&
     canCompletePickup(group.pickupTask, myPalletId);
-
-  const isCombined = deliverOpen && pickupOpen;
-  const activeTask = deliverOpen
-    ? group.deliverTask
-    : pickupOpen
-      ? group.pickupTask
-      : null;
-  const statusLabel = activeTask ? taskStatusLabelPt(activeTask.status) : null;
-  const sinceLabel = activeTask ? formatTaskDate(activeTask.createdAt) : null;
+  const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
+  const steps = buildOpenTaskSteps(group, myPalletId, allTasks);
   const isCritical = isCriticalPriority(group.priority);
 
-  const cardTitle = isCombined
-    ? 'Rota completa na máquina'
-    : deliverOpen
-      ? 'Entrega em andamento'
-      : 'Retirada em andamento';
+  const activitySubtitle = resolveFlowActivitySubtitle(
+    deliverOpen,
+    pickupOpen,
+    isCombinedRoute,
+  );
 
   const deliverPending =
     !!group.deliverTask &&
@@ -288,14 +333,16 @@ function OpenTaskRouteCard({
     completePickupMut.variables === group.pickupTask.id;
 
   const footerHint =
-    deliverOpen && pickupOpen
-      ? 'Conclua a entrega na máquina para habilitar a confirmação na expedição.'
+    isCombinedRoute && deliverOpen && pickupOpen
+      ? 'Conclua a entrega na máquina para iniciar a retirada na expedição.'
       : null;
 
   return (
     <DeliverFlowCard>
-       
       <div className="px-5 py-4 sm:px-8">
+        {activitySubtitle ? (
+          <DeliverFlowActivitySubtitle>{activitySubtitle}</DeliverFlowActivitySubtitle>
+        ) : null}
         <DeliverThreeStepFlow steps={steps} />
         {footerHint ? (
           <p className="mt-5 text-center text-xs leading-relaxed text-zinc-500">
@@ -330,7 +377,7 @@ function OpenTaskRouteCard({
               ) : (
                 <>
                   <Check className="size-5 shrink-0" aria-hidden />
-                  Confirmar na expedição
+                  Confirmar entrega na expedição
                 </>
               )}
             </DeliverFlowAcceptButton>
@@ -401,6 +448,7 @@ export function OpenTasksFlowSection({
               <OpenActivityHeading />
               <OpenTaskRouteCard
                 group={group}
+                allTasks={tasks}
                 bound={bound}
                 busy={busy}
                 myPalletId={myPalletId}

@@ -35,6 +35,14 @@ export function DeliverFlowDeferBanner({ children }: { children: ReactNode }) {
   );
 }
 
+export function DeliverFlowActivitySubtitle({ children }: { children: ReactNode }) {
+  return (
+    <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
+      {children}
+    </p>
+  );
+}
+
 export function DeliverFlowActionFooter({
   children,
   isCritical = false,
@@ -44,15 +52,17 @@ export function DeliverFlowActionFooter({
 }) {
   return (
     <DeliverFlowCardFooter>
-      <span className="hidden size-11 shrink-0 items-center justify-center rounded-lg bg-brand text-white md:flex">
-        <MapPinned className="size-5" aria-hidden />
-      </span>
-      <div className="min-w-0 w-full md:flex md:flex-1 md:justify-center">
-        {children}
+      <div className="grid w-full grid-cols-1 items-center md:grid-cols-[1fr_auto_1fr] md:gap-2">
+        <span className="hidden size-11 shrink-0 items-center justify-center justify-self-end rounded-lg bg-brand text-white md:flex">
+          <MapPinned className="size-5" aria-hidden />
+        </span>
+        <div className="flex min-w-0 w-full flex-col items-center gap-2 md:w-auto md:justify-self-center">
+          {children}
+        </div>
+        <div className="hidden min-h-11 items-center justify-self-start md:flex">
+          {isCritical ? <DeliverFlowCriticalBadge /> : null}
+        </div>
       </div>
-      {isCritical ? (
-        <DeliverFlowCriticalBadge className="self-start md:self-auto" />
-      ) : null}
     </DeliverFlowCardFooter>
   );
 }

@@ -3,6 +3,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import {
   DeliverFlowAcceptButton,
   DeliverFlowActionFooter,
+  DeliverFlowActivitySubtitle,
   DeliverFlowCard,
   DeliverFlowDeferBanner,
   DeliverThreeStepFlow,
@@ -159,11 +160,14 @@ function buildStandalonePickupSteps(
 }
 
 function SuggestionFlowCardBody({
+  activityLabel,
   title,
   steps,
   message,
   hint,
 }: {
+  /** Subtítulo do tipo de operação (Entrega / Retirada). */
+  activityLabel?: 'Entrega' | 'Retirada';
   title?: string;
   steps: DeliverFlowStepConfig[];
   message?: string;
@@ -171,6 +175,9 @@ function SuggestionFlowCardBody({
 }) {
   return (
     <div className="min-w-0 px-3 py-3 md:px-8 md:py-4">
+      {activityLabel ? (
+        <DeliverFlowActivitySubtitle>{activityLabel}</DeliverFlowActivitySubtitle>
+      ) : null}
       {title ? (
         <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
           {title}
@@ -291,7 +298,11 @@ function StandaloneDeliverRouteCard({
         ) : undefined
       }
     >
-      <SuggestionFlowCardBody steps={steps} message={row.message} />
+      <SuggestionFlowCardBody
+        activityLabel="Entrega"
+        steps={steps}
+        message={row.message}
+      />
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
@@ -354,7 +365,7 @@ function StandalonePickupRouteCard({
       }
     >
       <SuggestionFlowCardBody
-        title="Sugestão de retirada"
+        activityLabel="Retirada"
         steps={steps}
         message={row.message}
       />
