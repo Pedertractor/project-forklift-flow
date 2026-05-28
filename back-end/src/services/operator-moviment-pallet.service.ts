@@ -214,6 +214,9 @@ async function listStandaloneTripTasksForSector(
       if (pickup.status !== MachineTaskStatus.CREATED) continue
       if (pickup.assignedMovimentPalletId) continue
       if (linked.pickupIds.has(pickup.id)) continue
+      // Retirada que dispara reposicao deve aparecer apenas no fluxo combinado
+      // (quando houver entrega preparada para o recebimento).
+      if (pickup.triggersReplenishment) continue
       if (!pickup.isCritical) continue
       if (!pickup.machine) continue
       standalonePickupTasks.push(mapStandalonePickupRow(pickup))

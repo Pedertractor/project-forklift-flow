@@ -41,7 +41,7 @@ export function ForkliftLoader({
           aria-hidden
         />
       </div>
-      <p>Carregando...</p>
+      {/* <p>Carregando...</p> */}
     </div>
   );
 }

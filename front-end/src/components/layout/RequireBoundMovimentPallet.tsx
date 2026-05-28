@@ -24,9 +24,9 @@ export function RequireBoundMovimentPallet() {
     return <Outlet />;
   }
 
-  if (myPalletQuery.isPending && myPalletQuery.fetchStatus !== 'idle') {
-    return <PageLoader />;
-  }
+  // if (myPalletQuery.isPending && myPalletQuery.fetchStatus !== 'idle') {
+  //   return <PageLoader />;
+  // }
 
   if (myPalletQuery.isSuccess && myPalletQuery.data === null) {
     return (

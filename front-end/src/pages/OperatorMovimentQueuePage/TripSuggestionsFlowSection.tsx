@@ -159,18 +159,14 @@ function buildStandalonePickupSteps(
 
 function SuggestionFlowCardBody({
   title,
-
   steps,
-
+  message,
   hint,
 }: {
   title?: string;
-
   steps: DeliverFlowStepConfig[];
-
-  message?: string | null;
-
-  hint?: string | null;
+  message?: string;
+  hint?: string;
 }) {
   return (
     <div className="px-5 py-4 sm:px-8">
@@ -181,9 +177,13 @@ function SuggestionFlowCardBody({
       ) : null}
 
       <DeliverThreeStepFlow steps={steps} />
-
+      {message ? (
+        <p className="mt-5 text-center text-xs leading-relaxed text-zinc-500">
+          {message}
+        </p>
+      ) : null}
       {hint ? (
-        <p className=" text-center text-xs leading-relaxed text-zinc-500">
+        <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
           {hint}
         </p>
       ) : null}

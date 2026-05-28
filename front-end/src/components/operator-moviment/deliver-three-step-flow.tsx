@@ -143,7 +143,7 @@ function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
           {step.stepNumber}
         </span>
 
-        <div className="relative mt-3 flex size-14 items-center justify-center rounded-full bg-white  sm:size-16">
+        <div className="relative mt-3 flex size-14 items-center justify-center rounded-full bg-white sm:size-16">
           <span
             className="absolute inset-0 rounded-full ring-1 ring-zinc-300"
             aria-hidden
