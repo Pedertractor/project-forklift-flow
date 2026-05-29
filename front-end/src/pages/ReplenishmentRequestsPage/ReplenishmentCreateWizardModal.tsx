@@ -17,6 +17,20 @@ import { AlertTriangle, Box, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TOTAL_STEPS = 4;
 
+const PRISMA_CODE_PREFIX = 'A';
+
+function prismaCodeNumberPart(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const withoutPrefix = trimmed.replace(/^A[-\s]?/i, '');
+  return withoutPrefix.replace(/\D/g, '');
+}
+
+function prismaCodeFromNumberPart(num: string): string {
+  const digits = num.replace(/\D/g, '');
+  return digits ? `${PRISMA_CODE_PREFIX}${digits}` : '';
+}
+
 const STEP_LABELS = [
   'Máquina de destino',
   'Código do prisma',
@@ -152,7 +166,7 @@ export function ReplenishmentCreateWizardModal({
 
   const canGoNext = (() => {
     if (step === 1) return destinationId.trim() !== '';
-    if (step === 2) return movementCube.trim() !== '';
+    if (step === 2) return prismaCodeNumberPart(movementCube).length > 0;
     if (step === 3) return Boolean(typeMovimentPallet);
     return true;
   })();
@@ -266,18 +280,39 @@ export function ReplenishmentCreateWizardModal({
               <Box className="size-4 text-blue-500" />
               <Label htmlFor="rr-wizard-cube">Código do prisma / pallet</Label>
             </div>
-            <Input
-              id="rr-wizard-cube"
-              value={movementCube}
-              onChange={(e) => setMovementCube(e.target.value)}
-              placeholder="Ex.: P-2048"
-              autoFocus
-              disabled={busy}
-              className="font-mono text-base"
-            />
+            <div
+              className={cn(
+                'flex h-[var(--control-height,2.5rem)] overflow-hidden rounded-xl border-2 border-zinc-200 bg-white transition-colors',
+                'focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/35',
+                busy && 'opacity-50',
+              )}
+            >
+              <span
+                className="flex shrink-0 items-center border-r border-zinc-200 bg-zinc-50 px-4 font-mono text-base font-semibold text-zinc-700"
+                aria-hidden
+              >
+                {PRISMA_CODE_PREFIX}
+              </span>
+              <Input
+                id="rr-wizard-cube"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={prismaCodeNumberPart(movementCube)}
+                onChange={(e) =>
+                  setMovementCube(prismaCodeFromNumberPart(e.target.value))
+                }
+                placeholder="20"
+                autoFocus
+                disabled={busy}
+                aria-label="Número do prisma"
+                className="h-full rounded-none border-0 font-mono text-base shadow-none focus-visible:ring-0"
+              />
+            </div>
           </div>
           <p className="text-xs text-zinc-500">
-            Use o mesmo código impresso ou etiquetado no prisma físico.
+            Informe apenas o número; o código será salvo como {PRISMA_CODE_PREFIX}
+            seguido do valor (ex.: {PRISMA_CODE_PREFIX}20).
           </p>
         </div>
       ) : null}
