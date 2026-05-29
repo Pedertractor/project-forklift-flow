@@ -151,7 +151,7 @@ async function resolveTypeForMachine(machineId: string): Promise<TypeMovimentPal
 /** Somente retirada do prisma na maquina. */
 export async function requestPickupOnly(
   operatorUserId: string,
-  options?: { isCritical?: boolean },
+  options?: { isCritical?: boolean; typeMovimentPallet?: TypeMovimentPallet },
 ) {
   const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
   if (!machine) {
@@ -160,7 +160,8 @@ export async function requestPickupOnly(
 
   await assertMaterialOnMachine(machine.id)
 
-  const typeMovimentPallet = await resolveTypeForMachine(machine.id)
+  const typeMovimentPallet =
+    options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
   const pickupTask = await pickupTaskRepository.create({
     machine: { connect: { id: machine.id } },
     requestedBy: { connect: { id: operatorUserId } },
@@ -211,7 +212,7 @@ export async function requestSupplyOnly(operatorUserId: string) {
 /** Retirada + aviso ao abastecimento (cria sugestao de viagem quando houver entrega). */
 export async function requestPickupWithReplenishment(
   operatorUserId: string,
-  options?: { isCritical?: boolean },
+  options?: { isCritical?: boolean; typeMovimentPallet?: TypeMovimentPallet },
 ) {
   const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
   if (!machine) {
@@ -220,7 +221,8 @@ export async function requestPickupWithReplenishment(
 
   await assertMaterialOnMachine(machine.id)
 
-  const typeMovimentPallet = await resolveTypeForMachine(machine.id)
+  const typeMovimentPallet =
+    options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
   const sectorId = machine.sectorId
 
   const result = await prisma.$transaction(async (tx) => {

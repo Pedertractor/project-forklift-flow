@@ -9,8 +9,17 @@ export interface OperatorMachineSupplyRequestListItem {
   status: 'OPEN' | 'FULFILLED' | 'CANCELLED';
   fulfilledAt: string | null;
   fulfilledByReplenishmentRequestId: string | null;
+  deliveryTaskId: string | null;
   createdAt: string;
   updatedAt: string;
+  deliveryTask?: {
+    id: string;
+    movementCube: string;
+    status: string;
+    acceptedBySupply: boolean;
+    preparedAt: string | null;
+    isCritical: boolean;
+  } | null;
   machine: {
     id: string;
     name: string;

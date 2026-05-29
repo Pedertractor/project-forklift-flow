@@ -18,17 +18,10 @@ import {
 import {
   canOpenServiceRequestDialog,
   canRequestSupply,
+  canRequestPickup,
+  pickupBlockedReason,
 } from './operator-machine-flow';
 import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
-import {
-  canRequestPickup,
-  deliveryTaskDrivingMachineUi,
-  deriveDeliveryFlowPhaseFromTask,
-  derivePickupFlowPhaseFromTask,
-  pickupBlockedReason,
-  pickupTaskDrivingMachineUi,
-  resolveOperationTimelineMode,
-} from './operator-machine-flow';
 import { useAuthStore } from '@/store/auth.store';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 
@@ -132,24 +125,6 @@ export function useOperatorMachinePage() {
     }, [operatorSupplyQuery.data]);
 
   const canPickup = canRequestPickup(deliveryTasks, pickupTasks);
-  const timelineDelivery = useMemo(
-    () => deliveryTaskDrivingMachineUi(deliveryTasks),
-    [deliveryTasks],
-  );
-  const timelinePickup = useMemo(
-    () => pickupTaskDrivingMachineUi(pickupTasks),
-    [pickupTasks],
-  );
-  const operationTimelineMode = useMemo(
-    () => resolveOperationTimelineMode(deliveryTasks, pickupTasks),
-    [deliveryTasks, pickupTasks],
-  );
-  const pickupPhase = derivePickupFlowPhaseFromTask(
-    operationTimelineMode === 'pickup' ? timelinePickup : null,
-  );
-  const deliveryPhase = deriveDeliveryFlowPhaseFromTask(
-    operationTimelineMode === 'delivery' ? timelineDelivery : null,
-  );
   const pickupBlockedMessage = pickupBlockedReason(deliveryTasks, pickupTasks);
   const canRequestSupplyNow = canRequestSupply(openOperatorSupply);
   const canOpenRequestDialog = canOpenServiceRequestDialog(
@@ -171,8 +146,14 @@ export function useOperatorMachinePage() {
   });
 
   const pickupOnlyMut = useMutation({
-    mutationFn: (isCritical?: boolean) =>
-      postOperatorPickupOnly({ isCritical: isCritical === true }),
+    mutationFn: (input?: {
+      isCritical?: boolean;
+      typeMovimentPallet?: 'FORKLIFT' | 'ANY';
+    }) =>
+      postOperatorPickupOnly({
+        isCritical: input?.isCritical === true,
+        typeMovimentPallet: input?.typeMovimentPallet,
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       toast.success('Retirada solicitada. O transporte será acionado.');
@@ -181,8 +162,14 @@ export function useOperatorMachinePage() {
   });
 
   const pickupWithReplenishmentMut = useMutation({
-    mutationFn: (isCritical?: boolean) =>
-      postOperatorPickupWithReplenishment({ isCritical: isCritical === true }),
+    mutationFn: (input?: {
+      isCritical?: boolean;
+      typeMovimentPallet?: 'FORKLIFT' | 'ANY';
+    }) =>
+      postOperatorPickupWithReplenishment({
+        isCritical: input?.isCritical === true,
+        typeMovimentPallet: input?.typeMovimentPallet,
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
@@ -210,10 +197,15 @@ export function useOperatorMachinePage() {
     pickup: boolean;
     supply: boolean;
     pickupIsCritical?: boolean;
+    typeMovimentPallet?: 'FORKLIFT' | 'ANY';
   }) => {
-    const { pickup, supply, pickupIsCritical } = selection;
+    const { pickup, supply, pickupIsCritical, typeMovimentPallet } = selection;
     if (!pickup && !supply) return;
     const critical = pickupIsCritical === true;
+    const pickupOptions =
+      pickup && typeMovimentPallet
+        ? { isCritical: critical, typeMovimentPallet }
+        : { isCritical: critical };
 
     if (supply && !pickup) {
       await supplyOnlyMut.mutateAsync();
@@ -221,12 +213,12 @@ export function useOperatorMachinePage() {
     }
 
     if (pickup && supply) {
-      await pickupWithReplenishmentMut.mutateAsync(critical);
+      await pickupWithReplenishmentMut.mutateAsync(pickupOptions);
       return;
     }
 
     if (pickup) {
-      await pickupOnlyMut.mutateAsync(critical);
+      await pickupOnlyMut.mutateAsync(pickupOptions);
     }
   };
 
@@ -267,11 +259,6 @@ export function useOperatorMachinePage() {
     pickupTasks,
     operatorSupplyQuery,
     openOperatorSupply,
-    timelineDelivery,
-    timelinePickup,
-    operationTimelineMode,
-    pickupPhase,
-    deliveryPhase,
     canPickup,
     canRequestSupplyNow,
     canOpenRequestDialog,

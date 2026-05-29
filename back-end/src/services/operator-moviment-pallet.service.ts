@@ -196,6 +196,13 @@ function mapStandaloneDeliverRow(
   };
 }
 
+/** Retirada + abastecimento so entra na fila do empilhadeirista via par combinado (entrega preparada). */
+function isPickupEligibleForStandaloneQueue(pickup: {
+  triggersReplenishment: boolean;
+}): boolean {
+  return !pickup.triggersReplenishment;
+}
+
 async function listStandaloneTripTasksForSector(
   sectorId: string,
   operatingMode: IsOperating,
@@ -222,9 +229,7 @@ async function listStandaloneTripTasksForSector(
       if (pickup.status !== MachineTaskStatus.CREATED) continue;
       if (pickup.assignedOperatorId) continue;
       if (linked.pickupIds.has(pickup.id)) continue;
-      // Retirada que dispara reposicao deve aparecer apenas no fluxo combinado
-      // (quando houver entrega preparada para o recebimento).
-      if (pickup.triggersReplenishment) continue;
+      if (!isPickupEligibleForStandaloneQueue(pickup)) continue;
       if (!pickup.isCritical) continue;
       if (!pickup.machine) continue;
       standalonePickupTasks.push(mapStandalonePickupRow(pickup));
@@ -316,6 +321,7 @@ async function listOneNonCriticalStandaloneFallback(
       if (pickup.status !== MachineTaskStatus.CREATED) continue;
       if (pickup.assignedOperatorId) continue;
       if (linked.pickupIds.has(pickup.id)) continue;
+      if (!isPickupEligibleForStandaloneQueue(pickup)) continue;
       if (pickup.isCritical) continue;
       if (!pickup.machine) continue;
       candidates.push({
@@ -454,7 +460,8 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
       t.status === MachineTaskStatus.CREATED &&
       !t.assignedOperatorId &&
       !linked.pickupIds.has(t.id) &&
-      !t.isCritical,
+      !t.isCritical &&
+      isPickupEligibleForStandaloneQueue(t),
   );
 
   return {

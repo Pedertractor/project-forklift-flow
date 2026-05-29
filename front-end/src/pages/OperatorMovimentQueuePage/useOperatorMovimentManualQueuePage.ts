@@ -2,10 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ENV } from '@/constants/env';
-import { isQueryCancellationError } from '@/lib/query-errors';
 import {
   completeOperatorTaskAccept,
-  navigateToMyTasksAfterAccept,
 } from '@/lib/operator-moviment-after-accept';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
@@ -31,20 +29,10 @@ export function useOperatorMovimentManualQueuePage() {
   const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
 
   const afterAcceptSuccess = useCallback(
-    async (successMessage: string) => {
+    (successMessage: string) => {
       setIsEnteringTaskFlow(true);
-      try {
-        await completeOperatorTaskAccept(queryClient, navigate);
-        toast.success(successMessage);
-      } catch (error) {
-        if (!isQueryCancellationError(error)) {
-          throw error;
-        }
-        toast.success(successMessage);
-        navigateToMyTasksAfterAccept(navigate);
-      } finally {
-        setIsEnteringTaskFlow(false);
-      }
+      completeOperatorTaskAccept(queryClient, navigate);
+      toast.success(successMessage);
     },
     [navigate, queryClient],
   );

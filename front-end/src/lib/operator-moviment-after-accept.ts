@@ -40,10 +40,10 @@ export function navigateToMyTasksAfterAccept(navigate: NavigateFunction): void {
   void navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH, { state });
 }
 
-export async function completeOperatorTaskAccept(
+export function completeOperatorTaskAccept(
   queryClient: QueryClient,
   navigate: NavigateFunction,
-): Promise<void> {
-  await prepareOperatorMyTasksAfterAccept(queryClient);
+): void {
   navigateToMyTasksAfterAccept(navigate);
+  void prepareOperatorMyTasksAfterAccept(queryClient);
 }

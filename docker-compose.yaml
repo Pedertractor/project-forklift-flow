@@ -43,9 +43,6 @@ services:
       - ${FRONTEND_PORT}:5173
     networks:
       - forklift-network
-    volumes:
-      - ./front-end:/usr/src/app
-      - /usr/src/app/node_modules
     depends_on:
       - back-end
 

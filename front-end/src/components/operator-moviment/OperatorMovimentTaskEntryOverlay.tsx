@@ -1,7 +1,7 @@
 import { APP_MAIN_PANE_ID } from '@/components/layout/main-content-portal';
 import { createPortal } from 'react-dom';
 import { ForkliftCircleLoader } from '../forklift-loader/forklift-circle-loader';
- 
+
 type OperatorMovimentTaskEntryOverlayProps = {
   message?: string;
 };
@@ -14,8 +14,13 @@ function OverlayContent({ message }: { message: string }) {
       aria-live="polite"
       aria-busy="true"
     >
-      <ForkliftCircleLoader />
-      <p className="mt-4 text-sm font-medium text-zinc-700">{message}</p>
+      <div
+        className="flex size-14 shrink-0 items-center justify-center rounded-full border-2 border-brand bg-brand/10 shadow-sm"
+        aria-hidden
+      >
+        <ForkliftCircleLoader />
+      </div>
+      <p className="mt-3 text-sm font-medium text-zinc-700">{message}</p>
     </div>
   );
 }

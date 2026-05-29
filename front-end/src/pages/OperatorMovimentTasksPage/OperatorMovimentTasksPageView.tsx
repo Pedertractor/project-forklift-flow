@@ -49,23 +49,25 @@ export function OperatorMovimentTasksPageView(
           </p>
         ) : null}
 
-        <OpenTasksFlowSection
-          tasks={tasks}
-          myOperatorUserId={userId}
-          isLoading={tasksLoading}
-          bound={bound}
-          busy={busy}
-          completeDeliverMut={completeDeliverMut}
-          completePickupMut={completePickupMut}
-          emptyAction={
-            <Link
-              to={OPERATOR_MOVIMENT_TASKS_QUEUE_PATH}
-              className={linkOutlineClass}
-            >
-              Aceitar nova tarefa
-            </Link>
-          }
-        />
+        {showEntryOverlay ? null : (
+          <OpenTasksFlowSection
+            tasks={tasks}
+            myOperatorUserId={userId}
+            isLoading={tasksLoading}
+            bound={bound}
+            busy={busy}
+            completeDeliverMut={completeDeliverMut}
+            completePickupMut={completePickupMut}
+            emptyAction={
+              <Link
+                to={OPERATOR_MOVIMENT_TASKS_QUEUE_PATH}
+                className={linkOutlineClass}
+              >
+                Aceitar nova tarefa
+              </Link>
+            }
+          />
+        )}
       </div>
     </main>
   );

@@ -24,7 +24,7 @@ export interface RouteFlowDetailItem {
 }
 
 export function machineLocationDetail(name: string): RouteFlowDetailItem {
-  return { kind: 'location', text: `${name}` };
+  return { kind: 'location', text: `Localização: ${name}` };
 }
 
 export function prismaDetail(

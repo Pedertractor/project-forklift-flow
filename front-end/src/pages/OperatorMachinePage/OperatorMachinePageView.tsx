@@ -24,15 +24,10 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     operatorSupplyQuery,
     tasksQuery,
     openOperatorSupply,
-    pickupPhase,
-    deliveryPhase,
     deliveryTasks,
     pickupTasks,
     canPickup,
     canOpenRequestDialog,
-    operationTimelineMode,
-    timelineDelivery,
-    timelinePickup,
     pickupBlockedMessage,
     submitServiceRequest,
     serviceRequestSubmitPending,
@@ -141,16 +136,9 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
           <>
             <OperatorMachineOperationGrid
               openSupply={openOperatorSupply}
-              supplyLoading={operatorSupplyQuery.isLoading}
-              supplyError={operatorSupplyQuery.error ?? null}
-              operationTimelineMode={operationTimelineMode}
-              timelineDelivery={timelineDelivery}
-              timelinePickup={timelinePickup}
               canPickup={canPickup}
               canOpenRequestDialog={canOpenRequestDialog}
               pickupBlockedMessage={pickupBlockedMessage}
-              pickupPhase={pickupPhase}
-              deliveryPhase={deliveryPhase}
               serviceRequestSubmitPending={serviceRequestSubmitPending}
               busy={busy}
               apiReady={apiReady}

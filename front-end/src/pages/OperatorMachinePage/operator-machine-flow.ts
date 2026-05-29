@@ -372,7 +372,266 @@ export function supplyFlowHeadline(
   openSupply: OperatorMachineSupplyRequestListItem | null,
 ): string {
   if (openSupply?.status === 'OPEN') {
-    return 'O abastecimento foi avisado e deve registrar a entrega do próximo prisma.';
+    return 'Aguardando o abastecimento montar o próximo pallet.';
   }
   return '';
+}
+
+/** Aviso ao abastecimento (somente abastecimento). */
+export const SUPPLY_ONLY_FLOW_STEPS = [
+  { key: 'notice', title: 'Aviso ao abastecimento' },
+  { key: 'assembly', title: 'Montagem do pallet' },
+  { key: 'awaiting', title: 'Aguardando transporte' },
+  { key: 'delivery', title: 'Entrega na máquina' },
+] as const;
+
+/** Próximo prisma vinculado a retirada + abastecimento. */
+export const NEXT_PALLET_FLOW_STEPS = [
+  { key: 'supply', title: 'Aguardando abastecimento' },
+  { key: 'prepare', title: 'Preparo do pallet no recebimento' },
+  { key: 'awaiting', title: 'Aguardando transporte' },
+  { key: 'deliver', title: 'Entrega na máquina' },
+] as const;
+
+/** Retirada + abastecimento: próximo prisma (4) e depois retirada (3). */
+export const PICKUP_WITH_REPLENISHMENT_FLOW_STEPS = [
+  { key: 'supply', title: 'Aguardando abastecimento' },
+  { key: 'prepare', title: 'Preparo do pallet no recebimento' },
+  { key: 'awaiting-deliver', title: 'Aguardando transporte' },
+  { key: 'deliver', title: 'Entrega na máquina' },
+  { key: 'awaiting-pickup', title: 'Aguardando retirada' },
+  { key: 'removing', title: 'Retirada em curso' },
+  { key: 'done', title: 'Entregue na expedição' },
+] as const;
+
+type ReplenishmentDeliveryStatuses = [
+  FlowStepStatus,
+  FlowStepStatus,
+  FlowStepStatus,
+  FlowStepStatus,
+];
+
+/** Abastecimento → preparo → aguardando transporte → entrega na máquina. */
+function replenishmentDeliveryPhaseStatuses(
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): ReplenishmentDeliveryStatuses {
+  if (openSupply?.status === 'OPEN' && !delivery) {
+    return ['active', 'pending', 'pending', 'pending'];
+  }
+  if (!delivery) return ['active', 'pending', 'pending', 'pending'];
+  if (delivery.status === 'COMPLETED') return ['done', 'done', 'done', 'done'];
+  if (delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS') {
+    return ['done', 'done', 'done', 'active'];
+  }
+  if (delivery.preparedAt && delivery.status === 'CREATED') {
+    return ['done', 'done', 'active', 'pending'];
+  }
+  if (delivery.acceptedBySupply) return ['done', 'active', 'pending', 'pending'];
+  return ['active', 'pending', 'pending', 'pending'];
+}
+
+function supplyOnlyPhaseStatuses(
+  supply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): FlowStepStatus[] {
+  if (!supply || supply.status !== 'OPEN') {
+    if (!delivery) return ['pending', 'pending', 'pending', 'pending'];
+    const [, prepare, awaiting, deliver] = replenishmentDeliveryPhaseStatuses(
+      null,
+      delivery,
+    );
+    return ['done', prepare, awaiting, deliver];
+  }
+  if (!delivery) return ['done', 'active', 'pending', 'pending'];
+  const [, prepare, awaiting, deliver] = replenishmentDeliveryPhaseStatuses(
+    supply,
+    delivery,
+  );
+  return ['done', prepare, awaiting, deliver];
+}
+
+function nextPalletPhaseStatuses(
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): ReplenishmentDeliveryStatuses {
+  return replenishmentDeliveryPhaseStatuses(openSupply, delivery);
+}
+
+function isNextPalletDeliveredToMachine(
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): boolean {
+  if (delivery?.status === 'COMPLETED') return true;
+  if (openSupply?.status === 'OPEN') return false;
+  if (delivery) return false;
+  return openSupply == null;
+}
+
+function pickupPhaseStatuses(
+  pickup: PickupTaskListItem,
+  nextPalletDelivered: boolean,
+): [FlowStepStatus, FlowStepStatus, FlowStepStatus] {
+  if (!nextPalletDelivered) return ['pending', 'pending', 'pending'];
+  if (pickup.status === 'COMPLETED') return ['done', 'done', 'done'];
+  if (pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS') {
+    return ['done', 'active', 'pending'];
+  }
+  return ['active', 'pending', 'pending'];
+}
+
+export function pickupWithReplenishmentFlowStepStatuses(
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+  pickup: PickupTaskListItem,
+): FlowStepStatus[] {
+  const deliveryPhase = nextPalletPhaseStatuses(openSupply, delivery);
+  const nextPalletDelivered = isNextPalletDeliveredToMachine(openSupply, delivery);
+  const pickupPhase = pickupPhaseStatuses(pickup, nextPalletDelivered);
+  return [...deliveryPhase, ...pickupPhase];
+}
+
+export function pickupWithReplenishmentFlowHeadline(
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+  pickup: PickupTaskListItem,
+): string {
+  const statuses = pickupWithReplenishmentFlowStepStatuses(
+    openSupply,
+    delivery,
+    pickup,
+  );
+  const activeIdx = statuses.findIndex((s) => s === 'active');
+  if (activeIdx < 0) {
+    if (statuses.every((s) => s === 'done')) {
+      return 'Pallet entregue na expedição.';
+    }
+    return 'Acompanhe o fluxo de retirada com reposição do prisma.';
+  }
+
+  const messages = [
+    'Aguardando o abastecimento montar o próximo pallet.',
+    'O abastecimento registrou a entrega — pallet em preparo no recebimento.',
+    'Pallet pronto — aguardando o transporte buscar no recebimento.',
+    'O transporte está levando o próximo pallet até a máquina.',
+    'Pallet na máquina — aguardando um empilhadeirista aceitar a retirada.',
+    'O transporte aceitou — retirada em curso até a expedição.',
+    'Pallet entregue na expedição.',
+  ];
+  return messages[activeIdx] ?? messages[0];
+}
+
+export function findReplenishmentDeliveryForPickup(
+  deliveryTasks: DeliveryTaskListItem[],
+  machineId: string,
+  pickupCreatedAt: string,
+): DeliveryTaskListItem | null {
+  const open = findOpenReplenishmentDelivery(deliveryTasks, machineId);
+  if (open) return open;
+
+  const pickupTime = new Date(pickupCreatedAt).getTime();
+  const completed = deliveryTasks
+    .filter(
+      (d) =>
+        d.machineId === machineId &&
+        d.status === 'COMPLETED' &&
+        new Date(d.createdAt).getTime() >= pickupTime - 60_000,
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.completedAt ?? b.createdAt).getTime() -
+        new Date(a.completedAt ?? a.createdAt).getTime(),
+    );
+
+  return completed[0] ?? null;
+}
+
+export function supplyOnlyFlowStepStatuses(
+  supply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): FlowStepStatus[] {
+  return supplyOnlyPhaseStatuses(supply, delivery);
+}
+
+export function supplyOnlyFlowHeadline(
+  supply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): string {
+  if (supply?.status === 'OPEN' && !delivery) {
+    return 'Aguardando o abastecimento montar o próximo pallet.';
+  }
+  if (!delivery) {
+    return 'Acompanhe o aviso ao abastecimento para a próxima entrega.';
+  }
+  if (delivery.status === 'COMPLETED') {
+    return 'Próximo pallet entregue na máquina.';
+  }
+  if (delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS') {
+    return 'O transporte está levando o próximo pallet até a máquina.';
+  }
+  if (!delivery.preparedAt) {
+    return 'O abastecimento registrou a entrega — pallet em preparo no recebimento.';
+  }
+  return 'Pallet pronto — aguardando o transporte buscar no recebimento.';
+}
+
+export function nextPalletFlowStepStatuses(
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): FlowStepStatus[] {
+  return [...replenishmentDeliveryPhaseStatuses(openSupply, delivery)];
+}
+
+export function nextPalletFlowHeadline(
+  openSupply: OperatorMachineSupplyRequestListItem | null,
+  delivery: DeliveryTaskListItem | null,
+): string {
+  if (openSupply?.status === 'OPEN' && !delivery) {
+    return 'Próximo prisma: aguardando o abastecimento montar o pallet.';
+  }
+  if (!delivery) {
+    return 'Próximo prisma: aguardando registro do abastecimento.';
+  }
+  if (delivery.status === 'COMPLETED') {
+    return 'Próximo prisma atendido — entrega na máquina concluída.';
+  }
+  if (delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS') {
+    return 'Próximo prisma a caminho — transporte indo à máquina.';
+  }
+  if (!delivery.preparedAt) {
+    return 'Próximo prisma em preparo no recebimento.';
+  }
+  return 'Próximo prisma pronto — aguardando o transporte.';
+}
+
+export function findOpenSupplyForMachine(
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+  machineId: string,
+): OperatorMachineSupplyRequestListItem | null {
+  return (
+    supplyRequests.find(
+      (s) => s.status === 'OPEN' && s.machineId === machineId,
+    ) ?? null
+  );
+}
+
+export function findOpenReplenishmentDelivery(
+  deliveryTasks: DeliveryTaskListItem[],
+  machineId: string,
+): DeliveryTaskListItem | null {
+  const open = deliveryTasks.filter(
+    (d) => d.machineId === machineId && OPEN_STATUSES.has(d.status),
+  );
+  if (!open.length) return null;
+  return open.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )[0];
+}
+
+export function hasOpenPickupWithReplenishment(
+  pickupTasks: PickupTaskListItem[],
+): boolean {
+  return pickupTasks.some(
+    (p) => p.triggersReplenishment && OPEN_STATUSES.has(p.status),
+  );
 }

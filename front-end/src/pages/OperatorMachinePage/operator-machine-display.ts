@@ -4,6 +4,13 @@ import type {
   PickupTaskListItem,
 } from '@/types/machine-task.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
+import {
+  findOpenReplenishmentDelivery,
+  findOpenSupplyForMachine,
+  hasOpenPickupWithReplenishment,
+  nextPalletFlowHeadline,
+  supplyFlowHeadline,
+} from './operator-machine-flow';
 import { taskStatusLabelPt } from '@/utils/operator-moviment-labels';
 import { formatTaskDate } from '@/utils/operator-moviment-display';
 
@@ -40,6 +47,19 @@ export function machinePickupStatusLabel(task: PickupTaskListItem): string {
   return PICKUP_STATUS_AWAITING;
 }
 
+export function machineSupplyStatusLabel(
+  supply: OperatorMachineSupplyRequestListItem,
+  delivery: DeliveryTaskListItem | null,
+): string {
+  if (supply.status === 'OPEN' && !delivery) {
+    return 'Aguardando abastecimento montar o pallet';
+  }
+  if (delivery) {
+    return machineDeliveryStatusLabel(delivery);
+  }
+  return supplyFlowHeadline(supply) || 'Aguardando abastecimento';
+}
+
 export function machineTaskStatusBadge(status: MachineTaskStatusValue): string {
   return taskStatusLabelPt(status);
 }
@@ -58,6 +78,7 @@ export type OperatorMachineTaskListRow =
   | {
       kind: 'PICKUP';
       id: string;
+      machineId: string;
       createdAt: string;
       title: string;
       subtitle: string;
@@ -65,10 +86,12 @@ export type OperatorMachineTaskListRow =
       isCritical: boolean;
       triggersReplenishment: boolean;
       canCancel: boolean;
+      linkedSupplyRequestId: string | null;
     }
   | {
       kind: 'SUPPLY';
       id: string;
+      machineId: string;
       createdAt: string;
       title: string;
       subtitle: string;
@@ -82,15 +105,32 @@ const TERMINAL_MACHINE_TASK_STATUSES = new Set<MachineTaskStatusValue>([
   'CANCELED',
 ]);
 
+function shouldHideReplenishmentDeliveryRow(
+  delivery: DeliveryTaskListItem,
+  pickupTasks: PickupTaskListItem[],
+): boolean {
+  if (!hasOpenPickupWithReplenishment(pickupTasks)) return false;
+  return pickupTasks.some(
+    (p) =>
+      p.triggersReplenishment &&
+      !TERMINAL_MACHINE_TASK_STATUSES.has(p.status) &&
+      p.machineId === delivery.machineId,
+  );
+}
+
 export function buildOperatorMachineTaskRows(
   deliveryTasks: DeliveryTaskListItem[],
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[],
 ): OperatorMachineTaskListRow[] {
   const rows: OperatorMachineTaskListRow[] = [];
+  const hideSupplyForReplenishmentPickup = hasOpenPickupWithReplenishment(
+    pickupTasks,
+  );
 
   for (const t of deliveryTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
+    if (shouldHideReplenishmentDeliveryRow(t, pickupTasks)) continue;
     rows.push({
       kind: 'DELIVERY',
       id: t.id,
@@ -104,9 +144,22 @@ export function buildOperatorMachineTaskRows(
 
   for (const t of pickupTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
+    const linkedSupply = t.triggersReplenishment
+      ? findOpenSupplyForMachine(supplyRequests, t.machineId)
+      : null;
+    const replenishmentDelivery = t.triggersReplenishment
+      ? findOpenReplenishmentDelivery(deliveryTasks, t.machineId)
+      : null;
+
+    let statusLabel = machinePickupStatusLabel(t);
+    if (t.triggersReplenishment) {
+      statusLabel = `${statusLabel} · ${nextPalletFlowHeadline(linkedSupply, replenishmentDelivery)}`;
+    }
+
     rows.push({
       kind: 'PICKUP',
       id: t.id,
+      machineId: t.machineId,
       createdAt: t.createdAt,
       title: t.triggersReplenishment
         ? 'Retirada + aviso de abastecimento'
@@ -114,29 +167,28 @@ export function buildOperatorMachineTaskRows(
       subtitle: t.triggersReplenishment
         ? 'Aviso ao abastecimento para próxima entrega'
         : '',
-      statusLabel: machinePickupStatusLabel(t),
+      statusLabel,
       isCritical: t.isCritical,
       triggersReplenishment: t.triggersReplenishment,
       canCancel: t.status === 'CREATED',
+      linkedSupplyRequestId: linkedSupply?.id ?? null,
     });
   }
 
   for (const s of supplyRequests) {
     if (s.status !== 'OPEN') continue;
-    const statusLabel =
-      s.status === 'OPEN'
-        ? 'Aguardando abastecimento registrar entrega'
-        : s.status === 'FULFILLED'
-          ? 'Atendida — entrega registrada'
-          : 'Cancelada';
-    const cube = s.fulfilledByReplenishmentRequest?.movementCube;
+    if (hideSupplyForReplenishmentPickup) continue;
+    const delivery = findOpenReplenishmentDelivery(deliveryTasks, s.machineId);
+    const cube =
+      delivery?.movementCube ?? s.deliveryTask?.movementCube ?? null;
     rows.push({
       kind: 'SUPPLY',
       id: s.id,
+      machineId: s.machineId,
       createdAt: s.createdAt,
       title: 'Aviso ao abastecimento',
       subtitle: cube ? `Prisma ${cube}` : 'Solicitação de próximo prisma',
-      statusLabel,
+      statusLabel: machineSupplyStatusLabel(s, delivery),
       isCritical: false,
     });
   }

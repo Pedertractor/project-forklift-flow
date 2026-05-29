@@ -1,16 +1,40 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { cn } from '@/lib/utils';
+import type { TypeMovimentPalletValue } from '@/types/machine-task.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
+import {
+  movimentTypePublicIconPath,
+  replenishmentMovimentTypeLabel,
+} from '@/utils/operator-moviment-display';
 import { canRequestSupply } from './operator-machine-flow';
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, ChevronLeft } from 'lucide-react';
 
 export type OperatorServiceSelection = {
   pickup: boolean;
   supply: boolean;
   /** Quando `pickup` é true: prioridade máxima na fila do transporte. */
   pickupIsCritical?: boolean;
+  /** Obrigatório quando `pickup` é true. */
+  typeMovimentPallet?: TypeMovimentPalletValue;
 };
+
+const MOVEMENT_OPTIONS: {
+  value: ReplenishmentMovimentType;
+  description: string;
+}[] = [
+  {
+    value: 'FORKLIFT',
+    description: 'Somente empilhadeira atende esta retirada.',
+  },
+  {
+    value: 'ANY',
+    description:
+      'Empilhadeirista ou transpaleteirista pode aceitar na fila de transporte.',
+  },
+];
 
 const serviceCardBase =
   'flex w-full flex-col gap-2 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-55';
@@ -38,20 +62,25 @@ export function OperatorMachineOpenRequestDialog({
   submitPending,
   onSubmit,
 }: OperatorMachineOpenRequestDialogProps) {
+  const [step, setStep] = useState<1 | 2>(1);
   const [pickup, setPickup] = useState(false);
   const [pickupIsCritical, setPickupIsCritical] = useState(false);
   const [supply, setSupply] = useState(false);
   const [combinedSelected, setCombinedSelected] = useState(false);
+  const [typeMovimentPallet, setTypeMovimentPallet] =
+    useState<TypeMovimentPalletValue>('FORKLIFT');
 
   const supplyAvailable = canRequestSupply(openSupply);
   const supplyAlreadyOpen = openSupply?.status === 'OPEN';
 
   useEffect(() => {
     if (!open) {
+      setStep(1);
       setPickup(false);
       setPickupIsCritical(false);
       setSupply(false);
       setCombinedSelected(false);
+      setTypeMovimentPallet('FORKLIFT');
     }
   }, [open]);
 
@@ -103,33 +132,134 @@ export function OperatorMachineOpenRequestDialog({
     });
   }
 
+  const pickupSelected = pickup && canPickup;
+
+  const buildSelection = (): OperatorServiceSelection => ({
+    pickup: pickupSelected,
+    supply: (supply && supplyAvailable) || supplyAlreadyOpen,
+    pickupIsCritical: pickupSelected && pickupIsCritical,
+    typeMovimentPallet: pickupSelected ? typeMovimentPallet : undefined,
+  });
+
   const handlePrimary = async () => {
     if (!canConfirm) return;
-    await onSubmit({
-      pickup: pickup && canPickup,
-      supply: (supply && supplyAvailable) || supplyAlreadyOpen,
-      pickupIsCritical: pickup && canPickup && pickupIsCritical,
-    });
+    if (pickupSelected && step === 1) {
+      setStep(2);
+      return;
+    }
+    await onSubmit(buildSelection());
   };
 
   const pickupOnlySelected = pickup && !combinedSelected;
   const supplyOnlySelected = supply && supplyAvailable && !combinedSelected;
 
+  const modalTitle =
+    step === 1 ? 'Abrir solicitação' : 'Tipo de retirada';
+  const modalDescription =
+    step === 1
+      ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
+      : 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.';
+
   return (
     <SimpleModal
       open={open}
       onClose={onClose}
-      title="Abrir solicitação"
-      description="Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo."
+      title={modalTitle}
+      description={modalDescription}
       footer={
-        <ModalActions
-          onCancel={onClose}
-          submitLabel={submitPending ? 'Enviando…' : 'Confirmar'}
-          onSubmit={handlePrimary}
-          disabled={submitPending || !canConfirm}
-        />
+        step === 1 ? (
+          <ModalActions
+            onCancel={onClose}
+            submitLabel={
+              submitPending
+                ? 'Enviando…'
+                : pickupSelected
+                  ? 'Continuar'
+                  : 'Confirmar'
+            }
+            onSubmit={handlePrimary}
+            disabled={submitPending || !canConfirm}
+          />
+        ) : (
+          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              className="sm:min-w-[7rem]"
+              disabled={submitPending}
+              onClick={() => setStep(1)}
+            >
+              <ChevronLeft className="size-4 shrink-0" aria-hidden />
+              Voltar
+            </Button>
+            <ModalActions
+              onCancel={onClose}
+              submitLabel={submitPending ? 'Enviando…' : 'Confirmar'}
+              onSubmit={handlePrimary}
+              disabled={submitPending}
+            />
+          </div>
+        )
       }
     >
+      {step === 2 ? (
+        <ul
+          className="m-0 grid list-none gap-3 p-0"
+          role="listbox"
+          aria-label="Tipo de movimentação"
+        >
+          {MOVEMENT_OPTIONS.map((opt) => {
+            const selected = typeMovimentPallet === opt.value;
+            return (
+              <li key={opt.value}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={cn(
+                    serviceCardBase,
+                    'sm:flex-row sm:items-center',
+                    selected ? serviceCardSelected : serviceCardIdle,
+                  )}
+                  onClick={() => setTypeMovimentPallet(opt.value)}
+                  disabled={submitPending}
+                >
+                  <div className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-50 px-4 py-3 sm:w-36">
+                    {opt.value === 'ANY' ? (
+                      <>
+                        <img
+                          src={movimentTypePublicIconPath('FORKLIFT')}
+                          alt=""
+                          className="h-10 w-auto max-w-[3.5rem] object-contain"
+                        />
+                        <img
+                          src={movimentTypePublicIconPath('PALLET_TRUCK')}
+                          alt=""
+                          className="h-10 w-auto max-w-[3.5rem] object-contain opacity-90"
+                        />
+                      </>
+                    ) : (
+                      <img
+                        src={movimentTypePublicIconPath(opt.value)}
+                        alt=""
+                        className="h-14 w-auto max-w-[5rem] object-contain"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="m-0 font-semibold text-zinc-900">
+                      {replenishmentMovimentTypeLabel(opt.value)}
+                    </p>
+                    <p className="mt-1 text-sm leading-snug text-zinc-600">
+                      {opt.description}
+                    </p>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
       <div className="flex flex-col gap-4">
         <ServiceOptionCard
           selected={combinedSelected}
@@ -204,6 +334,7 @@ export function OperatorMachineOpenRequestDialog({
           />
         </div>
       </div>
+      )}
     </SimpleModal>
   );
 }

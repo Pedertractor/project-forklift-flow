@@ -3,10 +3,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OPERATOR_MOVIMENT_EQUIPMENT_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
-import { isQueryCancellationError } from '@/lib/query-errors';
 import {
   completeOperatorTaskAccept,
-  navigateToMyTasksAfterAccept,
 } from '@/lib/operator-moviment-after-accept';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
@@ -36,20 +34,10 @@ export function useOperatorMovimentQueuePage() {
   const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
 
   const afterAcceptSuccess = useCallback(
-    async (successMessage: string) => {
+    (successMessage: string) => {
       setIsEnteringTaskFlow(true);
-      try {
-        await completeOperatorTaskAccept(queryClient, navigate);
-        toast.success(successMessage);
-      } catch (error) {
-        if (!isQueryCancellationError(error)) {
-          throw error;
-        }
-        toast.success(successMessage);
-        navigateToMyTasksAfterAccept(navigate);
-      } finally {
-        setIsEnteringTaskFlow(false);
-      }
+      completeOperatorTaskAccept(queryClient, navigate);
+      toast.success(successMessage);
     },
     [navigate, queryClient],
   );

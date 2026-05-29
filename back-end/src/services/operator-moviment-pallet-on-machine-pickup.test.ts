@@ -48,6 +48,18 @@ test('tela principal vazia: promove uma avulsa nao critica (mais antiga)', () =>
   assert.equal(oldest.id, 'p1')
 })
 
+test('retirada com reposicao nao entra como avulsa na fila do empilhadeirista', () => {
+  const pickups = [
+    { id: 'p-rep', triggersReplenishment: true, isCritical: false },
+    { id: 'p-only', triggersReplenishment: false, isCritical: false },
+  ]
+  const standalone = pickups.filter((p) => !p.triggersReplenishment)
+  assert.deepEqual(
+    standalone.map((p) => p.id),
+    ['p-only'],
+  )
+})
+
 test('pickup-only queue: mesmo pickup id nao deve aparecer duas vezes na lista', () => {
   const ids = ['pickup-a', 'pickup-a', 'pickup-b']
   const seen = new Set<string>()
