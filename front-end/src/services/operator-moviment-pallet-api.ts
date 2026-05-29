@@ -89,7 +89,10 @@ function mapDeliveryToTaskItem(task: DeliveryTaskApiRow): OperatorPickupTaskQueu
     statusSince: task.statusSince,
     triggersReplenishment: false,
     requestedById: task.requestedById,
-    assignedMovimentPalletId: task.assignedMovimentPalletId,
+    assignedOperatorId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
+    assignedMovimentPalletId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     completedAt: task.completedAt,
@@ -121,7 +124,10 @@ function mapPickupTaskToQueueItem(task: PickupTaskApiRow): OperatorPickupTaskQue
     requestId: task.id,
     type: 'PICKUP_TO_EXPEDITION',
     status: task.status as OperatorPickupTaskQueueItem['status'],
-    assignedMovimentPalletId: task.assignedMovimentPalletId,
+    assignedOperatorId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
+    assignedMovimentPalletId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
     requestedById: task.requestedById,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -176,13 +182,13 @@ export async function fetchOperatorReplenishmentQueue(): Promise<OperatorRepleni
 }
 
 export async function postBindOperatorMovimentPallet(
-  movimentPalletId: string,
+  isOperating: 'FORKLIFT' | 'PALLET_TRUCK',
 ): Promise<OperatorMovimentPalletBrief> {
   const res = await apiAuthFetch<{ movimentPallet: OperatorMovimentPalletBrief }>(
     API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.MY_MOVIMENT_PALLET,
     {
       method: 'POST',
-      body: JSON.stringify({ movimentPalletId }),
+      body: JSON.stringify({ isOperating }),
     },
   );
   if (!res?.movimentPallet) {

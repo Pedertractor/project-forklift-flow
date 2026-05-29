@@ -6,6 +6,9 @@ import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.t
 /** Tipo do equipamento físico (empilhadeira / transpaleteira). */
 export type TypeMovimentPalletApi = MovimentPalletEquipmentType;
 
+/** Modo de operação do usuário (`User.isOperating` / `IsOperating` no Prisma). */
+export type IsOperatingMode = 'FORKLIFT' | 'PALLET_TRUCK';
+
 export type PriorityLevelApi = 'VERY_HIGH' | 'HIGH' | 'NORMAL';
 
 export type RequestStatusApi =
@@ -72,13 +75,17 @@ export interface OperatorPickupTaskQueueItem {
   requestId: string;
   type: ForkliftTaskTypeApi;
   status: ForkliftTaskStatusApi;
-  assignedMovimentPalletId: string | null;
+  assignedOperatorId: string | null;
+  /** @deprecated Use assignedOperatorId */
+  assignedMovimentPalletId?: string | null;
   requestedById: string;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
   request: OperatorReplenishmentRequestItem;
-  assignedMovimentPallet: OperatorMovimentPalletBrief | null;
+  assignedOperator?: OperatorRequestUserBrief | null;
+  /** @deprecated */
+  assignedMovimentPallet?: OperatorMovimentPalletBrief | null;
 }
 
 /** Alias semântico: mesma forma que tarefas em `my-tasks` / fila. */

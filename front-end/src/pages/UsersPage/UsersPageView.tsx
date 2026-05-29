@@ -16,8 +16,7 @@ const ROLE_LABELS: Record<string, string> = {
   LEADER: 'Líder',
   SUPPLY_OPERATOR: 'Operador de abastecimento',
   OPERATOR_MACHINE: 'Operador de máquina',
-  FORKLIFT_OPERATOR: 'Operador empilhadeira',
-  FOLLOW_UP_OPERATOR: 'Operador acompanhamento',
+  PALLET_TRANSPORTER: 'Transportador de pallet',
   SUPERVISOR: 'Supervisor',
   MANAGER: 'Gestor',
 };

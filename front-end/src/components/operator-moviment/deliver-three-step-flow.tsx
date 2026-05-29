@@ -35,7 +35,11 @@ export function DeliverFlowDeferBanner({ children }: { children: ReactNode }) {
   );
 }
 
-export function DeliverFlowActivitySubtitle({ children }: { children: ReactNode }) {
+export function DeliverFlowActivitySubtitle({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
       {children}
@@ -52,11 +56,8 @@ export function DeliverFlowActionFooter({
 }) {
   return (
     <DeliverFlowCardFooter>
-      <div className="grid w-full grid-cols-1 items-center md:grid-cols-[1fr_auto_1fr] md:gap-2">
-        <span className="hidden size-11 shrink-0 items-center justify-center justify-self-end rounded-lg bg-brand text-white md:flex">
-          <MapPinned className="size-5" aria-hidden />
-        </span>
-        <div className="flex min-w-0 w-full flex-col items-center gap-2 md:w-auto md:justify-self-center">
+      <div className="flex w-full items-center ">
+        <div className="flex min-w-0 w-full flex-col items-center gap-2">
           {children}
         </div>
         <div className="hidden min-h-11 items-center justify-self-start md:flex">
@@ -101,16 +102,19 @@ export interface DeliverFlowStepConfig {
   theme?: 'blue' | 'purple' | 'green';
 }
 
-/** Altura mínima da área título — alinha o topo dos cards entre colunas. */
-const STEP_TITLE_MIN_H = 'min-h-[2.75rem] sm:min-h-[3rem]';
+/** Altura fixa da área título — alinha rótulos entre colunas (até 2 linhas). */
+const STEP_TITLE_H = 'h-[3.25rem] sm:h-[3.5rem]';
 
-/** Altura mínima dos cards de detalhe (2 linhas) — mesma altura em todos os passos. */
+/** Altura mínima dos cards de detalhe — mesma altura em todos os passos. */
 const STEP_DETAILS_MIN_H = 'min-h-[5.5rem] sm:min-h-[6rem]';
+
+/** Cabeçalho da coluna (número + ícone + título) — altura fixa para alinhar entre passos. */
+const STEP_HEADER_H = 'h-[9.75rem] sm:h-[10.25rem]';
 
 function FlowStepDotConnector() {
   return (
     <div
-      className="relative flex w-10 shrink-0 items-center self-center sm:w-10"
+      className="relative flex w-10 shrink-0 items-center self-start sm:w-10 mt-11"
       aria-hidden
     >
       <div className="h-0 w-full border-t border-dashed border-zinc-400" />
@@ -120,12 +124,7 @@ function FlowStepDotConnector() {
 }
 
 function FlowStepVerticalConnector() {
-  return (
-    <div
-      className="my-1 w-px min-h-4 flex-1 bg-zinc-500"
-      aria-hidden
-    />
-  );
+  return <div className="my-1 w-px min-h-4 flex-1 bg-zinc-500" aria-hidden />;
 }
 
 function FlowStepIconRing({
@@ -168,19 +167,21 @@ function FlowStepIconRing({
 function FlowStepDetailsCard({
   items,
   className,
+  fixedHeight = true,
 }: {
   items: RouteFlowDetailItem[];
   className?: string;
+  /** No desktop horizontal, força mesma altura entre colunas. */
+  fixedHeight?: boolean;
 }) {
-  const compact = items.length <= 1;
+  const singleLine = items.length <= 1;
 
   return (
     <div
       className={cn(
-        'flex w-full flex-col overflow-hidden',
-        compact
-          ? 'mt-1.5'
-          : cn('justify-center max-md:min-h-0', STEP_DETAILS_MIN_H),
+        'flex w-full flex-col justify-center overflow-hidden',
+        fixedHeight ? STEP_DETAILS_MIN_H : 'max-md:min-h-0',
+        !fixedHeight && singleLine && 'mt-1.5',
         className,
       )}
     >
@@ -191,7 +192,7 @@ function FlowStepDetailsCard({
             key={`${item.kind}-${index}`}
             className={cn(
               'flex items-center gap-2.5 px-3.5',
-              compact ? 'py-2' : 'flex-1 py-3',
+              singleLine ? 'py-2' : 'flex-1 py-3',
               index > 0 && 'border-t border-zinc-200',
             )}
           >
@@ -208,27 +209,30 @@ function FlowStepDetailsCard({
 
 function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
   return (
-    <div className="flex w-[9rem] shrink-0 flex-col sm:w-[10.5rem]">
-      <div className="flex flex-col items-center">
-        <span className="flex size-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white">
+    <div className="flex w-[10rem] shrink-0 flex-col sm:w-[11.5rem]">
+      <div
+        className={cn(
+          'flex flex-col items-center justify-between',
+          STEP_HEADER_H,
+        )}
+      >
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white">
           {step.stepNumber}
         </span>
 
-        <div className="mt-3">
-          <FlowStepIconRing stepId={step.stepId} />
-        </div>
+        <FlowStepIconRing stepId={step.stepId} />
 
         <p
           className={cn(
-            'mt-3 flex w-full items-end justify-center px-1 text-center text-xs font-bold leading-snug text-zinc-900 sm:text-sm',
-            STEP_TITLE_MIN_H,
+            'flex w-full shrink-0 items-center justify-center px-1 text-center text-xs font-bold leading-snug text-zinc-900 sm:text-sm',
+            STEP_TITLE_H,
           )}
         >
           {step.label}
         </p>
       </div>
 
-      <FlowStepDetailsCard items={step.details} />
+      <FlowStepDetailsCard items={step.details} className="mt-0" />
     </div>
   );
 }
@@ -259,7 +263,7 @@ function FlowStepVerticalRow({
             <p className="text-sm font-bold leading-snug text-zinc-900">
               {step.label}
             </p>
-            <FlowStepDetailsCard items={step.details} />
+            <FlowStepDetailsCard items={step.details} fixedHeight={false} />
           </div>
         </div>
       </div>
@@ -293,9 +297,9 @@ function DeliverThreeStepFlowHorizontal({
 }) {
   return (
     <div className="w-full min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch]">
-      <div className="flex min-w-max items-stretch justify-center gap-6 px-2 sm:gap-10">
+      <div className="flex min-w-max items-start justify-center gap-6 px-2 sm:gap-10">
         {steps.map((step, index) => (
-          <div key={step.stepNumber} className="flex items-stretch">
+          <div key={step.stepNumber} className="flex items-start">
             <FlowStepColumn step={step} />
             {index < steps.length - 1 ? <FlowStepDotConnector /> : null}
           </div>

@@ -22,8 +22,7 @@ function roleMenuLabel(role: string | undefined): string {
   }
   const map: Record<string, string> = {
     OPERATOR_MACHINE: 'Operador de máquina',
-    FORKLIFT_OPERATOR: 'Operador de empilhadeira',
-    FOLLOW_UP_OPERATOR: 'Operador de transpaleteira',
+    PALLET_TRANSPORTER: 'Transportador de pallet',
     SUPPLY_OPERATOR: 'Abastecimento',
     LEADER: 'Líder',
     SUPERVISOR: 'Supervisor',

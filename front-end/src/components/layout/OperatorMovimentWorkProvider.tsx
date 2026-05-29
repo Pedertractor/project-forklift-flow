@@ -35,8 +35,8 @@ import {
   type AppRole,
 } from '@/types/role.types';
 import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types';
-import { countOpenMovimentTasksForPallet } from '@/utils/operator-moviment-work';
-import { replenishmentMovimentTypesForRole } from '@/utils/operator-moviment-role';
+import { countOpenMovimentTasksForOperator } from '@/utils/operator-moviment-work';
+import { replenishmentMovimentTypesForOperatingMode } from '@/utils/operator-moviment-role';
 
 function isMovimentOperatorRole(role: string | undefined): boolean {
   return (
@@ -112,8 +112,8 @@ export function OperatorMovimentWorkProvider({
       (isMovimentOperator || isMachineOperator || isMachineCadastro),
   );
   const allowedMovimentTypes = useMemo(
-    () => replenishmentMovimentTypesForRole(user?.role),
-    [user?.role],
+    () => replenishmentMovimentTypesForOperatingMode(user?.isOperating),
+    [user?.isOperating],
   );
 
   const myPalletQuery = useQuery({
@@ -128,19 +128,15 @@ export function OperatorMovimentWorkProvider({
     enabled:
       realtimeEnabled &&
       isMovimentOperator &&
-      myPalletQuery.isSuccess &&
-      myPalletQuery.data !== null,
+      Boolean(user?.isOperating ?? myPalletQuery.data),
     refetchInterval: realtimeEnabled && isMovimentOperator ? 45_000 : false,
     refetchOnWindowFocus: true,
   });
 
   const incompleteTaskCount = useMemo(
     () =>
-      countOpenMovimentTasksForPallet(
-        myTasksQuery.data ?? [],
-        myPalletQuery.data?.id,
-      ),
-    [myTasksQuery.data, myPalletQuery.data?.id],
+      countOpenMovimentTasksForOperator(myTasksQuery.data ?? [], user?.id),
+    [myTasksQuery.data, user?.id],
   );
 
   const refreshRealtimeData = useCallback(async () => {

@@ -3,8 +3,7 @@
  */
 export const APP_ROLES = [
   'OPERATOR_MACHINE',
-  'FORKLIFT_OPERATOR',
-  'FOLLOW_UP_OPERATOR',
+  'PALLET_TRANSPORTER',
   'SUPPLY_OPERATOR',
   'LEADER',
   'SUPERVISOR',
@@ -28,8 +27,7 @@ export const MACHINE_DOMAIN_ROLES: readonly AppRole[] = [
 /** Papéis que um líder pode criar (`POST /api/users` + mesmo setor do líder). */
 export const LEADER_CREATABLE_ROLES: readonly AppRole[] = [
   'OPERATOR_MACHINE',
-  'FORKLIFT_OPERATOR',
-  'FOLLOW_UP_OPERATOR',
+  'PALLET_TRANSPORTER',
   'SUPPLY_OPERATOR',
 ];
 
@@ -41,12 +39,11 @@ export const OPERATOR_MACHINE_ROLES: readonly AppRole[] = [
 ];
 
 /**
- * Empilhadeirista e transpaleteira (fluxo moviment-pallet).
- * ADMIN incluído para testes e suporte (espelho de `requireForkliftOrFollowUpOperatorRole` na API).
+ * Transportador de pallet (empilhadeira ou transpaleteira via `isOperating`).
+ * ADMIN incluído para testes e suporte.
  */
 export const MOVIMENT_OPERATOR_ROLES: readonly AppRole[] = [
-  'FORKLIFT_OPERATOR',
-  'FOLLOW_UP_OPERATOR',
+  'PALLET_TRANSPORTER',
   'ADMIN',
 ];
 

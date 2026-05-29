@@ -299,10 +299,21 @@ export class MovimentPalletTypeNotAllowedForRoleError extends Error {
 
 export class OperatorWithoutBoundMovimentPalletError extends Error {
   constructor(
-    message = "Nenhum equipamento de movimentacao vinculado; selecione um antes.",
+    message = "Selecione se esta operando empilhadeira ou transpaleteira antes de continuar.",
   ) {
     super(message);
     this.name = "OperatorWithoutBoundMovimentPalletError";
+  }
+}
+
+/** @deprecated Alias — use OperatorWithoutBoundMovimentPalletError */
+export const OperatorWithoutOperatingModeError =
+  OperatorWithoutBoundMovimentPalletError;
+
+export class InvalidOperatingModeError extends Error {
+  constructor(message = "Modo de operacao invalido.") {
+    super(message);
+    this.name = "InvalidOperatingModeError";
   }
 }
 

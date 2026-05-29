@@ -1,10 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import {
-  ADMIN_OR_LEADER_ROLES,
-  MACHINE_DOMAIN_ROLES,
-  type AppRole,
-} from '@/types/role.types';
+import { MACHINE_DOMAIN_ROLES } from '@/types/role.types';
 import type { HomePageViewModel } from './useHomePage';
 
 function isMachineDomainRole(role: string | undefined): boolean {
@@ -19,8 +15,6 @@ export function HomePageView({
   envApiUrl,
 }: HomePageViewModel) {
   const showSupplyModule = isMachineDomainRole(user?.role);
-  const showMovimentPalletCadastro =
-    user?.role != null && ADMIN_OR_LEADER_ROLES.includes(user.role as AppRole);
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-5xl">
@@ -121,14 +115,6 @@ export function HomePageView({
               >
                 Solicitações
               </Link>
-              {showMovimentPalletCadastro ? (
-                <Link
-                  to="/abastecimento/equipamentos"
-                  className="inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25"
-                >
-                  Equipamentos
-                </Link>
-              ) : null}
             </div>
           </Card>
         ) : null}

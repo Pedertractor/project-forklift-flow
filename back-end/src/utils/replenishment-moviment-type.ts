@@ -1,45 +1,38 @@
-import {
-  MovimentPalletEquipmentType,
-  TypeMovimentPallet,
-} from "../generated/prisma/enums.js";
+import { IsOperating, TypeMovimentPallet } from '../generated/prisma/enums.js'
 
-export type EquipmentMovimentType = MovimentPalletEquipmentType;
+export type OperatingMode = IsOperating
 
-export function assertEquipmentMovimentType(
-  type: MovimentPalletEquipmentType,
-): EquipmentMovimentType {
-  return type;
+export function assertOperatingMode(mode: IsOperating): OperatingMode {
+  return mode
 }
 
-export function requestTypeMatchesEquipment(
+export function requestTypeMatchesOperatingMode(
   requestType: TypeMovimentPallet,
-  equipmentType: EquipmentMovimentType,
+  mode: IsOperating,
 ): boolean {
   if (requestType === TypeMovimentPallet.ANY) {
-    return true;
+    return true
   }
   return (
     requestType === TypeMovimentPallet.FORKLIFT &&
-    equipmentType === MovimentPalletEquipmentType.FORKLIFT
-  );
+    mode === IsOperating.FORKLIFT
+  )
 }
 
-/** Tipos de solicitação que o equipamento pode aceitar na fila aberta. */
-export function openPoolTypesForEquipment(
-  equipmentType: EquipmentMovimentType,
+export function openPoolTypesForOperatingMode(
+  mode: IsOperating,
 ): TypeMovimentPallet[] {
-  if (equipmentType === MovimentPalletEquipmentType.FORKLIFT) {
-    return [TypeMovimentPallet.FORKLIFT, TypeMovimentPallet.ANY];
+  if (mode === IsOperating.FORKLIFT) {
+    return [TypeMovimentPallet.FORKLIFT, TypeMovimentPallet.ANY]
   }
-  return [TypeMovimentPallet.ANY];
+  return [TypeMovimentPallet.ANY]
 }
 
-/** Ao vincular equipamento ao pedido, restringe o tipo da solicitação (só empilhadeira estreita). */
-export function requestTypeAfterEquipmentClaim(
-  equipmentType: EquipmentMovimentType,
+export function requestTypeAfterOperatingModeClaim(
+  mode: IsOperating,
 ): { typeMovimentPallet?: TypeMovimentPallet } {
-  if (equipmentType === MovimentPalletEquipmentType.FORKLIFT) {
-    return { typeMovimentPallet: TypeMovimentPallet.FORKLIFT };
+  if (mode === IsOperating.FORKLIFT) {
+    return { typeMovimentPallet: TypeMovimentPallet.FORKLIFT }
   }
-  return {};
+  return {}
 }

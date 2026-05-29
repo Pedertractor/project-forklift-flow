@@ -1,15 +1,11 @@
 import type { Prisma } from '../generated/prisma/client.js'
-// Prisma used for WhereInput in countIncompleteAssignedToPallet
 import {
+  IsOperating,
   MachineTaskStatus,
-  TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 import { openMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
-import {
-  openPoolTypesForEquipment,
-  type EquipmentMovimentType,
-} from '../utils/replenishment-moviment-type.js'
+import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-type.js'
 import { deliveryTaskListInclude } from './delivery-task.repository.js'
 
 const machineBriefInclude = {
@@ -34,8 +30,8 @@ export const pickupTaskListInclude = {
       role: true,
     },
   },
-  assignedMovimentPallet: {
-    select: { id: true, code: true, type: true },
+  assignedOperator: {
+    select: { id: true, name: true, isOperating: true },
   },
 } as const
 
@@ -77,7 +73,6 @@ export const pickupTaskRepository = {
     })
   },
 
-  /** Retirada + abastecimento em aberto na maquina (candidata a sugestao de viagem). */
   findFirstOpenWithReplenishmentForMachine(machineId: string) {
     return prisma.pickupTask.findFirst({
       where: {
@@ -98,32 +93,35 @@ export const pickupTaskRepository = {
     })
   },
 
-  findManyOpenPickupForSectorAndMovimentType(
+  findManyOpenPickupForSectorAndOperatingMode(
     sectorId: string,
-    equipmentType: EquipmentMovimentType,
+    operatingMode: IsOperating,
   ) {
     return prisma.pickupTask.findMany({
       where: {
         machine: { sectorId },
         status: { in: openMachineTaskStatuses },
-        typeMovimentPallet: { in: openPoolTypesForEquipment(equipmentType) },
+        typeMovimentPallet: { in: openPoolTypesForOperatingMode(operatingMode) },
       },
       include: pickupTaskListInclude,
       orderBy: [{ isCritical: 'desc' }, { createdAt: 'asc' }],
     })
   },
 
-  findManyForAssignedPallet(palletId: string) {
+  findManyForAssignedOperator(operatorUserId: string) {
     return prisma.pickupTask.findMany({
-      where: { assignedMovimentPalletId: palletId },
+      where: { assignedOperatorId: operatorUserId },
       include: pickupTaskListInclude,
       orderBy: { createdAt: 'desc' },
     })
   },
 
-  countIncompleteAssignedToPallet(palletId: string, excludeIds: string[] = []) {
+  countIncompleteAssignedToOperator(
+    operatorUserId: string,
+    excludeIds: string[] = [],
+  ) {
     const where: Prisma.PickupTaskWhereInput = {
-      assignedMovimentPalletId: palletId,
+      assignedOperatorId: operatorUserId,
       status: { in: openMachineTaskStatuses },
     }
     if (excludeIds.length > 0) {
@@ -132,20 +130,19 @@ export const pickupTaskRepository = {
     return prisma.pickupTask.count({ where })
   },
 
-  /** Retirada em aberto na maquina com pedido de reposicao (sugestao de viagem). */
   findManyOpenWithReplenishmentForSector(
     sectorId: string,
-    equipmentType: EquipmentMovimentType,
+    operatingMode: IsOperating,
   ) {
     return prisma.pickupTask.findMany({
       where: {
         machine: { sectorId },
         triggersReplenishment: true,
         status: { in: openMachineTaskStatuses },
-        typeMovimentPallet: { in: openPoolTypesForEquipment(equipmentType) },
+        typeMovimentPallet: { in: openPoolTypesForOperatingMode(operatingMode) },
       },
       include: pickupTaskListInclude,
       orderBy: { createdAt: 'asc' },
-    });
+    })
   },
 }

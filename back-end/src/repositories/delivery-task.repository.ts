@@ -1,15 +1,12 @@
 import type { Prisma } from '../generated/prisma/client.js'
 import {
+  IsOperating,
   MachineTaskStatus,
-  MovimentPalletEquipmentType,
   TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 import { openMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
-import {
-  openPoolTypesForEquipment,
-  type EquipmentMovimentType,
-} from '../utils/replenishment-moviment-type.js'
+import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-type.js'
 
 const machineBriefInclude = {
   id: true,
@@ -33,8 +30,8 @@ export const deliveryTaskListInclude = {
       role: true,
     },
   },
-  assignedMovimentPallet: {
-    select: { id: true, code: true, type: true },
+  assignedOperator: {
+    select: { id: true, name: true, isOperating: true },
   },
 } as const
 
@@ -80,10 +77,9 @@ export const deliveryTaskRepository = {
     })
   },
 
-  /** Fila aberta: aceito pelo supply, pallet pronto, sem equipamento atribuido. */
-  findManyOpenPoolForSectorAndMovimentType(
+  findManyOpenPoolForSectorAndOperatingMode(
     sectorId: string,
-    equipmentType: EquipmentMovimentType,
+    operatingMode: IsOperating,
   ) {
     return prisma.deliveryTask.findMany({
       where: {
@@ -91,8 +87,8 @@ export const deliveryTaskRepository = {
         status: MachineTaskStatus.CREATED,
         acceptedBySupply: true,
         preparedAt: { not: null },
-        typeMovimentPallet: { in: openPoolTypesForEquipment(equipmentType) },
-        assignedMovimentPalletId: null,
+        typeMovimentPallet: { in: openPoolTypesForOperatingMode(operatingMode) },
+        assignedOperatorId: null,
       },
       include: deliveryTaskListInclude,
       orderBy: [{ isCritical: 'desc' }, { createdAt: 'asc' }],
@@ -106,7 +102,7 @@ export const deliveryTaskRepository = {
         status: MachineTaskStatus.CREATED,
         acceptedBySupply: true,
         preparedAt: { not: null },
-        assignedMovimentPalletId: null,
+        assignedOperatorId: null,
       },
       include: deliveryTaskListInclude,
       orderBy: { createdAt: 'asc' },
@@ -123,32 +119,35 @@ export const deliveryTaskRepository = {
     })
   },
 
-  findManyOpenDeliverForSectorAndMovimentType(
+  findManyOpenDeliverForSectorAndOperatingMode(
     sectorId: string,
-    equipmentType: EquipmentMovimentType,
+    operatingMode: IsOperating,
   ) {
     return prisma.deliveryTask.findMany({
       where: {
         machine: { sectorId },
         status: { in: openMachineTaskStatuses },
-        typeMovimentPallet: { in: openPoolTypesForEquipment(equipmentType) },
+        typeMovimentPallet: { in: openPoolTypesForOperatingMode(operatingMode) },
       },
       include: deliveryTaskListInclude,
       orderBy: [{ isCritical: 'desc' }, { createdAt: 'asc' }],
     })
   },
 
-  findManyForAssignedPallet(palletId: string) {
+  findManyForAssignedOperator(operatorUserId: string) {
     return prisma.deliveryTask.findMany({
-      where: { assignedMovimentPalletId: palletId },
+      where: { assignedOperatorId: operatorUserId },
       include: deliveryTaskListInclude,
       orderBy: { createdAt: 'desc' },
     })
   },
 
-  countIncompleteAssignedToPallet(palletId: string, excludeIds: string[] = []) {
+  countIncompleteAssignedToOperator(
+    operatorUserId: string,
+    excludeIds: string[] = [],
+  ) {
     const where: Prisma.DeliveryTaskWhereInput = {
-      assignedMovimentPalletId: palletId,
+      assignedOperatorId: operatorUserId,
       status: { in: openMachineTaskStatuses },
     }
     if (excludeIds.length > 0) {

@@ -6,6 +6,9 @@ export interface UserSectorSummary {
   typeSector: string;
 }
 
+/** Modo de operação do transportador (`IsOperating` no backend). */
+export type UserIsOperating = 'FORKLIFT' | 'PALLET_TRUCK';
+
 export interface User {
   id: string;
   name: string;
@@ -15,4 +18,5 @@ export interface User {
   role?: string;
   sectorId?: string | null;
   sector?: UserSectorSummary | null;
+  isOperating?: UserIsOperating | null;
 }

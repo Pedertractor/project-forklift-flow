@@ -115,7 +115,7 @@ export function useReplenishmentRequestsPage() {
         ...(equipmentSectorId ? { sectorId: equipmentSectorId } : {}),
         includeTaskAvailability: true,
       }),
-    enabled: apiReady,
+    enabled: false,
     refetchInterval: 15_000,
   });
 

@@ -28,7 +28,6 @@ import {
   completePickupTaskToExpedition,
   getOperatorCurrentMovimentPallet,
   getOperatorMovimentPalletActiveFlow,
-  listMovimentPalletsForOperatorPicker,
   listMyMovimentPalletTasks,
   listMovimentOperatorTransportNotifications,
   listOpenReplenishmentRequestsForMyMovimentType,
@@ -42,35 +41,29 @@ export const postBindOperatorMovimentPallet: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
-  const body = (request.body ?? {}) as { movimentPalletId?: string }
+  const body = (request.body ?? {}) as { isOperating?: string }
   if (
-    typeof body.movimentPalletId !== 'string' ||
-    body.movimentPalletId.trim() === ''
+    typeof body.isOperating !== 'string' ||
+    body.isOperating.trim() === ''
   ) {
-    return reply.status(400).send({ error: 'Informe movimentPalletId.' })
+    return reply.status(400).send({ error: 'Informe isOperating (FORKLIFT ou PALLET_TRUCK).' })
   }
   try {
     const movimentPallet = await bindOperatorToMovimentPallet(
       user.sub,
       user.role,
-      body.movimentPalletId.trim(),
+      body.isOperating.trim(),
     )
-    return reply.send({ movimentPallet })
+    return reply.send({
+      movimentPallet,
+      isOperating: movimentPallet?.type ?? null,
+    })
   } catch (error) {
     if (error instanceof OperatorWithoutSectorError) {
       return reply.status(400).send({ error: error.message })
     }
-    if (error instanceof MovimentPalletNotInOperatorSectorError) {
-      return reply.status(403).send({ error: error.message })
-    }
-    if (error instanceof MovimentPalletNotFoundError) {
-      return reply.status(404).send({ error: error.message })
-    }
     if (error instanceof MovimentPalletTypeNotAllowedForRoleError) {
       return reply.status(403).send({ error: error.message })
-    }
-    if (error instanceof MovimentPalletOccupiedByOtherOperatorError) {
-      return reply.status(409).send({ error: error.message })
     }
     throw error
   }
@@ -91,18 +84,6 @@ export const getOperatorCurrentMovimentPalletHandler: RouteHandlerMethod =
     const movimentPallet = await getOperatorCurrentMovimentPallet(user.sub)
     return reply.send({ movimentPallet })
   }
-
-export const getListMovimentPalletsForOperator: RouteHandlerMethod = async (
-  request,
-  reply,
-) => {
-  const user = request.user as AppJwtPayload
-  const movimentPallets = await listMovimentPalletsForOperatorPicker(
-    user.sub,
-    user.role,
-  )
-  return reply.send({ movimentPallets })
-}
 
 export const getMovimentOperatorNotifications: RouteHandlerMethod = async (
   request,

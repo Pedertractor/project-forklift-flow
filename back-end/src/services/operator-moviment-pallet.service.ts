@@ -1,6 +1,6 @@
 import {
+  IsOperating,
   MachineTaskStatus,
-  MovimentPalletEquipmentType,
   MovimentPalletTripSuggestionStatus,
   RoleUser,
   TypeMovimentPallet,
@@ -9,13 +9,10 @@ import {
   DeliveryTaskNotFoundError,
   MovimentPalletDeliverTaskAcceptError,
   MovimentPalletDeliverTaskCompletionError,
-  MovimentPalletNotFoundError,
-  MovimentPalletNotInOperatorSectorError,
-  MovimentPalletOccupiedByOtherOperatorError,
+  InvalidOperatingModeError,
   MovimentPalletPickupTaskAcceptError,
   MovimentPalletPickupTaskCompletionError,
   MovimentPalletTaskNotFoundError,
-  MovimentPalletTypeNotAllowedForRoleError,
   MovimentOperatorHasIncompleteTasksError,
   OperatorWithoutBoundMovimentPalletError,
   OperatorWithoutSectorError,
@@ -46,42 +43,40 @@ import {
 import { syncOpenTripSuggestionsForSector } from "./trip-suggestion-sync.service.js";
 import type { DeliveryTaskListRow } from "../repositories/delivery-task.repository.js";
 import type { PickupTaskListRow } from "../repositories/pickup-task.repository.js";
-import { movimentPalletRepository } from "../repositories/moviment-pallet.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
 import {
-  assertEquipmentMovimentType,
-  openPoolTypesForEquipment,
-  requestTypeMatchesEquipment,
-  type EquipmentMovimentType,
+  assertOperatingMode,
+  openPoolTypesForOperatingMode,
+  requestTypeMatchesOperatingMode,
 } from "../utils/replenishment-moviment-type.js";
 
-function equipmentTypesAllowedForRole(
-  role: RoleUser,
-): MovimentPalletEquipmentType[] {
-  switch (role) {
-    case RoleUser.FORKLIFT_OPERATOR:
-      return [MovimentPalletEquipmentType.FORKLIFT];
-    case RoleUser.FOLLOW_UP_OPERATOR:
-      return [MovimentPalletEquipmentType.PALLET_TRUCK];
-    case RoleUser.ADMIN:
-      return [
-        MovimentPalletEquipmentType.FORKLIFT,
-        MovimentPalletEquipmentType.PALLET_TRUCK,
-      ];
-    default:
-      return [];
+function assertPalletTransporterRole(role: RoleUser) {
+  if (role !== RoleUser.PALLET_TRANSPORTER && role !== RoleUser.ADMIN) {
+    throw new InvalidOperatingModeError(
+      "Sem permissao para operar movimentacao de pallets.",
+    );
   }
 }
 
-function poolTypesForRole(role: RoleUser): TypeMovimentPallet[] {
-  const types = equipmentTypesAllowedForRole(role);
-  const result = new Set<TypeMovimentPallet>();
-  for (const t of types) {
-    for (const p of openPoolTypesForEquipment(t)) {
-      result.add(p);
-    }
+function parseOperatingMode(value: unknown): IsOperating {
+  if (value === IsOperating.FORKLIFT || value === IsOperating.PALLET_TRUCK) {
+    return value;
   }
-  return [...result];
+  throw new InvalidOperatingModeError();
+}
+
+async function requireOperatorWithOperatingMode(operatorUserId: string) {
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
+  if (!user?.sectorId) throw new OperatorWithoutSectorError();
+  if (!user.isOperating) throw new OperatorWithoutBoundMovimentPalletError();
+  return {
+    user,
+    operatingMode: assertOperatingMode(user.isOperating),
+  };
+}
+
+function poolTypesForOperatingMode(mode: IsOperating): TypeMovimentPallet[] {
+  return openPoolTypesForOperatingMode(mode);
 }
 
 function sortByCritical<T extends { isCritical: boolean; createdAt: Date }>(
@@ -195,6 +190,7 @@ function mapStandaloneDeliverRow(
       position: machine.position,
     },
     suggestedOrder: [],
+    message: `Na maquina ${machine.name}: entrega preparada no recebimento — aceite para levar o pallet.`,
     requestId: task.id,
     deliverTask: task,
   };
@@ -202,7 +198,7 @@ function mapStandaloneDeliverRow(
 
 async function listStandaloneTripTasksForSector(
   sectorId: string,
-  role: RoleUser,
+  operatingMode: IsOperating,
   linked: LinkedOpenTripTaskIds,
 ): Promise<{
   standalonePickupTasks: StandalonePickupSuggestionRow[];
@@ -210,23 +206,21 @@ async function listStandaloneTripTasksForSector(
 }> {
   const standalonePickupTasks: StandalonePickupSuggestionRow[] = [];
   const standaloneDeliverTasks: StandaloneDeliverSuggestionRow[] = [];
-  const equipmentTypes = equipmentTypesAllowedForRole(role);
 
-  for (const equipmentType of equipmentTypes) {
-    const [deliveries, pickups] = await Promise.all([
-      deliveryTaskRepository.findManyOpenPoolForSectorAndMovimentType(
-        sectorId,
-        equipmentType,
-      ),
-      pickupTaskRepository.findManyOpenPickupForSectorAndMovimentType(
-        sectorId,
-        equipmentType,
-      ),
-    ]);
+  const [deliveries, pickups] = await Promise.all([
+    deliveryTaskRepository.findManyOpenPoolForSectorAndOperatingMode(
+      sectorId,
+      operatingMode,
+    ),
+    pickupTaskRepository.findManyOpenPickupForSectorAndOperatingMode(
+      sectorId,
+      operatingMode,
+    ),
+  ]);
 
-    for (const pickup of pickups) {
+  for (const pickup of pickups) {
       if (pickup.status !== MachineTaskStatus.CREATED) continue;
-      if (pickup.assignedMovimentPalletId) continue;
+      if (pickup.assignedOperatorId) continue;
       if (linked.pickupIds.has(pickup.id)) continue;
       // Retirada que dispara reposicao deve aparecer apenas no fluxo combinado
       // (quando houver entrega preparada para o recebimento).
@@ -242,7 +236,6 @@ async function listStandaloneTripTasksForSector(
       if (!deliver.machine) continue;
       standaloneDeliverTasks.push(mapStandaloneDeliverRow(deliver));
     }
-  }
 
   const byTaskUrgency = (
     a: { effectiveCritical: boolean; createdAt: Date },
@@ -285,7 +278,7 @@ async function listStandaloneTripTasksForSector(
 /** Quando a tela principal estaria vazia, promove uma avulsa nao critica (fila manual). */
 async function listOneNonCriticalStandaloneFallback(
   sectorId: string,
-  role: RoleUser,
+  operatingMode: IsOperating,
   linked: LinkedOpenTripTaskIds,
 ): Promise<{
   standalonePickupTasks: StandalonePickupSuggestionRow[];
@@ -295,7 +288,6 @@ async function listOneNonCriticalStandaloneFallback(
     standalonePickupTasks: [] as StandalonePickupSuggestionRow[],
     standaloneDeliverTasks: [] as StandaloneDeliverSuggestionRow[],
   };
-  const equipmentTypes = equipmentTypesAllowedForRole(role);
   const candidates: Array<
     | {
         kind: "pickup";
@@ -309,21 +301,20 @@ async function listOneNonCriticalStandaloneFallback(
       }
   > = [];
 
-  for (const equipmentType of equipmentTypes) {
-    const [deliveries, pickups] = await Promise.all([
-      deliveryTaskRepository.findManyOpenPoolForSectorAndMovimentType(
-        sectorId,
-        equipmentType,
-      ),
-      pickupTaskRepository.findManyOpenPickupForSectorAndMovimentType(
-        sectorId,
-        equipmentType,
-      ),
-    ]);
+  const [deliveries, pickups] = await Promise.all([
+    deliveryTaskRepository.findManyOpenPoolForSectorAndOperatingMode(
+      sectorId,
+      operatingMode,
+    ),
+    pickupTaskRepository.findManyOpenPickupForSectorAndOperatingMode(
+      sectorId,
+      operatingMode,
+    ),
+  ]);
 
-    for (const pickup of pickups) {
+  for (const pickup of pickups) {
       if (pickup.status !== MachineTaskStatus.CREATED) continue;
-      if (pickup.assignedMovimentPalletId) continue;
+      if (pickup.assignedOperatorId) continue;
       if (linked.pickupIds.has(pickup.id)) continue;
       if (pickup.isCritical) continue;
       if (!pickup.machine) continue;
@@ -344,7 +335,6 @@ async function listOneNonCriticalStandaloneFallback(
         row: mapStandaloneDeliverRow(deliver),
       });
     }
-  }
 
   if (candidates.length === 0) return empty;
 
@@ -361,111 +351,108 @@ async function listOneNonCriticalStandaloneFallback(
 }
 
 async function assertNoIncompleteTasks(
-  palletId: string,
+  operatorUserId: string,
   excludeIds: string[] = [],
 ) {
   const [deliverCount, pickupCount] = await Promise.all([
-    deliveryTaskRepository.countIncompleteAssignedToPallet(
-      palletId,
+    deliveryTaskRepository.countIncompleteAssignedToOperator(
+      operatorUserId,
       excludeIds,
     ),
-    pickupTaskRepository.countIncompleteAssignedToPallet(palletId, excludeIds),
+    pickupTaskRepository.countIncompleteAssignedToOperator(
+      operatorUserId,
+      excludeIds,
+    ),
   ]);
   if (deliverCount + pickupCount > 0) {
-    throw new MovimentOperatorHasIncompleteTasksError();
+    throw new MovimentOperatorHasIncompleteTasksError(
+      "Voce ja possui atividade em aberto. Conclua antes de trocar o modo de operacao.",
+    );
   }
 }
 
-export async function listMovimentPalletsForOperatorPicker(
-  operatorUserId: string,
-  role: RoleUser,
-) {
-  const types = equipmentTypesAllowedForRole(role);
-  if (types.length === 0) return [];
+export async function getOperatorOperatingMode(operatorUserId: string) {
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId) return [];
-  return movimentPalletRepository.findManyForOperatorPicker({
-    sectorId: user.sectorId,
-    types,
-  });
+  return { isOperating: user?.isOperating ?? null };
 }
 
+export async function setOperatorOperatingMode(
+  operatorUserId: string,
+  role: RoleUser,
+  isOperatingRaw: unknown,
+) {
+  assertPalletTransporterRole(role);
+  const isOperating = parseOperatingMode(isOperatingRaw);
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
+  if (!user?.sectorId) throw new OperatorWithoutSectorError();
+  await userRepository.updateOperatingMode(operatorUserId, isOperating);
+  return getOperatorCurrentMovimentPallet(operatorUserId);
+}
+
+export async function clearOperatorOperatingMode(operatorUserId: string) {
+  await assertNoIncompleteTasks(operatorUserId);
+  return userRepository.updateOperatingMode(operatorUserId, null);
+}
+
+/** Compatibilidade com clientes que ainda leem "my-moviment-pallet". */
 export async function getOperatorCurrentMovimentPallet(operatorUserId: string) {
-  return movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
+  const { isOperating } = await getOperatorOperatingMode(operatorUserId);
+  if (!isOperating) return null;
+  return {
+    id: operatorUserId,
+    code: isOperating === IsOperating.FORKLIFT ? 'EMPILHADEIRA' : 'TRANSPALETEIRA',
+    type: isOperating,
+    operatorId: operatorUserId,
+    sectorId: null,
+    operator: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export async function bindOperatorToMovimentPallet(
   operatorUserId: string,
   role: RoleUser,
-  movimentPalletId: string,
+  isOperatingRaw: unknown,
 ) {
-  const allowed = equipmentTypesAllowedForRole(role);
-  if (allowed.length === 0)
-    throw new MovimentPalletTypeNotAllowedForRoleError();
-
-  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId) throw new OperatorWithoutSectorError();
-
-  const pallet =
-    await movimentPalletRepository.findUniqueById(movimentPalletId);
-  if (!pallet) throw new MovimentPalletNotFoundError();
-  if (!pallet.sectorId || pallet.sectorId !== user.sectorId) {
-    throw new MovimentPalletNotInOperatorSectorError();
-  }
-  if (!allowed.includes(pallet.type)) {
-    throw new MovimentPalletTypeNotAllowedForRoleError();
-  }
-  if (pallet.operatorId !== null && pallet.operatorId !== operatorUserId) {
-    throw new MovimentPalletOccupiedByOtherOperatorError();
-  }
-
-  return movimentPalletRepository.assignOperatorExclusive(
-    movimentPalletId,
-    operatorUserId,
-  );
+  return setOperatorOperatingMode(operatorUserId, role, isOperatingRaw);
 }
 
-export async function unbindOperatorFromMovimentPallets(
-  operatorUserId: string,
-) {
-  await movimentPalletRepository.disconnectOperatorFromAllMovimentPallets(
-    operatorUserId,
-  );
+export async function unbindOperatorFromMovimentPallets(operatorUserId: string) {
+  return clearOperatorOperatingMode(operatorUserId);
 }
 
 export async function listOpenReplenishmentRequestsForMyMovimentType(
   operatorUserId: string,
 ) {
-  const pallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!pallet) return { deliveryTasks: [], pickupTasks: [] };
-
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId) return { deliveryTasks: [], pickupTasks: [] };
+  if (!user?.sectorId || !user.isOperating) {
+    return { deliveryTasks: [], pickupTasks: [] };
+  }
 
-  const poolTypes = openPoolTypesForEquipment(pallet.type);
+  const operatingMode = assertOperatingMode(user.isOperating);
+  const poolTypes = poolTypesForOperatingMode(operatingMode);
   await syncTripSuggestions(user.sectorId, poolTypes);
   const linked = await linkedOpenTripTaskIdsForSector(user.sectorId, poolTypes);
 
   const [deliveryTasks, pickupTasks] = await Promise.all([
-    deliveryTaskRepository.findManyOpenPoolForSectorAndMovimentType(
+    deliveryTaskRepository.findManyOpenPoolForSectorAndOperatingMode(
       user.sectorId,
-      pallet.type,
+      operatingMode,
     ),
-    pickupTaskRepository.findManyOpenPickupForSectorAndMovimentType(
+    pickupTaskRepository.findManyOpenPickupForSectorAndOperatingMode(
       user.sectorId,
-      pallet.type,
+      operatingMode,
     ),
   ]);
 
-  /** Fila manual: avulsas nao criticas e fora de sugestao combinada (criticas vao na tela principal). */
   const openDeliveryTasks = deliveryTasks.filter(
     (t) => !linked.deliverIds.has(t.id) && !t.isCritical,
   );
   const openPickupTasks = pickupTasks.filter(
     (t) =>
       t.status === MachineTaskStatus.CREATED &&
-      !t.assignedMovimentPalletId &&
+      !t.assignedOperatorId &&
       !linked.pickupIds.has(t.id) &&
       !t.isCritical,
   );
@@ -494,14 +481,15 @@ export async function listMovimentOperatorTransportNotifications(
 }
 
 async function listAssignedTasks(operatorUserId: string) {
-  const movimentPallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!movimentPallet)
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
+  if (!user?.isOperating) {
     return { movimentPallet: null, deliveryTasks: [], pickupTasks: [] };
+  }
 
+  const movimentPallet = await getOperatorCurrentMovimentPallet(operatorUserId);
   const [deliveryTasks, pickupTasks] = await Promise.all([
-    deliveryTaskRepository.findManyForAssignedPallet(movimentPallet.id),
-    pickupTaskRepository.findManyForAssignedPallet(movimentPallet.id),
+    deliveryTaskRepository.findManyForAssignedOperator(operatorUserId),
+    pickupTaskRepository.findManyForAssignedOperator(operatorUserId),
   ]);
 
   return {
@@ -555,7 +543,17 @@ export async function listTripRouteSuggestionsForOperator(
   operatorUserId: string,
   role: RoleUser,
 ) {
-  const types = poolTypesForRole(role);
+  assertPalletTransporterRole(role);
+  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
+  if (!user?.isOperating) {
+    return {
+      suggestions: [],
+      standalonePickupTasks: [],
+      standaloneDeliverTasks: [],
+      priorityContext: { hasCritical: false },
+    };
+  }
+  const types = poolTypesForOperatingMode(assertOperatingMode(user.isOperating));
   if (types.length === 0) {
     return {
       suggestions: [],
@@ -565,8 +563,7 @@ export async function listTripRouteSuggestionsForOperator(
     };
   }
 
-  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId) {
+  if (!user.sectorId) {
     return {
       suggestions: [],
       standalonePickupTasks: [],
@@ -612,7 +609,6 @@ export async function listTripRouteSuggestionsForOperator(
         status: row.status,
         acceptedAt: null,
         acceptedByUserId: null,
-        assignedMovimentPalletId: null,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       },
@@ -632,9 +628,10 @@ export async function listTripRouteSuggestionsForOperator(
       return aAt - bAt;
     });
 
+  const operatingMode = assertOperatingMode(user.isOperating!);
   const linked = linkedOpenTripTaskIdsFromRows(rows);
   let { standalonePickupTasks, standaloneDeliverTasks } =
-    await listStandaloneTripTasksForSector(user.sectorId, role, linked);
+    await listStandaloneTripTasksForSector(user.sectorId, operatingMode, linked);
 
   if (
     suggestions.length === 0 &&
@@ -643,7 +640,7 @@ export async function listTripRouteSuggestionsForOperator(
   ) {
     const fallback = await listOneNonCriticalStandaloneFallback(
       user.sectorId,
-      role,
+      operatingMode,
       linked,
     );
     standalonePickupTasks = fallback.standalonePickupTasks;
@@ -673,12 +670,9 @@ export async function acceptTripRouteSuggestion(
   role: RoleUser,
   tripSuggestionId: string,
 ) {
-  const allowed = equipmentTypesAllowedForRole(role);
-  if (allowed.length === 0)
-    throw new MovimentPalletTypeNotAllowedForRoleError();
-
-  const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId) throw new OperatorWithoutSectorError();
+  assertPalletTransporterRole(role);
+  const { user, operatingMode } =
+    await requireOperatorWithOperatingMode(operatorUserId);
 
   const full =
     await movimentPalletTripSuggestionRepository.findByIdWithTasks(
@@ -692,20 +686,16 @@ export async function acceptTripRouteSuggestion(
     throw new TripRouteSuggestionAcceptForbiddenError();
   }
 
-  const pallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!pallet) throw new OperatorWithoutBoundMovimentPalletError();
-
   if (
-    !requestTypeMatchesEquipment(
+    !requestTypeMatchesOperatingMode(
       full.deliverTask.typeMovimentPallet,
-      assertEquipmentMovimentType(pallet.type),
+      operatingMode,
     )
   ) {
     throw new ReplenishmentRequestTypeMismatchError();
   }
 
-  await assertNoIncompleteTasks(pallet.id);
+  await assertNoIncompleteTasks(operatorUserId);
 
   await prisma.$transaction(async (tx) => {
     const claimed = await tx.movimentPalletTripSuggestion.updateMany({
@@ -716,7 +706,6 @@ export async function acceptTripRouteSuggestion(
       data: {
         status: MovimentPalletTripSuggestionStatus.ACCEPTED,
         acceptedByUserId: operatorUserId,
-        assignedMovimentPalletId: pallet.id,
         acceptedAt: new Date(),
       },
     });
@@ -726,14 +715,14 @@ export async function acceptTripRouteSuggestion(
       where: { id: full.deliverTaskId, status: MachineTaskStatus.CREATED },
       data: {
         status: MachineTaskStatus.ASSIGNED,
-        assignedMovimentPalletId: pallet.id,
+        assignedOperatorId: operatorUserId,
       },
     });
     await tx.pickupTask.updateMany({
       where: { id: full.pickupTaskId, status: MachineTaskStatus.CREATED },
       data: {
         status: MachineTaskStatus.ASSIGNED,
-        assignedMovimentPalletId: pallet.id,
+        assignedOperatorId: operatorUserId,
       },
     });
   });
@@ -767,9 +756,9 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
   role: RoleUser,
   taskId: string,
 ) {
-  const pallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!pallet) throw new OperatorWithoutBoundMovimentPalletError();
+  assertPalletTransporterRole(role);
+  const { operatingMode } =
+    await requireOperatorWithOperatingMode(operatorUserId);
 
   const task = await deliveryTaskRepository.findById(taskId);
   if (!task) throw new DeliveryTaskNotFoundError();
@@ -780,10 +769,7 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
     );
   }
   if (
-    !requestTypeMatchesEquipment(
-      task.typeMovimentPallet,
-      assertEquipmentMovimentType(pallet.type),
-    )
+    !requestTypeMatchesOperatingMode(task.typeMovimentPallet, operatingMode)
   ) {
     throw new ReplenishmentRequestTypeMismatchError();
   }
@@ -791,11 +777,11 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
     throw new MovimentPalletDeliverTaskAcceptError();
   }
 
-  await assertNoIncompleteTasks(pallet.id);
+  await assertNoIncompleteTasks(operatorUserId);
 
   const updated = await deliveryTaskRepository.update(taskId, {
     status: MachineTaskStatus.ASSIGNED,
-    assignedMovimentPallet: { connect: { id: pallet.id } },
+    assignedOperator: { connect: { id: operatorUserId } },
   });
 
   return { task: updated, deliveryTask: updated };
@@ -806,18 +792,15 @@ export async function acceptOpenPickupTaskForMovimentOperator(
   role: RoleUser,
   taskId: string,
 ) {
-  const pallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!pallet) throw new OperatorWithoutBoundMovimentPalletError();
+  assertPalletTransporterRole(role);
+  const { operatingMode } =
+    await requireOperatorWithOperatingMode(operatorUserId);
 
   const task = await pickupTaskRepository.findById(taskId);
   if (!task) throw new PickupTaskNotFoundError();
 
   if (
-    !requestTypeMatchesEquipment(
-      task.typeMovimentPallet,
-      assertEquipmentMovimentType(pallet.type),
-    )
+    !requestTypeMatchesOperatingMode(task.typeMovimentPallet, operatingMode)
   ) {
     throw new ReplenishmentRequestTypeMismatchError();
   }
@@ -825,11 +808,11 @@ export async function acceptOpenPickupTaskForMovimentOperator(
     throw new MovimentPalletPickupTaskAcceptError();
   }
 
-  await assertNoIncompleteTasks(pallet.id);
+  await assertNoIncompleteTasks(operatorUserId);
 
   const updated = await pickupTaskRepository.update(taskId, {
     status: MachineTaskStatus.ASSIGNED,
-    assignedMovimentPallet: { connect: { id: pallet.id } },
+    assignedOperator: { connect: { id: operatorUserId } },
   });
 
   if (updated.machine) {
@@ -849,17 +832,12 @@ export async function completeDeliverTaskToMachine(
   role: RoleUser,
   taskId: string,
 ) {
-  const allowed = equipmentTypesAllowedForRole(role);
-  if (allowed.length === 0)
-    throw new MovimentPalletTypeNotAllowedForRoleError();
-
-  const pallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!pallet) throw new OperatorWithoutBoundMovimentPalletError();
+  assertPalletTransporterRole(role);
+  await requireOperatorWithOperatingMode(operatorUserId);
 
   const task = await deliveryTaskRepository.findById(taskId);
   if (!task) throw new MovimentPalletTaskNotFoundError();
-  if (task.assignedMovimentPalletId !== pallet.id) {
+  if (task.assignedOperatorId !== operatorUserId) {
     throw new MovimentPalletDeliverTaskCompletionError();
   }
   if (!openMachineTaskStatuses.includes(task.status)) {
@@ -892,20 +870,12 @@ export async function completePickupTaskToExpedition(
   role: RoleUser,
   taskId: string,
 ) {
-  const allowed = equipmentTypesAllowedForRole(role);
-  if (allowed.length === 0)
-    throw new MovimentPalletTypeNotAllowedForRoleError();
-
-  const pallet =
-    await movimentPalletRepository.findFirstByOperatorUserId(operatorUserId);
-  if (!pallet) throw new OperatorWithoutBoundMovimentPalletError();
+  assertPalletTransporterRole(role);
+  await requireOperatorWithOperatingMode(operatorUserId);
 
   const task = await pickupTaskRepository.findById(taskId);
   if (!task) throw new MovimentPalletTaskNotFoundError();
-  if (
-    task.assignedMovimentPalletId &&
-    task.assignedMovimentPalletId !== pallet.id
-  ) {
+  if (task.assignedOperatorId && task.assignedOperatorId !== operatorUserId) {
     throw new MovimentPalletPickupTaskCompletionError();
   }
   if (!openMachineTaskStatuses.includes(task.status)) {
@@ -918,7 +888,7 @@ export async function completePickupTaskToExpedition(
   const updated = await pickupTaskRepository.update(taskId, {
     status: MachineTaskStatus.COMPLETED,
     completedAt: new Date(),
-    assignedMovimentPallet: { connect: { id: pallet.id } },
+    assignedOperator: { connect: { id: operatorUserId } },
   });
 
   const acceptedSuggestion =

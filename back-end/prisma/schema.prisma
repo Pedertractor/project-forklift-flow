@@ -1,311 +1,281 @@
-generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
-}
-
-enum Unit {
-  PEDERTRACTOR
-  TRACTOR
-}
-
-model User {
-  id         String   @id @default(uuid())
-  name       String
-  employeeId Int
-  isLogged   Boolean  @default(false)
-  card       String
-  unit       Unit
-  password   String
-  role       RoleUser
-
-  sector   Sector? @relation(fields: [sectorId], references: [id])
-  sectorId String?
-
-  operatorMachineSupplyRequests OperatorMachineSupplyRequest[] @relation("UserOperatorMachineSupplyRequests")
-  deliveryTasks                 DeliveryTask[]                 @relation("UserDeliveryTasks")
-  pickupTasks                   PickupTask[]                   @relation("UserPickupTasks")
-  machines                      Machine[]                      @relation("MachineOperator")
-  movimentPallets               MovimentPallet[]               @relation("MovimentPalletOperator")
-  tripSuggestionsAccepted       MovimentPalletTripSuggestion[] @relation("TripSuggestionAcceptedBy")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([card, unit])
-}
-
-/// Tarefa de levar prisma/pallet at? a m?quina (criada pelo abastecimento).
-model DeliveryTask {
-  id String @id @default(uuid())
-
-  machine   Machine @relation("MachineDeliveryTasks", fields: [machineId], references: [id])
-  machineId String
-
-  movementCube       String
-  typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
-  isCritical         Boolean            @default(false)
-
-  status      MachineTaskStatus @default(CREATED)
-  statusSince DateTime          @default(now())
-
-  /// Abastecimento aceitou/registrou a solicita??o de envio.
-  acceptedBySupply Boolean   @default(false)
-  supplyAcceptedAt DateTime?
-  /// Pallet/prisma pronto no recebimento para o transporte buscar.
-  preparedAt       DateTime?
-
-  requestedBy   User   @relation("UserDeliveryTasks", fields: [requestedById], references: [id])
-  requestedById String
-
-  assignedMovimentPallet   MovimentPallet? @relation("DeliveryTaskAssignedPallet", fields: [assignedMovimentPalletId], references: [id])
-  assignedMovimentPalletId String?
-
-  operatorSupplyRequest OperatorMachineSupplyRequest? @relation("SupplyRequestDeliveryTask")
-
-  tripSuggestionAsDeliver MovimentPalletTripSuggestion? @relation("TripSuggestionDeliverTask")
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  completedAt DateTime?
-
-  @@index([machineId, status])
-}
-
-/// Tarefa de retirar prisma/pallet da m?quina at? a expedi??o (criada pelo operador da m?quina).
-model PickupTask {
-  id String @id @default(uuid())
-
-  machine   Machine @relation("MachinePickupTasks", fields: [machineId], references: [id])
-  machineId String
-
-  typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
-  isCritical         Boolean            @default(false)
-
-  status      MachineTaskStatus @default(CREATED)
-  statusSince DateTime          @default(now())
-
-  /// Operador pediu retirada e j? avisou abastecimento para o pr?ximo prisma.
-  triggersReplenishment Boolean @default(false)
-
-  requestedBy   User   @relation("UserPickupTasks", fields: [requestedById], references: [id])
-  requestedById String
-
-  assignedMovimentPallet   MovimentPallet? @relation("PickupTaskAssignedPallet", fields: [assignedMovimentPalletId], references: [id])
-  assignedMovimentPalletId String?
-
-  tripSuggestionAsPickup MovimentPalletTripSuggestion? @relation("TripSuggestionPickupTask")
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  completedAt DateTime?
-
-  @@index([machineId, status])
-}
-
-/// Aviso do operador da m?quina ao abastecimento: precisa de pallet.
-/// Encerrada quando o abastecimento cria uma DeliveryTask para a mesma m?quina.
-model OperatorMachineSupplyRequest {
-  id String @id @default(uuid())
-
-  machine   Machine @relation(fields: [machineId], references: [id])
-  machineId String
-
-  requestedBy   User   @relation("UserOperatorMachineSupplyRequests", fields: [requestedById], references: [id])
-  requestedById String
-
-  status OperatorMachineSupplyRequestStatus @default(OPEN)
-
-  fulfilledAt DateTime?
-
-  deliveryTask   DeliveryTask? @relation("SupplyRequestDeliveryTask", fields: [deliveryTaskId], references: [id], onDelete: SetNull)
-  deliveryTaskId String?       @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([machineId, status])
-}
-
-model MovimentPalletTripSuggestion {
-  id     String                             @id @default(uuid())
-  status MovimentPalletTripSuggestionStatus @default(OPEN)
-
-  deliverTask   DeliveryTask @relation("TripSuggestionDeliverTask", fields: [deliverTaskId], references: [id], onDelete: Cascade)
-  deliverTaskId String       @unique
-  pickupTask    PickupTask   @relation("TripSuggestionPickupTask", fields: [pickupTaskId], references: [id], onDelete: Cascade)
-  pickupTaskId  String       @unique
-
-  machine   Machine @relation(fields: [machineId], references: [id])
-  machineId String
-
-  typeMovimentPallet TypeMovimentPallet
-
-  acceptedBy       User?   @relation("TripSuggestionAcceptedBy", fields: [acceptedByUserId], references: [id])
-  acceptedByUserId String?
-
-  assignedMovimentPallet   MovimentPallet? @relation("TripSuggestionAssignedPallet", fields: [assignedMovimentPalletId], references: [id])
-  assignedMovimentPalletId String?
-
-  acceptedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Machine {
-  id        String       @id @default(uuid())
-  name      String
-  position  String
-  /// Planta do mapa de supervisao em que a maquina aparece (P ou T).
-  plantUnit PlantMapUnit @default(PEDERTRACTOR)
-
-  typeMachine   TypeMachine @relation(fields: [typeMachineId], references: [id])
-  typeMachineId String
-
-  sector   Sector @relation(fields: [sectorId], references: [id])
-  sectorId String
-
-  user   User?   @relation("MachineOperator", fields: [userId], references: [id])
-  userId String?
-
-  deliveryTasks DeliveryTask[] @relation("MachineDeliveryTasks")
-  pickupTasks   PickupTask[]   @relation("MachinePickupTasks")
-
-  operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
-
-  movimentPalletTripSuggestions MovimentPalletTripSuggestion[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model TypeMachine {
-  id       String @id @default(uuid())
-  name     String
-  urlImage String
-
-  machines Machine[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model CostCenter {
-  id              String  @id @default(uuid())
-  costCenterAPI   String  @unique
-  costCenterValue String
-  sector          Sector? @relation(fields: [sectorId], references: [id])
-  sectorId        String?
-}
-
-model Sector {
-  id         String @id @default(uuid())
-  typeSector String
-
-  costCenters CostCenter[]
-
-  movimentPallets MovimentPallet[]
-  machines        Machine[]
-
-  users User[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model MovimentPallet {
-  id   String                      @id @default(uuid())
-  code String                      @unique
-  type MovimentPalletEquipmentType
-
-  operator   User?   @relation("MovimentPalletOperator", fields: [operatorId], references: [id])
-  operatorId String?
-
-  sector   Sector? @relation(fields: [sectorId], references: [id])
-  sectorId String?
-
-  deliveryTasks DeliveryTask[] @relation("DeliveryTaskAssignedPallet")
-  pickupTasks   PickupTask[]   @relation("PickupTaskAssignedPallet")
-
-  tripSuggestions MovimentPalletTripSuggestion[] @relation("TripSuggestionAssignedPallet")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-/// Equipamento f?sico no setor.
-enum MovimentPalletEquipmentType {
-  FORKLIFT
-  PALLET_TRUCK
-}
-
-/// Tipo de movimenta??o em tarefas (fila de transporte).
-enum TypeMovimentPallet {
-  FORKLIFT
-  /// Aceito por empilhadeirista ou transpaleteirista (qualquer equipamento do setor).
-  ANY
-}
-
-enum RoleUser {
-  OPERATOR_MACHINE
-  PALLET_TRANSPORTER
-  SUPPLY_OPERATOR
-  LEADER
-  SUPERVISOR
-  MANAGER
-  ADMIN
-}
-
-enum MachineTaskStatus {
-  CREATED
-  ASSIGNED
-  IN_PROGRESS
-  COMPLETED
-  CANCELED
-}
-
-enum MovimentPalletTripSuggestionStatus {
-  OPEN
-  ACCEPTED
-  COMPLETED
-  CANCELLED
-  EXPIRED
-}
-
-/// Unidade/planta exibida no mapa de supervisao (imagens em public/).
-enum PlantMapUnit {
-  PEDERTRACTOR
-  TRACTOR
-}
-
-enum PlantMapAreaKind {
-  EXPEDITION
-  RECEIVING
-}
-
-/// Retangulo normalizado (0..1) sobre a imagem da planta ? uma area por tipo por unidade.
-model PlantMapArea {
-  id        String           @id @default(uuid())
-  plantUnit PlantMapUnit
-  kind      PlantMapAreaKind
-  nx        Float
-  ny        Float
-  nw        Float
-  nh        Float
-  label     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([plantUnit, kind])
-}
-
-enum OperatorMachineSupplyRequestStatus {
-  OPEN
-  FULFILLED
-  CANCELLED
-}
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Unit {
+  PEDERTRACTOR
+  TRACTOR
+}
+
+enum IsOperating {
+  FORKLIFT
+  PALLET_TRUCK
+}
+
+model User {
+  id         String   @id @default(uuid())
+  name       String
+  employeeId Int
+  isLogged   Boolean  @default(false)
+  card       String
+  unit       Unit
+  password   String
+  role       RoleUser
+
+  sector   Sector? @relation(fields: [sectorId], references: [id])
+  sectorId String?
+
+  /// Modo de operação escolhido no login (empilhadeira ou transpaleteira).
+  isOperating IsOperating?
+
+  operatorMachineSupplyRequests OperatorMachineSupplyRequest[] @relation("UserOperatorMachineSupplyRequests")
+  deliveryTasks                 DeliveryTask[]                 @relation("UserDeliveryTasks")
+  pickupTasks                   PickupTask[]                   @relation("UserPickupTasks")
+  assignedDeliveryTasks         DeliveryTask[]                 @relation("DeliveryTaskAssignedOperator")
+  assignedPickupTasks           PickupTask[]                   @relation("PickupTaskAssignedOperator")
+  machines                      Machine[]                      @relation("MachineOperator")
+  tripSuggestionsAccepted       MovimentPalletTripSuggestion[] @relation("TripSuggestionAcceptedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([card, unit])
+}
+
+/// Tarefa de levar prisma/pallet até a máquina (criada pelo abastecimento).
+model DeliveryTask {
+  id String @id @default(uuid())
+
+  machine   Machine @relation("MachineDeliveryTasks", fields: [machineId], references: [id])
+  machineId String
+
+  movementCube       String
+  typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
+  isCritical         Boolean            @default(false)
+
+  status      MachineTaskStatus @default(CREATED)
+  statusSince DateTime          @default(now())
+
+  acceptedBySupply Boolean   @default(false)
+  supplyAcceptedAt DateTime?
+  preparedAt       DateTime?
+
+  requestedBy   User   @relation("UserDeliveryTasks", fields: [requestedById], references: [id])
+  requestedById String
+
+  assignedOperator   User?   @relation("DeliveryTaskAssignedOperator", fields: [assignedOperatorId], references: [id])
+  assignedOperatorId String?
+
+  operatorSupplyRequest OperatorMachineSupplyRequest? @relation("SupplyRequestDeliveryTask")
+
+  tripSuggestionAsDeliver MovimentPalletTripSuggestion? @relation("TripSuggestionDeliverTask")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([machineId, status])
+  @@index([assignedOperatorId, status])
+}
+
+/// Tarefa de retirar prisma/pallet da máquina até a expedição (criada pelo operador da máquina).
+model PickupTask {
+  id String @id @default(uuid())
+
+  machine   Machine @relation("MachinePickupTasks", fields: [machineId], references: [id])
+  machineId String
+
+  typeMovimentPallet TypeMovimentPallet @default(FORKLIFT)
+  isCritical         Boolean            @default(false)
+
+  status      MachineTaskStatus @default(CREATED)
+  statusSince DateTime          @default(now())
+
+  triggersReplenishment Boolean @default(false)
+
+  requestedBy   User   @relation("UserPickupTasks", fields: [requestedById], references: [id])
+  requestedById String
+
+  assignedOperator   User?   @relation("PickupTaskAssignedOperator", fields: [assignedOperatorId], references: [id])
+  assignedOperatorId String?
+
+  tripSuggestionAsPickup MovimentPalletTripSuggestion? @relation("TripSuggestionPickupTask")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([machineId, status])
+  @@index([assignedOperatorId, status])
+}
+
+model OperatorMachineSupplyRequest {
+  id String @id @default(uuid())
+
+  machine   Machine @relation(fields: [machineId], references: [id])
+  machineId String
+
+  requestedBy   User   @relation("UserOperatorMachineSupplyRequests", fields: [requestedById], references: [id])
+  requestedById String
+
+  status OperatorMachineSupplyRequestStatus @default(OPEN)
+
+  fulfilledAt DateTime?
+
+  deliveryTask   DeliveryTask? @relation("SupplyRequestDeliveryTask", fields: [deliveryTaskId], references: [id], onDelete: SetNull)
+  deliveryTaskId String?       @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([machineId, status])
+}
+
+model MovimentPalletTripSuggestion {
+  id     String                             @id @default(uuid())
+  status MovimentPalletTripSuggestionStatus @default(OPEN)
+
+  deliverTask   DeliveryTask @relation("TripSuggestionDeliverTask", fields: [deliverTaskId], references: [id], onDelete: Cascade)
+  deliverTaskId String       @unique
+  pickupTask    PickupTask   @relation("TripSuggestionPickupTask", fields: [pickupTaskId], references: [id], onDelete: Cascade)
+  pickupTaskId  String       @unique
+
+  machine   Machine @relation(fields: [machineId], references: [id])
+  machineId String
+
+  typeMovimentPallet TypeMovimentPallet
+
+  acceptedBy       User?   @relation("TripSuggestionAcceptedBy", fields: [acceptedByUserId], references: [id])
+  acceptedByUserId String?
+
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Machine {
+  id        String       @id @default(uuid())
+  name      String
+  position  String
+  plantUnit PlantMapUnit @default(PEDERTRACTOR)
+
+  typeMachine   TypeMachine @relation(fields: [typeMachineId], references: [id])
+  typeMachineId String
+
+  sector   Sector @relation(fields: [sectorId], references: [id])
+  sectorId String
+
+  user   User?   @relation("MachineOperator", fields: [userId], references: [id])
+  userId String?
+
+  deliveryTasks DeliveryTask[] @relation("MachineDeliveryTasks")
+  pickupTasks   PickupTask[]   @relation("MachinePickupTasks")
+
+  operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
+
+  movimentPalletTripSuggestions MovimentPalletTripSuggestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TypeMachine {
+  id       String @id @default(uuid())
+  name     String
+  urlImage String
+
+  machines Machine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CostCenter {
+  id              String  @id @default(uuid())
+  costCenterAPI   String  @unique
+  costCenterValue String
+  sector          Sector? @relation(fields: [sectorId], references: [id])
+  sectorId        String?
+}
+
+model Sector {
+  id         String @id @default(uuid())
+  typeSector String
+
+  costCenters CostCenter[]
+  machines    Machine[]
+  users       User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TypeMovimentPallet {
+  FORKLIFT
+  ANY
+}
+
+enum RoleUser {
+  OPERATOR_MACHINE
+  PALLET_TRANSPORTER
+  SUPPLY_OPERATOR
+  LEADER
+  SUPERVISOR
+  MANAGER
+  ADMIN
+}
+
+enum MachineTaskStatus {
+  CREATED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum MovimentPalletTripSuggestionStatus {
+  OPEN
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum PlantMapUnit {
+  PEDERTRACTOR
+  TRACTOR
+}
+
+enum PlantMapAreaKind {
+  EXPEDITION
+  RECEIVING
+}
+
+model PlantMapArea {
+  id        String           @id @default(uuid())
+  plantUnit PlantMapUnit
+  kind      PlantMapAreaKind
+  nx        Float
+  ny        Float
+  nw        Float
+  nh        Float
+  label     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([plantUnit, kind])
+}
+
+enum OperatorMachineSupplyRequestStatus {
+  OPEN
+  FULFILLED
+  CANCELLED
+}
+

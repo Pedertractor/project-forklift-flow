@@ -13,6 +13,7 @@ export function OperatorMovimentTasksPageView(
 ) {
   const {
     token,
+    userId,
     currentPallet,
     myTasksQuery,
     tasks,
@@ -50,7 +51,7 @@ export function OperatorMovimentTasksPageView(
 
         <OpenTasksFlowSection
           tasks={tasks}
-          myPalletId={currentPallet?.id ?? null}
+          myOperatorUserId={userId}
           isLoading={tasksLoading}
           bound={bound}
           busy={busy}

@@ -1,5 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type { RoleUser, Unit } from '../generated/prisma/enums.js'
+import type { IsOperating, RoleUser, Unit } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
 
 export const userRepository = {
@@ -34,6 +34,22 @@ export const userRepository = {
         unit: true,
         employeeId: true,
         isLogged: true,
+        sectorId: true,
+        isOperating: true,
+        sector: { select: { id: true, typeSector: true } },
+      },
+    })
+  },
+
+  updateOperatingMode(userId: string, isOperating: IsOperating | null) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { isOperating },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        isOperating: true,
         sectorId: true,
         sector: { select: { id: true, typeSector: true } },
       },

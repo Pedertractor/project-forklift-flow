@@ -17,8 +17,8 @@ import {
 } from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
 import {
-  countOpenMovimentTasksForPallet,
-  filterTasksForMyPallet,
+  countOpenMovimentTasksForOperator,
+  filterTasksForMyOperator,
 } from '@/utils/operator-moviment-work';
 
 function useApiReady(): boolean {
@@ -32,6 +32,7 @@ export function useOperatorMovimentTasksPage() {
   const location = useLocation();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
+  const userId = useAuthStore((s) => s.user?.id);
 
   const enteringTaskFlow = Boolean(
     (location.state as OperatorMovimentMyTasksNavigateState | null)
@@ -66,11 +67,6 @@ export function useOperatorMovimentTasksPage() {
     let tasks = queryClient.getQueryData<
       Awaited<ReturnType<typeof fetchOperatorMyTasks>>
     >(['operator-moviment', 'my-tasks']);
-    const pallet =
-      queryClient.getQueryData<
-        Awaited<ReturnType<typeof fetchOperatorMyMovimentPallet>>
-      >(['operator-moviment', 'my-pallet']) ?? null;
-
     if (tasks === undefined) {
       try {
         tasks = await queryClient.fetchQuery({
@@ -86,7 +82,8 @@ export function useOperatorMovimentTasksPage() {
       }
     }
 
-    return countOpenMovimentTasksForPallet(tasks, pallet?.id ?? null);
+    const operatorId = useAuthStore.getState().user?.id ?? null;
+    return countOpenMovimentTasksForOperator(tasks ?? [], operatorId);
   }, [queryClient]);
 
   const completeDeliverMut = useMutation({
@@ -132,15 +129,9 @@ export function useOperatorMovimentTasksPage() {
   });
 
   const currentPallet = myPalletQuery.data ?? null;
-  const tasks = filterTasksForMyPallet(
-    myTasksQuery.data ?? [],
-    currentPallet?.id,
-  );
+  const tasks = filterTasksForMyOperator(myTasksQuery.data ?? [], userId);
 
-  const openTaskCount = countOpenMovimentTasksForPallet(
-    tasks,
-    currentPallet?.id ?? null,
-  );
+  const openTaskCount = countOpenMovimentTasksForOperator(tasks, userId ?? null);
 
   const showEntryOverlay = useMemo(() => {
     if (!enteringTaskFlow || myTasksQuery.isError) {
@@ -186,6 +177,7 @@ export function useOperatorMovimentTasksPage() {
   return {
     apiReady,
     token,
+    userId: userId ?? null,
     currentPallet,
     myPalletQuery,
     myTasksQuery,

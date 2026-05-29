@@ -4,8 +4,7 @@ import type { AppJwtPayload } from '../types/auth.types.js'
 import { operatorMovimentPalletWsRegisterClient } from './operator-moviment-pallet-ws.hub.js'
 
 const MOVIMENT_WS_ROLES: readonly RoleUser[] = [
-  RoleUser.FORKLIFT_OPERATOR,
-  RoleUser.FOLLOW_UP_OPERATOR,
+  RoleUser.PALLET_TRANSPORTER,
   RoleUser.OPERATOR_MACHINE,
   RoleUser.ADMIN,
   RoleUser.LEADER,

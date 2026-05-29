@@ -191,8 +191,8 @@ export async function listDeliveryTasks(filters?: {
           role: true,
         },
       },
-      assignedMovimentPallet: {
-        select: { id: true, code: true, type: true },
+      assignedOperator: {
+        select: { id: true, name: true, isOperating: true },
       },
     },
     orderBy: { createdAt: 'desc' },

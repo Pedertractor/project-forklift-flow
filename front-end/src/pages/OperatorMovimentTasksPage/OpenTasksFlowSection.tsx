@@ -52,7 +52,7 @@ function canCompleteDeliver(
 
 function canCompletePickup(
   task: OperatorMovimentTaskItem,
-  myPalletId: string | null,
+  myOperatorUserId: string | null,
 ): boolean {
   if (task.type !== 'PICKUP_TO_EXPEDITION') {
     return false;
@@ -64,13 +64,12 @@ function canCompletePickup(
   ) {
     return false;
   }
-  if (myPalletId == null) {
+  if (myOperatorUserId == null) {
     return false;
   }
-  if (
-    task.assignedMovimentPalletId != null &&
-    task.assignedMovimentPalletId !== myPalletId
-  ) {
+  const assignedId =
+    task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null;
+  if (assignedId != null && assignedId !== myOperatorUserId) {
     return false;
   }
   return true;
@@ -181,7 +180,7 @@ function buildCombinedPickupPhaseSteps(
 
 function buildOpenTaskSteps(
   group: TaskRouteGroup,
-  myPalletId: string | null,
+  myOperatorUserId: string | null,
   allTasks: OperatorMovimentTaskItem[],
 ): DeliverFlowStepConfig[] {
   const deliverOpen =
@@ -189,7 +188,7 @@ function buildOpenTaskSteps(
     canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
   const pickupOpen =
     group.pickupTask !== null &&
-    canCompletePickup(group.pickupTask, myPalletId);
+    canCompletePickup(group.pickupTask, myOperatorUserId);
   const deliverCube = group.deliverTask?.request.movementCube;
   const machineDetails = [machineLocationDetail(group.machineName)];
   const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
@@ -295,7 +294,7 @@ function OpenTaskRouteCard({
   allTasks,
   bound,
   busy,
-  myPalletId,
+  myOperatorUserId,
   completeDeliverMut,
   completePickupMut,
 }: {
@@ -303,7 +302,7 @@ function OpenTaskRouteCard({
   allTasks: OperatorMovimentTaskItem[];
   bound: boolean;
   busy: boolean;
-  myPalletId: string | null;
+  myOperatorUserId: string | null;
   completeDeliverMut: CompleteMutationHandlers;
   completePickupMut: CompleteMutationHandlers;
 }) {
@@ -312,9 +311,9 @@ function OpenTaskRouteCard({
     canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
   const pickupOpen =
     group.pickupTask !== null &&
-    canCompletePickup(group.pickupTask, myPalletId);
+    canCompletePickup(group.pickupTask, myOperatorUserId);
   const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
-  const steps = buildOpenTaskSteps(group, myPalletId, allTasks);
+  const steps = buildOpenTaskSteps(group, myOperatorUserId, allTasks);
   const isCritical = isCriticalPriority(group.priority);
 
   const activitySubtitle = resolveFlowActivitySubtitle(
@@ -341,7 +340,9 @@ function OpenTaskRouteCard({
     <DeliverFlowCard>
       <div className="px-5 py-4 sm:px-8">
         {activitySubtitle ? (
-          <DeliverFlowActivitySubtitle>{activitySubtitle}</DeliverFlowActivitySubtitle>
+          <DeliverFlowActivitySubtitle>
+            {activitySubtitle}
+          </DeliverFlowActivitySubtitle>
         ) : null}
         <DeliverThreeStepFlow steps={steps} />
         {footerHint ? (
@@ -394,7 +395,7 @@ function OpenTaskRouteCard({
 export interface OpenTasksFlowSectionProps {
   /** Todas as tarefas atribuídas (abertas e concluídas) para agrupar rotas combinadas. */
   tasks: OperatorMovimentTaskItem[];
-  myPalletId: string | null;
+  myOperatorUserId: string | null;
   isLoading: boolean;
   bound: boolean;
   busy: boolean;
@@ -405,7 +406,7 @@ export interface OpenTasksFlowSectionProps {
 
 export function OpenTasksFlowSection({
   tasks,
-  myPalletId,
+  myOperatorUserId,
   isLoading,
   bound,
   busy,
@@ -419,13 +420,13 @@ export function OpenTasksFlowSection({
       canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
     const pickupOpen =
       group.pickupTask !== null &&
-      canCompletePickup(group.pickupTask, myPalletId);
+      canCompletePickup(group.pickupTask, myOperatorUserId);
     return deliverOpen || pickupOpen;
   });
   const hasOpenWork = groups.length > 0;
 
   return (
-    <section className="mt-6" aria-labelledby="open-tasks-flow-heading">
+    <section className="" aria-labelledby="open-tasks-flow-heading">
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <AccordionLoader />
@@ -442,7 +443,7 @@ export function OpenTasksFlowSection({
       ) : null}
 
       {!isLoading && hasOpenWork && groups.length > 0 ? (
-        <ul className="m-0 flex list-none flex-col gap-5 p-0">
+        <ul className="m-0  flex list-none flex-col gap-5 p-0">
           {groups.map((group) => (
             <li key={group.machineId} className="flex flex-col gap-2.5">
               <OpenActivityHeading />
@@ -451,7 +452,7 @@ export function OpenTasksFlowSection({
                 allTasks={tasks}
                 bound={bound}
                 busy={busy}
-                myPalletId={myPalletId}
+                myOperatorUserId={myOperatorUserId}
                 completeDeliverMut={completeDeliverMut}
                 completePickupMut={completePickupMut}
               />

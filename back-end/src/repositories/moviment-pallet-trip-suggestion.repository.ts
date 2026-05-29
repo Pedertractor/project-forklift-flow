@@ -29,10 +29,7 @@ export const movimentPalletTripSuggestionRepository = {
       where: { id },
       include: {
         ...suggestionListInclude,
-        acceptedBy: { select: { id: true, name: true } },
-        assignedMovimentPallet: {
-          select: { id: true, code: true, type: true },
-        },
+        acceptedBy: { select: { id: true, name: true, isOperating: true } },
       },
     })
   },

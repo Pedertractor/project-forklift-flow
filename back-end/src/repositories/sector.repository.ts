@@ -22,10 +22,9 @@ export const sectorRepository = {
     return Promise.all([
       prisma.machine.count({ where: { sectorId } }),
       prisma.user.count({ where: { sectorId } }),
-      prisma.movimentPallet.count({ where: { sectorId } }),
       prisma.costCenter.count({ where: { sectorId } }),
-    ]).then(([machines, users, movimentPallets, costCenters]) => {
-      return machines + users + movimentPallets + costCenters
+    ]).then(([machines, users, costCenters]) => {
+      return machines + users + costCenters
     })
   },
 

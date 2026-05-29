@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
@@ -10,10 +10,10 @@ import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
 import {
   deleteUnbindOperatorMovimentPallet,
-  fetchOperatorMovimentPallets,
   fetchOperatorMyMovimentPallet,
   postBindOperatorMovimentPallet,
 } from '@/services/operator-moviment-pallet-api';
+import type { IsOperatingMode } from '@/types/operator-moviment-pallet.types';
 import { useAuthStore } from '@/store/auth.store';
 
 function useApiReady(): boolean {
@@ -21,7 +21,7 @@ function useApiReady(): boolean {
   return Boolean(ENV.API_URL && token);
 }
 
-function readChangeEquipmentFlag(
+function readChangeOperatingModeFlag(
   state: OperatorMovimentEquipmentNavigateState | null,
 ): boolean {
   return state?.changeEquipment === true;
@@ -34,27 +34,21 @@ export function useOperatorMovimentEquipmentPage() {
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
+  const syncSessionFromProfile = useAuthStore((s) => s.syncSessionFromProfile);
   const sectorMissing = Boolean(user && !user.sectorId);
-  const changeEquipment = readChangeEquipmentFlag(
+  const changeOperatingMode = readChangeOperatingModeFlag(
     location.state as OperatorMovimentEquipmentNavigateState | null,
   );
 
-  const [pickerMovimentId, setPickerMovimentId] = useState('');
-
-  const myPalletQuery = useQuery({
-    queryKey: ['operator-moviment', 'my-pallet'],
+  const operatingQuery = useQuery({
+    queryKey: ['operator-moviment', 'operating-mode'],
     queryFn: fetchOperatorMyMovimentPallet,
-    enabled: apiReady,
-  });
-
-  const pickerQuery = useQuery({
-    queryKey: ['operator-moviment', 'moviment-pallets'],
-    queryFn: fetchOperatorMovimentPallets,
     enabled: apiReady,
   });
 
   const invalidateOperator = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
+    void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
   }, [queryClient]);
 
   const goToTasksQueue = useCallback(() => {
@@ -62,11 +56,17 @@ export function useOperatorMovimentEquipmentPage() {
   }, [navigate]);
 
   const bindMut = useMutation({
-    mutationFn: postBindOperatorMovimentPallet,
-    onSuccess: () => {
+    mutationFn: (isOperating: IsOperatingMode) =>
+      postBindOperatorMovimentPallet(isOperating),
+    onSuccess: (pallet) => {
       invalidateOperator();
-      setPickerMovimentId('');
-      toast.success('Equipamento vinculado.');
+      if (user) {
+        syncSessionFromProfile(
+          { ...user, isOperating: pallet.type as IsOperatingMode },
+          useAuthStore.getState().requiresPasswordChange,
+        );
+      }
+      toast.success('Modo de operação definido.');
       goToTasksQueue();
     },
     onError: toastApiError,
@@ -76,26 +76,28 @@ export function useOperatorMovimentEquipmentPage() {
     mutationFn: deleteUnbindOperatorMovimentPallet,
     onSuccess: () => {
       invalidateOperator();
-      setPickerMovimentId('');
-      toast.success('Equipamento desvinculado.');
+      if (user) {
+        syncSessionFromProfile(
+          { ...user, isOperating: null },
+          useAuthStore.getState().requiresPasswordChange,
+        );
+      }
+      toast.success('Modo de operação desconectado.');
     },
     onError: toastApiError,
   });
 
   const busy = bindMut.isPending || unbindMut.isPending;
-  const currentPallet = myPalletQuery.data ?? null;
-  const bound = currentPallet !== null;
+  const currentOperatingMode =
+    (operatingQuery.data?.type as IsOperatingMode | undefined) ??
+    user?.isOperating ??
+    null;
+  const bound = currentOperatingMode !== null;
   const redirectingToTasks =
-    bound && !changeEquipment && myPalletQuery.isSuccess;
+    bound && !changeOperatingMode && operatingQuery.isSuccess;
 
   useEffect(() => {
-    if (currentPallet?.id) {
-      setPickerMovimentId(currentPallet.id);
-    }
-  }, [currentPallet?.id]);
-
-  useEffect(() => {
-    if (!apiReady || myPalletQuery.isLoading || changeEquipment) {
+    if (!apiReady || operatingQuery.isLoading || changeOperatingMode) {
       return;
     }
     if (bound) {
@@ -103,56 +105,36 @@ export function useOperatorMovimentEquipmentPage() {
     }
   }, [
     apiReady,
-    myPalletQuery.isLoading,
-    changeEquipment,
+    operatingQuery.isLoading,
+    changeOperatingMode,
     bound,
     goToTasksQueue,
   ]);
 
-  const currentUserId = user?.id ?? '';
-
-  const selectMovimentEquipment = useCallback(
-    (movimentId: string) => {
+  const selectOperatingMode = useCallback(
+    (mode: IsOperatingMode) => {
       if (bindMut.isPending || busy) {
         return;
       }
-      const pallet = pickerQuery.data?.find((p) => p.id === movimentId);
-      if (
-        pallet?.operatorId &&
-        pallet.operatorId !== currentUserId
-      ) {
-        return;
-      }
-      setPickerMovimentId(movimentId);
-      if (currentPallet?.id === movimentId) {
+      if (currentOperatingMode === mode) {
         goToTasksQueue();
         return;
       }
-      bindMut.mutate(movimentId);
+      bindMut.mutate(mode);
     },
-    [
-      bindMut,
-      busy,
-      currentPallet?.id,
-      currentUserId,
-      goToTasksQueue,
-      pickerQuery.data,
-    ],
+    [bindMut, busy, currentOperatingMode, goToTasksQueue],
   );
 
   return {
     apiReady,
     token,
-    currentUserId,
     sectorMissing,
-    currentPallet,
+    currentOperatingMode,
     bound,
-    changeEquipment,
+    changeOperatingMode,
     redirectingToTasks,
-    myPalletQuery,
-    pickerQuery,
-    pickerMovimentId,
-    selectMovimentEquipment,
+    operatingQuery,
+    selectOperatingMode,
     unbindMut,
     busy,
     bindPending: bindMut.isPending,

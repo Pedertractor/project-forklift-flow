@@ -9,6 +9,7 @@ export interface LoginApiUser {
   employeeId: number;
   sectorId?: string | null;
   sector?: { id: string; typeSector: string } | null;
+  isOperating?: 'FORKLIFT' | 'PALLET_TRUCK' | null;
 }
 
 export interface LoginApiResponse {
@@ -35,5 +36,6 @@ export function mapLoginUserToAppUser(u: LoginApiUser): User {
     role: u.role,
     sectorId: u.sectorId ?? null,
     sector: u.sector ?? null,
+    isOperating: u.isOperating ?? null,
   };
 }
