@@ -137,7 +137,7 @@ type StandalonePickupSuggestionRow = {
   typeMovimentPallet: TypeMovimentPallet;
   effectiveCritical: boolean;
   deferRecommended: boolean;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   message: string;
   suggestedOrder: [];
   pickupTask: PickupTaskListRow;
@@ -148,7 +148,7 @@ type StandaloneDeliverSuggestionRow = {
   typeMovimentPallet: TypeMovimentPallet;
   effectiveCritical: boolean;
   deferRecommended: boolean;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   message: string;
   suggestedOrder: [];
   requestId: string;
@@ -167,7 +167,6 @@ function mapStandalonePickupRow(
     machine: {
       id: machine.id,
       name: machine.name,
-      position: machine.position,
     },
     message: `Na maquina ${machine.name}: retirada solicitada — aceite para levar o pallet a expedicao.`,
     suggestedOrder: [],
@@ -187,7 +186,6 @@ function mapStandaloneDeliverRow(
     machine: {
       id: machine.id,
       name: machine.name,
-      position: machine.position,
     },
     suggestedOrder: [],
     message: `Na maquina ${machine.name}: entrega preparada no recebimento — aceite para levar o pallet.`,

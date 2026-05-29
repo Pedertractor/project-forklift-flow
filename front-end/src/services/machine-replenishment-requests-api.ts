@@ -59,7 +59,6 @@ function mapDeliveryTaskToListItem(
     destination: {
       id: machine?.id ?? task.machineId,
       name: machine?.name ?? '—',
-      position: machine?.position ?? '',
       userId: machine?.userId ?? null,
       typeMachine: machine?.typeMachine ?? { id: '', name: '' },
       sector: machine?.sector ?? {

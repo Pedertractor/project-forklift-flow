@@ -47,16 +47,10 @@ export const MOVIMENT_OPERATOR_ROLES: readonly AppRole[] = [
   'ADMIN',
 ];
 
-/** Mapa da planta (supervisão): líder, supervisor, gestor e administrador. */
-export const PLANT_MAP_SUPERVISION_ROLES: readonly AppRole[] = [
+/** Papéis de supervisão/gestão (leitura ampliada de filas e cadastros). */
+export const SUPERVISION_ROLES: readonly AppRole[] = [
   'LEADER',
   'SUPERVISOR',
   'MANAGER',
   'ADMIN',
-];
-
-/** Acesso à rota do mapa (supervisão + quem cadastra máquinas no chão). */
-export const PLANT_MAP_PAGE_ACCESS_ROLES: readonly AppRole[] = [
-  ...PLANT_MAP_SUPERVISION_ROLES,
-  'SUPPLY_OPERATOR',
 ];

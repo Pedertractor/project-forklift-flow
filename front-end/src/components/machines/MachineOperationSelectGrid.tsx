@@ -74,9 +74,7 @@ export function MachineOperationSelectGrid({
                 <p className="mt-1 text-sm text-zinc-600">
                   {m.typeMachine.name}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-500">
-                  {m.sector.typeSector} · {m.position}
-                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">{m.sector.typeSector}</p>
               </div>
             </button>
           </li>

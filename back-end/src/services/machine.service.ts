@@ -22,7 +22,6 @@ export function parsePlantMapUnit(value: string): PlantMapUnit | null {
 
 export type CreateMachineInput = {
   name: string
-  position: string
   plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string
@@ -31,7 +30,6 @@ export type CreateMachineInput = {
 
 export type UpdateMachineInput = {
   name?: string
-  position?: string
   plantUnit?: PlantMapUnit
   typeMachineId?: string
   sectorId?: string
@@ -74,9 +72,6 @@ function buildMachineUpdateData(
   if (input.name !== undefined) {
     data.name = input.name.trim()
   }
-  if (input.position !== undefined) {
-    data.position = input.position.trim()
-  }
   if (input.plantUnit !== undefined) {
     data.plantUnit = input.plantUnit
   }
@@ -105,7 +100,6 @@ export async function createMachine(input: CreateMachineInput) {
 
   const data: Prisma.MachineCreateInput = {
     name: input.name.trim(),
-    position: input.position.trim(),
     plantUnit: input.plantUnit,
     typeMachine: { connect: { id: input.typeMachineId } },
     sector: { connect: { id: input.sectorId } },

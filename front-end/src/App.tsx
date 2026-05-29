@@ -13,7 +13,6 @@ import {
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
-  PLANT_MAP_PAGE_ACCESS_ROLES,
 } from '@/types/role.types';
 
 const HomePage = lazy(() =>
@@ -79,9 +78,6 @@ const OperatorMovimentTasksPage = lazy(() =>
     default: m.OperatorMovimentTasksPage,
   })),
 );
-const PlantMapPage = lazy(() =>
-  import('@/pages/PlantMapPage/index').then((m) => ({ default: m.PlantMapPage })),
-);
 const OperatorMovimentManualQueuePage = lazy(() =>
   import('@/pages/OperatorMovimentManualQueuePage/index').then((m) => ({
     default: m.OperatorMovimentManualQueuePage,
@@ -103,9 +99,6 @@ export function App() {
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
                   <Route index element={<HomePage />} />
                   <Route path="dashboard" element={<DashboardPage />} />
-                </Route>
-                <Route element={<RequireRoles roles={PLANT_MAP_PAGE_ACCESS_ROLES} />}>
-                  <Route path="supervisao/mapa-planta" element={<PlantMapPage />} />
                 </Route>
                 <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
                   <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />

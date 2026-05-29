@@ -11,7 +11,6 @@ import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-t
 const machineBriefInclude = {
   id: true,
   name: true,
-  position: true,
   userId: true,
   sectorId: true,
   typeMachine: { select: { id: true, name: true } },

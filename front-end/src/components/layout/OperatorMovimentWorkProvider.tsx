@@ -31,7 +31,7 @@ import {
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
-  PLANT_MAP_SUPERVISION_ROLES,
+  SUPERVISION_ROLES,
   type AppRole,
 } from '@/types/role.types';
 import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types';
@@ -59,7 +59,7 @@ function isMachineCadastroRole(role: string | undefined): boolean {
   const r = role as AppRole;
   return (
     (MACHINE_DOMAIN_ROLES as readonly AppRole[]).includes(r) ||
-    (PLANT_MAP_SUPERVISION_ROLES as readonly AppRole[]).includes(r)
+    (SUPERVISION_ROLES as readonly AppRole[]).includes(r)
   );
 }
 

@@ -23,10 +23,6 @@ export const API_ENDPOINTS = {
     LIST: '/machines',
     BY_ID: (id: string) => `/machines/${id}`,
   },
-  PLANT_MAP: {
-    AREAS: '/plant-map/areas',
-    AREA_BY_ID: (areaId: string) => `/plant-map/areas/${encodeURIComponent(areaId)}`,
-  },
   MOVIMENT_PALLETS: {
     LIST: '/moviment-pallets',
     BY_ID: (id: string) => `/moviment-pallets/${encodeURIComponent(id)}`,

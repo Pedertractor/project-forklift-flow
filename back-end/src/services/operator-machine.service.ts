@@ -240,7 +240,7 @@ export async function requestPickupWithReplenishment(
           status: OperatorMachineSupplyRequestStatus.OPEN,
         },
         include: {
-          machine: { select: { id: true, name: true, position: true, sectorId: true } },
+          machine: { select: { id: true, name: true, sectorId: true } },
           requestedBy: { select: { id: true, name: true } },
         },
       })
@@ -260,7 +260,6 @@ export async function requestPickupWithReplenishment(
           select: {
             id: true,
             name: true,
-            position: true,
             sectorId: true,
             userId: true,
           },
@@ -341,7 +340,6 @@ export async function cancelPickupRequestByOperator(
           select: {
             id: true,
             name: true,
-            position: true,
             sectorId: true,
             userId: true,
           },

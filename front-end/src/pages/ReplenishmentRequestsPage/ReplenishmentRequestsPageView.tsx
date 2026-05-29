@@ -472,7 +472,7 @@ export function ReplenishmentRequestsPageView(
             <div>
               <dt className="text-xs font-medium text-zinc-500">Destino</dt>
               <dd className="mt-0.5 text-zinc-900">
-                {detailRow.destination.name} ({detailRow.destination.position})
+                {detailRow.destination.name}
                 — {detailRow.destination.sector.typeSector}
               </dd>
             </div>

@@ -4,7 +4,6 @@ import { registerDeliveryTaskRoutes } from './delivery-task.routes.js'
 import { registerMachineRoutes } from './machine.routes.js'
 import { registerOperatorMachineRoutes } from './operator-machine.routes.js'
 import { registerOperatorMovimentPalletRoutes } from './operator-moviment-pallet.routes.js'
-import { registerPlantMapAreaRoutes } from './plant-map-area.routes.js'
 import { registerSectorRoutes } from './sector.routes.js'
 import { registerTypeMachineRoutes } from './type-machine.routes.js'
 import { registerUserRoutes } from './user.routes.js'
@@ -18,8 +17,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await registerDeliveryTaskRoutes(fastify)
   await registerOperatorMachineRoutes(fastify)
   await registerOperatorMovimentPalletRoutes(fastify)
-  await registerPlantMapAreaRoutes(fastify)
-
   fastify.get('/health', async () => {
     return { ok: true, service: 'forklift-back-end' }
   })

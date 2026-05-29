@@ -174,7 +174,6 @@ export async function listDeliveryTasks(filters?: {
         select: {
           id: true,
           name: true,
-          position: true,
           userId: true,
           sectorId: true,
           typeMachine: { select: { id: true, name: true } },

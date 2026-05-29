@@ -55,7 +55,7 @@ function OperatorSupplyRequestCard({
               {row.machine.name}
             </p>
             <p className="mt-0.5 text-sm text-zinc-600">
-              Posição: {row.machine.position}
+              Máquina: {row.machine.name}
             </p>
             <p className="mt-2 text-xs text-zinc-500">
               Operador:{' '}

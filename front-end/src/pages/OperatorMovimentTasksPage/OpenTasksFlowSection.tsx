@@ -27,7 +27,6 @@ import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 interface TaskRouteGroup {
   machineId: string;
   machineName: string;
-  machinePosition: string;
   priority: OperatorMovimentTaskItem['request']['priorityLevel'];
   deliverTask: OperatorMovimentTaskItem | null;
   pickupTask: OperatorMovimentTaskItem | null;
@@ -86,7 +85,6 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
       group = {
         machineId: dest.id,
         machineName: dest.name,
-        machinePosition: dest.position,
         priority: task.request.priorityLevel,
         deliverTask: null,
         pickupTask: null,

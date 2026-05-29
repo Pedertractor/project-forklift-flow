@@ -23,7 +23,6 @@ export interface OperatorMachineSupplyRequestListItem {
   machine: {
     id: string;
     name: string;
-    position: string;
     sectorId: string;
     typeMachine: { id: string; name: string; urlImage: string };
   };

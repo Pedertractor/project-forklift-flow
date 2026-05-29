@@ -13,7 +13,6 @@ import type { PlantMapUnit } from '@/constants/plant-map'
 export interface MachineListItem {
   id: string
   name: string
-  position: string
   plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string
@@ -28,7 +27,6 @@ export interface MachineListItem {
 /** Corpo JSON de POST /machines (operador opcional). */
 export interface CreateMachinePostBody {
   name: string
-  position: string
   plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string

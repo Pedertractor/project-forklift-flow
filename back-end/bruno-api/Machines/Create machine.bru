@@ -17,7 +17,6 @@ auth:bearer {
 body:json {
   {
     "name": "Dobra 01",
-    "position": "01",
     "plantUnit": "PEDERTRACTOR",
     "typeMachineId": "{{typeMachineId}}",
     "sectorId": "{{sectorId}}"
@@ -26,7 +25,7 @@ body:json {
 
 docs {
   # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
-  # Campos obrigatorios: name, position, plantUnit (PEDERTRACTOR | TRACTOR), typeMachineId, sectorId.
+  # Campos obrigatorios: name, plantUnit (PEDERTRACTOR | TRACTOR), typeMachineId, sectorId.
   # Opcional: userId (UUID de usuario existente) para vincular operador.
   # Ajuste typeMachineId e sectorId no environment antes de enviar.
 }

@@ -37,7 +37,6 @@ function mapMachineToDestination(
   return {
     id: machine?.id ?? machineId,
     name: machine?.name ?? '—',
-    position: machine?.position ?? '',
     userId: machine?.userId ?? null,
     typeMachine: machine?.typeMachine ?? { id: '', name: '' },
     sector: machine?.sector ?? {
@@ -293,7 +292,7 @@ export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]
 
 type TripSuggestionApiRow = {
   kind: string;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   effectiveCritical?: boolean;
   message: string;
   deliverTask: DeliveryTaskApiRow;
@@ -306,7 +305,7 @@ type TripStandalonePickupApiRow = {
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
   deferRecommended?: boolean;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   message: string;
   pickupTask: PickupTaskApiRow;
 };
@@ -316,7 +315,7 @@ type TripStandaloneDeliverApiRow = {
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
   deferRecommended?: boolean;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   message: string;
   requestId: string;
   deliverTask: DeliveryTaskApiRow;

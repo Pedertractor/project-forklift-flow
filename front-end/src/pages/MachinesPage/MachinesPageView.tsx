@@ -38,8 +38,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setDeleteRow,
     name,
     setName,
-    position,
-    setPosition,
     typeMachineId,
     setTypeMachineId,
     sectorId,
@@ -48,7 +46,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setUserId,
     editOperator,
     unlinkOperatorMut,
-    goToMapToCreateMachine,
+    openCreate,
     openEdit,
     createMut,
     updateMut,
@@ -75,7 +73,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </Button>
             <Button
               type="button"
-              onClick={goToMapToCreateMachine}
+              onClick={openCreate}
               disabled={!apiReady || busy}
             >
               Nova máquina de produção
@@ -275,7 +273,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
       <SimpleModal
         open={createOpen}
         title="Nova máquina de produção"
-        description="Máquina de linha de produção (não é empilhadeira). Preencha nome, posição, tipo de máquina (modelo) e setor. O operador é opcional (UUID do usuário, se souber o identificador)."
+        description="Máquina de linha de produção (não é empilhadeira). Preencha nome, unidade, tipo de máquina (modelo) e setor. O operador é opcional (UUID do usuário, se souber o identificador)."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions
@@ -325,16 +323,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-pos">Posição</Label>
-            <Input
-              id="m-pos"
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              placeholder="Ex.: A1 ou MAP:0.35,0.62"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="m-plant-unit">Unidade (planta no mapa)</Label>
+            <Label htmlFor="m-plant-unit">Unidade</Label>
             <select
               id="m-plant-unit"
               className={selectClass}
@@ -426,7 +415,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-edit-plant-unit">Unidade (planta no mapa)</Label>
+            <Label htmlFor="m-edit-plant-unit">Unidade</Label>
             <select
               id="m-edit-plant-unit"
               className={selectClass}

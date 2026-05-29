@@ -46,10 +46,7 @@ function DeliverRequestFlow({
         stepId="machine"
         label="Máquina"
         details={[
-          machineLocationDetail(
-            row.destination?.name ?? '—',
-            row.destination?.position ?? '',
-          ),
+          machineLocationDetail(row.destination?.name ?? '—'),
           prismaDetail(row.movementCube, 'deliver-to-machine'),
         ]}
         accent="mid"

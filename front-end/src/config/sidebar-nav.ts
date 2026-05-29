@@ -1,11 +1,9 @@
-import { PLANT_MAP_PAGE_PATH } from '@/constants/plant-map-routes';
 import type { AppRole } from '@/types/role.types';
 import {
   ADMIN_OR_LEADER_ROLES,
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
-  PLANT_MAP_SUPERVISION_ROLES,
 } from '@/types/role.types';
 import {
   OPERATOR_MOVIMENT_EQUIPMENT_PATH,
@@ -50,19 +48,6 @@ function itemVisibleForRole(
  * Rotas não listadas não aparecem; `RequireRoles` continua bloqueando URL direta.
  */
 export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
-  {
-    id: 'supervisao',
-    title: 'Supervisão',
-    rolesDescription:
-      'Líder (LEADER), supervisor (SUPERVISOR), gestor (MANAGER) e administrador (ADMIN).',
-    items: [
-      {
-        to: PLANT_MAP_PAGE_PATH,
-        label: 'Mapa da planta',
-        allowedRoles: PLANT_MAP_SUPERVISION_ROLES,
-      },
-    ],
-  },
   {
     id: 'dobra',
     title: 'Operação — máquina de dobra',

@@ -319,7 +319,7 @@ export function ReplenishmentCreateWizardModal({
 
       {step === 3 ? (
         <ul
-          className="m-0 grid list-none gap-3 p-0"
+          className="m-0 grid list-none gap-3 p-0"  
           role="listbox"
           aria-label="Tipo de movimentação"
         >
