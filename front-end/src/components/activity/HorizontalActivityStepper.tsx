@@ -63,9 +63,13 @@ export function stepShowsForkliftLoader(step: FlowStepDefinition): boolean {
 type StepConnectorVariant = 'done' | 'pending' | 'flowing';
 
 /** Colunas: círculo | trilho flex | círculo | trilho | … */
-function buildTrackGridColumns(stepCount: number): string {
+function buildTrackGridColumns(
+  stepCount: number,
+  options?: { wideTracks?: boolean },
+): string {
+  const trackMin = options?.wideTracks ? '1.5rem' : '0.5rem';
   return Array.from({ length: stepCount }, (_, index) =>
-    index === 0 ? 'auto' : 'minmax(0.5rem, 1fr) auto',
+    index === 0 ? 'auto' : `minmax(${trackMin}, 1fr) auto`,
   ).join(' ');
 }
 
@@ -74,6 +78,10 @@ function connectorBetweenSteps(
   statuses: FlowStepStatus[],
 ): StepConnectorVariant {
   const prev = statuses[stepIndex - 1] ?? 'pending';
+  const curr = statuses[stepIndex] ?? 'pending';
+  if (prev === 'done' && curr === 'active') {
+    return 'flowing';
+  }
   if (prev === 'done') {
     return 'done';
   }
@@ -157,7 +165,10 @@ export function HorizontalActivityStepper({
     return null;
   }
 
-  const gridColumns = buildTrackGridColumns(steps.length);
+  /** Fluxos longos (ex.: retirada + abastecimento): trilhos mais largos para o pulso animado. */
+  const wideTracks = steps.length >= 5;
+  const gridColumns = buildTrackGridColumns(steps.length, { wideTracks });
+  const gridMinWidth = wideTracks ? `${steps.length * 5.25}rem` : undefined;
 
   return (
     <div className={cn('w-full', className)}>
@@ -170,10 +181,18 @@ export function HorizontalActivityStepper({
           {headline}
         </p>
       ) : null}
-      <div className="mt-4 w-full min-w-0">
+      <div
+        className={cn(
+          'mt-4 w-full min-w-0',
+          wideTracks && 'overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]',
+        )}
+      >
         <ol
           className="grid w-full min-w-0 list-none gap-y-2 p-0"
-          style={{ gridTemplateColumns: gridColumns }}
+          style={{
+            gridTemplateColumns: gridColumns,
+            ...(gridMinWidth ? { minWidth: gridMinWidth } : {}),
+          }}
         >
           {steps.map((step, index) => {
             const status = statuses[index] ?? 'pending';
@@ -189,7 +208,7 @@ export function HorizontalActivityStepper({
               >
                 {index > 0 ? (
                   <div
-                    className="flex items-center self-center"
+                    className="flex min-w-0 items-center self-center px-0.5"
                     style={{ gridColumn: index * 2, gridRow: 1 }}
                     aria-hidden
                   >
