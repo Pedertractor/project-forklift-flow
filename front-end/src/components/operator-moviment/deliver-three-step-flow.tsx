@@ -108,19 +108,26 @@ export interface DeliverFlowStepConfig {
   theme?: 'blue' | 'purple' | 'green';
 }
 
-/** Altura mínima dos cards de detalhe com várias linhas — alinha colunas no fluxo horizontal. */
-const STEP_DETAILS_MIN_H = 'min-h-[4rem] sm:min-h-[4.5rem]';
+/** Colunas legíveis no fluxo horizontal (grid); trilhos flexíveis entre elas. */
+function buildFlowGridColumns(stepCount: number): string {
+  return Array.from({ length: stepCount }, (_, index) =>
+    index === 0
+      ? 'minmax(5.75rem, 1fr)'
+      : 'minmax(0.5rem, 0.45fr) minmax(5.75rem, 1fr)',
+  ).join(' ');
+}
 
 /** Centro vertical do anel de ícone (número + gap-2 + metade do ícone). */
 const STEP_ICON_RING_CENTER_MT = 'mt-[3.75rem] sm:mt-16';
 
-function FlowStepDotConnector() {
+function FlowStepDotConnector({ gridColumn }: { gridColumn: number }) {
   return (
     <div
       className={cn(
-        'relative h-px w-20 shrink-0 self-start sm:w-28',
+        'relative w-full min-w-0 self-start',
         STEP_ICON_RING_CENTER_MT,
       )}
+      style={{ gridColumn }}
       aria-hidden
     >
       <div className="absolute inset-x-0 top-1/2 h-0 -translate-y-1/2 border-t border-dashed border-zinc-400" />
@@ -173,22 +180,20 @@ function FlowStepIconRing({
 function FlowStepDetailsCard({
   items,
   className,
-  fixedHeight = true,
+  layout = 'row',
 }: {
   items: RouteFlowDetailItem[];
   className?: string;
-  /** No desktop horizontal, força mesma altura entre colunas. */
-  fixedHeight?: boolean;
+  /** `stacked` no fluxo horizontal: ícone acima do texto, com quebra de linha. */
+  layout?: 'row' | 'stacked';
 }) {
-  const singleLine = items.length <= 1;
+  const stacked = layout === 'stacked';
 
   return (
     <div
       className={cn(
-        'flex w-full flex-col overflow-hidden',
-        fixedHeight && !singleLine ? STEP_DETAILS_MIN_H : 'min-h-0',
-        fixedHeight && !singleLine ? 'justify-center' : 'justify-start',
-        !fixedHeight && singleLine && 'mt-1.5',
+        'flex w-full flex-col gap-1.5',
+        stacked ? 'mt-1.5' : 'mt-1',
         className,
       )}
     >
@@ -198,13 +203,25 @@ function FlowStepDetailsCard({
           <div
             key={`${item.kind}-${index}`}
             className={cn(
-              'flex items-center gap-2.5 px-3.5',
-              singleLine ? 'py-1.5' : 'flex-1 py-2.5',
-              index > 0 && 'border-t border-zinc-200',
+              stacked
+                ? 'flex flex-col items-center gap-1 rounded-lg bg-zinc-50/90 px-2 py-2 text-center'
+                : 'flex items-start gap-2 rounded-lg bg-zinc-50/90 px-2.5 py-2',
+              index > 0 && !stacked && 'border-t border-zinc-200',
             )}
           >
-            <Icon className="size-4 shrink-0 text-brand" aria-hidden />
-            <span className="min-w-0 flex-1 text-left text-xs leading-snug text-zinc-800 ">
+            <Icon
+              className={cn(
+                'shrink-0 text-brand',
+                stacked ? 'size-4' : 'mt-0.5 size-4',
+              )}
+              aria-hidden
+            />
+            <span
+              className={cn(
+                'w-full text-xs leading-snug text-zinc-800 wrap-break-word',
+                stacked ? 'text-center' : 'min-w-0 flex-1 text-left',
+              )}
+            >
               {item.text}
             </span>
           </div>
@@ -214,9 +231,20 @@ function FlowStepDetailsCard({
   );
 }
 
-function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
+function FlowStepColumn({
+  step,
+  gridColumn,
+  detailLayout = 'stacked',
+}: {
+  step: DeliverFlowStepConfig;
+  gridColumn?: number;
+  detailLayout?: 'row' | 'stacked';
+}) {
   return (
-    <div className="flex w-[10rem] shrink-0 flex-col sm:w-[11.5rem]">
+    <div
+      className="flex min-w-0 flex-col"
+      style={gridColumn != null ? { gridColumn } : undefined}
+    >
       <div className="flex flex-col items-center gap-2">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white">
           {step.stepNumber}
@@ -224,12 +252,15 @@ function FlowStepColumn({ step }: { step: DeliverFlowStepConfig }) {
 
         <FlowStepIconRing stepId={step.stepId} />
 
-        <p className="m-0 flex min-h-[2.5rem] w-full items-center justify-center px-1 text-center text-xs font-bold leading-snug text-zinc-900 sm:min-h-[2.75rem] sm:text-sm">
+        <p className="m-0 w-full px-1 text-center text-xs font-bold leading-snug wrap-break-word text-zinc-900">
           {step.label}
         </p>
       </div>
 
-      <FlowStepDetailsCard items={step.details} className="mt-1" />
+      <FlowStepDetailsCard
+        items={step.details}
+        layout={detailLayout}
+      />
     </div>
   );
 }
@@ -260,7 +291,7 @@ function FlowStepVerticalRow({
             <p className="text-sm font-bold leading-snug text-zinc-900">
               {step.label}
             </p>
-            <FlowStepDetailsCard items={step.details} fixedHeight={false} />
+            <FlowStepDetailsCard items={step.details} layout="row" />
           </div>
         </div>
       </div>
@@ -292,15 +323,30 @@ function DeliverThreeStepFlowHorizontal({
 }: {
   steps: DeliverFlowStepConfig[];
 }) {
+  const gridColumns = buildFlowGridColumns(steps.length);
+
   return (
-    <div className="w-full min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch]">
-      <div className="flex min-w-max items-start justify-center px-2">
-        {steps.map((step, index) => (
-          <Fragment key={step.stepNumber}>
-            <FlowStepColumn step={step} />
-            {index < steps.length - 1 ? <FlowStepDotConnector /> : null}
-          </Fragment>
-        ))}
+    <div className="w-full min-w-0 px-1 sm:px-2">
+      <div
+        className="grid w-full min-w-0 list-none gap-y-3"
+        style={{ gridTemplateColumns: gridColumns }}
+      >
+        {steps.map((step, index) => {
+          const circleColumn = index * 2 + 1;
+
+          return (
+            <Fragment key={step.stepNumber}>
+              {index > 0 ? (
+                <FlowStepDotConnector gridColumn={index * 2} />
+              ) : null}
+              <FlowStepColumn
+                step={step}
+                gridColumn={circleColumn}
+                detailLayout="stacked"
+              />
+            </Fragment>
+          );
+        })}
       </div>
     </div>
   );

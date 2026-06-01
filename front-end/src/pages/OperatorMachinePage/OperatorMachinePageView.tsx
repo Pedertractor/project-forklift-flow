@@ -29,6 +29,8 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     canPickup,
     canOpenRequestDialog,
     pickupBlockedMessage,
+    palletAtReceiving,
+    palletAtReceivingBlockedMessage,
     submitServiceRequest,
     serviceRequestSubmitPending,
     operatorSupplyRequests,
@@ -42,6 +44,12 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   } = vm;
 
   const pickingMachine = showMachinePicker || !current;
+  const cancelPickupTask =
+    cancelPickupId != null
+      ? (pickupTasks.find((p) => p.id === cancelPickupId) ?? null)
+      : null;
+  const cancelIncludesReplenishment =
+    cancelPickupTask?.triggersReplenishment === true;
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
@@ -136,9 +144,13 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
           <>
             <OperatorMachineOperationGrid
               openSupply={openOperatorSupply}
+              deliveryTasks={deliveryTasks}
               canPickup={canPickup}
               canOpenRequestDialog={canOpenRequestDialog}
               pickupBlockedMessage={pickupBlockedMessage}
+              palletAtReceivingBlockedMessage={
+                palletAtReceiving ? palletAtReceivingBlockedMessage : null
+              }
               serviceRequestSubmitPending={serviceRequestSubmitPending}
               busy={busy}
               apiReady={apiReady}
@@ -166,7 +178,11 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
       <SimpleModal
         open={cancelPickupId !== null}
         onClose={() => setCancelPickupId(null)}
-        title="Cancelar solicitação de retirada"
+        title={
+          cancelIncludesReplenishment
+            ? 'Cancelar retirada e abastecimento'
+            : 'Cancelar solicitação de retirada'
+        }
         footer={
           <ModalActions
             onCancel={() => setCancelPickupId(null)}
@@ -186,8 +202,9 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         }
       >
         <p className="m-0 text-sm text-zinc-600">
-          O transporte ainda não aceitou esta retirada. Deseja cancelar a
-          solicitação? Esta ação não pode ser desfeita.
+          {cancelIncludesReplenishment
+            ? 'O transporte ainda não aceitou a retirada. O aviso ao abastecimento também será cancelado (e a entrega em preparo, se já tiver sido registrada). Deseja continuar? Esta ação não pode ser desfeita.'
+            : 'O transporte ainda não aceitou esta retirada. Deseja cancelar a solicitação? Esta ação não pode ser desfeita.'}
         </p>
       </SimpleModal>
 

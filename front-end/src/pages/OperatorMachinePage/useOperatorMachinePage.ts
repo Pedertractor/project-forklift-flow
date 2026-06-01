@@ -19,6 +19,9 @@ import {
   canOpenServiceRequestDialog,
   canRequestSupply,
   canRequestPickup,
+  canRequestPickupWithReplenishment,
+  hasPalletAtReceiving,
+  PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
   pickupBlockedReason,
 } from './operator-machine-flow';
 import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
@@ -124,12 +127,17 @@ export function useOperatorMachinePage() {
       return list.find((r) => r.status === 'OPEN') ?? null;
     }, [operatorSupplyQuery.data]);
 
+  const palletAtReceiving = hasPalletAtReceiving(deliveryTasks);
   const canPickup = canRequestPickup(deliveryTasks, pickupTasks);
   const pickupBlockedMessage = pickupBlockedReason(deliveryTasks, pickupTasks);
-  const canRequestSupplyNow = canRequestSupply(openOperatorSupply);
+  const canRequestSupplyNow = canRequestSupply(openOperatorSupply, deliveryTasks);
+  const canPickupWithReplenishment = canRequestPickupWithReplenishment(
+    deliveryTasks,
+  );
   const canOpenRequestDialog = canOpenServiceRequestDialog(
     canPickup,
     openOperatorSupply,
+    deliveryTasks,
   );
 
   const unbindMut = useMutation({
@@ -156,7 +164,11 @@ export function useOperatorMachinePage() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
-      toast.success('Retirada solicitada. O transporte será acionado.');
+      toast.success(
+        palletAtReceiving
+          ? 'Retirada solicitada. O transporte receberá a sugestão de entrega e retirada.'
+          : 'Retirada solicitada. O transporte será acionado.',
+      );
     },
     onError: toastApiError,
   });
@@ -225,11 +237,17 @@ export function useOperatorMachinePage() {
   const cancelPickupMut = useMutation({
     mutationFn: (pickupTaskId: string) =>
       postCancelOperatorPickup(pickupTaskId),
-    onSuccess: () => {
+    onSuccess: (result) => {
       setCancelPickupId(null);
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
+      void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-      toast.success('Solicitação de retirada cancelada.');
+      void queryClient.invalidateQueries({ queryKey: ['delivery-tasks'] });
+      toast.success(
+        result.replenishmentCanceled
+          ? 'Solicitação de retirada e abastecimento canceladas.'
+          : 'Solicitação de retirada cancelada.',
+      );
     },
     onError: toastApiError,
   });
@@ -261,6 +279,9 @@ export function useOperatorMachinePage() {
     openOperatorSupply,
     canPickup,
     canRequestSupplyNow,
+    canPickupWithReplenishment,
+    palletAtReceiving,
+    palletAtReceivingBlockedMessage: PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
     canOpenRequestDialog,
     pickupBlockedMessage,
     operatorSupplyRequests: operatorSupplyQuery.data ?? [],

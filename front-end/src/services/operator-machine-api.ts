@@ -96,14 +96,16 @@ export async function postOperatorPickupOnly(options?: {
 }
 
 export async function postCancelOperatorPickup(pickupTaskId: string) {
-  const res = await apiAuthFetch<{ pickupTask: PickupTaskListItem }>(
-    API_ENDPOINTS.OPERATOR_MACHINE.CANCEL_PICKUP(pickupTaskId),
-    { method: 'POST' },
-  );
+  const res = await apiAuthFetch<{
+    pickupTask: PickupTaskListItem;
+    replenishmentCanceled?: boolean;
+  }>(API_ENDPOINTS.OPERATOR_MACHINE.CANCEL_PICKUP(pickupTaskId), {
+    method: 'POST',
+  });
   if (!res?.pickupTask) {
     throw new Error('Resposta inválida ao cancelar retirada.');
   }
-  return res.pickupTask;
+  return res;
 }
 
 export async function postOperatorSupplyOnly() {

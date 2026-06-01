@@ -104,11 +104,32 @@ export function resolveOperationTimelineMode(
   return null;
 }
 
+/** Entrega aceita pelo abastecimento, pallet pronto no recebimento, aguardando transporte. */
+export function hasPalletAtReceiving(
+  deliveryTasks: DeliveryTaskListItem[],
+): boolean {
+  return deliveryTasks.some(
+    (t) =>
+      t.status === 'CREATED' &&
+      t.acceptedBySupply &&
+      t.preparedAt != null,
+  );
+}
+
+export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE =
+  'Há pallet no recebimento aguardando transporte. Solicite apenas a retirada do prisma na máquina para abrir a sugestão de entrega e retirada.';
+
 export function canRequestPickup(
   deliveryTasks: DeliveryTaskListItem[],
   _pickupTasks: PickupTaskListItem[],
 ): boolean {
   return deliveryTasks.some((t) => t.status === 'COMPLETED' && t.completedAt);
+}
+
+export function canRequestPickupWithReplenishment(
+  deliveryTasks: DeliveryTaskListItem[],
+): boolean {
+  return !hasPalletAtReceiving(deliveryTasks);
 }
 
 export function pickupBlockedReason(
@@ -351,15 +372,21 @@ export function hasOpenOperatorSupply(
 
 export function canRequestSupply(
   openSupply: OperatorMachineSupplyRequestListItem | null,
+  deliveryTasks: DeliveryTaskListItem[] = [],
 ): boolean {
+  if (hasPalletAtReceiving(deliveryTasks)) return false;
   return !hasOpenOperatorSupply(openSupply);
 }
 
 export function canOpenServiceRequestDialog(
   canPickup: boolean,
   openSupply: OperatorMachineSupplyRequestListItem | null,
+  deliveryTasks: DeliveryTaskListItem[] = [],
 ): boolean {
-  return canPickup || canRequestSupply(openSupply);
+  if (hasPalletAtReceiving(deliveryTasks)) {
+    return canPickup;
+  }
+  return canPickup || canRequestSupply(openSupply, deliveryTasks);
 }
 
 export function shouldShowSupplyPanel(

@@ -164,8 +164,8 @@ export function SuggestionFlowStep({
       className={cn(
         'flex flex-1 flex-col items-center text-center gap-2',
         compact
-          ? 'min-w-[4.5rem] max-w-[6.5rem] sm:min-w-[5rem] sm:max-w-[7rem]'
-          : 'min-w-[4.75rem] max-w-[11rem] sm:max-w-[12rem]',
+          ? 'min-w-0 max-w-none'
+          : 'min-w-0 max-w-none',
       )}
     >
       <div
@@ -181,16 +181,20 @@ export function SuggestionFlowStep({
       </div>
       <p
         className={cn(
-          'font-bold uppercase tracking-wide text-zinc-700',
+          'w-full font-bold uppercase tracking-wide wrap-break-word text-zinc-700',
           compact
-            ? 'mt-1 text-[0.5625rem] leading-tight sm:text-[0.6rem]'
-            : 'mt-2.5 text-[0.6875rem]',
+            ? 'mt-1 text-[0.625rem] leading-snug sm:text-xs'
+            : 'mt-2.5 text-xs',
         )}
       >
         {label}
       </p>
       {details && details.length > 0 ? (
-        <RouteFlowStepDetails items={details} size={size} />
+        <RouteFlowStepDetails
+          items={details}
+          size={size}
+          className="w-full"
+        />
       ) : null}
     </div>
   );

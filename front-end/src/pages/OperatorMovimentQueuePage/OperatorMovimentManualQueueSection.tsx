@@ -29,7 +29,7 @@ function DeliverRequestFlow({
   row: OperatorReplenishmentRequestItem;
 }) {
   return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-0.5 pt-0 [-webkit-overflow-scrolling:touch]">
+    <div className="flex w-full min-w-0 items-start pb-0.5 pt-0">
       <SuggestionFlowStep
         size="compact"
         stepId="receiving"
@@ -58,7 +58,7 @@ function DeliverRequestFlow({
 function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
   const req = task.request;
   return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-0.5 pt-0 [-webkit-overflow-scrolling:touch]">
+    <div className="flex w-full min-w-0 items-start pb-0.5 pt-0">
       <SuggestionFlowStep
         size="compact"
         stepId="machine"

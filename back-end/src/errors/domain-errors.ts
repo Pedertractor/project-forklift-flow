@@ -125,6 +125,15 @@ export class MachineHasNoMaterialForPickupError extends Error {
   }
 }
 
+export class OperatorRequestBlockedByPalletAtReceivingError extends Error {
+  constructor(
+    message = 'Ha pallet no recebimento aguardando transporte. Solicite apenas a retirada do prisma na maquina para abrir a sugestao de entrega e retirada.',
+  ) {
+    super(message)
+    this.name = 'OperatorRequestBlockedByPalletAtReceivingError'
+  }
+}
+
 export class MachineReplenishmentRequestNotEditableError extends Error {
   constructor(
     message = "Solicitacao concluida ou cancelada; nao e possivel alterar.",

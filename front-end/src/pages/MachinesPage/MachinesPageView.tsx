@@ -191,10 +191,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <tbody>
               {machinesQuery.isLoading ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-zinc-500"
-                  >
+                  <td colSpan={6} className="px-4 py-8 text-zinc-500">
                     <div className="flex items-center justify-center">
                       <AccordionLoader />
                     </div>
@@ -372,16 +369,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="m-user">Operador (UUID, opcional)</Label>
-            <Input
-              id="m-user"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="Deixe vazio se não houver"
-              className="font-mono text-xs"
-            />
           </div>
         </div>
       </SimpleModal>

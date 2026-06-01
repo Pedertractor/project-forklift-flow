@@ -9,7 +9,12 @@ import {
   movimentTypePublicIconPath,
   replenishmentMovimentTypeLabel,
 } from '@/utils/operator-moviment-display';
-import { canRequestSupply } from './operator-machine-flow';
+import {
+  canRequestPickupWithReplenishment,
+  canRequestSupply,
+  PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
+} from './operator-machine-flow';
+import type { DeliveryTaskListItem } from '@/types/machine-task.types';
 import { AlertTriangle, ArrowDownLeft, ArrowUpRight, ChevronLeft } from 'lucide-react';
 
 export type OperatorServiceSelection = {
@@ -47,6 +52,7 @@ export interface OperatorMachineOpenRequestDialogProps {
   open: boolean;
   onClose: () => void;
   openSupply: OperatorMachineSupplyRequestListItem | null;
+  deliveryTasks: DeliveryTaskListItem[];
   canPickup: boolean;
   pickupBlockedMessage: string | null;
   submitPending: boolean;
@@ -57,6 +63,7 @@ export function OperatorMachineOpenRequestDialog({
   open,
   onClose,
   openSupply,
+  deliveryTasks,
   canPickup,
   pickupBlockedMessage,
   submitPending,
@@ -70,8 +77,12 @@ export function OperatorMachineOpenRequestDialog({
   const [typeMovimentPallet, setTypeMovimentPallet] =
     useState<TypeMovimentPalletValue>('FORKLIFT');
 
-  const supplyAvailable = canRequestSupply(openSupply);
+  const supplyAvailable = canRequestSupply(openSupply, deliveryTasks);
   const supplyAlreadyOpen = openSupply?.status === 'OPEN';
+  const pickupWithReplenishmentAvailable =
+    canRequestPickupWithReplenishment(deliveryTasks);
+  const palletAtReceivingBlockedMessage =
+    PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE;
 
   useEffect(() => {
     if (!open) {
@@ -84,13 +95,18 @@ export function OperatorMachineOpenRequestDialog({
     }
   }, [open]);
 
-  const canSelectBoth = canPickup && (supplyAvailable || supplyAlreadyOpen);
+  const canSelectBoth =
+    canPickup &&
+    pickupWithReplenishmentAvailable &&
+    (supplyAvailable || supplyAlreadyOpen);
 
   const combinedBlockedHint = !canPickup
     ? pickupBlockedMessage
-    : !supplyAvailable && !supplyAlreadyOpen
-      ? 'Abastecimento indisponível no momento.'
-      : null;
+    : !pickupWithReplenishmentAvailable
+      ? palletAtReceivingBlockedMessage
+      : !supplyAvailable && !supplyAlreadyOpen
+        ? 'Abastecimento indisponível no momento.'
+        : null;
 
   const canConfirm = (pickup && canPickup) || (supply && supplyAvailable);
 
@@ -157,7 +173,11 @@ export function OperatorMachineOpenRequestDialog({
     step === 1 ? 'Abrir solicitação' : 'Tipo de retirada';
   const modalDescription =
     step === 1
-      ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
+      ? pickupWithReplenishmentAvailable
+        ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
+        : canPickup
+          ? 'Há pallet no recebimento — solicite apenas a retirada do prisma na máquina para abrir a sugestão de entrega e retirada.'
+          : 'Selecione o serviço desejado abaixo.'
       : 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.';
 
   return (
@@ -327,9 +347,11 @@ export function OperatorMachineOpenRequestDialog({
             title="Solicitar abastecimento de pallet"
             description="Avisa o abastecimento para registrar a próxima entrega."
             hint={
-              supplyAlreadyOpen
-                ? 'Já existe uma solicitação em aberto — o abastecimento e o transporte já foram avisados.'
-                : undefined
+              !pickupWithReplenishmentAvailable
+                ? palletAtReceivingBlockedMessage
+                : supplyAlreadyOpen
+                  ? 'Já existe uma solicitação em aberto — o abastecimento e o transporte já foram avisados.'
+                  : undefined
             }
           />
         </div>

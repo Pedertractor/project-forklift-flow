@@ -5,6 +5,7 @@ import {
 } from '../generated/prisma/enums.js'
 import {
   MachineHasNoMaterialForPickupError,
+  OperatorRequestBlockedByPalletAtReceivingError,
   MachineNotFoundError,
   MachineNotInOperatorSectorError,
   OperatorMachineNotBoundError,
@@ -199,6 +200,9 @@ export const postRequestSupplyOnly: RouteHandlerMethod = async (
     if (error instanceof OperatorMachineNotBoundError) {
       return reply.status(400).send({ error: error.message })
     }
+    if (error instanceof OperatorRequestBlockedByPalletAtReceivingError) {
+      return reply.status(409).send({ error: error.message })
+    }
     throw error
   }
 }
@@ -227,6 +231,9 @@ export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
       return reply.status(409).send({ error: error.message })
     }
     if (error instanceof PickupTaskAlreadyOpenError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof OperatorRequestBlockedByPalletAtReceivingError) {
       return reply.status(409).send({ error: error.message })
     }
     throw error

@@ -170,9 +170,9 @@ export function HorizontalActivityStepper({
           {headline}
         </p>
       ) : null}
-      <div className="mt-4 -mx-1 overflow-x-auto pb-1">
+      <div className="mt-4 w-full min-w-0">
         <ol
-          className="grid w-full min-w-lg list-none gap-y-2 p-0"
+          className="grid w-full min-w-0 list-none gap-y-2 p-0"
           style={{ gridTemplateColumns: gridColumns }}
         >
           {steps.map((step, index) => {
@@ -206,7 +206,7 @@ export function HorizontalActivityStepper({
                 </div>
                 <p
                   className={cn(
-                    'm-0 max-w-15 justify-self-center px-0.5 text-center text-[11px] leading-snug font-medium',
+                    'm-0 min-w-0 max-w-full justify-self-center px-0.5 text-center text-[10px] leading-snug font-medium break-words sm:text-[11px]',
                     done
                       ? 'text-emerald-800'
                       : active

@@ -109,10 +109,8 @@ export function RouteFlowStepDetails({
             />
             <span
               className={cn(
-                'min-w-0 flex-1 font-medium leading-snug text-zinc-800',
-                compact
-                  ? 'text-[0.5625rem] sm:text-[0.6rem]'
-                  : 'text-[0.6875rem] sm:text-xs',
+                'min-w-0 flex-1 font-medium leading-snug wrap-break-word text-zinc-800',
+                compact ? 'text-[0.625rem] sm:text-xs' : 'text-xs sm:text-sm',
               )}
             >
               {item.text}
