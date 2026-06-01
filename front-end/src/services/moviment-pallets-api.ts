@@ -8,15 +8,28 @@ export async function fetchMovimentPallets(filters?: {
   /** Inclui contagem de tarefas em aberto por equipamento (painel do abastecedor). */
   includeTaskAvailability?: boolean;
 }): Promise<MovimentPalletListItem[]> {
+  if (filters?.includeTaskAvailability) {
+    const params = new URLSearchParams();
+    if (filters.sectorId !== undefined && filters.sectorId.trim() !== '') {
+      params.set('sectorId', filters.sectorId.trim());
+    }
+    const q = params.toString();
+    const path = q
+      ? `${API_ENDPOINTS.DELIVERY_TASKS.SECTOR_TRANSPORT_OPERATORS}?${q}`
+      : API_ENDPOINTS.DELIVERY_TASKS.SECTOR_TRANSPORT_OPERATORS;
+    const res = await apiAuthFetch<{ movimentPallets: MovimentPalletListItem[] }>(
+      path,
+      { method: 'GET' },
+    );
+    return res?.movimentPallets ?? [];
+  }
+
   const params = new URLSearchParams();
   if (filters?.sectorId !== undefined && filters.sectorId.trim() !== '') {
     params.set('sectorId', filters.sectorId.trim());
   }
   if (filters?.type !== undefined) {
     params.set('type', filters.type);
-  }
-  if (filters?.includeTaskAvailability) {
-    params.set('includeTaskAvailability', 'true');
   }
   const q = params.toString();
   const path = q ? `${API_ENDPOINTS.MOVIMENT_PALLETS.LIST}?${q}` : API_ENDPOINTS.MOVIMENT_PALLETS.LIST;

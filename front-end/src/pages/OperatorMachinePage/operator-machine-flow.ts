@@ -117,7 +117,7 @@ export function hasPalletAtReceiving(
 }
 
 export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE =
-  'Há pallet no recebimento aguardando transporte. Solicite apenas a retirada do prisma na máquina para abrir a sugestão de entrega e retirada.';
+  'Há pallet no recebimento aguardando transporte. Solicite apenas a retirada do pallet na máquina para abrir a sugestão de entrega e retirada.';
 
 export function canRequestPickup(
   deliveryTasks: DeliveryTaskListItem[],
@@ -137,7 +137,7 @@ export function pickupBlockedReason(
   _pickupTasks: PickupTaskListItem[],
 ): string | null {
   if (canRequestPickup(deliveryTasks, _pickupTasks)) return null;
-  return 'Aguarde uma entrega ser concluída na máquina para solicitar a retirada do prisma.';
+  return 'Aguarde uma entrega ser concluída na máquina para solicitar a retirada do pallet.';
 }
 
 export function hasOpenPickup(pickupTasks: PickupTaskListItem[]): boolean {

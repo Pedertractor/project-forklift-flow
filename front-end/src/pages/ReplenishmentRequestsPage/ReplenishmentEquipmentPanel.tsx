@@ -31,10 +31,18 @@ export interface ReplenishmentEquipmentPanelProps {
   embedded?: boolean;
 }
 
-function operatorRoleShort(role: string | undefined): string | null {
+function operatorRoleShort(
+  role: string | undefined,
+  equipmentType: MovimentPalletEquipmentType,
+): string | null {
+  if (equipmentType === 'FORKLIFT') return 'Empilhadeirista';
+  if (equipmentType === 'PALLET_TRUCK') return 'Transpaleteirista';
   if (!role) return null;
   if (role === 'FORKLIFT_OPERATOR') return 'Empilhadeirista';
   if (role === 'FOLLOW_UP_OPERATOR') return 'Transpaleteirista';
+  if (role === 'PALLET_TRANSPORTER') {
+    return equipmentType === 'FORKLIFT' ? 'Empilhadeirista' : 'Transpaleteirista';
+  }
   return null;
 }
 
@@ -48,7 +56,7 @@ function EquipmentBlock({
   const unbound = item.operatorId === null;
   const activeTasks = incompleteAssignedTaskCount(item);
   const readyForQueue = isReadyToAcceptReplenishmentQueue(item);
-  const operatorLabel = operatorRoleShort(item.operator?.role);
+  const operatorLabel = operatorRoleShort(item.operator?.role, item.type);
 
   const ringClass = readyForQueue
     ? 'border-sky-300/90 bg-gradient-to-br from-sky-50/90 to-white'
@@ -92,7 +100,7 @@ function EquipmentBlock({
           />
         </div>
         <div className={cn('min-w-0', compact ? 'w-full' : 'flex-1')}>
-          <p className="m-0 font-mono text-sm font-bold tracking-tight text-zinc-900">
+          <p className="m-0 text-sm font-bold tracking-tight text-zinc-900">
             {item.code}
           </p>
           {readyForQueue ? (
@@ -110,18 +118,18 @@ function EquipmentBlock({
           )}
           {!unbound && item.operator ? (
             <p className="mt-1.5 m-0 text-xs leading-snug text-zinc-700">
-              <span className="font-medium text-zinc-900">
-                {item.operator.name}
-              </span>
               {operatorLabel ? (
-                <span className="text-zinc-500"> · {operatorLabel}</span>
+                <span className="font-medium text-zinc-900">{operatorLabel}</span>
+              ) : null}
+              {item.operator.card ? (
+                <span className="text-zinc-500">
+                  {operatorLabel ? ' · ' : ''}
+                  Crachá {item.operator.card}
+                </span>
               ) : null}
             </p>
           ) : unbound ? (
-            <p
-              className="mt-1.5 m-0 text
-            xs text-zinc-600"
-            >
+            <p className="mt-1.5 m-0 text-xs text-zinc-600">
               {activeTasks === 0
                 ? 'Sem tarefa — aguardando operador vincular'
                 : 'Aguardando operador para retomar'}
@@ -218,13 +226,7 @@ function EquipmentColumn({
             </span>
           </p>
           <p className="mt-0.5 m-0 text-[0.625rem] text-zinc-500">
-            {stats.total} no setor
-            {stats.available > 0 ? (
-              <>
-                <span className="text-zinc-400"> · </span>
-                {stats.available} sem operador
-              </>
-            ) : null}
+            {stats.total} em operação no setor
           </p>
           {stats.queuePending > 0 ? (
             <p className="mt-0.5 m-0 text-[0.625rem] font-medium text-brand">
@@ -239,7 +241,7 @@ function EquipmentColumn({
 
       {items.length === 0 ? (
         <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-3 py-4 text-center text-xs text-zinc-500">
-          Nenhuma {title.toLowerCase()} cadastrada neste filtro.
+          Nenhum operador de {title.toLowerCase()} em operação neste setor.
         </p>
       ) : (
         <ul

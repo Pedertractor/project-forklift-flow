@@ -127,7 +127,7 @@ export class MachineHasNoMaterialForPickupError extends Error {
 
 export class OperatorRequestBlockedByPalletAtReceivingError extends Error {
   constructor(
-    message = 'Ha pallet no recebimento aguardando transporte. Solicite apenas a retirada do prisma na maquina para abrir a sugestao de entrega e retirada.',
+    message = 'Ha pallet no recebimento aguardando transporte. Solicite apenas a retirada do pallet na maquina para abrir a sugestao de entrega e retirada.',
   ) {
     super(message)
     this.name = 'OperatorRequestBlockedByPalletAtReceivingError'

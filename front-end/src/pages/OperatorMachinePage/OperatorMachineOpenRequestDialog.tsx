@@ -176,7 +176,7 @@ export function OperatorMachineOpenRequestDialog({
       ? pickupWithReplenishmentAvailable
         ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
         : canPickup
-          ? 'Há pallet no recebimento — solicite apenas a retirada do prisma na máquina para abrir a sugestão de entrega e retirada.'
+          ? 'Há pallet no recebimento — solicite apenas a retirada do pallet na máquina para abrir a sugestão de entrega e retirada.'
           : 'Selecione o serviço desejado abaixo.'
       : 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.';
 

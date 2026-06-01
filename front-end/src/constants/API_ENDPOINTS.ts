@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   DELIVERY_TASKS: {
     LIST: '/delivery-tasks',
     PENDING_SUPPLY_REQUESTS: '/delivery-tasks/pending-supply-requests',
+    SECTOR_TRANSPORT_OPERATORS: '/delivery-tasks/sector-transport-operators',
     BY_ID: (taskId: string) => `/delivery-tasks/${encodeURIComponent(taskId)}`,
     MARK_PREPARED: (taskId: string) =>
       `/delivery-tasks/${encodeURIComponent(taskId)}/mark-prepared`,

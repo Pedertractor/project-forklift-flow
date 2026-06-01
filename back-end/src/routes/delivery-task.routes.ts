@@ -3,6 +3,7 @@ import {
   getDeliveryTaskByIdHandler,
   getListDeliveryTasks,
   getPendingSupplyRequests,
+  getSectorTransportOperators,
   postCreateDeliveryTask,
   postMarkDeliveryTaskPrepared,
 } from '../controllers/delivery-task-controller.js'
@@ -23,6 +24,16 @@ export async function registerDeliveryTaskRoutes(fastify: FastifyInstance) {
           ],
         },
         getPendingSupplyRequests,
+      )
+      router.get(
+        '/sector-transport-operators',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireMachineReplenishmentReadRoles(),
+          ],
+        },
+        getSectorTransportOperators,
       )
       router.post(
         '/',

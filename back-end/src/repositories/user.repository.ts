@@ -1,5 +1,9 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type { IsOperating, RoleUser, Unit } from '../generated/prisma/enums.js'
+import type {
+  IsOperating,
+  RoleUser,
+  Unit,
+} from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
 
 export const userRepository = {
@@ -53,6 +57,28 @@ export const userRepository = {
         sectorId: true,
         sector: { select: { id: true, typeSector: true } },
       },
+    })
+  },
+
+  findManyOperatingTransportInSector(sectorId: string) {
+    return prisma.user.findMany({
+      where: {
+        sectorId,
+        isOperating: { not: null },
+      },
+      select: {
+        id: true,
+        name: true,
+        card: true,
+        unit: true,
+        role: true,
+        sectorId: true,
+        isOperating: true,
+        createdAt: true,
+        updatedAt: true,
+        sector: { select: { id: true, typeSector: true } },
+      },
+      orderBy: { name: 'asc' },
     })
   },
 

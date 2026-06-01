@@ -106,7 +106,7 @@ export function useReplenishmentRequestsPage() {
 
   const equipmentQuery = useQuery({
     queryKey: [
-      'moviment-pallets',
+      'sector-transport-operators',
       'replenishment-sidebar',
       equipmentSectorId ?? 'all',
     ],
@@ -115,7 +115,7 @@ export function useReplenishmentRequestsPage() {
         ...(equipmentSectorId ? { sectorId: equipmentSectorId } : {}),
         includeTaskAvailability: true,
       }),
-    enabled: false,
+    enabled: apiReady && Boolean(equipmentSectorId),
     refetchInterval: 15_000,
   });
 
@@ -226,7 +226,7 @@ export function useReplenishmentRequestsPage() {
       void queryClient.invalidateQueries({
         queryKey: ['operator-machine', 'operator-supply-requests'],
       });
-      void queryClient.invalidateQueries({ queryKey: ['moviment-pallets'] });
+      void queryClient.invalidateQueries({ queryKey: ['sector-transport-operators'] });
       setCreateOpen(false);
       resetForm();
       toast.success('Solicitação criada.');

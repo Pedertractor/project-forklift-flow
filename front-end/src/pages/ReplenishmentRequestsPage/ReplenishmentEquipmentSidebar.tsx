@@ -71,7 +71,8 @@ export function ReplenishmentEquipmentSidebar({
               Meios de locomoção
             </h2>
             <p className="mt-1 m-0 text-xs leading-snug text-zinc-600">
-              Equipamentos sem tarefa ativa podem acatar reposição na fila.
+              Operadores em operação no setor — sem tarefa ativa podem acatar
+              reposição na fila.
             </p>
             {!panelProps.isLoading && !panelProps.isError ? (
               <p className="mt-2 m-0 text-[0.6875rem] font-medium text-zinc-700">

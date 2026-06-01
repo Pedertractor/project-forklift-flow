@@ -206,10 +206,6 @@ function RequestFlowCard({
               {flowCardTitle(row)}
               <TaskKindIcon kind={row.kind} />
             </h3>
-            <p className="m-0 mt-1 text-xs text-zinc-500">{row.title}</p>
-            {row.subtitle ? (
-              <p className="m-0 mt-0.5 text-xs text-zinc-500">{row.subtitle}</p>
-            ) : null}
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
               {row.isCritical ? (
                 <span className="inline-flex rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-800 ring-1 ring-inset ring-red-200">
