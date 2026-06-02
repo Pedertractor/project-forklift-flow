@@ -88,6 +88,18 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     ],
   },
   {
+    id: 'admin-dashboard',
+    title: 'Supervisão',
+    rolesDescription: 'Líder (LEADER) e administrador (ADMIN).',
+    items: [
+      {
+        to: '/dashboard',
+        label: 'Painel operacional',
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
+      },
+    ],
+  },
+  {
     id: 'admin-setores',
     title: 'Administração — setores',
     rolesDescription: 'Somente administrador (ADMIN).',
