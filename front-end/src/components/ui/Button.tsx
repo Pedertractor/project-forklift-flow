@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -23,26 +23,32 @@ const sizeClass: Record<NonNullable<ButtonProps['size']>, string> = {
     'size-10 rounded-[min(0.75rem,12px)] p-0 text-zinc-600 [&_svg]:size-4',
 };
 
-export function Button({
-  children,
-  variant = 'default',
-  size = 'default',
-  className = '',
-  type = 'button',
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-xl font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
-        variantClass[variant],
-        sizeClass[size],
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  function Button(
+    {
+      children,
+      variant = 'default',
+      size = 'default',
+      className = '',
+      type = 'button',
+      ...props
+    },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        type={type}
+        className={cn(
+          'inline-flex shrink-0 items-center justify-center rounded-xl font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+          variantClass[variant],
+          sizeClass[size],
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  },
+);

@@ -27,7 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { DashboardDatePicker } from './DashboardDatePicker';
 import {
   ChartContainer,
   ChartLegend,
@@ -142,12 +142,7 @@ function DashboardFilters({
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
       <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 text-sm sm:max-w-[14rem]">
         <span className="font-medium text-zinc-700">Data</span>
-        <Input
-          type="date"
-          value={selectedDate}
-          onChange={(event) => onDateChange(event.target.value)}
-          aria-label="Filtrar por data"
-        />
+        <DashboardDatePicker value={selectedDate} onChange={onDateChange} />
       </label>
       <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5 text-sm sm:max-w-[20rem]">
         <span className="font-medium text-zinc-700">Máquina</span>
