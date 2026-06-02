@@ -4,7 +4,7 @@ import {
 } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
 
-const listInclude = {
+export const operatorMachineSupplyRequestListInclude = {
   machine: {
     select: {
       id: true,
@@ -36,20 +36,22 @@ const listInclude = {
 } as const
 
 export type OperatorMachineSupplyRequestListRow =
-  Prisma.OperatorMachineSupplyRequestGetPayload<{ include: typeof listInclude }>
+  Prisma.OperatorMachineSupplyRequestGetPayload<{
+    include: typeof operatorMachineSupplyRequestListInclude
+  }>
 
 export const operatorMachineSupplyRequestRepository = {
   create(data: Prisma.OperatorMachineSupplyRequestCreateInput) {
     return prisma.operatorMachineSupplyRequest.create({
       data,
-      include: listInclude,
+      include: operatorMachineSupplyRequestListInclude,
     })
   },
 
   findFirstOpenByMachineId(machineId: string) {
     return prisma.operatorMachineSupplyRequest.findFirst({
       where: { machineId, status: OperatorMachineSupplyRequestStatus.OPEN },
-      include: listInclude,
+      include: operatorMachineSupplyRequestListInclude,
       orderBy: { createdAt: 'desc' },
     })
   },
@@ -66,7 +68,7 @@ export const operatorMachineSupplyRequestRepository = {
     }
     return prisma.operatorMachineSupplyRequest.findMany({
       where,
-      include: listInclude,
+      include: operatorMachineSupplyRequestListInclude,
       orderBy: { createdAt: 'desc' },
     })
   },
@@ -77,7 +79,7 @@ export const operatorMachineSupplyRequestRepository = {
         status: OperatorMachineSupplyRequestStatus.OPEN,
         machine: { sectorId },
       },
-      include: listInclude,
+      include: operatorMachineSupplyRequestListInclude,
       orderBy: [{ machine: { name: 'asc' } }, { createdAt: 'asc' }],
     })
   },

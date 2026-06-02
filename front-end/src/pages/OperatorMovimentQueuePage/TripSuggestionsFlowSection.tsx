@@ -29,6 +29,11 @@ import type {
 
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
+import {
+  buildMainTripQueueItems,
+  pickTopMainTripQueueItem,
+  type MainTripQueueItem,
+} from '@/utils/operator-moviment-trip-queue';
 
 import { ArrowDownLeft, ArrowUpRight, Box, Check } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
@@ -446,87 +451,72 @@ function StandalonePickupRouteCard({
   );
 }
 
-type MainTripQueueItem =
-  | {
-      displayKind: 'combined';
+function renderMainTripQueueItem(
+  item: MainTripQueueItem,
+  options: {
+    bound: boolean;
+    busy: boolean;
+    pendingTripSuggestionId: string | null;
+    pendingStandalonePickupTaskId: string | null;
+    pendingStandaloneDeliverKey: string | null;
+    onAcceptTrip: (tripSuggestionId: string) => void;
+    onAcceptStandalonePickup: (taskId: string) => void;
+    onAcceptStandaloneDeliver: (row: TripStandaloneDeliverApi) => void;
+  },
+) {
+  const {
+    bound,
+    busy,
+    pendingTripSuggestionId,
+    pendingStandalonePickupTaskId,
+    pendingStandaloneDeliverKey,
+    onAcceptTrip,
+    onAcceptStandalonePickup,
+    onAcceptStandaloneDeliver,
+  } = options;
 
-      critical: boolean;
+  if (item.displayKind === 'combined') {
+    const row = item.combined;
+    return (
+      <CombinedRouteCard
+        key={row.tripSuggestion.id}
+        row={row}
+        bound={bound}
+        busy={busy}
+        isAcceptingThisTrip={pendingTripSuggestionId === row.tripSuggestion.id}
+        onAcceptTrip={onAcceptTrip}
+      />
+    );
+  }
 
-      sortAt: number;
+  if (item.displayKind === 'deliver') {
+    const row = item.deliver;
+    const acceptKey = row.deliverTask?.id ?? `pool:${row.requestId}`;
+    return (
+      <StandaloneDeliverRouteCard
+        key={`deliver-${row.machine.id}-${acceptKey}`}
+        row={row}
+        bound={bound}
+        busy={busy}
+        isAcceptingThisDeliver={pendingStandaloneDeliverKey === acceptKey}
+        onAcceptDeliver={onAcceptStandaloneDeliver}
+      />
+    );
+  }
 
-      combined: TripCombinedSuggestionApi;
-    }
-  | {
-      displayKind: 'deliver';
-
-      critical: boolean;
-
-      sortAt: number;
-
-      deliver: TripStandaloneDeliverApi;
-    }
-  | {
-      displayKind: 'pickup';
-
-      critical: boolean;
-
-      sortAt: number;
-
-      pickup: TripStandalonePickupApi;
-    };
-
-function buildMainTripQueueItems(
-  combined: TripCombinedSuggestionApi[],
-
-  standaloneDelivers: TripStandaloneDeliverApi[],
-
-  standalonePickups: TripStandalonePickupApi[],
-): MainTripQueueItem[] {
-  const items: MainTripQueueItem[] = [
-    ...combined.map((row) => ({
-      displayKind: 'combined' as const,
-
-      critical: row.effectivePriority === 'VERY_HIGH',
-
-      sortAt: Math.min(
-        new Date(row.deliverTask.createdAt).getTime(),
-
-        new Date(row.pickupTask.createdAt).getTime(),
-      ),
-
-      combined: row,
-    })),
-
-    ...standaloneDelivers.map((row) => ({
-      displayKind: 'deliver' as const,
-
-      critical: row.effectivePriority === 'VERY_HIGH',
-
-      sortAt: row.deliverTask
-        ? new Date(row.deliverTask.createdAt).getTime()
-        : 0,
-
-      deliver: row,
-    })),
-
-    ...standalonePickups.map((row) => ({
-      displayKind: 'pickup' as const,
-
-      critical: row.effectivePriority === 'VERY_HIGH',
-
-      sortAt: new Date(row.pickupTask.createdAt).getTime(),
-
-      pickup: row,
-    })),
-  ];
-
-  return items.sort((a, b) => {
-    if (a.critical !== b.critical) {
-      return a.critical ? -1 : 1;
-    }
-
-    return a.sortAt - b.sortAt;
-  });
+  const row = item.pickup;
+  const taskId = row.pickupTask.id;
+  return (
+    <StandalonePickupRouteCard
+      key={`pickup-${taskId}`}
+      row={row}
+      bound={bound}
+      busy={busy}
+      taskId={taskId}
+      isAcceptingThisPickup={pendingStandalonePickupTaskId === taskId}
+      onAcceptPickup={onAcceptStandalonePickup}
+    />
+  );
 }
 
 export interface TripSuggestionsFlowSectionProps {
@@ -630,13 +620,12 @@ export function TripSuggestionsFlowSection({
 
   const mainQueue = buildMainTripQueueItems(
     combined,
-
     standaloneDelivers,
-
     standalonePickupsWithoutCombinedOverlap,
   );
+  const topSuggestion = pickTopMainTripQueueItem(mainQueue);
 
-  if (mainQueue.length === 0) {
+  if (!topSuggestion) {
     return null;
   }
 
@@ -652,58 +641,15 @@ export function TripSuggestionsFlowSection({
       ) : null}
 
       <div className="flex min-w-0 flex-col gap-4 md:gap-5">
-        {mainQueue.map((item) => {
-          if (item.displayKind === 'combined') {
-            const row = item.combined;
-
-            return (
-              <CombinedRouteCard
-                key={row.tripSuggestion.id}
-                row={row}
-                bound={bound}
-                busy={busy}
-                isAcceptingThisTrip={
-                  pendingTripSuggestionId === row.tripSuggestion.id
-                }
-                onAcceptTrip={onAcceptTrip}
-              />
-            );
-          }
-
-          if (item.displayKind === 'deliver') {
-            const row = item.deliver;
-
-            const acceptKey = row.deliverTask?.id ?? `pool:${row.requestId}`;
-
-            return (
-              <StandaloneDeliverRouteCard
-                key={`deliver-${row.machine.id}-${acceptKey}`}
-                row={row}
-                bound={bound}
-                busy={busy}
-                isAcceptingThisDeliver={
-                  pendingStandaloneDeliverKey === acceptKey
-                }
-                onAcceptDeliver={onAcceptStandaloneDeliver}
-              />
-            );
-          }
-
-          const row = item.pickup;
-
-          const taskId = row.pickupTask.id;
-
-          return (
-            <StandalonePickupRouteCard
-              key={`pickup-${taskId}`}
-              row={row}
-              bound={bound}
-              busy={busy}
-              taskId={taskId}
-              isAcceptingThisPickup={pendingStandalonePickupTaskId === taskId}
-              onAcceptPickup={onAcceptStandalonePickup}
-            />
-          );
+        {renderMainTripQueueItem(topSuggestion, {
+          bound,
+          busy,
+          pendingTripSuggestionId,
+          pendingStandalonePickupTaskId,
+          pendingStandaloneDeliverKey,
+          onAcceptTrip,
+          onAcceptStandalonePickup,
+          onAcceptStandaloneDeliver,
         })}
       </div>
     </section>

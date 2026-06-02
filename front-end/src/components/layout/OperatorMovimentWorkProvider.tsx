@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MutableRefObject,
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,13 +20,29 @@ import { ENV } from '@/constants/env';
 import {
   parseOperatorMovimentWsMessage,
   resolveOperatorMovimentWsUrl,
+  wsEventMatchesMovimentOperator,
   wsEventMatchesSubscriber,
 } from '@/lib/operator-moviment-ws';
+import {
+  OPERATOR_REPLENISHMENT_QUEUE_QUERY_KEY,
+  OPERATOR_TRIP_SUGGESTIONS_QUERY_KEY,
+  shouldInvalidateMyMovimentTasks,
+  shouldInvalidateReplenishmentQueue,
+  shouldInvalidateTripSuggestions,
+  WS_INVALIDATE_DEBOUNCE_MS,
+} from '@/lib/operator-moviment-ws-invalidation';
 import { toast } from '@/lib/toast';
 import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorMyTasks,
 } from '@/services/operator-moviment-pallet-api';
+import { fetchOperatorMyMachine } from '@/services/operator-machine-api';
+import {
+  applyMachineOperatorWsEvent,
+  OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY,
+  refetchOperatorMachineTasks,
+  resolveBoundMachineIdFromCache,
+} from '@/lib/operator-machine-realtime-cache';
 import { useAuthStore } from '@/store/auth.store';
 import {
   MACHINE_DOMAIN_ROLES,
@@ -102,7 +119,12 @@ export function OperatorMovimentWorkProvider({
   const navigate = useNavigate();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const tripSuggestionsInvalidateTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const replenishmentQueueInvalidateTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const isMovimentOperator = isMovimentOperatorRole(user?.role);
   const isMachineOperator = isMachineOperatorRole(user?.role);
   const isMachineCadastro = isMachineCadastroRole(user?.role);
@@ -120,6 +142,14 @@ export function OperatorMovimentWorkProvider({
     queryKey: ['operator-moviment', 'my-pallet'],
     queryFn: fetchOperatorMyMovimentPallet,
     enabled: realtimeEnabled && isMovimentOperator,
+  });
+
+  const myMachineQuery = useQuery({
+    queryKey: [...OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY],
+    queryFn: fetchOperatorMyMachine,
+    enabled: realtimeEnabled && isMachineOperator,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const myTasksQuery = useQuery({
@@ -159,18 +189,44 @@ export function OperatorMovimentWorkProvider({
 
   const invalidateOperatorQueues = refreshRealtimeData;
 
+  const scheduleDebouncedInvalidate = useCallback(
+    (
+      timerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>,
+      queryKey: readonly unknown[],
+    ) => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        void queryClient.invalidateQueries({ queryKey });
+      }, WS_INVALIDATE_DEBOUNCE_MS);
+    },
+    [queryClient],
+  );
+
   const refetchMyTasks = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: ['operator-moviment', 'my-tasks'],
     });
   }, [queryClient]);
 
+  const resolveBoundMachineId = useCallback((): string | null => {
+    return (
+      myMachineQuery.data?.id ??
+      resolveBoundMachineIdFromCache(queryClient)
+    );
+  }, [myMachineQuery.data?.id, queryClient]);
+
   const handleWsEvent = useCallback(
     (event: OperatorMovimentWsEvent) => {
+      const boundMachineId = resolveBoundMachineId();
       if (
         !wsEventMatchesSubscriber(event, {
           sectorId: user?.sectorId,
           userId: user?.id,
+          boundMachineId,
+          operatorSectorId: user?.sectorId,
           allowedMovimentTypes,
           isMovimentOperator,
           isMachineOperator,
@@ -180,7 +236,55 @@ export function OperatorMovimentWorkProvider({
         return;
       }
 
-      void refreshRealtimeData();
+      const movimentSectorMatch =
+        isMovimentOperator &&
+        wsEventMatchesMovimentOperator(
+          event,
+          user?.sectorId,
+          allowedMovimentTypes,
+        );
+
+      if (movimentSectorMatch) {
+        if (shouldInvalidateTripSuggestions(event)) {
+          scheduleDebouncedInvalidate(
+            tripSuggestionsInvalidateTimerRef,
+            OPERATOR_TRIP_SUGGESTIONS_QUERY_KEY,
+          );
+        }
+        if (shouldInvalidateReplenishmentQueue(event)) {
+          scheduleDebouncedInvalidate(
+            replenishmentQueueInvalidateTimerRef,
+            OPERATOR_REPLENISHMENT_QUEUE_QUERY_KEY,
+          );
+        }
+        if (shouldInvalidateMyMovimentTasks(event)) {
+          void queryClient.invalidateQueries({
+            queryKey: ['operator-moviment', 'my-tasks'],
+          });
+          void queryClient.invalidateQueries({
+            queryKey: ['operator-moviment', 'my-pallet'],
+          });
+          void queryClient.refetchQueries({
+            queryKey: ['operator-moviment', 'my-tasks'],
+            type: 'active',
+          });
+        }
+      } else if (isMachineOperator) {
+        if (
+          event.type === 'pickup_task_updated' ||
+          event.type === 'delivery_task_updated'
+        ) {
+          const patched = applyMachineOperatorWsEvent(queryClient, event);
+          if (!patched) {
+            refetchOperatorMachineTasks(queryClient);
+          }
+        } else if (event.type === 'machine_operator_updated') {
+          void queryClient.invalidateQueries({ queryKey: ['operator-machine'] });
+          refetchOperatorMachineTasks(queryClient);
+        }
+      } else if (isMachineCadastro) {
+        void refreshRealtimeData();
+      }
 
       if (
         event.type === 'machine_operator_updated' &&
@@ -193,17 +297,16 @@ export function OperatorMovimentWorkProvider({
             'Um gestor desvinculou você desta máquina. Selecione outra máquina para continuar.',
         });
       }
-
-      if (!isMovimentOperator) {
-        return;
-      }
     },
     [
       allowedMovimentTypes,
       isMachineCadastro,
       isMachineOperator,
       isMovimentOperator,
+      queryClient,
       refreshRealtimeData,
+      scheduleDebouncedInvalidate,
+      resolveBoundMachineId,
       user?.id,
       user?.sectorId,
     ],
@@ -277,6 +380,14 @@ export function OperatorMovimentWorkProvider({
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
+      }
+      if (tripSuggestionsInvalidateTimerRef.current) {
+        clearTimeout(tripSuggestionsInvalidateTimerRef.current);
+        tripSuggestionsInvalidateTimerRef.current = null;
+      }
+      if (replenishmentQueueInvalidateTimerRef.current) {
+        clearTimeout(replenishmentQueueInvalidateTimerRef.current);
+        replenishmentQueueInvalidateTimerRef.current = null;
       }
       wsRef.current?.close();
       wsRef.current = null;

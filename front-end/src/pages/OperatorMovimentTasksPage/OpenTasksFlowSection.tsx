@@ -355,12 +355,19 @@ function OpenTaskRouteCard({
     pickupOpen,
     isCombinedRoute,
   );
+  const isPickupActivity = pickupOpen && !deliverOpen;
 
   return (
     <DeliverFlowCard>
       <div className="px-5 py-4 sm:px-8">
         {activitySubtitle ? (
-          <DeliverFlowActivitySubtitle>
+          <DeliverFlowActivitySubtitle
+            start={
+              isPickupActivity ? (
+                <span className="truncate text-brand">{group.machineName}</span>
+              ) : undefined
+            }
+          >
             {activitySubtitle}
           </DeliverFlowActivitySubtitle>
         ) : null}

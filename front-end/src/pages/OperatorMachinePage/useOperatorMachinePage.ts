@@ -40,7 +40,9 @@ function useApiReady(): boolean {
   return Boolean(ENV.API_URL && token);
 }
 
-const MACHINE_POLL_MS_WS_DOWN = 8_000;
+const MACHINE_POLL_MS_WS_DOWN = 5_000;
+/** Fallback leve com WS ativo (a UI já atualiza via patch no evento). */
+const MACHINE_POLL_MS_WS_UP = 3_000;
 
 export function useOperatorMachinePage() {
   const queryClient = useQueryClient();
@@ -48,7 +50,9 @@ export function useOperatorMachinePage() {
   const user = useAuthStore((s) => s.user);
   const hasSector = Boolean(user?.sectorId);
   const { wsConnected } = useOperatorMovimentWork();
-  const machinePollInterval = wsConnected ? false : MACHINE_POLL_MS_WS_DOWN;
+  const machinePollInterval = wsConnected
+    ? MACHINE_POLL_MS_WS_UP
+    : MACHINE_POLL_MS_WS_DOWN;
 
   const [endShiftOpen, setEndShiftOpen] = useState(false);
   const [cancelPickupId, setCancelPickupId] = useState<string | null>(null);
@@ -108,14 +112,18 @@ export function useOperatorMachinePage() {
     queryKey: queryKeyTasks,
     queryFn: fetchOperatorMachineTasks,
     enabled: apiReady && Boolean(current),
+    staleTime: 0,
     refetchInterval: machinePollInterval,
+    refetchOnWindowFocus: true,
   });
 
   const operatorSupplyQuery = useQuery({
     queryKey: queryKeyOperatorSupply,
     queryFn: () => fetchOperatorSupplyRequests(),
     enabled: apiReady && Boolean(current),
+    staleTime: 0,
     refetchInterval: machinePollInterval,
+    refetchOnWindowFocus: true,
   });
 
   const deliveryTasks = tasksQuery.data?.deliveryTasks ?? [];
