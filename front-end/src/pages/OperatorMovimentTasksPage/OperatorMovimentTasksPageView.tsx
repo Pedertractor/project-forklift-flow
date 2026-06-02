@@ -19,16 +19,22 @@ export function OperatorMovimentTasksPageView(
     tasks,
     tasksLoading,
     showEntryOverlay,
+    completingOverlayMessage,
     completeDeliverMut,
     completePickupMut,
     busy,
   } = vm;
 
   const bound = currentPallet !== null;
+  const hideTasksContent = showEntryOverlay || completingOverlayMessage !== null;
+
   return (
     <main className="relative px-4 py-8 max-[800px]:px-3">
       {showEntryOverlay ? (
         <OperatorMovimentTaskEntryOverlay message="Abrindo fluxo da tarefa…" />
+      ) : null}
+      {completingOverlayMessage ? (
+        <OperatorMovimentTaskEntryOverlay message={completingOverlayMessage} />
       ) : null}
       <div className="mx-auto w-full max-w-6xl">
         {!ENV.API_URL ? (
@@ -49,7 +55,7 @@ export function OperatorMovimentTasksPageView(
           </p>
         ) : null}
 
-        {showEntryOverlay ? null : (
+        {hideTasksContent ? null : (
           <OpenTasksFlowSection
             tasks={tasks}
             myOperatorUserId={userId}

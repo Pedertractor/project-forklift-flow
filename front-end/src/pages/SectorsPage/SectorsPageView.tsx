@@ -194,7 +194,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
           </p>
         ) : null}
         <div className="space-y-2">
-          <Label htmlFor="sector-edit-type">Nome do setor (typeSector)</Label>
+          <Label htmlFor="sector-edit-type">Nome do setor</Label>
           <Input
             id="sector-edit-type"
             value={formTypeSector}

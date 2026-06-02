@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
@@ -26,6 +26,8 @@ function useApiReady(): boolean {
   return Boolean(ENV.API_URL && token);
 }
 
+export type CompletingTaskFlow = 'deliver' | 'pickup';
+
 export function useOperatorMovimentTasksPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -33,6 +35,8 @@ export function useOperatorMovimentTasksPage() {
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const userId = useAuthStore((s) => s.user?.id);
+  const [completingFlow, setCompletingFlow] =
+    useState<CompletingTaskFlow | null>(null);
 
   const enteringTaskFlow = Boolean(
     (location.state as OperatorMovimentMyTasksNavigateState | null)
@@ -88,44 +92,64 @@ export function useOperatorMovimentTasksPage() {
 
   const completeDeliverMut = useMutation({
     mutationFn: (taskId: string) => postCompleteDeliverTask(taskId),
+    onMutate: () => {
+      setCompletingFlow('deliver');
+    },
     onSuccess: async () => {
       try {
         const stillOpenCount = await afterTaskComplete();
+        toast.success('Entrega na máquina registrada.');
         if (stillOpenCount > 0) {
-          toast.success('Entrega na máquina registrada.');
+          setCompletingFlow(null);
           return;
         }
-        toast.success('Entrega na máquina registrada.');
         navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
           state: { fromTaskCompletion: true },
         });
       } catch (error) {
-        if (!isQueryCancellationError(error)) throw error;
+        if (!isQueryCancellationError(error)) {
+          setCompletingFlow(null);
+          throw error;
+        }
         toast.success('Entrega na máquina registrada.');
+        setCompletingFlow(null);
       }
     },
-    onError: toastApiError,
+    onError: (error) => {
+      setCompletingFlow(null);
+      toastApiError(error);
+    },
   });
 
   const completePickupMut = useMutation({
     mutationFn: (taskId: string) => postCompletePickupTask(taskId),
+    onMutate: () => {
+      setCompletingFlow('pickup');
+    },
     onSuccess: async () => {
       try {
         const stillOpenCount = await afterTaskComplete();
+        toast.success('Retirada para expedição registrada.');
         if (stillOpenCount > 0) {
-          toast.success('Retirada registrada.');
+          setCompletingFlow(null);
           return;
         }
-        toast.success('Retirada para expedição registrada.');
         navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
           state: { fromTaskCompletion: true },
         });
       } catch (error) {
-        if (!isQueryCancellationError(error)) throw error;
+        if (!isQueryCancellationError(error)) {
+          setCompletingFlow(null);
+          throw error;
+        }
         toast.success('Retirada para expedição registrada.');
+        setCompletingFlow(null);
       }
     },
-    onError: toastApiError,
+    onError: (error) => {
+      setCompletingFlow(null);
+      toastApiError(error);
+    },
   });
 
   const currentPallet = myPalletQuery.data ?? null;
@@ -172,7 +196,17 @@ export function useOperatorMovimentTasksPage() {
   const tasksLoading =
     myTasksQuery.isLoading || (myTasksQuery.isFetching && tasks.length === 0);
 
-  const busy = completeDeliverMut.isPending || completePickupMut.isPending;
+  const busy =
+    completeDeliverMut.isPending ||
+    completePickupMut.isPending ||
+    completingFlow !== null;
+
+  const completingOverlayMessage =
+    completingFlow === 'deliver'
+      ? 'Registrando entrega…'
+      : completingFlow === 'pickup'
+        ? 'Registrando retirada…'
+        : null;
 
   return {
     apiReady,
@@ -184,6 +218,7 @@ export function useOperatorMovimentTasksPage() {
     tasks,
     tasksLoading,
     showEntryOverlay,
+    completingOverlayMessage,
     completeDeliverMut,
     completePickupMut,
     busy,

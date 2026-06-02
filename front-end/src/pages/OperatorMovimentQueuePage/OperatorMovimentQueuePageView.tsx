@@ -145,11 +145,14 @@ export function OperatorMovimentQueuePageView(
         (tripSuggestionsQuery.data?.standaloneDeliverTasks?.length ?? 0) ===
           0 ? (
           <div className="mt-4 flex w-full min-w-0 flex-col items-stretch justify-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 md:mt-6 md:items-center md:p-4">
-            <RouteOff className="size-10 text-blue-500" />
-            <p className="m-0 text-center text-sm text-zinc-600">
-              Nenhuma atividade disponível no momento. Use as filas manuais se
-              houver outras tarefas pendentes.
-            </p>
+            <div className="flex flex-col items-center justify-center">
+              <RouteOff className="size-10 text-blue-500" />
+              <p className="m-0 text-center text-sm text-zinc-600">
+                Nenhuma atividade disponível no momento. Use as filas manuais se
+                houver outras tarefas pendentes.
+              </p>
+            </div>
+
             <Link
               to={OPERATOR_MOVIMENT_MANUAL_QUEUE_PATH}
               className={linkOutlineClass}

@@ -178,7 +178,7 @@ export function ReplenishmentRequestsPageView(
               disabled={!apiReady || busy}
             >
               <PlusIcon className="size-4 shrink-0" />
-              <span className="sm:hidden">Nova solicitação</span>
+              <span className="sm:hidden">Nova pallet</span>
               <span className="hidden sm:inline">
                 Novo pallet para reposição
               </span>
@@ -472,8 +472,8 @@ export function ReplenishmentRequestsPageView(
             <div>
               <dt className="text-xs font-medium text-zinc-500">Destino</dt>
               <dd className="mt-0.5 text-zinc-900">
-                {detailRow.destination.name}
-                — {detailRow.destination.sector.typeSector}
+                {detailRow.destination.name}—{' '}
+                {detailRow.destination.sector.typeSector}
               </dd>
             </div>
             <div>

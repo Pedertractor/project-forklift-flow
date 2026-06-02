@@ -309,19 +309,6 @@ function OpenActivityHeading({
   );
 }
 
-function TaskConfirmationProgressBar() {
-  return (
-    <div
-      className="relative h-1 w-full max-w-[17rem] overflow-hidden rounded-full bg-zinc-200"
-      role="progressbar"
-      aria-valuetext="Enviando confirmação"
-      aria-busy="true"
-    >
-      <div className="absolute inset-y-0 w-[38%] rounded-full bg-brand motion-safe:animate-task-confirm-progress" />
-    </div>
-  );
-}
-
 function resolveFlowActivitySubtitle(
   deliverOpen: boolean,
   pickupOpen: boolean,
@@ -371,15 +358,6 @@ function OpenTaskRouteCard({
     isCombinedRoute,
   );
 
-  const deliverPending =
-    !!group.deliverTask &&
-    completeDeliverMut.isPending &&
-    completeDeliverMut.variables === group.deliverTask.id;
-  const pickupPending =
-    !!group.pickupTask &&
-    completePickupMut.isPending &&
-    completePickupMut.variables === group.pickupTask.id;
-
   const footerHint =
     isCombinedRoute && deliverOpen && pickupOpen
       ? 'Conclua a entrega na máquina para iniciar a retirada na expedição.'
@@ -405,35 +383,20 @@ function OpenTaskRouteCard({
         <div className="flex flex-col items-center gap-2">
           {deliverOpen && group.deliverTask ? (
             <DeliverFlowAcceptButton
-              disabled={!bound || busy || deliverPending}
+              disabled={!bound || busy}
               onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
             >
-              {deliverPending ? (
-                'Registrando…'
-              ) : (
-                <>
-                  <Check className="size-5 shrink-0" aria-hidden />
-                  Concluir entrega
-                </>
-              )}
+              <Check className="size-5 shrink-0" aria-hidden />
+              Concluir entrega
             </DeliverFlowAcceptButton>
           ) : pickupOpen && group.pickupTask ? (
             <DeliverFlowAcceptButton
-              disabled={!bound || busy || pickupPending}
+              disabled={!bound || busy}
               onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
             >
-              {pickupPending ? (
-                'Registrando…'
-              ) : (
-                <>
-                  <Check className="size-5 shrink-0" aria-hidden />
-                  Confirmar entrega na expedição
-                </>
-              )}
+              <Check className="size-5 shrink-0" aria-hidden />
+              Confirmar entrega na expedição
             </DeliverFlowAcceptButton>
-          ) : null}
-          {deliverPending || pickupPending ? (
-            <TaskConfirmationProgressBar />
           ) : null}
         </div>
       </DeliverFlowActionFooter>

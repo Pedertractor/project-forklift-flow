@@ -43,6 +43,9 @@ function apiBase(): string {
 /** Origem do servidor sem sufixo `/api` (para `/uploads/...`). */
 export function apiServerOrigin(): string {
   const base = apiBase();
+  if (base.startsWith('/')) {
+    return typeof window !== 'undefined' ? window.location.origin : '';
+  }
   return base.replace(/\/api\/?$/i, '') || base;
 }
 
