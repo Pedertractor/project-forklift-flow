@@ -178,7 +178,7 @@ export function ReplenishmentRequestsPageView(
               disabled={!apiReady || busy}
             >
               <PlusIcon className="size-4 shrink-0" />
-              <span className="sm:hidden">Nova pallet</span>
+              <span className="sm:hidden">Novo pallet</span>
               <span className="hidden sm:inline">
                 Novo pallet para reposição
               </span>

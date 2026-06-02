@@ -10,7 +10,8 @@ export const OPERATOR_REPLENISHMENT_QUEUE_QUERY_KEY = [
   'replenishment-queue',
 ] as const;
 
-const WS_INVALIDATE_DEBOUNCE_MS = 120;
+/** Debounce só para filas do empilhadeirista (vários eventos em rajada). */
+const WS_INVALIDATE_DEBOUNCE_MS = 50;
 
 /** Eventos que alteram a fila principal de sugestões (aceite, nova tarefa, etc.). */
 export function shouldInvalidateTripSuggestions(

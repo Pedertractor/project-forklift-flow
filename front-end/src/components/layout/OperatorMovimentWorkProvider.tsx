@@ -36,6 +36,13 @@ import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorMyTasks,
 } from '@/services/operator-moviment-pallet-api';
+import { fetchOperatorMyMachine } from '@/services/operator-machine-api';
+import {
+  applyMachineOperatorWsEvent,
+  OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY,
+  refetchOperatorMachineTasks,
+  resolveBoundMachineIdFromCache,
+} from '@/lib/operator-machine-realtime-cache';
 import { useAuthStore } from '@/store/auth.store';
 import {
   MACHINE_DOMAIN_ROLES,
@@ -118,7 +125,6 @@ export function OperatorMovimentWorkProvider({
   const replenishmentQueueInvalidateTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
-
   const isMovimentOperator = isMovimentOperatorRole(user?.role);
   const isMachineOperator = isMachineOperatorRole(user?.role);
   const isMachineCadastro = isMachineCadastroRole(user?.role);
@@ -136,6 +142,14 @@ export function OperatorMovimentWorkProvider({
     queryKey: ['operator-moviment', 'my-pallet'],
     queryFn: fetchOperatorMyMovimentPallet,
     enabled: realtimeEnabled && isMovimentOperator,
+  });
+
+  const myMachineQuery = useQuery({
+    queryKey: [...OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY],
+    queryFn: fetchOperatorMyMachine,
+    enabled: realtimeEnabled && isMachineOperator,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const myTasksQuery = useQuery({
@@ -197,12 +211,22 @@ export function OperatorMovimentWorkProvider({
     });
   }, [queryClient]);
 
+  const resolveBoundMachineId = useCallback((): string | null => {
+    return (
+      myMachineQuery.data?.id ??
+      resolveBoundMachineIdFromCache(queryClient)
+    );
+  }, [myMachineQuery.data?.id, queryClient]);
+
   const handleWsEvent = useCallback(
     (event: OperatorMovimentWsEvent) => {
+      const boundMachineId = resolveBoundMachineId();
       if (
         !wsEventMatchesSubscriber(event, {
           sectorId: user?.sectorId,
           userId: user?.id,
+          boundMachineId,
+          operatorSectorId: user?.sectorId,
           allowedMovimentTypes,
           isMovimentOperator,
           isMachineOperator,
@@ -240,8 +264,25 @@ export function OperatorMovimentWorkProvider({
           void queryClient.invalidateQueries({
             queryKey: ['operator-moviment', 'my-pallet'],
           });
+          void queryClient.refetchQueries({
+            queryKey: ['operator-moviment', 'my-tasks'],
+            type: 'active',
+          });
         }
-      } else if (isMachineOperator || isMachineCadastro) {
+      } else if (isMachineOperator) {
+        if (
+          event.type === 'pickup_task_updated' ||
+          event.type === 'delivery_task_updated'
+        ) {
+          const patched = applyMachineOperatorWsEvent(queryClient, event);
+          if (!patched) {
+            refetchOperatorMachineTasks(queryClient);
+          }
+        } else if (event.type === 'machine_operator_updated') {
+          void queryClient.invalidateQueries({ queryKey: ['operator-machine'] });
+          refetchOperatorMachineTasks(queryClient);
+        }
+      } else if (isMachineCadastro) {
         void refreshRealtimeData();
       }
 
@@ -265,6 +306,7 @@ export function OperatorMovimentWorkProvider({
       queryClient,
       refreshRealtimeData,
       scheduleDebouncedInvalidate,
+      resolveBoundMachineId,
       user?.id,
       user?.sectorId,
     ],

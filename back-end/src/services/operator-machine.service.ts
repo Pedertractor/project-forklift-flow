@@ -17,7 +17,7 @@ import {
 } from '../errors/domain-errors.js'
 import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
-import { operatorMachineSupplyRequestRepository } from '../repositories/operator-machine-supply-request.repository.js'
+import { operatorMachineSupplyRequestRepository, operatorMachineSupplyRequestListInclude } from '../repositories/operator-machine-supply-request.repository.js'
 import { movimentPalletTripSuggestionRepository } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
@@ -283,10 +283,7 @@ export async function requestPickupWithReplenishment(
           requestedBy: { connect: { id: operatorUserId } },
           status: OperatorMachineSupplyRequestStatus.OPEN,
         },
-        include: {
-          machine: { select: { id: true, name: true, sectorId: true } },
-          requestedBy: { select: { id: true, name: true } },
-        },
+        include: operatorMachineSupplyRequestListInclude,
       })
     }
 

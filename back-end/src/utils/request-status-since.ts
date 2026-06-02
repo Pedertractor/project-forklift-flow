@@ -1,24 +1,18 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type { RequestStatus } from '../generated/prisma/enums.js'
+import type { MachineTaskStatus } from '../generated/prisma/enums.js'
 
-/** Atualiza status e reinicia o relogio de tempo no estado atual. */
-export function requestStatusPatch(
-  status: RequestStatus,
+/** Atualiza status da tarefa e reinicia o relógio de tempo no estado atual. */
+export function machineTaskStatusPatch(
+  status: MachineTaskStatus,
   at: Date = new Date(),
-): Pick<
-  Prisma.MachineReplenishmentRequestUpdateInput,
-  'status' | 'statusSince'
-> {
+): Pick<Prisma.DeliveryTaskUpdateInput, 'status' | 'statusSince'> {
   return { status, statusSince: at }
 }
 
-/** Campos de create quando o pedido nasce ja em um status. */
-export function requestStatusOnCreate(
-  status: RequestStatus,
+/** Campos de create quando a tarefa nasce já em um status explícito. */
+export function machineTaskStatusOnCreate(
+  status: MachineTaskStatus,
   at: Date = new Date(),
-): Pick<
-  Prisma.MachineReplenishmentRequestCreateInput,
-  'status' | 'statusSince'
-> {
+): Pick<Prisma.DeliveryTaskCreateInput, 'status' | 'statusSince'> {
   return { status, statusSince: at }
 }

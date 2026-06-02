@@ -34,8 +34,24 @@ export function resolveOperatorMovimentWsUrl(token: string): string | null {
     return null;
   }
 
-  const protocol = origin.startsWith('https') ? 'wss' : 'ws';
-  const host = origin.replace(/^https?:\/\//, '');
+  const apiIsRelative = ENV.API_URL.startsWith('/');
+  const useBrowserHost =
+    typeof window !== 'undefined' &&
+    window.location.host.length > 0 &&
+    (apiIsRelative ||
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin));
+
+  const protocol =
+    useBrowserHost &&
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:'
+      ? 'wss'
+      : origin.startsWith('https')
+        ? 'wss'
+        : 'ws';
+  const host = useBrowserHost
+    ? window.location.host
+    : origin.replace(/^https?:\/\//, '');
   return `${protocol}://${host}${WS_PATH}?token=${encodeURIComponent(token)}`;
 }
 
@@ -97,10 +113,21 @@ function destinationUserIdFromEvent(
   return undefined;
 }
 
-/** Operador de dobra: tarefas da máquina em que está logado (`machine.userId`). */
+function machineIdFromEvent(
+  event: OperatorMovimentWsEvent,
+): string | null | undefined {
+  if ('machineId' in event && typeof event.machineId === 'string') {
+    return event.machineId;
+  }
+  return undefined;
+}
+
+/** Operador de dobra: tarefas da máquina vinculada (`machine.userId` ou `boundMachineId`). */
 export function wsEventMatchesMachineOperator(
   event: OperatorMovimentWsEvent,
   operatorUserId: string | null | undefined,
+  boundMachineId?: string | null,
+  operatorSectorId?: string | null,
 ): boolean {
   if (!operatorUserId || !MACHINE_OPERATOR_EVENT_TYPES.has(event.type)) {
     return false;
@@ -109,7 +136,24 @@ export function wsEventMatchesMachineOperator(
     return event.affectedUserId === operatorUserId;
   }
   const destinationUserId = destinationUserIdFromEvent(event);
-  return destinationUserId === operatorUserId;
+  if (destinationUserId === operatorUserId) {
+    return true;
+  }
+  const eventMachineId = machineIdFromEvent(event);
+  if (boundMachineId && eventMachineId && eventMachineId === boundMachineId) {
+    return true;
+  }
+  // Fallback: mesmo setor + máquina do evento = máquina em operação (userId na máquina pode vir null no WS).
+  if (
+    operatorSectorId &&
+    'sectorId' in event &&
+    event.sectorId === operatorSectorId &&
+    boundMachineId &&
+    eventMachineId === boundMachineId
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Cadastro / supervisão: vínculo operador ↔ máquina no setor (ou todos se sem setor). */
@@ -134,6 +178,8 @@ export function wsEventMatchesSubscriber(
   options: {
     sectorId: string | null | undefined;
     userId: string | null | undefined;
+    boundMachineId?: string | null;
+    operatorSectorId?: string | null;
     allowedMovimentTypes: readonly string[];
     isMovimentOperator: boolean;
     isMachineOperator: boolean;
@@ -148,7 +194,12 @@ export function wsEventMatchesSubscriber(
   }
   if (
     options.isMachineOperator &&
-    wsEventMatchesMachineOperator(event, options.userId)
+    wsEventMatchesMachineOperator(
+      event,
+      options.userId,
+      options.boundMachineId,
+      options.operatorSectorId,
+    )
   ) {
     return true;
   }

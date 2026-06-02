@@ -49,4 +49,5 @@ export function completeOperatorTaskAccept(
   void queryClient.invalidateQueries({
     queryKey: ['operator-moviment', 'my-pallet'],
   });
+  void queryClient.invalidateQueries({ queryKey: ['operator-machine'] });
 }
