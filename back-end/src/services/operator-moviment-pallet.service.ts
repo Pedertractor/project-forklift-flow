@@ -789,6 +789,16 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
     assignedOperator: { connect: { id: operatorUserId } },
   });
 
+  if (updated.machine) {
+    operatorMovimentPalletWsNotifyDeliveryTaskChange({
+      id: updated.id,
+      status: updated.status,
+      typeMovimentPallet: updated.typeMovimentPallet,
+      preparedAt: updated.preparedAt,
+      machine: updated.machine,
+    });
+  }
+
   return { task: updated, deliveryTask: updated };
 }
 

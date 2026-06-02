@@ -63,7 +63,7 @@ export function useOperatorMovimentQueuePage() {
     queryKey: ['operator-moviment', 'trip-suggestions'],
     queryFn: fetchOperatorTripSuggestions,
     enabled: apiReady,
-    refetchInterval: apiReady ? 60_000 : false,
+    staleTime: 0,
   });
 
   const replenishmentQueueQuery = useQuery({

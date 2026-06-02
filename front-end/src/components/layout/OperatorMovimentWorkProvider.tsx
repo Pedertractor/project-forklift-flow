@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MutableRefObject,
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,8 +20,17 @@ import { ENV } from '@/constants/env';
 import {
   parseOperatorMovimentWsMessage,
   resolveOperatorMovimentWsUrl,
+  wsEventMatchesMovimentOperator,
   wsEventMatchesSubscriber,
 } from '@/lib/operator-moviment-ws';
+import {
+  OPERATOR_REPLENISHMENT_QUEUE_QUERY_KEY,
+  OPERATOR_TRIP_SUGGESTIONS_QUERY_KEY,
+  shouldInvalidateMyMovimentTasks,
+  shouldInvalidateReplenishmentQueue,
+  shouldInvalidateTripSuggestions,
+  WS_INVALIDATE_DEBOUNCE_MS,
+} from '@/lib/operator-moviment-ws-invalidation';
 import { toast } from '@/lib/toast';
 import {
   fetchOperatorMyMovimentPallet,
@@ -102,6 +112,12 @@ export function OperatorMovimentWorkProvider({
   const navigate = useNavigate();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tripSuggestionsInvalidateTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const replenishmentQueueInvalidateTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const isMovimentOperator = isMovimentOperatorRole(user?.role);
   const isMachineOperator = isMachineOperatorRole(user?.role);
@@ -159,6 +175,22 @@ export function OperatorMovimentWorkProvider({
 
   const invalidateOperatorQueues = refreshRealtimeData;
 
+  const scheduleDebouncedInvalidate = useCallback(
+    (
+      timerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>,
+      queryKey: readonly unknown[],
+    ) => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        void queryClient.invalidateQueries({ queryKey });
+      }, WS_INVALIDATE_DEBOUNCE_MS);
+    },
+    [queryClient],
+  );
+
   const refetchMyTasks = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: ['operator-moviment', 'my-tasks'],
@@ -180,7 +212,38 @@ export function OperatorMovimentWorkProvider({
         return;
       }
 
-      void refreshRealtimeData();
+      const movimentSectorMatch =
+        isMovimentOperator &&
+        wsEventMatchesMovimentOperator(
+          event,
+          user?.sectorId,
+          allowedMovimentTypes,
+        );
+
+      if (movimentSectorMatch) {
+        if (shouldInvalidateTripSuggestions(event)) {
+          scheduleDebouncedInvalidate(
+            tripSuggestionsInvalidateTimerRef,
+            OPERATOR_TRIP_SUGGESTIONS_QUERY_KEY,
+          );
+        }
+        if (shouldInvalidateReplenishmentQueue(event)) {
+          scheduleDebouncedInvalidate(
+            replenishmentQueueInvalidateTimerRef,
+            OPERATOR_REPLENISHMENT_QUEUE_QUERY_KEY,
+          );
+        }
+        if (shouldInvalidateMyMovimentTasks(event)) {
+          void queryClient.invalidateQueries({
+            queryKey: ['operator-moviment', 'my-tasks'],
+          });
+          void queryClient.invalidateQueries({
+            queryKey: ['operator-moviment', 'my-pallet'],
+          });
+        }
+      } else if (isMachineOperator || isMachineCadastro) {
+        void refreshRealtimeData();
+      }
 
       if (
         event.type === 'machine_operator_updated' &&
@@ -193,17 +256,15 @@ export function OperatorMovimentWorkProvider({
             'Um gestor desvinculou você desta máquina. Selecione outra máquina para continuar.',
         });
       }
-
-      if (!isMovimentOperator) {
-        return;
-      }
     },
     [
       allowedMovimentTypes,
       isMachineCadastro,
       isMachineOperator,
       isMovimentOperator,
+      queryClient,
       refreshRealtimeData,
+      scheduleDebouncedInvalidate,
       user?.id,
       user?.sectorId,
     ],
@@ -277,6 +338,14 @@ export function OperatorMovimentWorkProvider({
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
+      }
+      if (tripSuggestionsInvalidateTimerRef.current) {
+        clearTimeout(tripSuggestionsInvalidateTimerRef.current);
+        tripSuggestionsInvalidateTimerRef.current = null;
+      }
+      if (replenishmentQueueInvalidateTimerRef.current) {
+        clearTimeout(replenishmentQueueInvalidateTimerRef.current);
+        replenishmentQueueInvalidateTimerRef.current = null;
       }
       wsRef.current?.close();
       wsRef.current = null;
