@@ -8,14 +8,16 @@ import {
 } from '@/lib/operator-moviment-after-accept';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
-import type { TripStandaloneDeliverApi } from '@/types/operator-moviment-pallet.types';
+import type {
+  OperatorMovimentTaskItem,
+  TripStandaloneDeliverApi,
+} from '@/types/operator-moviment-pallet.types';
 import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorReplenishmentQueue,
   fetchOperatorTripSuggestions,
   postAcceptOpenDeliverTask,
   postAcceptOpenPickupTask,
-  postAcceptReplenishmentRequest,
   postAcceptTripRouteSuggestion,
 } from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
@@ -34,9 +36,12 @@ export function useOperatorMovimentQueuePage() {
   const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
 
   const afterAcceptSuccess = useCallback(
-    (successMessage: string) => {
+    (
+      successMessage: string,
+      acceptedTasks?: OperatorMovimentTaskItem[],
+    ) => {
       setIsEnteringTaskFlow(true);
-      completeOperatorTaskAccept(queryClient, navigate);
+      completeOperatorTaskAccept(queryClient, navigate, acceptedTasks);
       toast.success(successMessage);
     },
     [navigate, queryClient],
@@ -74,14 +79,17 @@ export function useOperatorMovimentQueuePage() {
 
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
-    onSuccess: () => afterAcceptSuccess('Tarefa de retirada aceita.'),
+    onSuccess: (data) => afterAcceptSuccess('Tarefa de retirada aceita.', [data.task]),
     onError: toastApiError,
   });
 
   const acceptTripMut = useMutation({
     mutationFn: (tripSuggestionId: string) => postAcceptTripRouteSuggestion(tripSuggestionId),
-    onSuccess: () =>
-      afterAcceptSuccess('Rota sugerida aceita. Execute na ordem indicada.'),
+    onSuccess: (data) =>
+      afterAcceptSuccess('Rota sugerida aceita. Execute na ordem indicada.', [
+        data.deliverTask,
+        data.pickupTask,
+      ]),
     onError: toastApiError,
   });
 
@@ -90,9 +98,10 @@ export function useOperatorMovimentQueuePage() {
       if (row.deliverTask) {
         return postAcceptOpenDeliverTask(row.deliverTask.id);
       }
-      return postAcceptReplenishmentRequest(row.requestId);
+      return postAcceptOpenDeliverTask(row.requestId);
     },
-    onSuccess: () => afterAcceptSuccess('Tarefa de entrega aceita.'),
+    onSuccess: (data) =>
+      afterAcceptSuccess('Tarefa de entrega aceita.', [data.task]),
     onError: toastApiError,
   });
 

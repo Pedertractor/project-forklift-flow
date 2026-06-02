@@ -1,49 +1,41 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { NavigateFunction } from 'react-router-dom';
-import {
-  OPERATOR_MOVIMENT_MY_TASKS_PATH,
-  type OperatorMovimentMyTasksNavigateState,
-} from '@/constants/operator-moviment-routes';
-import { isQueryCancellationError } from '@/lib/query-errors';
-import { fetchOperatorMyTasks } from '@/services/operator-moviment-pallet-api';
+import { OPERATOR_MOVIMENT_MY_TASKS_PATH } from '@/constants/operator-moviment-routes';
+import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
 
-/** Atualiza cache de tarefas antes de abrir o fluxo (evita tela vazia após aceitar). */
-export async function prepareOperatorMyTasksAfterAccept(
+const MY_TASKS_QUERY_KEY = ['operator-moviment', 'my-tasks'] as const;
+
+/** Atualiza o cache com tarefas já retornadas no POST de aceite (evita esperar refetch). */
+export function upsertOperatorMyTasksCache(
   queryClient: QueryClient,
-): Promise<void> {
-  try {
-    await queryClient.refetchQueries({
-      queryKey: ['operator-moviment', 'my-tasks'],
-      exact: true,
-    });
-  } catch (error) {
-    if (!isQueryCancellationError(error)) {
-      throw error;
-    }
-    try {
-      await queryClient.fetchQuery({
-        queryKey: ['operator-moviment', 'my-tasks'],
-        queryFn: fetchOperatorMyTasks,
-      });
-    } catch (retryError) {
-      if (!isQueryCancellationError(retryError)) {
-        throw retryError;
-      }
-    }
+  incoming: OperatorMovimentTaskItem[],
+): void {
+  if (incoming.length === 0) {
+    return;
   }
-
-  void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-}
-
-export function navigateToMyTasksAfterAccept(navigate: NavigateFunction): void {
-  const state: OperatorMovimentMyTasksNavigateState = { enteringTaskFlow: true };
-  void navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH, { state });
+  queryClient.setQueryData<OperatorMovimentTaskItem[]>(
+    [...MY_TASKS_QUERY_KEY],
+    (prev) => {
+      const byId = new Map((prev ?? []).map((task) => [task.id, task]));
+      for (const task of incoming) {
+        if (!task.request?.destination) {
+          continue;
+        }
+        byId.set(task.id, task);
+      }
+      return Array.from(byId.values());
+    },
+  );
 }
 
 export function completeOperatorTaskAccept(
   queryClient: QueryClient,
   navigate: NavigateFunction,
+  acceptedTasks?: OperatorMovimentTaskItem[],
 ): void {
-  navigateToMyTasksAfterAccept(navigate);
-  void prepareOperatorMyTasksAfterAccept(queryClient);
+  if (acceptedTasks?.length) {
+    upsertOperatorMyTasksCache(queryClient, acceptedTasks);
+  }
+  void navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH);
+  void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
 }

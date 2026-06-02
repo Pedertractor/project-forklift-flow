@@ -11,8 +11,9 @@ import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorReplenishmentQueue,
   postAcceptOpenPickupTask,
-  postAcceptReplenishmentRequest,
+  postAcceptOpenDeliverTask,
 } from '@/services/operator-moviment-pallet-api';
+import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
 import { useAuthStore } from '@/store/auth.store';
 
 function useApiReady(): boolean {
@@ -29,9 +30,9 @@ export function useOperatorMovimentManualQueuePage() {
   const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
 
   const afterAcceptSuccess = useCallback(
-    (successMessage: string) => {
+    (successMessage: string, acceptedTasks?: OperatorMovimentTaskItem[]) => {
       setIsEnteringTaskFlow(true);
-      completeOperatorTaskAccept(queryClient, navigate);
+      completeOperatorTaskAccept(queryClient, navigate, acceptedTasks);
       toast.success(successMessage);
     },
     [navigate, queryClient],
@@ -50,14 +51,16 @@ export function useOperatorMovimentManualQueuePage() {
   });
 
   const acceptReplenishmentMut = useMutation({
-    mutationFn: (requestId: string) => postAcceptReplenishmentRequest(requestId),
-    onSuccess: () => afterAcceptSuccess('Tarefa de entrega aceita.'),
+    mutationFn: (deliveryTaskId: string) =>
+      postAcceptOpenDeliverTask(deliveryTaskId),
+    onSuccess: (data) =>
+      afterAcceptSuccess('Tarefa de entrega aceita.', [data.task]),
     onError: toastApiError,
   });
 
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
-    onSuccess: () => afterAcceptSuccess('Tarefa de retirada aceita.'),
+    onSuccess: (data) => afterAcceptSuccess('Tarefa de retirada aceita.', [data.task]),
     onError: toastApiError,
   });
 

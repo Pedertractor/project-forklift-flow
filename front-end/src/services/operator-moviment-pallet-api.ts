@@ -382,14 +382,22 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
 export async function postAcceptTripRouteSuggestion(
   tripSuggestionId: string,
 ): Promise<OperatorAcceptTripSuggestionResponse> {
-  const res = await apiAuthFetch<OperatorAcceptTripSuggestionResponse>(
+  const res = await apiAuthFetch<{
+    tripSuggestion: OperatorAcceptTripSuggestionResponse['tripSuggestion'];
+    deliverTask: DeliveryTaskApiRow;
+    pickupTask: PickupTaskApiRow;
+  }>(
     API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.ACCEPT_TRIP_SUGGESTION(tripSuggestionId),
     { method: 'POST' },
   );
-  if (!res) {
+  if (!res?.deliverTask || !res?.pickupTask) {
     throw new Error('Resposta vazia ao aceitar sugestão de rota.');
   }
-  return res;
+  return {
+    tripSuggestion: res.tripSuggestion,
+    deliverTask: mapDeliveryToTaskItem(res.deliverTask),
+    pickupTask: mapPickupTaskToQueueItem(res.pickupTask),
+  };
 }
 
 export async function postCompleteDeliverTask(taskId: string): Promise<{

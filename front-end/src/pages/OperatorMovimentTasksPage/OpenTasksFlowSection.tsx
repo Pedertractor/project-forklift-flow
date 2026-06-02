@@ -80,7 +80,10 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
   const openTasks = tasks.filter((t) => isOpenMovimentTaskStatus(t.status));
 
   for (const task of openTasks) {
-    const dest = task.request.destination;
+    const dest = task.request?.destination;
+    if (!dest) {
+      continue;
+    }
     let group = byMachine.get(dest.id);
     if (!group) {
       group = {

@@ -1,10 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
-  type OperatorMovimentMyTasksNavigateState,
-} from '@/constants/operator-moviment-routes';
+import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
 import { isQueryCancellationError } from '@/lib/query-errors';
 import { toastApiError } from '@/lib/toast-helpers';
@@ -31,17 +28,11 @@ export type CompletingTaskFlow = 'deliver' | 'pickup';
 export function useOperatorMovimentTasksPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const location = useLocation();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const userId = useAuthStore((s) => s.user?.id);
   const [completingFlow, setCompletingFlow] =
     useState<CompletingTaskFlow | null>(null);
-
-  const enteringTaskFlow = Boolean(
-    (location.state as OperatorMovimentMyTasksNavigateState | null)
-      ?.enteringTaskFlow,
-  );
 
   const myPalletQuery = useQuery({
     queryKey: ['operator-moviment', 'my-pallet'],
@@ -155,44 +146,6 @@ export function useOperatorMovimentTasksPage() {
   const currentPallet = myPalletQuery.data ?? null;
   const tasks = filterTasksForMyOperator(myTasksQuery.data ?? [], userId);
 
-  const openTaskCount = countOpenMovimentTasksForOperator(tasks, userId ?? null);
-
-  const showEntryOverlay = useMemo(() => {
-    if (!enteringTaskFlow || myTasksQuery.isError) {
-      return false;
-    }
-    if (openTaskCount > 0) {
-      return false;
-    }
-    return myTasksQuery.isLoading || myTasksQuery.isFetching;
-  }, [
-    enteringTaskFlow,
-    myTasksQuery.isError,
-    myTasksQuery.isFetching,
-    myTasksQuery.isLoading,
-    openTaskCount,
-  ]);
-
-  useEffect(() => {
-    if (!enteringTaskFlow) {
-      return;
-    }
-    if (openTaskCount > 0) {
-      navigate(location.pathname, { replace: true, state: {} });
-      return;
-    }
-    if (myTasksQuery.isSuccess && !myTasksQuery.isFetching) {
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [
-    enteringTaskFlow,
-    location.pathname,
-    myTasksQuery.isFetching,
-    myTasksQuery.isSuccess,
-    navigate,
-    openTaskCount,
-  ]);
-
   const tasksLoading =
     myTasksQuery.isLoading || (myTasksQuery.isFetching && tasks.length === 0);
 
@@ -217,7 +170,6 @@ export function useOperatorMovimentTasksPage() {
     myTasksQuery,
     tasks,
     tasksLoading,
-    showEntryOverlay,
     completingOverlayMessage,
     completeDeliverMut,
     completePickupMut,

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { OperatorMovimentTaskEntryOverlay } from '@/components/operator-moviment/OperatorMovimentTaskEntryOverlay';
 import { ENV } from '@/constants/env';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { OpenTasksFlowSection } from './OpenTasksFlowSection';
@@ -18,24 +17,15 @@ export function OperatorMovimentTasksPageView(
     myTasksQuery,
     tasks,
     tasksLoading,
-    showEntryOverlay,
-    completingOverlayMessage,
     completeDeliverMut,
     completePickupMut,
     busy,
   } = vm;
 
   const bound = currentPallet !== null;
-  const hideTasksContent = showEntryOverlay || completingOverlayMessage !== null;
 
   return (
     <main className="relative px-4 py-8 max-[800px]:px-3">
-      {/* {showEntryOverlay ? (
-        <OperatorMovimentTaskEntryOverlay message="Abrindo fluxo da tarefa…" />
-      ) : null} */}
-      {completingOverlayMessage ? (
-        <OperatorMovimentTaskEntryOverlay message={completingOverlayMessage} />
-      ) : null}
       <div className="mx-auto w-full max-w-6xl">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -55,11 +45,11 @@ export function OperatorMovimentTasksPageView(
           </p>
         ) : null}
 
-        {hideTasksContent ? null : (
+        {token ? (
           <OpenTasksFlowSection
             tasks={tasks}
             myOperatorUserId={userId}
-            isLoading={tasksLoading}
+            isLoading={tasksLoading && !busy}
             bound={bound}
             busy={busy}
             completeDeliverMut={completeDeliverMut}
@@ -73,7 +63,7 @@ export function OperatorMovimentTasksPageView(
               </Link>
             }
           />
-        )}
+        ) : null}
       </div>
     </main>
   );
