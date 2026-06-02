@@ -1,0 +1,21 @@
+meta {
+  name: List machines
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/machines
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: leitura para LEADER, SUPPLY_OPERATOR, ADMIN, SUPERVISOR, MANAGER.
+  # Escrita (POST/PATCH/DELETE) continua restrita a LEADER, SUPPLY_OPERATOR, ADMIN.
+  # Query opcional: ?sectorId=<uuid>&plantUnit=PEDERTRACTOR|TRACTOR
+}

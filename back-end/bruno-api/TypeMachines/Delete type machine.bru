@@ -1,0 +1,20 @@
+meta {
+  name: Delete type machine
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/type-machines/{{typeMachineId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Falha com 409 se existir maquina vinculada a este tipo.
+}

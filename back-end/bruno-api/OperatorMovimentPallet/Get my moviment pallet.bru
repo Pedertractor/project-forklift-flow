@@ -1,0 +1,20 @@
+meta {
+  name: Get my moviment pallet
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/my-moviment-pallet
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Retorna o equipamento atualmente vinculado (ou null).
+}

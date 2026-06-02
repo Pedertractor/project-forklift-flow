@@ -1,5 +1,5 @@
 import type { RouteHandlerMethod } from 'fastify'
-import type { RoleUser, Unit } from '../generated/prisma/enums.js'
+import type { IsOperating, RoleUser, Unit } from '../generated/prisma/enums.js'
 import { AuthError, UserPasswordError } from '../errors/domain-errors.js'
 import {
   getUserProfileById,
@@ -9,13 +9,16 @@ import {
 import type { AppJwtPayload } from '../types/auth.types.js'
 import { isUnit } from '../utils/unit-role.js'
 
-function publicUser(u: {
+function publicAuthUser(u: {
   id: string
   name: string
   role: RoleUser
   card: string
   unit: Unit
   employeeId: number
+  sectorId?: string | null
+  sector?: { id: string; typeSector: string } | null
+  isOperating?: IsOperating | null
 }) {
   return {
     id: u.id,
@@ -24,6 +27,9 @@ function publicUser(u: {
     card: u.card,
     unit: u.unit,
     employeeId: u.employeeId,
+    sectorId: u.sectorId ?? null,
+    sector: u.sector ?? null,
+    isOperating: u.isOperating ?? null,
   }
 }
 
@@ -48,7 +54,7 @@ export const getMe: RouteHandlerMethod = async (request, reply) => {
   }
 
   return {
-    ...publicUser(user),
+    ...publicAuthUser(user),
     firstAccess: !user.isLogged,
   }
 }
@@ -84,7 +90,7 @@ export const postLogin: RouteHandlerMethod = async (request, reply) => {
     return {
       token,
       firstAccess,
-      user: publicUser(user),
+      user: publicAuthUser(user),
     }
   } catch (error) {
     if (error instanceof AuthError) {

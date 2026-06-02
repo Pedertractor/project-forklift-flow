@@ -1,0 +1,19 @@
+meta {
+  name: Delete sector
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/sectors/{{sectorId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT com role ADMIN.
+  # Exclusao bloqueada (409) se existir maquina, usuario, empilhadeira ou centro de custo vinculado ao setor.
+}

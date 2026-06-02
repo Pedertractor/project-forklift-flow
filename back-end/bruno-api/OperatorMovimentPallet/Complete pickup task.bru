@@ -1,0 +1,27 @@
+meta {
+  name: Complete pickup task
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/operator-moviment-pallet/tasks/{{pickupTaskId}}/complete-pickup
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Apos retirar o prisma na expedicao: conclui MovimentPalletTask PICKUP_TO_EXPEDITION (COMPLETED)
+  # e atualiza MachineReplenishmentRequest de ON_MACHINE para COMPLETED.
+  # pickupTaskId: use {{pickupTaskId}} no environment (id da tarefa type PICKUP_TO_EXPEDITION em GET .../my-tasks
+  # ou em onMachinePickupTasks em GET .../replenishment-requests).
+  #
+  # Respostas tipicas: 200 { task, request }; 404 tarefa inexistente; 409 tipo errado, nao atribuida
+  # ao seu equipamento, solicitacao nao ON_MACHINE, ou retirada ja concluida/cancelada;
+  # 403 tipo de solicitacao diferente do equipamento; 400 sem MovimentPallet vinculado.
+}

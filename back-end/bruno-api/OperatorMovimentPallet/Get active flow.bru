@@ -1,0 +1,22 @@
+meta {
+  name: Get active flow
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/active-flow
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Retorna { movimentPallet, tasks } — equipamento vinculado + tarefas atribuídas
+  # (mesma ordenação que GET .../my-tasks). Use após bind e após aceitar sugestão,
+  # retirada avulsa ou pedido de reposição, para montar linha do tempo no app.
+}

@@ -1,0 +1,15 @@
+name: forklift-front-end
+services:
+  front-end:
+    build:
+      context: ./front-end
+    container_name: forklift-front-end
+    restart: always
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    ports:
+      - ${FRONTEND_PORT}:5173
+    networks:
+      - forklift-network
+    depends_on:
+      - back-end

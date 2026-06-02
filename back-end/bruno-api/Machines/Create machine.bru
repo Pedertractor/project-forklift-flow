@@ -1,0 +1,31 @@
+meta {
+  name: Create machine
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/machines
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Dobra 01",
+    "plantUnit": "PEDERTRACTOR",
+    "typeMachineId": "{{typeMachineId}}",
+    "sectorId": "{{sectorId}}"
+  }
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Campos obrigatorios: name, plantUnit (PEDERTRACTOR | TRACTOR), typeMachineId, sectorId.
+  # Opcional: userId (UUID de usuario existente) para vincular operador.
+  # Ajuste typeMachineId e sectorId no environment antes de enviar.
+}

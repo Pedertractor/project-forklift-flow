@@ -1,0 +1,13 @@
+meta {
+  name: MachineReplenishmentRequests
+  seq: 6
+}
+
+docs {
+  # Prefixo: {{baseUrl}}/machine-replenishment-requests
+  # Roles: SUPPLY_OPERATOR, LEADER ou ADMIN (conforme rota).
+  # GET pending-preparation — fila de preparo (AWAITING_PREPARATION) no setor do usuario.
+  # POST :requestId/mark-pallet-ready — supply marca prisma pronto (PALLET_READY).
+  # Solicitacoes de reposicao para maquinas; operador de maquina e de movimentacao usam
+  # pastas OperatorMachine e OperatorMovimentPallet para listar/aceitar no fluxo de campo.
+}

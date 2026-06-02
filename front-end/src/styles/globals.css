@@ -1,0 +1,85 @@
+:root {
+  --control-height: 2.5rem;
+  --text-title: 1.5rem;
+
+  /* Paleta da marca — altere aqui para refletir em todo o app (Tailwind: text-brand, bg-brand, etc.) */
+  --brand: #005fb8;
+  --brand-hover: #004a94;
+  --brand-dark: #003d7a;
+  --brand-light: #1a6fc4;
+
+  color-scheme: light;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #18181b;
+  background-color: #fafafa;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+}
+
+/* Indeterminado: confirmação de tarefa em andamento */
+@keyframes task-confirm-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.animate-task-confirm-progress {
+  animation: task-confirm-progress 1.05s ease-in-out infinite;
+}
+
+/* Stepper horizontal: pulso percorre toda a barra até o próximo círculo */
+@keyframes step-connector-flow {
+  0% {
+    left: 0%;
+    transform: translateX(0);
+    opacity: 0.45;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    transform: translateX(-100%);
+    opacity: 0.45;
+  }
+}
+
+.animate-step-connector-flow {
+  animation: step-connector-flow 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-step-connector-flow {
+    animation: none;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0.85;
+  }
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}

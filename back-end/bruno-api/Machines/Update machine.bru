@@ -1,0 +1,26 @@
+meta {
+  name: Update machine
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/machines/{{machineId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Dobra 01 atualizada"
+  }
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Campos opcionais: name, plantUnit, typeMachineId, sectorId, userId (null remove operador).
+}

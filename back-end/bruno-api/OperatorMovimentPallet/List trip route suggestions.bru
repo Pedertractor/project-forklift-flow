@@ -1,0 +1,27 @@
+meta {
+  name: List trip route suggestions
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/operator-moviment-pallet/trip-suggestions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou ADMIN.
+  # Precisa estar vinculado a um MovimentPallet (POST my-moviment-pallet).
+  # suggestions: quando, para a MESMA maquina, ha retirada (PICKUP) ON_MACHINE e entrega (DELIVER)
+  # em aberto de OUTRA requisicao (viagem combinada).
+  # standalonePickupTasks: retiradas PICKUP em aberto sem entrega DELIVER em aberto na mesma maquina
+  # (ex.: prisma ja entregue, requisicao ON_MACHINE, operador da maquina pediu retirada).
+  # Usuario precisa ter sectorId; filtro por setor e typeMovimentPallet do perfil.
+  # Resposta: { "suggestions", "standalonePickupTasks", "priorityContext" }.
+  # Aceite combinada: POST trip-suggestions/:id/accept. Aceite so retirada: POST tasks/:taskId/accept-pickup.
+}

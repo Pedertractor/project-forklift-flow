@@ -1,0 +1,20 @@
+meta {
+  name: Delete machine
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/machines/{{machineId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  # Remove a maquina (cuidado com FKs de solicitacoes no ambiente real).
+}

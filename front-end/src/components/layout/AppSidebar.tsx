@@ -1,0 +1,170 @@
+import { NavLink } from 'react-router-dom';
+import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
+import { useAuthStore } from '@/store/auth.store';
+import { sidebarSectionsForRole } from '@/config/sidebar-nav';
+import { cn } from '@/lib/utils';
+import type { AppUnit } from '@/types/user.types';
+
+function userInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  const letters = parts.map((p) => p[0]?.toUpperCase() ?? '').join('');
+  return letters || '—';
+}
+
+function unitLabel(unit: AppUnit): string {
+  return unit === 'pedertractor' ? 'PEDERTRACTOR' : 'TRACTOR';
+}
+
+/** Rótulo amigável do papel JWT (pt-BR) para o rodapé do menu. */
+function roleMenuLabel(role: string | undefined): string {
+  if (!role) {
+    return '—';
+  }
+  const map: Record<string, string> = {
+    OPERATOR_MACHINE: 'Operador de máquina',
+    PALLET_TRANSPORTER: 'Transportador de pallet',
+    SUPPLY_OPERATOR: 'Abastecimento',
+    LEADER: 'Líder',
+    SUPERVISOR: 'Supervisor',
+    MANAGER: 'Gerente',
+    ADMIN: 'Administrador',
+  };
+  return map[role] ?? role;
+}
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/35',
+    isActive
+      ? 'bg-brand/12 font-semibold text-brand'
+      : 'text-zinc-700 hover:bg-zinc-200/70 hover:text-zinc-900',
+  );
+
+interface AppSidebarProps {
+  sidebarOpen: boolean;
+  onCloseSidebar: () => void;
+  onRequestLogout: () => void;
+}
+
+export function AppSidebar({
+  sidebarOpen,
+  onCloseSidebar,
+  onRequestLogout,
+}: AppSidebarProps) {
+  const user = useAuthStore((s) => s.user);
+  const { enabled: movimentWorkEnabled, incompleteTaskCount } =
+    useOperatorMovimentWork();
+  const navSections = sidebarSectionsForRole(user?.role);
+
+  return (
+    <aside
+      className={cn(
+        'fixed inset-y-0 left-0 z-50 flex min-h-0 w-64 flex-col border-r border-zinc-200 bg-zinc-50 shadow-lg transition-[transform,width] duration-200 ease-out lg:static lg:z-0 lg:h-full lg:shrink-0 lg:bg-zinc-50 lg:shadow-none',
+        sidebarOpen
+          ? 'translate-x-0'
+          : '-translate-x-full lg:w-0 lg:min-w-0 lg:translate-x-0 lg:overflow-hidden lg:border-transparent lg:bg-transparent',
+      )}
+      aria-label="Menu da aplicação"
+    >
+      <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-3">
+        <p className="m-0 text-sm font-bold uppercase tracking-wider text-brand">
+          ForkLift Flow
+        </p>
+      </div>
+
+      <nav
+        className="flex flex-1 flex-col gap-0 overflow-y-auto p-2"
+        aria-label="Navegação por módulo"
+      >
+        {navSections.map(({ section, items }, sectionIndex) => (
+          <div
+            key={section.id}
+            className={cn(
+              sectionIndex > 0 && 'mt-3 border-t border-zinc-200 pt-3',
+            )}
+          >
+            <p className="mb-1.5 px-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-500">
+              {section.title}
+            </p>
+            <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+              {items.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    className={navLinkClass}
+                    onClick={() => {
+                      onCloseSidebar();
+                    }}
+                  >
+                    <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                      <span className="truncate">{item.label}</span>
+                      {item.to === '/operacao/minhas-tarefas' &&
+                      movimentWorkEnabled &&
+                      incompleteTaskCount > 0 ? (
+                        <span
+                          className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[0.625rem] font-bold leading-none text-white tabular-nums"
+                          title={`${incompleteTaskCount} tarefa(s) em aberto`}
+                          aria-label={`${incompleteTaskCount} tarefas em aberto`}
+                        >
+                          {incompleteTaskCount > 9 ? '9+' : incompleteTaskCount}
+                        </span>
+                      ) : null}
+                    </span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-zinc-200 bg-zinc-50/90 p-2">
+        <button
+          type="button"
+          onClick={onRequestLogout}
+          className="w-full rounded-xl border border-zinc-200/90 bg-white px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+          title="Encerrar sessão"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/12 text-xs font-bold tracking-wide text-brand">
+              {user ? userInitials(user.name) : '—'}
+            </div>
+            <div className="min-w-0">
+              <p
+                className="truncate text-sm font-semibold text-zinc-900"
+                title={user?.name}
+              >
+                {user?.name ?? '—'}
+              </p>
+              <p className="truncate text-xs text-zinc-500">
+                {user ? (
+                  <>
+                    Cartão{' '}
+                    <span className="font-mono text-zinc-700">
+                      {user.cardNumber}
+                    </span>
+                    {' · '}
+                    {unitLabel(user.unit)}
+                  </>
+                ) : (
+                  '—'
+                )}
+              </p>
+              {user?.role ? (
+                <p
+                  className="mt-1 truncate text-[10px] text-zinc-400"
+                  title={user.role}
+                >
+                  Papel:{' '}
+                  <span className="font-medium text-zinc-600">
+                    {roleMenuLabel(user.role)}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </button>
+      </div>
+    </aside>
+  );
+}

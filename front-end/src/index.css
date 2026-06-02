@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@import './styles/globals.css';
+
+@theme {
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+}
+
+#root {
+  min-height: 100svh;
+  width: 100%;
+}

@@ -1,0 +1,21 @@
+meta {
+  name: List machine replenishment requests
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/machine-replenishment-requests
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: leitura (GET) para SUPPLY_OPERATOR, LEADER, ADMIN, SUPERVISOR, MANAGER.
+  # Escritas (POST/PATCH/DELETE/mark-pallet-ready) permanecem SUPPLY_OPERATOR, LEADER, ADMIN.
+  # Query opcional: ?requestedById=&status=CREATED&destinationId=
+}

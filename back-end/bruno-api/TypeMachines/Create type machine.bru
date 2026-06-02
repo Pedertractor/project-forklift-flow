@@ -1,0 +1,43 @@
+meta {
+  name: Create type machine
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/type-machines
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "TYPE_DOBRA",
+    "urlImage": "https://example.com/images/frontal.png"
+  }
+}
+
+body:multipart-form {
+  name: Empilhadeira frontal
+  urlImage: https://example.com/images/frontal.png
+  ~image: @file(./sample-upload.png)
+}
+
+docs {
+  # Requer JWT: roles LEADER, SUPPLY_OPERATOR ou ADMIN.
+  #
+  # --- JSON (aba Body > JSON) ---
+  # `name` e `urlImage` obrigatorios (strings nao vazios).
+  #
+  # --- Multipart (aba Body > Multipart Form) ---
+  # Opcao A — URL da imagem: campos `name` + `urlImage` (como no exemplo acima).
+  # Opcao B — upload de arquivo: prefixe `~` em `urlImage` para desativar e tire `~` de `image`:
+  #   ~urlImage: ...
+  #   image: @file(./sample-upload.png)
+  # Se `image` for enviado, ele substitui `urlImage`. Tipos: JPEG, PNG, GIF ou WebP (ate ~5 MB).
+  # Imagem salva: resposta traz `urlImage` como /uploads/type-machines/... ; URL completa: {{originUrl}} + urlImage.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: List pending preparation
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/machine-replenishment-requests/pending-preparation
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  # Requer JWT: leitura (GET) para SUPPLY_OPERATOR, LEADER, ADMIN, SUPERVISOR, MANAGER.
+  # Usuario precisa ter sectorId (400 se sem setor).
+  # Lista solicitacoes em AWAITING_PREPARATION do setor (abastecimento deve preparar prisma).
+}
