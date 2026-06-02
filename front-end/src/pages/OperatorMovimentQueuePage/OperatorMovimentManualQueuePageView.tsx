@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { OperatorMovimentTaskEntryOverlay } from '@/components/operator-moviment/OperatorMovimentTaskEntryOverlay';
 import { ENV } from '@/constants/env';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { OperatorMovimentManualQueueSection } from './OperatorMovimentManualQueueSection';
@@ -17,15 +16,14 @@ export function OperatorMovimentManualQueuePageView(
     queueQuery,
     queue,
     busy,
+    pendingReplenishmentRequestId,
+    pendingPickupTaskId,
     onAcceptReplenishment,
     onAcceptPickup,
   } = vm;
 
   return (
-    <main className="relative px-4 py-8 max-[800px]:px-3">
-      {busy ? (
-        <OperatorMovimentTaskEntryOverlay message="Aceitando e abrindo tarefa…" />
-      ) : null}
+    <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div></div>
@@ -53,6 +51,8 @@ export function OperatorMovimentManualQueuePageView(
             deliverRows={queue.requests}
             pickupRows={queue.onMachinePickupTasks}
             busy={busy}
+            pendingReplenishmentRequestId={pendingReplenishmentRequestId}
+            pendingPickupTaskId={pendingPickupTaskId}
             onAcceptReplenishment={onAcceptReplenishment}
             onAcceptPickup={onAcceptPickup}
           />

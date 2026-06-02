@@ -132,13 +132,16 @@ export function useOperatorMovimentQueuePage() {
     currentPallet,
     tripSuggestionsQuery,
     manualQueueActivityCount,
-    acceptPickupMut,
-    acceptTripMut,
-    acceptDeliverMut,
     pendingTripSuggestionId,
     pendingStandalonePickupTaskId,
     pendingStandaloneDeliverKey,
     busy,
+    onAcceptTrip: (tripSuggestionId: string) =>
+      acceptTripMut.mutate(tripSuggestionId),
+    onAcceptStandalonePickup: (taskId: string) =>
+      acceptPickupMut.mutate(taskId),
+    onAcceptStandaloneDeliver: (row: TripStandaloneDeliverApi) =>
+      acceptDeliverMut.mutate(row),
     goToEquipment,
   };
 }

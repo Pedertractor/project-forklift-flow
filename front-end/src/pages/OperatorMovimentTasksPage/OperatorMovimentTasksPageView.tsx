@@ -30,9 +30,9 @@ export function OperatorMovimentTasksPageView(
 
   return (
     <main className="relative px-4 py-8 max-[800px]:px-3">
-      {showEntryOverlay ? (
+      {/* {showEntryOverlay ? (
         <OperatorMovimentTaskEntryOverlay message="Abrindo fluxo da tarefa…" />
-      ) : null}
+      ) : null} */}
       {completingOverlayMessage ? (
         <OperatorMovimentTaskEntryOverlay message={completingOverlayMessage} />
       ) : null}

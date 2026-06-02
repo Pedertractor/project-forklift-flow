@@ -15,6 +15,7 @@ import {
   receivingAreaDetail,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
 import type {
   ForkliftTaskTypeApi,
@@ -283,8 +284,7 @@ function OpenActivityHeading({
   currentStep?: number;
   totalSteps?: number;
 }) {
-  const showSteps =
-    currentStep != null && totalSteps != null && totalSteps > 1;
+  const showSteps = currentStep != null && totalSteps != null && totalSteps > 1;
 
   return (
     <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 md:text-base">
@@ -350,6 +350,11 @@ function OpenTaskRouteCard({
     canCompletePickup(group.pickupTask, myOperatorUserId);
   const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
   const steps = buildOpenTaskSteps(group, myOperatorUserId, allTasks);
+  const deliverCubeDisplay = group.deliverTask?.request.movementCube
+    ? formatReplenishmentMovementCubeDisplay(
+        group.deliverTask.request.movementCube,
+      )
+    : undefined;
   const isCritical = isCriticalPriority(group.priority);
 
   const activitySubtitle = resolveFlowActivitySubtitle(
@@ -371,7 +376,7 @@ function OpenTaskRouteCard({
             {activitySubtitle}
           </DeliverFlowActivitySubtitle>
         ) : null}
-        <DeliverThreeStepFlow steps={steps} />
+        <DeliverThreeStepFlow steps={steps} cube={deliverCubeDisplay} />
         {footerHint ? (
           <p className="mt-5 text-center text-xs leading-relaxed text-zinc-500">
             {footerHint}
@@ -464,21 +469,21 @@ export function OpenTasksFlowSection({
             );
 
             return (
-            <li key={group.machineId} className="flex flex-col gap-2.5">
-              <OpenActivityHeading
-                currentStep={stepProgress?.currentStep}
-                totalSteps={stepProgress?.totalSteps}
-              />
-              <OpenTaskRouteCard
-                group={group}
-                allTasks={tasks}
-                bound={bound}
-                busy={busy}
-                myOperatorUserId={myOperatorUserId}
-                completeDeliverMut={completeDeliverMut}
-                completePickupMut={completePickupMut}
-              />
-            </li>
+              <li key={group.machineId} className="flex flex-col gap-2.5">
+                <OpenActivityHeading
+                  currentStep={stepProgress?.currentStep}
+                  totalSteps={stepProgress?.totalSteps}
+                />
+                <OpenTaskRouteCard
+                  group={group}
+                  allTasks={tasks}
+                  bound={bound}
+                  busy={busy}
+                  myOperatorUserId={myOperatorUserId}
+                  completeDeliverMut={completeDeliverMut}
+                  completePickupMut={completePickupMut}
+                />
+              </li>
             );
           })}
         </ul>

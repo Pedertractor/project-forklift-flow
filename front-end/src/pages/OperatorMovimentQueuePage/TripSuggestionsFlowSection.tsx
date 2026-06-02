@@ -19,16 +19,31 @@ import {
 } from '@/components/operator-moviment/route-flow-step-details';
 
 import type {
+  OperatorPickupTaskQueueItem,
   TripCombinedSuggestionApi,
+  TripFlowStepApi,
   TripStandaloneDeliverApi,
   TripStandalonePickupApi,
   TripSuggestionsResponse,
 } from '@/types/operator-moviment-pallet.types';
 
+import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
 
-import { Check } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Box, Check } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+
+function resolveMovementCubeDisplay(
+  deliverTask: OperatorPickupTaskQueueItem | null | undefined,
+  suggestedOrder: TripFlowStepApi[],
+): string | undefined {
+  const cube =
+    deliverTask?.request.movementCube ??
+    suggestedOrder[0]?.movementCube ??
+    null;
+
+  return cube ? formatReplenishmentMovementCubeDisplay(cube) : undefined;
+}
 
 function buildCombinedSteps(
   row: TripCombinedSuggestionApi,
@@ -67,7 +82,7 @@ function buildCombinedSteps(
 
       stepId: 'pallet',
 
-      label: 'Pallet na máquina',
+      label: 'Retire o pallet da máquina',
 
       details: [machineLocationDetail(machine.name)],
     },
@@ -159,24 +174,85 @@ function buildStandalonePickupSteps(
   ];
 }
 
+function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
+  return accepting ? (
+    'Aceitando…'
+  ) : (
+    <>
+      <Check className="size-5 shrink-0" aria-hidden />
+      Aceitar
+    </>
+  );
+}
+
 function SuggestionFlowCardBody({
   activityLabel,
   title,
   steps,
-  message,
+  machineName,
   hint,
+  cube,
 }: {
-  /** Subtítulo do tipo de operação (Entrega / Retirada). */
-  activityLabel?: 'Entrega' | 'Retirada';
+  /** Subtítulo do tipo de operação (Entrega / Retirada / Rota combinada). */
+  activityLabel?: 'Entrega' | 'Retirada' | 'Rota combinada';
   title?: string;
+  isCritical?: boolean;
   steps: DeliverFlowStepConfig[];
-  message?: string;
+  machineName?: string;
   hint?: string;
+  cube?: string;
 }) {
   return (
     <div className="min-w-0 px-3 py-3 md:px-8 md:py-4">
       {activityLabel ? (
-        <DeliverFlowActivitySubtitle>{activityLabel}</DeliverFlowActivitySubtitle>
+        <DeliverFlowActivitySubtitle
+          start={
+            <div className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xl font-semibold uppercase tracking-wider text-brand">
+              {machineName ? (
+                <span className="truncate">{machineName}</span>
+              ) : null}
+              {cube ? (
+                <>
+                  {machineName ? (
+                    <span className="shrink-0" aria-hidden>
+                      -
+                    </span>
+                  ) : null}
+                  <div className="flex px-1 items-center rounded-lg gap-1 bg-brand/20">
+                    <Box
+                      strokeWidth={2.5}
+                      className="size-5 shrink-0 text-brand"
+                      aria-hidden
+                    />
+                    <span className="tracking-widest bg-brand/200">{cube}</span>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          }
+        >
+          <span className="inline-flex items-center gap-1">
+            {activityLabel === 'Entrega' ? (
+              <>
+                Entrega de pallet
+                <ArrowUpRight
+                  className="size-4 rounded-full bg-green-200"
+                  aria-hidden
+                />
+              </>
+            ) : activityLabel === 'Retirada' ? (
+              <>
+                Retirada de pallet
+                <ArrowDownLeft
+                  className="size-4 rounded-full bg-red-200"
+                  aria-hidden
+                />
+              </>
+            ) : (
+              'Rota combinada'
+            )}
+          </span>
+        </DeliverFlowActivitySubtitle>
       ) : null}
       {title ? (
         <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
@@ -185,11 +261,6 @@ function SuggestionFlowCardBody({
       ) : null}
 
       <DeliverThreeStepFlow steps={steps} />
-      {message ? (
-        <p className="mt-5 text-center text-xs leading-relaxed text-zinc-500">
-          {message}
-        </p>
-      ) : null}
       {hint ? (
         <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
           {hint}
@@ -237,9 +308,11 @@ function CombinedRouteCard({
       }
     >
       <SuggestionFlowCardBody
-        title="Rota combinada sugerida"
+        isCritical={isCritical}
+        activityLabel="Rota combinada"
         steps={steps}
-        message={row.message}
+        machineName={row.machine.name}
+        cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
       />
 
       <DeliverFlowActionFooter isCritical={isCritical}>
@@ -247,14 +320,7 @@ function CombinedRouteCard({
           disabled={!bound || busy || isAcceptingThisTrip}
           onClick={() => onAcceptTrip(row.tripSuggestion.id)}
         >
-          {isAcceptingThisTrip ? (
-            'Aceitando…'
-          ) : (
-            <>
-              <Check className="size-5 shrink-0" aria-hidden />
-              Aceitar rota sugerida
-            </>
-          )}
+          <AcceptButtonLabel accepting={isAcceptingThisTrip} />
         </DeliverFlowAcceptButton>
       </DeliverFlowActionFooter>
     </DeliverFlowCard>
@@ -299,9 +365,11 @@ function StandaloneDeliverRouteCard({
       }
     >
       <SuggestionFlowCardBody
+        isCritical={isCritical}
         activityLabel="Entrega"
         steps={steps}
-        message={row.message}
+        machineName={row.machine.name}
+        cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
       />
 
       <DeliverFlowActionFooter isCritical={isCritical}>
@@ -309,14 +377,7 @@ function StandaloneDeliverRouteCard({
           disabled={!bound || busy || isAcceptingThisDeliver}
           onClick={() => onAcceptDeliver(row)}
         >
-          {isAcceptingThisDeliver ? (
-            'Aceitando…'
-          ) : (
-            <>
-              <Check className="size-5 shrink-0" aria-hidden />
-              Aceitar entrega sugerida
-            </>
-          )}
+          <AcceptButtonLabel accepting={isAcceptingThisDeliver} />
         </DeliverFlowAcceptButton>
       </DeliverFlowActionFooter>
     </DeliverFlowCard>
@@ -365,9 +426,10 @@ function StandalonePickupRouteCard({
       }
     >
       <SuggestionFlowCardBody
+        isCritical={isCritical}
         activityLabel="Retirada"
         steps={steps}
-        message={row.message}
+        machineName={row.machine.name}
       />
 
       <DeliverFlowActionFooter isCritical={isCritical}>
@@ -375,14 +437,7 @@ function StandalonePickupRouteCard({
           disabled={!bound || busy || isAcceptingThisPickup}
           onClick={() => onAcceptPickup(taskId)}
         >
-          {isAcceptingThisPickup ? (
-            'Aceitando…'
-          ) : (
-            <>
-              <Check className="size-5 shrink-0" aria-hidden />
-              Aceitar retirada sugerida
-            </>
-          )}
+          <AcceptButtonLabel accepting={isAcceptingThisPickup} />
         </DeliverFlowAcceptButton>
       </DeliverFlowActionFooter>
     </DeliverFlowCard>

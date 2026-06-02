@@ -1,12 +1,15 @@
 import { Fragment, type ReactNode } from 'react';
-import { routeFlowStepLucideIcon } from '@/components/operator-moviment/route-flow-icons';
+import {
+  ReceivingIcon,
+  routeFlowStepLucideIcon,
+} from '@/components/operator-moviment/route-flow-icons';
 import type { RouteFlowStepId } from '@/components/operator-moviment/route-flow-icons';
 import {
   ROUTE_FLOW_DETAIL_META,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, MapPinned, Truck } from 'lucide-react';
+import { AlertTriangle, Box, MapPinned, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export function DeliverFlowCriticalBadge({
@@ -37,11 +40,24 @@ export function DeliverFlowDeferBanner({ children }: { children: ReactNode }) {
 
 export function DeliverFlowActivitySubtitle({
   children,
+  start,
 }: {
   children: ReactNode;
+  /** Conteúdo alinhado ao início (ex.: nome da máquina). Com `start`, `children` fica centralizado na linha. */
+  start?: ReactNode;
 }) {
+  if (start != null) {
+    return (
+      <div className="mb-4 grid w-full grid-cols-[1fr_auto_1fr] items-center text-xs font-semibold uppercase tracking-wider">
+        <div className="min-w-0 justify-self-start">{start}</div>
+        <div className="justify-self-center">{children}</div>
+        <div aria-hidden />
+      </div>
+    );
+  }
+
   return (
-    <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
+    <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider">
       {children}
     </p>
   );
@@ -88,7 +104,7 @@ export function DeliverFlowAcceptButton({
     <Button
       type="button"
       className={cn(
-        'h-11 w-full min-w-0 max-w-full animate-pulse gap-2 rounded-full bg-brand px-4 text-sm font-semibold text-white shadow-sm hover:cursor-pointer hover:bg-brand/80',
+        'h-11 w-full min-w-0 max-w-full animate-pulse gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white shadow-sm hover:cursor-pointer hover:bg-brand/80',
         'md:h-12 md:w-auto md:min-w-[17rem] md:max-w-none md:gap-2.5 md:px-10 md:text-base',
       )}
       disabled={disabled}
@@ -234,11 +250,12 @@ function FlowStepDetailsCard({
 function FlowStepColumn({
   step,
   gridColumn,
-  detailLayout = 'stacked',
+  cube,
 }: {
   step: DeliverFlowStepConfig;
   gridColumn?: number;
   detailLayout?: 'row' | 'stacked';
+  cube?: string;
 }) {
   return (
     <div
@@ -252,15 +269,22 @@ function FlowStepColumn({
 
         <FlowStepIconRing stepId={step.stepId} />
 
-        <p className="m-0 w-full px-1 text-center text-xs font-bold leading-snug wrap-break-word text-zinc-900">
+        <p className="m-0 w-full px-1 text-center text- font-semibold leading-snug wrap-break-word text-zinc-900">
           {step.label}
         </p>
+        {step.stepId === 'receiving' && cube ? (
+          <>
+            <div className="flex gap-1 items-center">
+              <Box className="size-4 text-brand" aria-hidden />
+              <p className="">
+                <span className="font-semibold text-xl tracking-widest">
+                  {cube}
+                </span>
+              </p>
+            </div>
+          </>
+        ) : null}
       </div>
-
-      <FlowStepDetailsCard
-        items={step.details}
-        layout={detailLayout}
-      />
     </div>
   );
 }
@@ -268,9 +292,11 @@ function FlowStepColumn({
 function FlowStepVerticalRow({
   step,
   isLast,
+  cube,
 }: {
   step: DeliverFlowStepConfig;
   isLast: boolean;
+  cube?: string;
 }) {
   return (
     <div className="flex gap-3">
@@ -290,8 +316,8 @@ function FlowStepVerticalRow({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold leading-snug text-zinc-900">
               {step.label}
+              {cube ? <p>{cube}</p> : null}
             </p>
-            <FlowStepDetailsCard items={step.details} layout="row" />
           </div>
         </div>
       </div>
@@ -301,8 +327,10 @@ function FlowStepVerticalRow({
 
 function DeliverThreeStepFlowVertical({
   steps,
+  cube,
 }: {
   steps: DeliverFlowStepConfig[];
+  cube?: string;
 }) {
   return (
     <ol className="m-0 list-none space-y-0 p-0">
@@ -311,6 +339,7 @@ function DeliverThreeStepFlowVertical({
           <FlowStepVerticalRow
             step={step}
             isLast={index === steps.length - 1}
+            cube={cube}
           />
         </li>
       ))}
@@ -320,8 +349,10 @@ function DeliverThreeStepFlowVertical({
 
 function DeliverThreeStepFlowHorizontal({
   steps,
+  cube,
 }: {
   steps: DeliverFlowStepConfig[];
+  cube?: string;
 }) {
   const gridColumns = buildFlowGridColumns(steps.length);
 
@@ -343,6 +374,7 @@ function DeliverThreeStepFlowHorizontal({
                 step={step}
                 gridColumn={circleColumn}
                 detailLayout="stacked"
+                cube={cube}
               />
             </Fragment>
           );
@@ -354,16 +386,18 @@ function DeliverThreeStepFlowHorizontal({
 
 export function DeliverThreeStepFlow({
   steps,
+  cube,
 }: {
   steps: DeliverFlowStepConfig[];
+  cube?: string;
 }) {
   return (
     <>
       <div className="md:hidden">
-        <DeliverThreeStepFlowVertical steps={steps} />
+        <DeliverThreeStepFlowVertical steps={steps} cube={cube} />
       </div>
       <div className="hidden md:block">
-        <DeliverThreeStepFlowHorizontal steps={steps} />
+        <DeliverThreeStepFlowHorizontal steps={steps} cube={cube} />
       </div>
     </>
   );

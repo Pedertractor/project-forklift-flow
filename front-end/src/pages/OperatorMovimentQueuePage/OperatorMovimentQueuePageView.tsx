@@ -1,6 +1,5 @@
 import { ChevronDown, List, Repeat, RouteOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { OperatorMovimentTaskEntryOverlay } from '@/components/operator-moviment/OperatorMovimentTaskEntryOverlay';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/constants/env';
@@ -22,23 +21,20 @@ export function OperatorMovimentQueuePageView(
     apiReady,
     token,
     currentPallet,
-    acceptPickupMut,
-    acceptTripMut,
-    acceptDeliverMut,
     tripSuggestionsQuery,
     manualQueueActivityCount,
     pendingTripSuggestionId,
     pendingStandalonePickupTaskId,
     pendingStandaloneDeliverKey,
     busy,
+    onAcceptTrip,
+    onAcceptStandalonePickup,
+    onAcceptStandaloneDeliver,
     goToEquipment,
   } = vm;
 
   return (
     <main className="relative min-w-0 px-3 py-4 pb-6 md:px-4 md:py-8">
-      {busy ? (
-        <OperatorMovimentTaskEntryOverlay message="Aceitando e abrindo tarefa…" />
-      ) : null}
       <div className="mx-auto w-full min-w-0 max-w-6xl">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 md:px-4 md:py-3">
@@ -135,9 +131,9 @@ export function OperatorMovimentQueuePageView(
             pendingTripSuggestionId={pendingTripSuggestionId}
             pendingStandalonePickupTaskId={pendingStandalonePickupTaskId}
             pendingStandaloneDeliverKey={pendingStandaloneDeliverKey}
-            onAcceptTrip={(id) => acceptTripMut.mutate(id)}
-            onAcceptStandalonePickup={(id) => acceptPickupMut.mutate(id)}
-            onAcceptStandaloneDeliver={(row) => acceptDeliverMut.mutate(row)}
+            onAcceptTrip={onAcceptTrip}
+            onAcceptStandalonePickup={onAcceptStandalonePickup}
+            onAcceptStandaloneDeliver={onAcceptStandaloneDeliver}
           />
         ) : null}
         {tripSuggestionsQuery.data?.suggestions.length === 0 &&

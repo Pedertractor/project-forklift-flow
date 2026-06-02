@@ -83,6 +83,8 @@ export interface OperatorMovimentManualQueueSectionProps {
   deliverRows: OperatorReplenishmentRequestItem[];
   pickupRows: OperatorPickupTaskQueueItem[];
   busy: boolean;
+  pendingReplenishmentRequestId: string | null;
+  pendingPickupTaskId: string | null;
   onAcceptReplenishment: (requestId: string) => void;
   onAcceptPickup: (taskId: string) => void;
 }
@@ -92,6 +94,8 @@ export function OperatorMovimentManualQueueSection({
   deliverRows,
   pickupRows,
   busy,
+  pendingReplenishmentRequestId,
+  pendingPickupTaskId,
   onAcceptReplenishment,
   onAcceptPickup,
 }: OperatorMovimentManualQueueSectionProps) {
@@ -155,7 +159,9 @@ export function OperatorMovimentManualQueueSection({
                       disabled={busy}
                       onClick={() => onAcceptReplenishment(row.id)}
                     >
-                      Aceitar
+                      {pendingReplenishmentRequestId === row.id
+                        ? 'Aceitando…'
+                        : 'Aceitar'}
                     </Button>
                   </div>
                 </div>
@@ -221,7 +227,9 @@ export function OperatorMovimentManualQueueSection({
                         disabled={busy}
                         onClick={() => onAcceptPickup(task.id)}
                       >
-                        Aceitar
+                        {pendingPickupTaskId === task.id
+                          ? 'Aceitando…'
+                          : 'Aceitar'}
                       </Button>
                     </div>
                   </div>

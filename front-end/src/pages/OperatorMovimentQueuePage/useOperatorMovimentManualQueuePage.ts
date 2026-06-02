@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ENV } from '@/constants/env';
 import {
@@ -67,12 +67,31 @@ export function useOperatorMovimentManualQueuePage() {
     acceptPickupMut.isPending;
   const queue = queueQuery.data ?? { requests: [], onMachinePickupTasks: [] };
 
+  const pendingReplenishmentRequestId = useMemo(() => {
+    if (
+      !acceptReplenishmentMut.isPending ||
+      acceptReplenishmentMut.variables === undefined
+    ) {
+      return null;
+    }
+    return acceptReplenishmentMut.variables;
+  }, [acceptReplenishmentMut.isPending, acceptReplenishmentMut.variables]);
+
+  const pendingPickupTaskId = useMemo(() => {
+    if (!acceptPickupMut.isPending || acceptPickupMut.variables === undefined) {
+      return null;
+    }
+    return acceptPickupMut.variables;
+  }, [acceptPickupMut.isPending, acceptPickupMut.variables]);
+
   return {
     apiReady,
     token,
     queueQuery,
     queue,
     busy,
+    pendingReplenishmentRequestId,
+    pendingPickupTaskId,
     onAcceptReplenishment: (requestId: string) =>
       acceptReplenishmentMut.mutate(requestId),
     onAcceptPickup: (taskId: string) => acceptPickupMut.mutate(taskId),
