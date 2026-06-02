@@ -284,8 +284,6 @@ function OpenActivityHeading({
   currentStep?: number;
   totalSteps?: number;
 }) {
-  const showSteps = currentStep != null && totalSteps != null && totalSteps > 1;
-
   return (
     <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 md:text-base">
       <span
@@ -296,14 +294,6 @@ function OpenActivityHeading({
       </span>
       <span className="flex flex-wrap items-center gap-1.5">
         Conclua a tarefa
-        {showSteps ? (
-          <>
-            <span className="font-normal text-zinc-600">- etapa</span>
-            <ActivityStepNumber value={currentStep} />
-            <span className="font-normal text-zinc-600">de</span>
-            <ActivityStepNumber value={totalSteps} />
-          </>
-        ) : null}
       </span>
     </p>
   );
@@ -363,11 +353,6 @@ function OpenTaskRouteCard({
     isCombinedRoute,
   );
 
-  const footerHint =
-    isCombinedRoute && deliverOpen && pickupOpen
-      ? 'Conclua a entrega na máquina para iniciar a retirada na expedição.'
-      : null;
-
   return (
     <DeliverFlowCard>
       <div className="px-5 py-4 sm:px-8">
@@ -377,11 +362,6 @@ function OpenTaskRouteCard({
           </DeliverFlowActivitySubtitle>
         ) : null}
         <DeliverThreeStepFlow steps={steps} cube={deliverCubeDisplay} />
-        {footerHint ? (
-          <p className="mt-5 text-center text-xs leading-relaxed text-zinc-500">
-            {footerHint}
-          </p>
-        ) : null}
       </div>
 
       <DeliverFlowActionFooter isCritical={isCritical}>

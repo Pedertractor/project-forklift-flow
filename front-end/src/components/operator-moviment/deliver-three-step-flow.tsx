@@ -48,10 +48,10 @@ export function DeliverFlowActivitySubtitle({
 }) {
   if (start != null) {
     return (
-      <div className="mb-4 grid w-full grid-cols-[1fr_auto_1fr] items-center text-xs font-semibold uppercase tracking-wider">
-        <div className="min-w-0 justify-self-start">{start}</div>
-        <div className="justify-self-center">{children}</div>
-        <div aria-hidden />
+      <div className="mb-4 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase leading-tight tracking-wide sm:text-xs sm:leading-normal sm:tracking-wider md:grid md:grid-cols-[1fr_auto_1fr] md:gap-0">
+        <div className="min-w-0 shrink">{start}</div>
+        <div className="shrink-0 md:justify-self-center">{children}</div>
+        <div className="hidden md:block" aria-hidden />
       </div>
     );
   }
@@ -269,7 +269,7 @@ function FlowStepColumn({
 
         <FlowStepIconRing stepId={step.stepId} />
 
-        <p className="m-0 w-full px-1 text-center text- font-semibold leading-snug wrap-break-word text-zinc-900">
+        <p className="m-0 w-full px-1 text-center text-xs font-semibold leading-snug wrap-break-word text-zinc-900 sm:text-sm">
           {step.label}
         </p>
         {step.stepId === 'receiving' && cube ? (
@@ -311,13 +311,20 @@ function FlowStepVerticalRow({
       </div>
 
       <div className={cn('min-w-0 flex-1', !isLast && 'pb-4 md:pb-5')}>
-        <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex min-w-0 flex-col items-start gap-2">
           <FlowStepIconRing stepId={step.stepId} size="compact" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold leading-snug text-zinc-900">
               {step.label}
-              {cube ? <p>{cube}</p> : null}
             </p>
+            {step.stepId === 'receiving' && cube ? (
+              <div className="mt-1 flex items-center gap-1">
+                <Box className="size-4 text-brand" aria-hidden />
+                <span className="font-semibold text-xl tracking-widest">
+                  {cube}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

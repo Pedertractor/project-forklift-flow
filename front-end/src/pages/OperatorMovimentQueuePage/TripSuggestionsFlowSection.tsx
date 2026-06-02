@@ -207,7 +207,7 @@ function SuggestionFlowCardBody({
       {activityLabel ? (
         <DeliverFlowActivitySubtitle
           start={
-            <div className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xl font-semibold uppercase tracking-wider text-brand">
+            <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-semibold uppercase tracking-wide text-brand md:gap-x-1.5 md:text-xl md:tracking-wider">
               {machineName ? (
                 <span className="truncate">{machineName}</span>
               ) : null}
@@ -218,20 +218,22 @@ function SuggestionFlowCardBody({
                       -
                     </span>
                   ) : null}
-                  <div className="flex px-1 items-center rounded-lg gap-1 bg-brand/20">
+                  <div className="flex items-center gap-0.5 rounded-lg bg-brand/20 px-1 py-0.5 md:gap-1 md:py-0">
                     <Box
                       strokeWidth={2.5}
-                      className="size-5 shrink-0 text-brand"
+                      className="size-3.5 shrink-0 text-brand md:size-5"
                       aria-hidden
                     />
-                    <span className="tracking-widest bg-brand/200">{cube}</span>
+                    <span className="text-sm tracking-widest md:text-xl">
+                      {cube}
+                    </span>
                   </div>
                 </>
               ) : null}
             </div>
           }
         >
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 text-[11px] leading-tight sm:text-xs">
             {activityLabel === 'Entrega' ? (
               <>
                 Entrega de pallet
