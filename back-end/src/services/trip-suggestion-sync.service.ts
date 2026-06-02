@@ -1,7 +1,4 @@
-import {
-  MovimentPalletEquipmentType,
-  TypeMovimentPallet,
-} from '../generated/prisma/enums.js'
+import { IsOperating, TypeMovimentPallet } from '../generated/prisma/enums.js'
 import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
 import {
@@ -72,12 +69,19 @@ export async function syncOpenTripSuggestionsForSector(
 ) {
   await expireOpenTripSuggestionsUnpreparedForSector(sectorId, types)
 
+  const operatingModes = new Set<IsOperating>()
   for (const type of types) {
+    operatingModes.add(
+      type === TypeMovimentPallet.FORKLIFT
+        ? IsOperating.FORKLIFT
+        : IsOperating.PALLET_TRUCK,
+    )
+  }
+
+  for (const operatingMode of operatingModes) {
     const pickups = await pickupTaskRepository.findManyOpenWithReplenishmentForSector(
       sectorId,
-      type === TypeMovimentPallet.FORKLIFT
-        ? MovimentPalletEquipmentType.FORKLIFT
-        : MovimentPalletEquipmentType.PALLET_TRUCK,
+      operatingMode,
     )
     for (const pickup of pickups) {
       const deliver = await deliveryTaskRepository.findOpenPreparedForMachine(

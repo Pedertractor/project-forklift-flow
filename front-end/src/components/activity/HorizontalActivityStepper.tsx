@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { ForkliftLoader } from '../forklift-loader/forklifit-loader';
+import { ForkliftCircleLoader } from '../forklift-loader/forklift-circle-loader';
 import { CheckIcon, InfoIcon } from 'lucide-react';
 
 export type FlowStepStatus = 'pending' | 'active' | 'done';
@@ -63,9 +63,13 @@ export function stepShowsForkliftLoader(step: FlowStepDefinition): boolean {
 type StepConnectorVariant = 'done' | 'pending' | 'flowing';
 
 /** Colunas: círculo | trilho flex | círculo | trilho | … */
-function buildTrackGridColumns(stepCount: number): string {
+function buildTrackGridColumns(
+  stepCount: number,
+  options?: { wideTracks?: boolean },
+): string {
+  const trackMin = options?.wideTracks ? '1.5rem' : '0.5rem';
   return Array.from({ length: stepCount }, (_, index) =>
-    index === 0 ? 'auto' : 'minmax(0.5rem, 1fr) auto',
+    index === 0 ? 'auto' : `minmax(${trackMin}, 1fr) auto`,
   ).join(' ');
 }
 
@@ -74,6 +78,10 @@ function connectorBetweenSteps(
   statuses: FlowStepStatus[],
 ): StepConnectorVariant {
   const prev = statuses[stepIndex - 1] ?? 'pending';
+  const curr = statuses[stepIndex] ?? 'pending';
+  if (prev === 'done' && curr === 'active') {
+    return 'flowing';
+  }
   if (prev === 'done') {
     return 'done';
   }
@@ -107,7 +115,7 @@ function StepConnectorLine({ variant }: { variant: StepConnectorVariant }) {
       className="relative block h-0.5 w-full overflow-hidden rounded-full bg-zinc-200"
       aria-hidden
     >
-      <span className="absolute inset-y-0 left-0 w-[28%] min-w-5 max-w-14 rounded-full bg-linear-to-r from-[#005fb8]/40 via-[#005fb8] to-[#005fb8]/70 shadow-[0_0_6px_rgba(0,95,184,0.35)] animate-step-connector-flow" />
+      <span className="absolute inset-y-0 left-0 w-[28%] min-w-5 max-w-14 rounded-full bg-linear-to-r from-brand/40 via-brand to-brand/70 shadow-[0_0_6px_rgba(0,95,184,0.35)] animate-step-connector-flow" />
     </span>
   );
 }
@@ -131,7 +139,7 @@ function StepCircle({
         done
           ? 'border-emerald-500 bg-emerald-500 text-white'
           : active
-            ? 'border-[#005fb8] bg-[#005fb8]/10 text-[#005fb8]'
+            ? 'border-brand bg-brand/10 text-brand'
             : 'border-zinc-200 bg-zinc-50 text-zinc-400',
       )}
       aria-hidden
@@ -139,7 +147,7 @@ function StepCircle({
       {done ? (
         <CheckIcon className="size-8" />
       ) : active && stepShowsForkliftLoader(step) ? (
-        <ForkliftLoader />
+        <ForkliftCircleLoader />
       ) : (
         index + 1
       )}
@@ -151,14 +159,16 @@ export function HorizontalActivityStepper({
   steps,
   statuses,
   headline,
-  progressPct: progressPctProp,
   className,
 }: HorizontalActivityStepperProps) {
   if (steps.length !== statuses.length) {
     return null;
   }
 
-  const gridColumns = buildTrackGridColumns(steps.length);
+  /** Fluxos longos (ex.: retirada + abastecimento): trilhos mais largos para o pulso animado. */
+  const wideTracks = steps.length >= 5;
+  const gridColumns = buildTrackGridColumns(steps.length, { wideTracks });
+  const gridMinWidth = wideTracks ? `${steps.length * 5.25}rem` : undefined;
 
   return (
     <div className={cn('w-full', className)}>
@@ -171,10 +181,18 @@ export function HorizontalActivityStepper({
           {headline}
         </p>
       ) : null}
-      <div className="mt-4 -mx-1 overflow-x-auto pb-1">
+      <div
+        className={cn(
+          'mt-4 w-full min-w-0',
+          wideTracks && 'overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]',
+        )}
+      >
         <ol
-          className="grid w-full min-w-lg list-none gap-y-2 p-0"
-          style={{ gridTemplateColumns: gridColumns }}
+          className="grid w-full min-w-0 list-none gap-y-2 p-0"
+          style={{
+            gridTemplateColumns: gridColumns,
+            ...(gridMinWidth ? { minWidth: gridMinWidth } : {}),
+          }}
         >
           {steps.map((step, index) => {
             const status = statuses[index] ?? 'pending';
@@ -190,7 +208,7 @@ export function HorizontalActivityStepper({
               >
                 {index > 0 ? (
                   <div
-                    className="flex items-center self-center"
+                    className="flex min-w-0 items-center self-center px-0.5"
                     style={{ gridColumn: index * 2, gridRow: 1 }}
                     aria-hidden
                   >
@@ -207,11 +225,11 @@ export function HorizontalActivityStepper({
                 </div>
                 <p
                   className={cn(
-                    'm-0 max-w-15 justify-self-center px-0.5 text-center text-[11px] leading-snug font-medium',
+                    'm-0 min-w-0 max-w-full justify-self-center px-0.5 text-center text-[10px] leading-snug font-medium break-words sm:text-[11px]',
                     done
                       ? 'text-emerald-800'
                       : active
-                        ? 'text-[#005fb8]'
+                        ? 'text-brand'
                         : 'text-zinc-400',
                   )}
                   style={{ gridColumn: circleColumn, gridRow: 2 }}

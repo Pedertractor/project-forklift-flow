@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import {
   deleteUnbindOperatorMovimentPallet,
-  getListMovimentPalletsForOperator,
   getListMyMovimentPalletTasks,
   getListOpenReplenishmentRequestsForMovimentOperator,
   getMovimentOperatorNotifications,
@@ -22,16 +21,6 @@ export async function registerOperatorMovimentPalletRoutes(
 ) {
   await fastify.register(
     async (router) => {
-      router.get(
-        '/moviment-pallets',
-        {
-          preHandler: [
-            fastify.authenticate,
-            requireForkliftOrFollowUpOperatorRole(),
-          ],
-        },
-        getListMovimentPalletsForOperator,
-      )
       router.get(
         '/my-moviment-pallet',
         {

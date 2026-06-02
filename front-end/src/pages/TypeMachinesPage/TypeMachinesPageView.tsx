@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { typeMachineImageSrc, type TypeMachinesPageViewModel } from './useTypeMachinesPage';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
   const {
@@ -89,9 +90,11 @@ export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-4 py-8 text-center text-zinc-500"
+                    className="px-4 py-8 text-zinc-500"
                   >
-                    Carregando…
+                    <div className="flex items-center justify-center">
+                      <AccordionLoader />
+                    </div>
                   </td>
                 </tr>
               ) : listQuery.data?.length === 0 ? (

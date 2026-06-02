@@ -53,9 +53,11 @@ Par **entrega + retirada** na mesma máquina. O empilhadeirista só vê a sugest
 
 | Método | Rota | Efeito |
 |--------|------|--------|
-| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) se há ao menos uma entrega concluída na máquina; body opcional `{ isCritical?: boolean }` |
-| `POST` | `/pickup-with-replenishment` | Cria `PickupTask` + `OperatorMachineSupplyRequest` OPEN (se ainda não houver); body opcional `{ isCritical?: boolean }`; sincroniza sugestão de viagem se houver `DeliveryTask` pronta |
+| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) se há ao menos uma entrega concluída na máquina; body opcional `{ isCritical?: boolean }`; se houver `DeliveryTask` preparada no recebimento, sincroniza sugestão de viagem (entrega + retirada) |
+| `POST` | `/pickup-with-replenishment` | Cria `PickupTask` + `OperatorMachineSupplyRequest` OPEN (se ainda não houver); body opcional `{ isCritical?: boolean }`; sincroniza sugestão de viagem se houver `DeliveryTask` pronta. **Bloqueado** enquanto houver pallet no recebimento |
+| `POST` | `/supply-only` | Aviso ao abastecimento. **Bloqueado** enquanto houver pallet no recebimento (neste caso o operador só pode `/pickup-only`) |
 | `GET` | `/machine-tasks` | Lista `deliveryTasks` e `pickupTasks` da máquina vinculada |
+| `POST` | `/pickup-tasks/:pickupTaskId/cancel` | Cancela retirada em `CREATED`; se `triggersReplenishment`, cancela também aviso OPEN ao abastecimento e `DeliveryTask` em preparo (sem `preparedAt`) |
 
 **Removido:** `finalize`, `replenishment-requests`, pickup por `requestId`.
 
@@ -82,7 +84,7 @@ Body de criação: `machineId`, `movementCube`, `typeMovimentPallet`, `isCritica
 | `POST` | `/tasks/:id/accept-pickup` | Aceita retirada |
 | `POST` | `/tasks/:id/complete-deliver` | Conclui entrega na máquina |
 | `POST` | `/tasks/:id/complete-pickup` | Conclui retirada na expedição |
-| `GET` | `/trip-suggestions` | Tela principal: par entrega+retirada (2 tarefas) **somente com** `DeliveryTask.preparedAt` preenchido; ou tarefa avulsa **somente se** `isCritical`; tarefas do par nao repetem como avulsas |
+| `GET` | `/trip-suggestions` | Tela principal: par entrega+retirada (2 tarefas) **somente com** `DeliveryTask.preparedAt` preenchido; ou tarefa avulsa **somente se** `isCritical`; tarefas do par nao repetem como avulsas. Se nao houver nenhuma sugestao/avulsa critica, promove **uma** avulsa nao critica (a mais antiga da fila manual) para o empilhadeirista/follow-up nao precisar abrir a fila manual |
 | `POST` | `/trip-suggestions/:id/accept` | Aceita rota combinada |
 
 **Removido:** aceitar `MachineReplenishmentRequest`.
@@ -109,8 +111,9 @@ flowchart LR
 
 1. Supply antecipa ou responde aviso → `DeliveryTask` com `preparedAt`.
 2. Transporte entrega → `DeliveryTask` COMPLETED → prisma na máquina.
-3. Operador **só retirada** → `PickupTask`.
-4. Operador **retirada + abastecimento** → `PickupTask` + aviso supply; sugestão de viagem para o transporte **após** abastecimento marcar o pallet pronto (`preparedAt`).
+3. Operador **só retirada** → `PickupTask`; se já houver entrega preparada no recebimento, abre sugestão de viagem (entrega + retirada).
+4. Operador **retirada + abastecimento** → `PickupTask` + aviso supply; sugestão de viagem para o transporte **após** abastecimento marcar o pallet pronto (`preparedAt`). Não permitido enquanto existir pallet no recebimento.
+5. Com pallet no recebimento, o operador **não** pode solicitar novo abastecimento nem retirada+abastecimento — apenas retirada (item 3).
 
 ---
 

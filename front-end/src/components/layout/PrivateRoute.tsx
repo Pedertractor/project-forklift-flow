@@ -21,20 +21,20 @@ export function PrivateRoute() {
 
   /** Sessão já restaurada do localStorage: entra no app e valida /auth/me em segundo plano. */
   const awaitingProfile =
-    Boolean(token) &&
-    !user &&
-    (meQuery.isPending || meQuery.isFetching);
+    Boolean(token) && !user && (meQuery.isPending || meQuery.isFetching);
 
-  if (awaitingProfile) {
-    return <PageLoader />;
-  }
+  // if (awaitingProfile) {
+  //   return <PageLoader />;
+  // }
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   if (requiresPasswordChange && location.pathname !== FIRST_PASSWORD_PATH) {
-    return <Navigate to={FIRST_PASSWORD_PATH} replace state={{ from: location }} />;
+    return (
+      <Navigate to={FIRST_PASSWORD_PATH} replace state={{ from: location }} />
+    );
   }
 
   if (!requiresPasswordChange && location.pathname === FIRST_PASSWORD_PATH) {

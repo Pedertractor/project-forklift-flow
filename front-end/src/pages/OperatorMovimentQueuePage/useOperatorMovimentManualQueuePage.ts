@@ -1,18 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  OPERATOR_MOVIMENT_MY_TASKS_PATH,
-} from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
+import {
+  completeOperatorTaskAccept,
+} from '@/lib/operator-moviment-after-accept';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
 import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorReplenishmentQueue,
   postAcceptOpenPickupTask,
-  postAcceptReplenishmentRequest,
+  postAcceptOpenDeliverTask,
 } from '@/services/operator-moviment-pallet-api';
+import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
 import { useAuthStore } from '@/store/auth.store';
 
 function useApiReady(): boolean {
@@ -26,9 +27,16 @@ export function useOperatorMovimentManualQueuePage() {
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
 
-  const goToMyTasks = useCallback(() => {
-    void navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH);
-  }, [navigate]);
+  const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
+
+  const afterAcceptSuccess = useCallback(
+    (successMessage: string, acceptedTasks?: OperatorMovimentTaskItem[]) => {
+      setIsEnteringTaskFlow(true);
+      completeOperatorTaskAccept(queryClient, navigate, acceptedTasks);
+      toast.success(successMessage);
+    },
+    [navigate, queryClient],
+  );
 
   const myPalletQuery = useQuery({
     queryKey: ['operator-moviment', 'my-pallet'],
@@ -42,32 +50,42 @@ export function useOperatorMovimentManualQueuePage() {
     enabled: apiReady && myPalletQuery.isSuccess && myPalletQuery.data !== null,
   });
 
-  const invalidateOperator = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-  }, [queryClient]);
-
   const acceptReplenishmentMut = useMutation({
-    mutationFn: (requestId: string) => postAcceptReplenishmentRequest(requestId),
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Tarefa de entrega aceita.');
-      goToMyTasks();
-    },
+    mutationFn: (deliveryTaskId: string) =>
+      postAcceptOpenDeliverTask(deliveryTaskId),
+    onSuccess: (data) =>
+      afterAcceptSuccess('Tarefa de entrega aceita.', [data.task]),
     onError: toastApiError,
   });
 
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Tarefa de retirada aceita.');
-      goToMyTasks();
-    },
+    onSuccess: (data) => afterAcceptSuccess('Tarefa de retirada aceita.', [data.task]),
     onError: toastApiError,
   });
 
-  const busy = acceptReplenishmentMut.isPending || acceptPickupMut.isPending;
+  const busy =
+    isEnteringTaskFlow ||
+    acceptReplenishmentMut.isPending ||
+    acceptPickupMut.isPending;
   const queue = queueQuery.data ?? { requests: [], onMachinePickupTasks: [] };
+
+  const pendingReplenishmentRequestId = useMemo(() => {
+    if (
+      !acceptReplenishmentMut.isPending ||
+      acceptReplenishmentMut.variables === undefined
+    ) {
+      return null;
+    }
+    return acceptReplenishmentMut.variables;
+  }, [acceptReplenishmentMut.isPending, acceptReplenishmentMut.variables]);
+
+  const pendingPickupTaskId = useMemo(() => {
+    if (!acceptPickupMut.isPending || acceptPickupMut.variables === undefined) {
+      return null;
+    }
+    return acceptPickupMut.variables;
+  }, [acceptPickupMut.isPending, acceptPickupMut.variables]);
 
   return {
     apiReady,
@@ -75,6 +93,8 @@ export function useOperatorMovimentManualQueuePage() {
     queueQuery,
     queue,
     busy,
+    pendingReplenishmentRequestId,
+    pendingPickupTaskId,
     onAcceptReplenishment: (requestId: string) =>
       acceptReplenishmentMut.mutate(requestId),
     onAcceptPickup: (taskId: string) => acceptPickupMut.mutate(taskId),

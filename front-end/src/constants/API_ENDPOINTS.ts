@@ -23,10 +23,6 @@ export const API_ENDPOINTS = {
     LIST: '/machines',
     BY_ID: (id: string) => `/machines/${id}`,
   },
-  PLANT_MAP: {
-    AREAS: '/plant-map/areas',
-    AREA_BY_ID: (areaId: string) => `/plant-map/areas/${encodeURIComponent(areaId)}`,
-  },
   MOVIMENT_PALLETS: {
     LIST: '/moviment-pallets',
     BY_ID: (id: string) => `/moviment-pallets/${encodeURIComponent(id)}`,
@@ -34,6 +30,7 @@ export const API_ENDPOINTS = {
   DELIVERY_TASKS: {
     LIST: '/delivery-tasks',
     PENDING_SUPPLY_REQUESTS: '/delivery-tasks/pending-supply-requests',
+    SECTOR_TRANSPORT_OPERATORS: '/delivery-tasks/sector-transport-operators',
     BY_ID: (taskId: string) => `/delivery-tasks/${encodeURIComponent(taskId)}`,
     MARK_PREPARED: (taskId: string) =>
       `/delivery-tasks/${encodeURIComponent(taskId)}/mark-prepared`,

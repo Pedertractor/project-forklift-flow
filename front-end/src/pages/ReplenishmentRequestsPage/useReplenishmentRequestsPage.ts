@@ -20,6 +20,7 @@ import type {
   PriorityLevelValue,
   ReplenishmentRequestListItem,
 } from '@/types/replenishment-request.types';
+import { isOpenReplenishmentRequest } from '@/utils/replenishment-request-status';
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -93,12 +94,19 @@ export function useReplenishmentRequestsPage() {
     return rows;
   }, [listQuery.data, onlyMySector, user?.sectorId]);
 
+  const openRequests = useMemo(
+    () => visibleRequests.filter(isOpenReplenishmentRequest),
+    [visibleRequests],
+  );
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+
   const equipmentSectorId =
     onlyMySector && user?.sectorId ? user.sectorId : undefined;
 
   const equipmentQuery = useQuery({
     queryKey: [
-      'moviment-pallets',
+      'sector-transport-operators',
       'replenishment-sidebar',
       equipmentSectorId ?? 'all',
     ],
@@ -107,7 +115,7 @@ export function useReplenishmentRequestsPage() {
         ...(equipmentSectorId ? { sectorId: equipmentSectorId } : {}),
         includeTaskAvailability: true,
       }),
-    enabled: apiReady,
+    enabled: apiReady && Boolean(equipmentSectorId),
     refetchInterval: 15_000,
   });
 
@@ -126,7 +134,7 @@ export function useReplenishmentRequestsPage() {
   const queueByType = useMemo(() => {
     let forklift = 0;
     let palletTruck = 0;
-    for (const row of visibleRequests) {
+    for (const row of openRequests) {
       if (!QUEUE_STATUSES_FOR_TRANSPORT.has(row.status)) continue;
       if (
         row.typeMovimentPallet === 'FORKLIFT' ||
@@ -139,7 +147,7 @@ export function useReplenishmentRequestsPage() {
       }
     }
     return { forklift, palletTruck };
-  }, [visibleRequests]);
+  }, [openRequests]);
 
   const forkliftStats = useMemo(
     () => buildEquipmentColumnStats(forklifts, queueByType.forklift),
@@ -218,7 +226,7 @@ export function useReplenishmentRequestsPage() {
       void queryClient.invalidateQueries({
         queryKey: ['operator-machine', 'operator-supply-requests'],
       });
-      void queryClient.invalidateQueries({ queryKey: ['moviment-pallets'] });
+      void queryClient.invalidateQueries({ queryKey: ['sector-transport-operators'] });
       setCreateOpen(false);
       resetForm();
       toast.success('Solicitação criada.');
@@ -301,6 +309,9 @@ export function useReplenishmentRequestsPage() {
     listQuery,
     pendingPreparationCount,
     visibleRequests,
+    openRequests,
+    historyOpen,
+    setHistoryOpen,
     forklifts,
     palletTrucks,
     forkliftStats,

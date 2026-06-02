@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { UserRound, UserRoundX } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { Card } from '@/components/ui/card';
@@ -7,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { type MachinesPageViewModel } from './useMachinesPage';
 import { typeMachineImageSrc } from '../TypeMachinesPage/useTypeMachinesPage';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function MachinesPageView(vm: MachinesPageViewModel) {
   const {
@@ -36,17 +38,15 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setDeleteRow,
     name,
     setName,
-    position,
-    setPosition,
     typeMachineId,
     setTypeMachineId,
     sectorId,
     setSectorId,
     userId,
     setUserId,
-    clearOperator,
-    setClearOperator,
-    goToMapToCreateMachine,
+    editOperator,
+    unlinkOperatorMut,
+    openCreate,
     openEdit,
     createMut,
     updateMut,
@@ -73,7 +73,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </Button>
             <Button
               type="button"
-              onClick={goToMapToCreateMachine}
+              onClick={openCreate}
               disabled={!apiReady || busy}
             >
               Nova máquina de produção
@@ -100,7 +100,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 com nome e imagem em{' '}
                 <Link
                   to="/cadastro/tipos-maquina"
-                  className="font-semibold text-[#005fb8] underline underline-offset-2 hover:text-[#004a8f]"
+                  className="font-semibold text-brand underline underline-offset-2 hover:text-[#004a8f]"
                 >
                   Tipos de máquina
                 </Link>{' '}
@@ -177,9 +177,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 <th className="px-4 py-3 font-semibold text-zinc-700"></th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Nome</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">
-                  Posição
-                </th>
-                <th className="px-4 py-3 font-semibold text-zinc-700">
                   Tipo (produção)
                 </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
@@ -194,11 +191,10 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <tbody>
               {machinesQuery.isLoading ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-zinc-500"
-                  >
-                    Carregando…
+                  <td colSpan={6} className="px-4 py-8 text-zinc-500">
+                    <div className="flex items-center justify-center">
+                      <AccordionLoader />
+                    </div>
                   </td>
                 </tr>
               ) : machinesQuery.data?.length === 0 ? (
@@ -227,9 +223,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     <td className="px-4 py-3 font-medium text-zinc-900">
                       {row.name}
                     </td>
-                    <td className="px-4 py-3 font-mono text-zinc-700">
-                      {row.position}
-                    </td>
                     <td className="px-4 py-3 text-zinc-700">
                       <span className="text-zinc-900">
                         {row.typeMachine.name}
@@ -241,9 +234,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                     <td className="px-4 py-3 text-zinc-700">
                       {row.sector.typeSector}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {plantUnitLabel[row.plantUnit]}
-                    </td>
+                    <td className="px-4 py-3 text-zinc-700">{row.plantUnit}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -279,7 +270,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
       <SimpleModal
         open={createOpen}
         title="Nova máquina de produção"
-        description="Máquina de linha de produção (não é empilhadeira). Preencha nome, posição, tipo de máquina (modelo) e setor. O operador é opcional (UUID do usuário, se souber o identificador)."
+        description="Máquina de linha de produção (não é empilhadeira). Preencha nome, unidade, tipo de máquina (modelo) e setor. O operador é opcional (UUID do usuário, se souber o identificador)."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions
@@ -302,7 +293,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                 Cadastre um tipo em{' '}
                 <Link
                   to="/cadastro/tipos-maquina"
-                  className="font-semibold text-[#005fb8] underline underline-offset-2"
+                  className="font-semibold text-brand underline underline-offset-2"
                   onClick={() => !busy && setCreateOpen(false)}
                 >
                   Tipos de máquina
@@ -329,16 +320,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-pos">Posição</Label>
-            <Input
-              id="m-pos"
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              placeholder="Ex.: A1 ou MAP:0.35,0.62"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="m-plant-unit">Unidade (planta no mapa)</Label>
+            <Label htmlFor="m-plant-unit">Unidade</Label>
             <select
               id="m-plant-unit"
               className={selectClass}
@@ -388,16 +370,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ))}
             </select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="m-user">Operador (UUID, opcional)</Label>
-            <Input
-              id="m-user"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="Deixe vazio se não houver"
-              className="font-mono text-xs"
-            />
-          </div>
         </div>
       </SimpleModal>
 
@@ -430,7 +402,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="m-edit-plant-unit">Unidade (planta no mapa)</Label>
+            <Label htmlFor="m-edit-plant-unit">Unidade</Label>
             <select
               id="m-edit-plant-unit"
               className={selectClass}
@@ -481,15 +453,40 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </select>
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                checked={clearOperator}
-                onChange={(e) => setClearOperator(e.target.checked)}
-                className="size-4 rounded border-zinc-300"
-              />
-              Remover operador
-            </label>
+            <Label>Operador na máquina</Label>
+            {editOperator ? (
+              <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600">
+                    <UserRound className="size-5" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="m-0 text-sm font-semibold text-zinc-900">
+                      {editOperator.name}
+                    </p>
+                    <p className="mt-0.5 m-0 font-mono text-xs text-zinc-600">
+                      Cartão {editOperator.card}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full shrink-0 border-red-200 text-red-700 hover:bg-red-50 sm:w-auto"
+                  disabled={!apiReady || busy}
+                  onClick={() => unlinkOperatorMut.mutate()}
+                >
+                  <UserRoundX className="size-4" aria-hidden />
+                  {unlinkOperatorMut.isPending
+                    ? 'Desvinculando…'
+                    : 'Desvincular operador'}
+                </Button>
+              </div>
+            ) : (
+              <p className="m-0 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-4 py-3 text-sm text-zinc-600">
+                Nenhum operador vinculado no momento.
+              </p>
+            )}
           </div>
         </div>
       </SimpleModal>

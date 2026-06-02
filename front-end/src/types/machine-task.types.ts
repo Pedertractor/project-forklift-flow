@@ -34,7 +34,6 @@ export interface DeliveryTaskListItem {
   machine?: {
     id: string;
     name: string;
-    position: string;
     userId?: string | null;
     sectorId?: string;
     typeMachine?: { id: string; name: string };
@@ -58,6 +57,5 @@ export interface PickupTaskListItem {
   machine?: {
     id: string;
     name: string;
-    position: string;
   };
 }

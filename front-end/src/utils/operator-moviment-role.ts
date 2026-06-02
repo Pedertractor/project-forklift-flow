@@ -1,34 +1,21 @@
-import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
+import type { IsOperatingMode } from '@/types/operator-moviment-pallet.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
-/** Tipos de equipamento (`MovimentPallet`) permitidos ao papel (espelho do back-end). */
-export function movimentTypesForRole(
-  role: string | undefined,
-): MovimentPalletEquipmentType[] {
-  switch (role) {
-    case 'FORKLIFT_OPERATOR':
-      return ['FORKLIFT'];
-    case 'FOLLOW_UP_OPERATOR':
-      return ['PALLET_TRUCK'];
-    case 'ADMIN':
-      return ['FORKLIFT', 'PALLET_TRUCK'];
-    default:
-      return [];
-  }
+/** Tipos de solicitação na fila conforme o modo de operação escolhido. */
+export function replenishmentMovimentTypesForOperatingMode(
+  mode: IsOperatingMode | null | undefined,
+): ReplenishmentMovimentType[] {
+  if (!mode) return [];
+  if (mode === 'FORKLIFT') return ['FORKLIFT', 'ANY'];
+  return ['ANY'];
 }
 
-/** Tipos de solicitação (`typeMovimentPallet` no pedido) que disparam WS/fila para o papel. */
+/** @deprecated Use replenishmentMovimentTypesForOperatingMode */
 export function replenishmentMovimentTypesForRole(
   role: string | undefined,
 ): ReplenishmentMovimentType[] {
-  switch (role) {
-    case 'FORKLIFT_OPERATOR':
-      return ['FORKLIFT', 'ANY'];
-    case 'FOLLOW_UP_OPERATOR':
-      return ['ANY'];
-    case 'ADMIN':
-      return ['FORKLIFT', 'ANY'];
-    default:
-      return [];
+  if (role === 'PALLET_TRANSPORTER' || role === 'ADMIN') {
+    return ['FORKLIFT', 'ANY'];
   }
+  return [];
 }

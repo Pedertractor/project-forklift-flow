@@ -37,7 +37,6 @@ function mapMachineToDestination(
   return {
     id: machine?.id ?? machineId,
     name: machine?.name ?? '—',
-    position: machine?.position ?? '',
     userId: machine?.userId ?? null,
     typeMachine: machine?.typeMachine ?? { id: '', name: '' },
     sector: machine?.sector ?? {
@@ -89,7 +88,10 @@ function mapDeliveryToTaskItem(task: DeliveryTaskApiRow): OperatorPickupTaskQueu
     statusSince: task.statusSince,
     triggersReplenishment: false,
     requestedById: task.requestedById,
-    assignedMovimentPalletId: task.assignedMovimentPalletId,
+    assignedOperatorId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
+    assignedMovimentPalletId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     completedAt: task.completedAt,
@@ -121,7 +123,10 @@ function mapPickupTaskToQueueItem(task: PickupTaskApiRow): OperatorPickupTaskQue
     requestId: task.id,
     type: 'PICKUP_TO_EXPEDITION',
     status: task.status as OperatorPickupTaskQueueItem['status'],
-    assignedMovimentPalletId: task.assignedMovimentPalletId,
+    assignedOperatorId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
+    assignedMovimentPalletId:
+      task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
     requestedById: task.requestedById,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -176,13 +181,13 @@ export async function fetchOperatorReplenishmentQueue(): Promise<OperatorRepleni
 }
 
 export async function postBindOperatorMovimentPallet(
-  movimentPalletId: string,
+  isOperating: 'FORKLIFT' | 'PALLET_TRUCK',
 ): Promise<OperatorMovimentPalletBrief> {
   const res = await apiAuthFetch<{ movimentPallet: OperatorMovimentPalletBrief }>(
     API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.MY_MOVIMENT_PALLET,
     {
       method: 'POST',
-      body: JSON.stringify({ movimentPalletId }),
+      body: JSON.stringify({ isOperating }),
     },
   );
   if (!res?.movimentPallet) {
@@ -287,7 +292,7 @@ export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]
 
 type TripSuggestionApiRow = {
   kind: string;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   effectiveCritical?: boolean;
   message: string;
   deliverTask: DeliveryTaskApiRow;
@@ -300,7 +305,7 @@ type TripStandalonePickupApiRow = {
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
   deferRecommended?: boolean;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   message: string;
   pickupTask: PickupTaskApiRow;
 };
@@ -310,7 +315,7 @@ type TripStandaloneDeliverApiRow = {
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
   deferRecommended?: boolean;
-  machine: { id: string; name: string; position: string };
+  machine: { id: string; name: string };
   message: string;
   requestId: string;
   deliverTask: DeliveryTaskApiRow;
@@ -377,14 +382,22 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
 export async function postAcceptTripRouteSuggestion(
   tripSuggestionId: string,
 ): Promise<OperatorAcceptTripSuggestionResponse> {
-  const res = await apiAuthFetch<OperatorAcceptTripSuggestionResponse>(
+  const res = await apiAuthFetch<{
+    tripSuggestion: OperatorAcceptTripSuggestionResponse['tripSuggestion'];
+    deliverTask: DeliveryTaskApiRow;
+    pickupTask: PickupTaskApiRow;
+  }>(
     API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.ACCEPT_TRIP_SUGGESTION(tripSuggestionId),
     { method: 'POST' },
   );
-  if (!res) {
+  if (!res?.deliverTask || !res?.pickupTask) {
     throw new Error('Resposta vazia ao aceitar sugestão de rota.');
   }
-  return res;
+  return {
+    tripSuggestion: res.tripSuggestion,
+    deliverTask: mapDeliveryToTaskItem(res.deliverTask),
+    pickupTask: mapPickupTaskToQueueItem(res.pickupTask),
+  };
 }
 
 export async function postCompleteDeliverTask(taskId: string): Promise<{

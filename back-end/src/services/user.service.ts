@@ -97,8 +97,7 @@ async function resolveSectorIdForNewUser(
 
 const LEADER_CREATABLE_ROLES: RoleUser[] = [
   RoleUser.OPERATOR_MACHINE,
-  RoleUser.FORKLIFT_OPERATOR,
-  RoleUser.FOLLOW_UP_OPERATOR,
+  RoleUser.PALLET_TRANSPORTER,
   RoleUser.SUPPLY_OPERATOR,
 ]
 
@@ -108,7 +107,7 @@ export async function createUser(
 ): Promise<UserModel> {
   if (actor.role === RoleUser.LEADER && !LEADER_CREATABLE_ROLES.includes(input.role)) {
     throw new CreateUserError(
-      'Lider so pode criar usuarios com perfil OPERATOR_MACHINE, FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou SUPPLY_OPERATOR.',
+      'Lider so pode criar usuarios com perfil OPERATOR_MACHINE, PALLET_TRANSPORTER ou SUPPLY_OPERATOR.',
     )
   }
 
@@ -220,7 +219,7 @@ export async function updateUserRole(
     await assertLeaderCanManageTargetUser(actor, user, 'alterar o perfil de')
     if (!LEADER_CREATABLE_ROLES.includes(role)) {
       throw new CreateUserError(
-        'Lider so pode atribuir perfil OPERATOR_MACHINE, FORKLIFT_OPERATOR, FOLLOW_UP_OPERATOR ou SUPPLY_OPERATOR.',
+        'Lider so pode atribuir perfil OPERATOR_MACHINE, PALLET_TRANSPORTER ou SUPPLY_OPERATOR.',
       )
     }
   } else if (actor.role !== RoleUser.ADMIN) {

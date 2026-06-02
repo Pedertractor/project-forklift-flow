@@ -68,6 +68,24 @@ export function operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
   })
 }
 
+export type MachineOperatorWsPayload = {
+  machineId: string
+  sectorId: string
+  /** Operador vinculado à máquina após a alteração (`null` = desvinculado). */
+  operatorUserId: string | null
+  /** Operador impactado (quem foi vinculado ou desvinculado). */
+  affectedUserId: string | null
+}
+
+export function operatorMovimentPalletWsBroadcastMachineOperatorUpdated(
+  payload: MachineOperatorWsPayload,
+): void {
+  broadcast({
+    type: 'machine_operator_updated' as const,
+    ...payload,
+  })
+}
+
 export type DeliveryTaskRowForWs = {
   id: string
   status: MachineTaskStatus

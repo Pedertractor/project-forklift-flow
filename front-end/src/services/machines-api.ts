@@ -42,7 +42,6 @@ export async function fetchMachineById(id: string): Promise<MachineDetail> {
 
 export async function createMachine(input: {
   name: string;
-  position: string;
   plantUnit: PlantMapUnit;
   typeMachineId: string;
   sectorId: string;
@@ -50,7 +49,6 @@ export async function createMachine(input: {
 }): Promise<MachineDetail> {
   const body: CreateMachinePostBody = {
     name: input.name.trim(),
-    position: input.position.trim(),
     plantUnit: input.plantUnit,
     typeMachineId: input.typeMachineId.trim(),
     sectorId: input.sectorId.trim(),
@@ -72,7 +70,6 @@ export async function updateMachine(
   id: string,
   patch: {
     name?: string;
-    position?: string;
     plantUnit?: PlantMapUnit;
     typeMachineId?: string;
     sectorId?: string;

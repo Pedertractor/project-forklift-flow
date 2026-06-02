@@ -6,6 +6,7 @@ import {
   TypeMachineNotFoundError,
 } from '../errors/domain-errors.js'
 import { machineRepository } from '../repositories/machine.repository.js'
+import { operatorMovimentPalletWsBroadcastMachineOperatorUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
 import { sectorRepository } from '../repositories/sector.repository.js'
 import { typeMachineRepository } from '../repositories/type-machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
@@ -21,7 +22,6 @@ export function parsePlantMapUnit(value: string): PlantMapUnit | null {
 
 export type CreateMachineInput = {
   name: string
-  position: string
   plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string
@@ -30,7 +30,6 @@ export type CreateMachineInput = {
 
 export type UpdateMachineInput = {
   name?: string
-  position?: string
   plantUnit?: PlantMapUnit
   typeMachineId?: string
   sectorId?: string
@@ -73,9 +72,6 @@ function buildMachineUpdateData(
   if (input.name !== undefined) {
     data.name = input.name.trim()
   }
-  if (input.position !== undefined) {
-    data.position = input.position.trim()
-  }
   if (input.plantUnit !== undefined) {
     data.plantUnit = input.plantUnit
   }
@@ -104,7 +100,6 @@ export async function createMachine(input: CreateMachineInput) {
 
   const data: Prisma.MachineCreateInput = {
     name: input.name.trim(),
-    position: input.position.trim(),
     plantUnit: input.plantUnit,
     typeMachine: { connect: { id: input.typeMachineId } },
     sector: { connect: { id: input.sectorId } },
@@ -128,7 +123,7 @@ export async function getMachineById(id: string) {
 }
 
 export async function updateMachine(id: string, input: UpdateMachineInput) {
-  await requireMachineById(id)
+  const before = await requireMachineById(id)
   if (input.typeMachineId !== undefined) {
     await requireTypeMachineExists(input.typeMachineId)
   }
@@ -145,9 +140,22 @@ export async function updateMachine(id: string, input: UpdateMachineInput) {
 
   const data = buildMachineUpdateData(input)
   if (Object.keys(data).length === 0) {
-    return requireMachineById(id)
+    return before
   }
-  return machineRepository.update(id, data)
+  const updated = await machineRepository.update(id, data)
+  if (input.userId !== undefined) {
+    const nextOperatorId = updated.userId ?? null
+    const prevOperatorId = before.userId ?? null
+    if (nextOperatorId !== prevOperatorId) {
+      operatorMovimentPalletWsBroadcastMachineOperatorUpdated({
+        machineId: updated.id,
+        sectorId: updated.sectorId,
+        operatorUserId: nextOperatorId,
+        affectedUserId: nextOperatorId ?? prevOperatorId,
+      })
+    }
+  }
+  return updated
 }
 
 export async function deleteMachine(id: string) {

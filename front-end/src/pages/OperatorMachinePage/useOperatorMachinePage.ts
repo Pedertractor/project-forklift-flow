@@ -18,22 +18,21 @@ import {
 import {
   canOpenServiceRequestDialog,
   canRequestSupply,
+  canRequestPickup,
+  canRequestPickupWithReplenishment,
+  hasPalletAtReceiving,
+  PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
+  pickupBlockedReason,
 } from './operator-machine-flow';
 import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
-import {
-  canRequestPickup,
-  deliveryTaskDrivingMachineUi,
-  deriveDeliveryFlowPhaseFromTask,
-  derivePickupFlowPhaseFromTask,
-  pickupBlockedReason,
-  pickupTaskDrivingMachineUi,
-  resolveOperationTimelineMode,
-} from './operator-machine-flow';
 import { useAuthStore } from '@/store/auth.store';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 
 const queryKeyMyMachine = ['operator-machine', 'my-machine'] as const;
-const queryKeyOperatorSupply = ['operator-machine', 'operator-supply-requests'] as const;
+const queryKeyOperatorSupply = [
+  'operator-machine',
+  'operator-supply-requests',
+] as const;
 const queryKeyTasks = ['operator-machine', 'machine-tasks'] as const;
 
 function useApiReady(): boolean {
@@ -90,7 +89,7 @@ export function useOperatorMachinePage() {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       setShowMachinePicker(false);
-      toast.success('Máquina vinculada ao turno.');
+      toast.success('Máquina vinculada com sucesso!');
     },
     onError: toastApiError,
   });
@@ -122,35 +121,23 @@ export function useOperatorMachinePage() {
   const deliveryTasks = tasksQuery.data?.deliveryTasks ?? [];
   const pickupTasks = tasksQuery.data?.pickupTasks ?? [];
 
-  const openOperatorSupply = useMemo((): OperatorMachineSupplyRequestListItem | null => {
-    const list = operatorSupplyQuery.data ?? [];
-    return list.find((r) => r.status === 'OPEN') ?? null;
-  }, [operatorSupplyQuery.data]);
+  const openOperatorSupply =
+    useMemo((): OperatorMachineSupplyRequestListItem | null => {
+      const list = operatorSupplyQuery.data ?? [];
+      return list.find((r) => r.status === 'OPEN') ?? null;
+    }, [operatorSupplyQuery.data]);
 
+  const palletAtReceiving = hasPalletAtReceiving(deliveryTasks);
   const canPickup = canRequestPickup(deliveryTasks, pickupTasks);
-  const timelineDelivery = useMemo(
-    () => deliveryTaskDrivingMachineUi(deliveryTasks),
-    [deliveryTasks],
-  );
-  const timelinePickup = useMemo(
-    () => pickupTaskDrivingMachineUi(pickupTasks),
-    [pickupTasks],
-  );
-  const operationTimelineMode = useMemo(
-    () => resolveOperationTimelineMode(deliveryTasks, pickupTasks),
-    [deliveryTasks, pickupTasks],
-  );
-  const pickupPhase = derivePickupFlowPhaseFromTask(
-    operationTimelineMode === 'pickup' ? timelinePickup : null,
-  );
-  const deliveryPhase = deriveDeliveryFlowPhaseFromTask(
-    operationTimelineMode === 'delivery' ? timelineDelivery : null,
-  );
   const pickupBlockedMessage = pickupBlockedReason(deliveryTasks, pickupTasks);
-  const canRequestSupplyNow = canRequestSupply(openOperatorSupply);
+  const canRequestSupplyNow = canRequestSupply(openOperatorSupply, deliveryTasks);
+  const canPickupWithReplenishment = canRequestPickupWithReplenishment(
+    deliveryTasks,
+  );
   const canOpenRequestDialog = canOpenServiceRequestDialog(
     canPickup,
     openOperatorSupply,
+    deliveryTasks,
   );
 
   const unbindMut = useMutation({
@@ -167,18 +154,34 @@ export function useOperatorMachinePage() {
   });
 
   const pickupOnlyMut = useMutation({
-    mutationFn: (isCritical?: boolean) =>
-      postOperatorPickupOnly({ isCritical: isCritical === true }),
+    mutationFn: (input?: {
+      isCritical?: boolean;
+      typeMovimentPallet?: 'FORKLIFT' | 'ANY';
+    }) =>
+      postOperatorPickupOnly({
+        isCritical: input?.isCritical === true,
+        typeMovimentPallet: input?.typeMovimentPallet,
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
-      toast.success('Retirada solicitada. O transporte será acionado.');
+      toast.success(
+        palletAtReceiving
+          ? 'Retirada solicitada. O transporte receberá a sugestão de entrega e retirada.'
+          : 'Retirada solicitada. O transporte será acionado.',
+      );
     },
     onError: toastApiError,
   });
 
   const pickupWithReplenishmentMut = useMutation({
-    mutationFn: (isCritical?: boolean) =>
-      postOperatorPickupWithReplenishment({ isCritical: isCritical === true }),
+    mutationFn: (input?: {
+      isCritical?: boolean;
+      typeMovimentPallet?: 'FORKLIFT' | 'ANY';
+    }) =>
+      postOperatorPickupWithReplenishment({
+        isCritical: input?.isCritical === true,
+        typeMovimentPallet: input?.typeMovimentPallet,
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
@@ -206,10 +209,15 @@ export function useOperatorMachinePage() {
     pickup: boolean;
     supply: boolean;
     pickupIsCritical?: boolean;
+    typeMovimentPallet?: 'FORKLIFT' | 'ANY';
   }) => {
-    const { pickup, supply, pickupIsCritical } = selection;
+    const { pickup, supply, pickupIsCritical, typeMovimentPallet } = selection;
     if (!pickup && !supply) return;
     const critical = pickupIsCritical === true;
+    const pickupOptions =
+      pickup && typeMovimentPallet
+        ? { isCritical: critical, typeMovimentPallet }
+        : { isCritical: critical };
 
     if (supply && !pickup) {
       await supplyOnlyMut.mutateAsync();
@@ -217,22 +225,29 @@ export function useOperatorMachinePage() {
     }
 
     if (pickup && supply) {
-      await pickupWithReplenishmentMut.mutateAsync(critical);
+      await pickupWithReplenishmentMut.mutateAsync(pickupOptions);
       return;
     }
 
     if (pickup) {
-      await pickupOnlyMut.mutateAsync(critical);
+      await pickupOnlyMut.mutateAsync(pickupOptions);
     }
   };
 
   const cancelPickupMut = useMutation({
-    mutationFn: (pickupTaskId: string) => postCancelOperatorPickup(pickupTaskId),
-    onSuccess: () => {
+    mutationFn: (pickupTaskId: string) =>
+      postCancelOperatorPickup(pickupTaskId),
+    onSuccess: (result) => {
       setCancelPickupId(null);
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
+      void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-      toast.success('Solicitação de retirada cancelada.');
+      void queryClient.invalidateQueries({ queryKey: ['delivery-tasks'] });
+      toast.success(
+        result.replenishmentCanceled
+          ? 'Solicitação de retirada e abastecimento canceladas.'
+          : 'Solicitação de retirada cancelada.',
+      );
     },
     onError: toastApiError,
   });
@@ -262,13 +277,11 @@ export function useOperatorMachinePage() {
     pickupTasks,
     operatorSupplyQuery,
     openOperatorSupply,
-    timelineDelivery,
-    timelinePickup,
-    operationTimelineMode,
-    pickupPhase,
-    deliveryPhase,
     canPickup,
     canRequestSupplyNow,
+    canPickupWithReplenishment,
+    palletAtReceiving,
+    palletAtReceivingBlockedMessage: PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
     canOpenRequestDialog,
     pickupBlockedMessage,
     operatorSupplyRequests: operatorSupplyQuery.data ?? [],
@@ -289,4 +302,6 @@ export function useOperatorMachinePage() {
   };
 }
 
-export type OperatorMachinePageViewModel = ReturnType<typeof useOperatorMachinePage>;
+export type OperatorMachinePageViewModel = ReturnType<
+  typeof useOperatorMachinePage
+>;

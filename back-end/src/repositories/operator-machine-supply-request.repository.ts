@@ -9,7 +9,6 @@ const listInclude = {
     select: {
       id: true,
       name: true,
-      position: true,
       sectorId: true,
       typeMachine: { select: { id: true, name: true, urlImage: true } },
     },

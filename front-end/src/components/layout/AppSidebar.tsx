@@ -22,8 +22,7 @@ function roleMenuLabel(role: string | undefined): string {
   }
   const map: Record<string, string> = {
     OPERATOR_MACHINE: 'Operador de máquina',
-    FORKLIFT_OPERATOR: 'Operador de empilhadeira',
-    FOLLOW_UP_OPERATOR: 'Operador de transpaleteira',
+    PALLET_TRANSPORTER: 'Transportador de pallet',
     SUPPLY_OPERATOR: 'Abastecimento',
     LEADER: 'Líder',
     SUPERVISOR: 'Supervisor',
@@ -35,9 +34,9 @@ function roleMenuLabel(role: string | undefined): string {
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#005fb8]/35',
+    'flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand/35',
     isActive
-      ? 'bg-[#005fb8]/12 font-semibold text-[#005fb8]'
+      ? 'bg-brand/12 font-semibold text-brand'
       : 'text-zinc-700 hover:bg-zinc-200/70 hover:text-zinc-900',
   );
 
@@ -68,7 +67,7 @@ export function AppSidebar({
       aria-label="Menu da aplicação"
     >
       <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-3">
-        <p className="m-0 text-sm font-bold uppercase tracking-wider text-[#005fb8]">
+        <p className="m-0 text-sm font-bold uppercase tracking-wider text-brand">
           ForkLift Flow
         </p>
       </div>
@@ -123,11 +122,11 @@ export function AppSidebar({
         <button
           type="button"
           onClick={onRequestLogout}
-          className="w-full rounded-xl border border-zinc-200/90 bg-white px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#005fb8]/30"
+          className="w-full rounded-xl border border-zinc-200/90 bg-white px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
           title="Encerrar sessão"
         >
           <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#005fb8]/12 text-xs font-bold tracking-wide text-[#005fb8]">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/12 text-xs font-bold tracking-wide text-brand">
               {user ? userInitials(user.name) : '—'}
             </div>
             <div className="min-w-0">

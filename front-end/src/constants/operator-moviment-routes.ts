@@ -12,3 +12,8 @@ export const OPERATOR_MOVIMENT_TASKS_QUEUE_LEGACY_PATH = '/operacao/aceitar-tare
 export type OperatorMovimentEquipmentNavigateState = {
   changeEquipment?: boolean;
 };
+
+/** Após aceitar tarefa na fila — exibe loader até o fluxo estar pronto. */
+export type OperatorMovimentMyTasksNavigateState = {
+  enteringTaskFlow?: boolean;
+};

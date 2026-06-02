@@ -1,4 +1,4 @@
-import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
+import { OPERATOR_MOVIMENT_EQUIPMENT_PATH } from '@/constants/operator-moviment-routes';
 import { ADMIN_OR_LEADER_ROLES, type AppRole } from '@/types/role.types';
 
 /**
@@ -15,8 +15,8 @@ export function defaultHomePathForRole(role: string | undefined): string {
   if (role === 'OPERATOR_MACHINE') {
     return '/dobra/operacao';
   }
-  if (role === 'FORKLIFT_OPERATOR' || role === 'FOLLOW_UP_OPERATOR') {
-    return OPERATOR_MOVIMENT_TASKS_QUEUE_PATH;
+  if (role === 'PALLET_TRANSPORTER') {
+    return OPERATOR_MOVIMENT_EQUIPMENT_PATH;
   }
   return '/nao-autorizado';
 }

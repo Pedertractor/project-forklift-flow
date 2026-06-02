@@ -3,8 +3,28 @@ import {
   RouteFlowStepDetails,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
+import {
+  AudioWaveform,
+  Box,
+  Forklift,
+  PackageSearch,
+  Warehouse,
+  type LucideIcon,
+} from 'lucide-react';
 
 export type RouteFlowStepId = 'receiving' | 'machine' | 'pallet' | 'expedition';
+
+const ROUTE_FLOW_STEP_LUCIDE: Record<RouteFlowStepId, LucideIcon> = {
+  receiving: Warehouse,
+  pallet: PackageSearch,
+  machine: Box,
+  expedition: Forklift,
+};
+
+/** Ícones Lucide por etapa — altere aqui para trocar em todo o fluxo. */
+export function routeFlowStepLucideIcon(id: RouteFlowStepId): LucideIcon {
+  return ROUTE_FLOW_STEP_LUCIDE[id];
+}
 
 export function ReceivingIcon({ className }: { className?: string }) {
   return (
@@ -57,21 +77,9 @@ export function PalletIcon({ className }: { className?: string }) {
   );
 }
 
+/** Expedição / movimentação — ícone de empilhadeira (AudioWaveform). */
 export function ExpeditionIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      aria-hidden
-    >
-      <path d="M3 17h13l3-6H6l-2 6z" strokeLinejoin="round" />
-      <circle cx="7" cy="19" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="17" cy="19" r="1.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
+  return <AudioWaveform className={className} aria-hidden strokeWidth={1.75} />;
 }
 
 export function routeFlowStepIcon(id: RouteFlowStepId) {
@@ -111,7 +119,7 @@ export function SuggestionFlowConnector({
         className={cn(
           'w-full rounded-full',
           compact ? 'h-px' : 'h-0.5',
-          active ? 'bg-[#005fb8]' : 'bg-zinc-200',
+          active ? 'bg-brand' : 'bg-zinc-200',
         )}
       />
       <div
@@ -120,7 +128,7 @@ export function SuggestionFlowConnector({
           compact
             ? 'border-y-[3px] border-l-[5px]'
             : 'border-y-[5px] border-l-[7px]',
-          active ? 'border-l-[#005fb8]' : 'border-l-zinc-300',
+          active ? 'border-l-brand' : 'border-l-zinc-300',
         )}
         aria-hidden
       />
@@ -147,7 +155,7 @@ export function SuggestionFlowStep({
       ? 'border-emerald-500/50 bg-emerald-50 text-emerald-700'
       : accent === 'end'
         ? 'border-sky-500/50 bg-sky-50 text-sky-700'
-        : 'border-[#005fb8]/40 bg-[#005fb8]/[0.08] text-[#005fb8]';
+        : 'border-brand/40 bg-brand/[0.08] text-brand';
 
   const compact = size === 'compact';
 
@@ -156,8 +164,8 @@ export function SuggestionFlowStep({
       className={cn(
         'flex flex-1 flex-col items-center text-center gap-2',
         compact
-          ? 'min-w-[4.5rem] max-w-[6.5rem] sm:min-w-[5rem] sm:max-w-[7rem]'
-          : 'min-w-[4.75rem] max-w-[11rem] sm:max-w-[12rem]',
+          ? 'min-w-0 max-w-none'
+          : 'min-w-0 max-w-none',
       )}
     >
       <div
@@ -173,16 +181,20 @@ export function SuggestionFlowStep({
       </div>
       <p
         className={cn(
-          'font-bold uppercase tracking-wide text-zinc-700',
+          'w-full font-bold uppercase tracking-wide wrap-break-word text-zinc-700',
           compact
-            ? 'mt-1 text-[0.5625rem] leading-tight sm:text-[0.6rem]'
-            : 'mt-2.5 text-[0.6875rem]',
+            ? 'mt-1 text-[0.625rem] leading-snug sm:text-xs'
+            : 'mt-2.5 text-xs',
         )}
       >
         {label}
       </p>
       {details && details.length > 0 ? (
-        <RouteFlowStepDetails items={details} size={size} />
+        <RouteFlowStepDetails
+          items={details}
+          size={size}
+          className="w-full"
+        />
       ) : null}
     </div>
   );

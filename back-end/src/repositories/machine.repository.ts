@@ -4,7 +4,6 @@ import { prisma } from '../lib/prisma.js'
 const machineListSelect = {
   id: true,
   name: true,
-  position: true,
   plantUnit: true,
   typeMachineId: true,
   sectorId: true,
@@ -16,6 +15,9 @@ const machineListSelect = {
   },
   sector: {
     select: { id: true, typeSector: true },
+  },
+  user: {
+    select: { id: true, name: true, card: true },
   },
 } as const
 

@@ -6,17 +6,17 @@ import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { LEADER_CREATABLE_ROLES } from '@/types/role.types';
 import type { UsersPageViewModel } from './useUsersPage';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-[#005fb8] focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Administrador',
   LEADER: 'Líder',
   SUPPLY_OPERATOR: 'Operador de abastecimento',
   OPERATOR_MACHINE: 'Operador de máquina',
-  FORKLIFT_OPERATOR: 'Operador empilhadeira',
-  FOLLOW_UP_OPERATOR: 'Operador acompanhamento',
+  PALLET_TRANSPORTER: 'Transportador de pallet',
   SUPERVISOR: 'Supervisor',
   MANAGER: 'Gestor',
 };
@@ -165,9 +165,11 @@ export function UsersPageView(vm: UsersPageViewModel) {
                   <tr>
                     <td
                       colSpan={isAdmin ? 6 : 5}
-                      className="px-4 py-8 text-center text-zinc-500"
+                      className="px-4 py-8 text-zinc-500"
                     >
-                      Carregando…
+                      <div className="flex items-center justify-center">
+                        <AccordionLoader />
+                      </div>
                     </td>
                   </tr>
                 ) : usersQuery.data?.length === 0 ? (
@@ -422,12 +424,16 @@ export function UsersPageView(vm: UsersPageViewModel) {
             <dl className="m-0 grid gap-3 text-sm sm:grid-cols-2">
               <div>
                 <dt className="font-medium text-zinc-500">Perfil</dt>
-                <dd className="mt-0.5 text-zinc-900">{roleLabel(detailUser.role)}</dd>
+                <dd className="mt-0.5 text-zinc-900">
+                  {roleLabel(detailUser.role)}
+                </dd>
               </div>
               <div>
                 <dt className="font-medium text-zinc-500">Acesso</dt>
                 <dd className="mt-0.5 text-zinc-900">
-                  {detailUser.isLogged ? 'Senha já definida' : 'Primeiro acesso'}
+                  {detailUser.isLogged
+                    ? 'Senha já definida'
+                    : 'Primeiro acesso'}
                 </dd>
               </div>
               {isAdmin && detailUser.sector ? (

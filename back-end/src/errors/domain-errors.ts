@@ -63,20 +63,6 @@ export class SectorNotFoundError extends Error {
   }
 }
 
-export class PlantMapAreaNotFoundError extends Error {
-  constructor(message = 'Area do mapa nao encontrada.') {
-    super(message)
-    this.name = 'PlantMapAreaNotFoundError'
-  }
-}
-
-export class PlantMapAreaValidationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'PlantMapAreaValidationError'
-  }
-}
-
 export class SectorInUseError extends Error {
   constructor(
     message = "Existem registros vinculados a este setor; nao e possivel excluir.",
@@ -136,6 +122,15 @@ export class MachineHasNoMaterialForPickupError extends Error {
   ) {
     super(message)
     this.name = 'MachineHasNoMaterialForPickupError'
+  }
+}
+
+export class OperatorRequestBlockedByPalletAtReceivingError extends Error {
+  constructor(
+    message = 'Ha pallet no recebimento aguardando transporte. Solicite apenas a retirada do pallet na maquina para abrir a sugestao de entrega e retirada.',
+  ) {
+    super(message)
+    this.name = 'OperatorRequestBlockedByPalletAtReceivingError'
   }
 }
 
@@ -299,10 +294,21 @@ export class MovimentPalletTypeNotAllowedForRoleError extends Error {
 
 export class OperatorWithoutBoundMovimentPalletError extends Error {
   constructor(
-    message = "Nenhum equipamento de movimentacao vinculado; selecione um antes.",
+    message = "Selecione se esta operando empilhadeira ou transpaleteira antes de continuar.",
   ) {
     super(message);
     this.name = "OperatorWithoutBoundMovimentPalletError";
+  }
+}
+
+/** @deprecated Alias — use OperatorWithoutBoundMovimentPalletError */
+export const OperatorWithoutOperatingModeError =
+  OperatorWithoutBoundMovimentPalletError;
+
+export class InvalidOperatingModeError extends Error {
+  constructor(message = "Modo de operacao invalido.") {
+    super(message);
+    this.name = "InvalidOperatingModeError";
   }
 }
 

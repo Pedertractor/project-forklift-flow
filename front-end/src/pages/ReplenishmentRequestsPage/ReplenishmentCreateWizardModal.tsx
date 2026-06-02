@@ -13,9 +13,23 @@ import {
   replenishmentMovimentTypeLabel,
 } from '@/utils/operator-moviment-display';
 import { priorityLevelLabel } from '@/utils/replenishment-labels';
-import { Box, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Box, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TOTAL_STEPS = 4;
+
+const PRISMA_CODE_PREFIX = 'A';
+
+function prismaCodeNumberPart(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const withoutPrefix = trimmed.replace(/^A[-\s]?/i, '');
+  return withoutPrefix.replace(/\D/g, '');
+}
+
+function prismaCodeFromNumberPart(num: string): string {
+  const digits = num.replace(/\D/g, '');
+  return digits ? `${PRISMA_CODE_PREFIX}${digits}` : '';
+}
 
 const STEP_LABELS = [
   'Máquina de destino',
@@ -25,11 +39,11 @@ const STEP_LABELS = [
 ] as const;
 
 const selectCardBase =
-  'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25 disabled:cursor-not-allowed disabled:opacity-60';
+  'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
 
 const selectCardIdle = 'border-zinc-200 hover:border-zinc-300 hover:shadow-sm';
 const selectCardSelected =
-  'border-[#005fb8] bg-gradient-to-br from-[#005fb8]/[0.08] to-white shadow-sm ring-2 ring-[#005fb8]/20';
+  'border-brand bg-gradient-to-br from-brand/[0.08] to-white shadow-sm ring-2 ring-brand/20';
 
 const MOVEMENT_OPTIONS: {
   value: ReplenishmentMovimentType;
@@ -91,7 +105,7 @@ function WizardProgressBar({ step }: { step: number }) {
         aria-label="Progresso da nova solicitação"
       >
         <div
-          className="h-full rounded-full bg-[#005fb8] transition-[width] duration-300 ease-out"
+          className="h-full rounded-full bg-brand transition-[width] duration-300 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -145,17 +159,14 @@ export function ReplenishmentCreateWizardModal({
 
   useEffect(() => {
     if (open) {
-      const step = Math.min(
-        Math.max(initialStep, 1),
-        TOTAL_STEPS,
-      );
+      const step = Math.min(Math.max(initialStep, 1), TOTAL_STEPS);
       setStep(step);
     }
   }, [open, initialStep]);
 
   const canGoNext = (() => {
     if (step === 1) return destinationId.trim() !== '';
-    if (step === 2) return movementCube.trim() !== '';
+    if (step === 2) return prismaCodeNumberPart(movementCube).length > 0;
     if (step === 3) return Boolean(typeMovimentPallet);
     return true;
   })();
@@ -269,25 +280,46 @@ export function ReplenishmentCreateWizardModal({
               <Box className="size-4 text-blue-500" />
               <Label htmlFor="rr-wizard-cube">Código do prisma / pallet</Label>
             </div>
-            <Input
-              id="rr-wizard-cube"
-              value={movementCube}
-              onChange={(e) => setMovementCube(e.target.value)}
-              placeholder="Ex.: P-2048"
-              autoFocus
-              disabled={busy}
-              className="font-mono text-base"
-            />
+            <div
+              className={cn(
+                'flex h-[var(--control-height,2.5rem)] overflow-hidden rounded-xl border-2 border-zinc-200 bg-white transition-colors',
+                'focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/35',
+                busy && 'opacity-50',
+              )}
+            >
+              <span
+                className="flex shrink-0 items-center border-r border-zinc-200 bg-zinc-50 px-4 font-mono text-base font-semibold text-zinc-700"
+                aria-hidden
+              >
+                {PRISMA_CODE_PREFIX}
+              </span>
+              <Input
+                id="rr-wizard-cube"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={prismaCodeNumberPart(movementCube)}
+                onChange={(e) =>
+                  setMovementCube(prismaCodeFromNumberPart(e.target.value))
+                }
+                placeholder="20"
+                autoFocus
+                disabled={busy}
+                aria-label="Número do prisma"
+                className="h-full rounded-none border-0 font-mono text-base shadow-none focus-visible:ring-0"
+              />
+            </div>
           </div>
           <p className="text-xs text-zinc-500">
-            Use o mesmo código impresso ou etiquetado no prisma físico.
+            Informe apenas o número; o código será salvo como {PRISMA_CODE_PREFIX}
+            seguido do valor (ex.: {PRISMA_CODE_PREFIX}20).
           </p>
         </div>
       ) : null}
 
       {step === 3 ? (
         <ul
-          className="m-0 grid list-none gap-3 p-0"
+          className="m-0 grid list-none gap-3 p-0"  
           role="listbox"
           aria-label="Tipo de movimentação"
         >
@@ -353,8 +385,9 @@ export function ReplenishmentCreateWizardModal({
             disabled={busy}
             className="size-4"
           />
-          <span className="text-sm font-medium text-zinc-900">
-            Marcar como crítico (prioridade máxima na fila do transporte)
+          <span className="flex items-center gap-2 text-sm font-medium text-zinc-900">
+            <AlertTriangle className="size-4 text-red-500" />
+            Marcar como crítico
           </span>
         </label>
       ) : null}

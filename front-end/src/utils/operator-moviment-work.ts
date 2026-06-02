@@ -16,29 +16,46 @@ export function countOpenMovimentTasks(
   return tasks.filter((t) => isOpenMovimentTaskStatus(t.status)).length;
 }
 
-/** Tarefas em aberto vinculadas ao equipamento do operador (evita contar fila do setor). */
-export function countOpenMovimentTasksForPallet(
+function taskAssignedOperatorId(task: {
+  assignedOperatorId?: string | null;
+  assignedMovimentPalletId?: string | null;
+}): string | null {
+  return task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null;
+}
+
+/** Tarefas em aberto atribuídas ao operador logado. */
+export function countOpenMovimentTasksForOperator(
   tasks: ReadonlyArray<{
     status: ForkliftTaskStatusApi;
-    assignedMovimentPalletId: string | null;
+    assignedOperatorId?: string | null;
+    assignedMovimentPalletId?: string | null;
   }>,
-  myPalletId: string | null | undefined,
+  myOperatorUserId: string | null | undefined,
 ): number {
-  if (!myPalletId) {
+  if (!myOperatorUserId) {
     return 0;
   }
   return tasks.filter(
     (t) =>
       isOpenMovimentTaskStatus(t.status) &&
-      t.assignedMovimentPalletId === myPalletId,
+      taskAssignedOperatorId(t) === myOperatorUserId,
   ).length;
 }
 
-export function filterTasksForMyPallet<
-  T extends { assignedMovimentPalletId: string | null },
->(tasks: ReadonlyArray<T>, myPalletId: string | null | undefined): T[] {
-  if (!myPalletId) {
+/** @deprecated Use countOpenMovimentTasksForOperator */
+export const countOpenMovimentTasksForPallet = countOpenMovimentTasksForOperator;
+
+export function filterTasksForMyOperator<
+  T extends {
+    assignedOperatorId?: string | null;
+    assignedMovimentPalletId?: string | null;
+  },
+>(tasks: ReadonlyArray<T>, myOperatorUserId: string | null | undefined): T[] {
+  if (!myOperatorUserId) {
     return [];
   }
-  return tasks.filter((t) => t.assignedMovimentPalletId === myPalletId);
+  return tasks.filter((t) => taskAssignedOperatorId(t) === myOperatorUserId);
 }
+
+/** @deprecated Use filterTasksForMyOperator */
+export const filterTasksForMyPallet = filterTasksForMyOperator;

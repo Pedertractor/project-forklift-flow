@@ -1,13 +1,13 @@
 import { Button } from '@/components/ui/Button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
-import { Card } from '@/components/ui/card';
 import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { ENV } from '@/constants/env';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
-import { Undo2Icon } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   const {
@@ -24,16 +24,13 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     operatorSupplyQuery,
     tasksQuery,
     openOperatorSupply,
-    pickupPhase,
-    deliveryPhase,
     deliveryTasks,
     pickupTasks,
     canPickup,
     canOpenRequestDialog,
-    operationTimelineMode,
-    timelineDelivery,
-    timelinePickup,
     pickupBlockedMessage,
+    palletAtReceiving,
+    palletAtReceivingBlockedMessage,
     submitServiceRequest,
     serviceRequestSubmitPending,
     operatorSupplyRequests,
@@ -47,6 +44,12 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   } = vm;
 
   const pickingMachine = showMachinePicker || !current;
+  const cancelPickupTask =
+    cancelPickupId != null
+      ? (pickupTasks.find((p) => p.id === cancelPickupId) ?? null)
+      : null;
+  const cancelIncludesReplenishment =
+    cancelPickupTask?.triggersReplenishment === true;
 
   return (
     <main className="px-4 py-8 max-[800px]:px-3">
@@ -61,11 +64,11 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
             <p className="mt-1 text-sm text-zinc-600">
               {pickingMachine
                 ? 'Toque na máquina em que você está operando.'
-                : 'Solicite retirada do prisma ou retirada com aviso ao abastecimento.'}
+                : 'Solicite retirada do pallet ou retirada com aviso ao abastecimento.'}
             </p>
           </div>
           {current ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ">
               {current.typeMachine.urlImage?.trim() ? (
                 <img
                   src={typeMachineImageSrc(current.typeMachine.urlImage)}
@@ -73,7 +76,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                   className="size-16 shrink-0 rounded-lg bg-white p-2 object-cover"
                 />
               ) : null}
-              <div className="flex w-full items-center justify-between">
+              <div className="flex w-full items-center justify-between h-full">
                 <div>
                   <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Máquina em operação
@@ -83,16 +86,13 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                   </p>
                 </div>
               </div>
-              {/* <Button
+              <Button
                 type="button"
-                variant="outline"
-                className="text-red-700 hover:bg-red-50"
                 disabled={!apiReady || busy}
                 onClick={() => setEndShiftOpen(true)}
               >
-                <Undo2Icon className="size-4" />
-                Sair da máquina
-              </Button> */}
+                <LogOut className="size-4" />
+              </Button>
             </div>
           ) : null}
         </header>
@@ -120,7 +120,9 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
               </h2>
 
               {machinesQuery.isLoading || myMachineQuery.isLoading ? (
-                <p className="text-sm text-zinc-500">Carregando máquinas…</p>
+                <div className="flex items-center justify-center py-6">
+                  <AccordionLoader />
+                </div>
               ) : machinesQuery.isError ? (
                 <p className="text-sm text-red-700">
                   {machinesQuery.error instanceof Error
@@ -141,18 +143,14 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         ) : (
           <>
             <OperatorMachineOperationGrid
-              deliveryTasks={deliveryTasks}
               openSupply={openOperatorSupply}
-              supplyLoading={operatorSupplyQuery.isLoading}
-              supplyError={operatorSupplyQuery.error ?? null}
-              operationTimelineMode={operationTimelineMode}
-              timelineDelivery={timelineDelivery}
-              timelinePickup={timelinePickup}
+              deliveryTasks={deliveryTasks}
               canPickup={canPickup}
               canOpenRequestDialog={canOpenRequestDialog}
               pickupBlockedMessage={pickupBlockedMessage}
-              pickupPhase={pickupPhase}
-              deliveryPhase={deliveryPhase}
+              palletAtReceivingBlockedMessage={
+                palletAtReceiving ? palletAtReceivingBlockedMessage : null
+              }
               serviceRequestSubmitPending={serviceRequestSubmitPending}
               busy={busy}
               apiReady={apiReady}
@@ -180,7 +178,11 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
       <SimpleModal
         open={cancelPickupId !== null}
         onClose={() => setCancelPickupId(null)}
-        title="Cancelar solicitação de retirada"
+        title={
+          cancelIncludesReplenishment
+            ? 'Cancelar retirada e abastecimento'
+            : 'Cancelar solicitação de retirada'
+        }
         footer={
           <ModalActions
             onCancel={() => setCancelPickupId(null)}
@@ -200,8 +202,9 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         }
       >
         <p className="m-0 text-sm text-zinc-600">
-          O transporte ainda não aceitou esta retirada. Deseja cancelar a
-          solicitação? Esta ação não pode ser desfeita.
+          {cancelIncludesReplenishment
+            ? 'O transporte ainda não aceitou a retirada. O aviso ao abastecimento também será cancelado (e a entrega em preparo, se já tiver sido registrada). Deseja continuar? Esta ação não pode ser desfeita.'
+            : 'O transporte ainda não aceitou esta retirada. Deseja cancelar a solicitação? Esta ação não pode ser desfeita.'}
         </p>
       </SimpleModal>
 

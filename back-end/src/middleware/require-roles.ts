@@ -22,19 +22,6 @@ export function requireMachineDomainRoles() {
   );
 }
 
-/** Cadastro de equipamentos de movimentação: apenas LEADER ou ADMIN. */
-export function requireMovimentPalletManageRoles() {
-  return requireRoles(RoleUser.LEADER, RoleUser.ADMIN);
-}
-
-/** Leitura de equipamentos (ex.: painel do abastecedor): LEADER, SUPPLY_OPERATOR ou ADMIN. */
-export function requireMovimentPalletReadRoles() {
-  return requireRoles(
-    RoleUser.LEADER,
-    RoleUser.SUPPLY_OPERATOR,
-    RoleUser.ADMIN,
-  );
-}
 
 /**
  * Leitura de catalogo de maquinas (lista e detalhe) para supervisao no mapa.
@@ -73,14 +60,13 @@ export function requireMachineReplenishmentReadRoles() {
   );
 }
 
-/** Operador de empilhadeira ou transpaleteira: vinculo ao equipamento e fila de reposicao. */
-export function requireForkliftOrFollowUpOperatorRole() {
-  return requireRoles(
-    RoleUser.FORKLIFT_OPERATOR,
-    RoleUser.FOLLOW_UP_OPERATOR,
-    RoleUser.ADMIN,
-  )
+/** Transportador de pallet: modo de operacao (empilhadeira ou transpaleteira) e fila. */
+export function requirePalletTransporterRole() {
+  return requireRoles(RoleUser.PALLET_TRANSPORTER, RoleUser.ADMIN)
 }
+
+/** @deprecated Use requirePalletTransporterRole */
+export const requireForkliftOrFollowUpOperatorRole = requirePalletTransporterRole
 
 /** Operador de maquina: vinculo a maquina, requisicoes da maquina e pedido de retirada. */
 export function requireOperatorMachineRole() {

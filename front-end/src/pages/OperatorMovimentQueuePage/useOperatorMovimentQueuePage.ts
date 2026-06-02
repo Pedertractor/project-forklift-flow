@@ -1,21 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  OPERATOR_MOVIMENT_EQUIPMENT_PATH,
-  OPERATOR_MOVIMENT_MY_TASKS_PATH,
-} from '@/constants/operator-moviment-routes';
+import { OPERATOR_MOVIMENT_EQUIPMENT_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
+import {
+  completeOperatorTaskAccept,
+} from '@/lib/operator-moviment-after-accept';
 import { toastApiError } from '@/lib/toast-helpers';
 import { toast } from '@/lib/toast';
-import type { TripStandaloneDeliverApi } from '@/types/operator-moviment-pallet.types';
+import type {
+  OperatorMovimentTaskItem,
+  TripStandaloneDeliverApi,
+} from '@/types/operator-moviment-pallet.types';
 import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorReplenishmentQueue,
   fetchOperatorTripSuggestions,
   postAcceptOpenDeliverTask,
   postAcceptOpenPickupTask,
-  postAcceptReplenishmentRequest,
   postAcceptTripRouteSuggestion,
 } from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
@@ -31,9 +33,19 @@ export function useOperatorMovimentQueuePage() {
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
 
-  const goToMyTasks = useCallback(() => {
-    void navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH);
-  }, [navigate]);
+  const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
+
+  const afterAcceptSuccess = useCallback(
+    (
+      successMessage: string,
+      acceptedTasks?: OperatorMovimentTaskItem[],
+    ) => {
+      setIsEnteringTaskFlow(true);
+      completeOperatorTaskAccept(queryClient, navigate, acceptedTasks);
+      toast.success(successMessage);
+    },
+    [navigate, queryClient],
+  );
 
   const goToEquipment = useCallback(() => {
     void navigate(OPERATOR_MOVIMENT_EQUIPMENT_PATH, {
@@ -65,27 +77,19 @@ export function useOperatorMovimentQueuePage() {
     (replenishmentQueueQuery.data?.requests.length ?? 0) +
     (replenishmentQueueQuery.data?.onMachinePickupTasks.length ?? 0);
 
-  const invalidateOperator = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
-  }, [queryClient]);
-
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Tarefa de retirada aceita.');
-      goToMyTasks();
-    },
+    onSuccess: (data) => afterAcceptSuccess('Tarefa de retirada aceita.', [data.task]),
     onError: toastApiError,
   });
 
   const acceptTripMut = useMutation({
     mutationFn: (tripSuggestionId: string) => postAcceptTripRouteSuggestion(tripSuggestionId),
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Rota sugerida aceita. Execute na ordem indicada.');
-      goToMyTasks();
-    },
+    onSuccess: (data) =>
+      afterAcceptSuccess('Rota sugerida aceita. Execute na ordem indicada.', [
+        data.deliverTask,
+        data.pickupTask,
+      ]),
     onError: toastApiError,
   });
 
@@ -94,18 +98,18 @@ export function useOperatorMovimentQueuePage() {
       if (row.deliverTask) {
         return postAcceptOpenDeliverTask(row.deliverTask.id);
       }
-      return postAcceptReplenishmentRequest(row.requestId);
+      return postAcceptOpenDeliverTask(row.requestId);
     },
-    onSuccess: () => {
-      invalidateOperator();
-      toast.success('Tarefa de entrega aceita.');
-      goToMyTasks();
-    },
+    onSuccess: (data) =>
+      afterAcceptSuccess('Tarefa de entrega aceita.', [data.task]),
     onError: toastApiError,
   });
 
   const busy =
-    acceptPickupMut.isPending || acceptTripMut.isPending || acceptDeliverMut.isPending;
+    isEnteringTaskFlow ||
+    acceptPickupMut.isPending ||
+    acceptTripMut.isPending ||
+    acceptDeliverMut.isPending;
 
   const currentPallet = myPalletQuery.data ?? null;
 
@@ -137,13 +141,16 @@ export function useOperatorMovimentQueuePage() {
     currentPallet,
     tripSuggestionsQuery,
     manualQueueActivityCount,
-    acceptPickupMut,
-    acceptTripMut,
-    acceptDeliverMut,
     pendingTripSuggestionId,
     pendingStandalonePickupTaskId,
     pendingStandaloneDeliverKey,
     busy,
+    onAcceptTrip: (tripSuggestionId: string) =>
+      acceptTripMut.mutate(tripSuggestionId),
+    onAcceptStandalonePickup: (taskId: string) =>
+      acceptPickupMut.mutate(taskId),
+    onAcceptStandaloneDeliver: (row: TripStandaloneDeliverApi) =>
+      acceptDeliverMut.mutate(row),
     goToEquipment,
   };
 }

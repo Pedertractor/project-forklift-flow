@@ -73,12 +73,20 @@ export async function fetchOperatorSupplyRequests(status?: string) {
   return res?.operatorSupplyRequests ?? [];
 }
 
-export async function postOperatorPickupOnly(options?: { isCritical?: boolean }) {
+export async function postOperatorPickupOnly(options?: {
+  isCritical?: boolean;
+  typeMovimentPallet?: 'FORKLIFT' | 'ANY';
+}) {
   const res = await apiAuthFetch<{ pickupTask: PickupTaskListItem }>(
     API_ENDPOINTS.OPERATOR_MACHINE.PICKUP_ONLY,
     {
       method: 'POST',
-      body: JSON.stringify({ isCritical: options?.isCritical === true }),
+      body: JSON.stringify({
+        isCritical: options?.isCritical === true,
+        ...(options?.typeMovimentPallet
+          ? { typeMovimentPallet: options.typeMovimentPallet }
+          : {}),
+      }),
     },
   );
   if (!res?.pickupTask) {
@@ -88,14 +96,16 @@ export async function postOperatorPickupOnly(options?: { isCritical?: boolean })
 }
 
 export async function postCancelOperatorPickup(pickupTaskId: string) {
-  const res = await apiAuthFetch<{ pickupTask: PickupTaskListItem }>(
-    API_ENDPOINTS.OPERATOR_MACHINE.CANCEL_PICKUP(pickupTaskId),
-    { method: 'POST' },
-  );
+  const res = await apiAuthFetch<{
+    pickupTask: PickupTaskListItem;
+    replenishmentCanceled?: boolean;
+  }>(API_ENDPOINTS.OPERATOR_MACHINE.CANCEL_PICKUP(pickupTaskId), {
+    method: 'POST',
+  });
   if (!res?.pickupTask) {
     throw new Error('Resposta inválida ao cancelar retirada.');
   }
-  return res.pickupTask;
+  return res;
 }
 
 export async function postOperatorSupplyOnly() {
@@ -111,13 +121,19 @@ export async function postOperatorSupplyOnly() {
 
 export async function postOperatorPickupWithReplenishment(options?: {
   isCritical?: boolean;
+  typeMovimentPallet?: 'FORKLIFT' | 'ANY';
 }) {
   const res = await apiAuthFetch<{
     pickupTask: PickupTaskListItem;
     operatorSupplyRequest: { id: string; status: string };
   }>(API_ENDPOINTS.OPERATOR_MACHINE.PICKUP_WITH_REPLENISHMENT, {
     method: 'POST',
-    body: JSON.stringify({ isCritical: options?.isCritical === true }),
+    body: JSON.stringify({
+      isCritical: options?.isCritical === true,
+      ...(options?.typeMovimentPallet
+        ? { typeMovimentPallet: options.typeMovimentPallet }
+        : {}),
+    }),
   });
   if (!res?.pickupTask) {
     throw new Error('Resposta inválida ao solicitar retirada e abastecimento.');

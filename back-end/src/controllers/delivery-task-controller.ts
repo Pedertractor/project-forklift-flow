@@ -10,6 +10,7 @@ import {
   getDeliveryTaskById,
   listDeliveryTasks,
   listPendingSupplyRequestsForUser,
+  listSectorTransportOperators,
   markDeliveryTaskPrepared,
 } from '../services/delivery-task.service.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
@@ -98,6 +99,21 @@ export const getDeliveryTaskByIdHandler: RouteHandlerMethod = async (
     }
     throw error
   }
+}
+
+export const getSectorTransportOperators: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const q = (request.query ?? {}) as { sectorId?: string }
+  const sectorId =
+    typeof q.sectorId === 'string' && q.sectorId.trim() !== ''
+      ? q.sectorId.trim()
+      : undefined
+  const movimentPallets = sectorId
+    ? await listSectorTransportOperators({ sectorId })
+    : await listSectorTransportOperators()
+  return reply.send({ movimentPallets })
 }
 
 export const getPendingSupplyRequests: RouteHandlerMethod = async (

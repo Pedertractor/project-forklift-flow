@@ -39,18 +39,18 @@ export function LoginFormPanel() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center bg-white px-8 pb-8 pt-9 max-[800px]:px-5 max-[800px]:pb-8 max-[800px]:pt-8">
-      <header className="mb-6">
-        <h2 className="m-0 text-xl font-bold tracking-tight text-zinc-900">
+    <div className="flex h-full min-h-0 flex-col justify-center overflow-y-auto overscroll-contain bg-white px-8 pb-8 pt-9 max-[800px]:justify-start max-[800px]:px-4 max-[800px]:py-5">
+      <header className="mb-6 max-[800px]:mb-4">
+        <h2 className="m-0 text-xl font-bold tracking-tight text-zinc-900 max-[800px]:text-lg">
           Fazer login
         </h2>
-        <p className="mt-2 text-sm text-zinc-500">
+        <p className="mt-2 text-sm text-zinc-500 max-[800px]:mt-1 max-[800px]:text-xs">
           Insira suas credenciais abaixo.
         </p>
       </header>
 
       <form
-        className="flex max-w-md flex-col gap-5"
+        className="flex w-full max-w-md flex-col gap-5 max-[800px]:gap-4"
         onSubmit={handleSubmit(onSubmit)}
         noValidate
       >

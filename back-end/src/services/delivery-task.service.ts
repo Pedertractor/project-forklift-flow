@@ -1,9 +1,11 @@
 import type { Prisma } from '../generated/prisma/client.js'
 import {
+  IsOperating,
   MachineTaskStatus,
   OperatorMachineSupplyRequestStatus,
   TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
+import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
 import {
   DeliveryTaskNotFoundError,
   MachineNotFoundError,
@@ -161,6 +163,77 @@ export async function getDeliveryTaskById(id: string) {
   return row
 }
 
+export type SectorTransportOperatorListItem = {
+  id: string
+  code: string
+  type: IsOperating
+  operatorId: string
+  sectorId: string | null
+  createdAt: string
+  updatedAt: string
+  operator: {
+    id: string
+    name: string
+    card: string
+    unit: string
+    role: string
+  }
+  sector: { id: string; typeSector: string } | null
+  _count: { movimentPalletTasks: number }
+  incompleteAssignedTaskCount: number
+}
+
+async function countIncompleteAssignedTasksForOperator(
+  operatorUserId: string,
+): Promise<number> {
+  const [deliveryCount, pickupCount] = await Promise.all([
+    deliveryTaskRepository.countIncompleteAssignedToOperator(operatorUserId),
+    pickupTaskRepository.countIncompleteAssignedToOperator(operatorUserId),
+  ])
+  return deliveryCount + pickupCount
+}
+
+/** Operadores com modo de operação ativo no setor (painel «Meios de locomoção»). */
+export async function listSectorTransportOperators(filters?: {
+  sectorId?: string
+}) {
+  if (!filters?.sectorId) {
+    return [] as SectorTransportOperatorListItem[]
+  }
+
+  const operators = await userRepository.findManyOperatingTransportInSector(
+    filters.sectorId,
+  )
+
+  return Promise.all(
+    operators.map(async (user) => {
+      const operatingMode = user.isOperating as IsOperating
+      const incompleteAssignedTaskCount =
+        await countIncompleteAssignedTasksForOperator(user.id)
+
+      return {
+        id: user.id,
+        code: user.name,
+        type: operatingMode,
+        operatorId: user.id,
+        sectorId: user.sectorId,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+        operator: {
+          id: user.id,
+          name: user.name,
+          card: user.card,
+          unit: user.unit,
+          role: user.role,
+        },
+        sector: user.sector,
+        _count: { movimentPalletTasks: incompleteAssignedTaskCount },
+        incompleteAssignedTaskCount,
+      } satisfies SectorTransportOperatorListItem
+    }),
+  )
+}
+
 export async function listDeliveryTasks(filters?: {
   machineId?: string
   sectorId?: string
@@ -174,7 +247,6 @@ export async function listDeliveryTasks(filters?: {
         select: {
           id: true,
           name: true,
-          position: true,
           userId: true,
           sectorId: true,
           typeMachine: { select: { id: true, name: true } },
@@ -191,8 +263,8 @@ export async function listDeliveryTasks(filters?: {
           role: true,
         },
       },
-      assignedMovimentPallet: {
-        select: { id: true, code: true, type: true },
+      assignedOperator: {
+        select: { id: true, name: true, isOperating: true },
       },
     },
     orderBy: { createdAt: 'desc' },

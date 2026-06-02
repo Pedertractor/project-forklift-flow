@@ -1,5 +1,5 @@
 import type { RouteHandlerMethod } from 'fastify'
-import type { RoleUser, Unit } from '../generated/prisma/enums.js'
+import type { IsOperating, RoleUser, Unit } from '../generated/prisma/enums.js'
 import { AuthError, UserPasswordError } from '../errors/domain-errors.js'
 import {
   getUserProfileById,
@@ -18,6 +18,7 @@ function publicAuthUser(u: {
   employeeId: number
   sectorId?: string | null
   sector?: { id: string; typeSector: string } | null
+  isOperating?: IsOperating | null
 }) {
   return {
     id: u.id,
@@ -28,6 +29,7 @@ function publicAuthUser(u: {
     employeeId: u.employeeId,
     sectorId: u.sectorId ?? null,
     sector: u.sector ?? null,
+    isOperating: u.isOperating ?? null,
   }
 }
 

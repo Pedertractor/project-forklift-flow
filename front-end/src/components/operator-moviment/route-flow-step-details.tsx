@@ -8,11 +8,11 @@ export type RouteFlowDetailKind =
   | 'receiving'
   | 'expedition';
 
-const DETAIL_META: Record<
+export const ROUTE_FLOW_DETAIL_META: Record<
   RouteFlowDetailKind,
   { Icon: LucideIcon; iconClass: string }
 > = {
-  location: { Icon: MapPin, iconClass: 'text-[#005fb8]' },
+  location: { Icon: MapPin, iconClass: 'text-brand' },
   prisma: { Icon: Box, iconClass: 'text-amber-700' },
   receiving: { Icon: Warehouse, iconClass: 'text-emerald-700' },
   expedition: { Icon: Truck, iconClass: 'text-sky-700' },
@@ -23,11 +23,8 @@ export interface RouteFlowDetailItem {
   text: string;
 }
 
-export function machineLocationDetail(
-  name: string,
-  position: string,
-): RouteFlowDetailItem {
-  return { kind: 'location', text: `${name} · ${position}` };
+export function machineLocationDetail(name: string): RouteFlowDetailItem {
+  return { kind: 'location', text: `Localização: ${name}` };
 }
 
 export function prismaDetail(
@@ -54,6 +51,13 @@ export function receivingAreaDetail(
   label = 'Área de recebimento',
 ): RouteFlowDetailItem {
   return { kind: 'receiving', text: label };
+}
+
+/** Deslocamento até o recebimento (ícone de pin no card). */
+export function goToReceivingDetail(
+  label = 'Deslocar-se até o recebimento',
+): RouteFlowDetailItem {
+  return { kind: 'location', text: label };
 }
 
 export function expeditionAreaDetail(
@@ -86,7 +90,7 @@ export function RouteFlowStepDetails({
       )}
     >
       {items.map((item, index) => {
-        const { Icon, iconClass } = DETAIL_META[item.kind];
+        const { Icon, iconClass } = ROUTE_FLOW_DETAIL_META[item.kind];
         return (
           <li
             key={`${item.kind}-${index}`}
@@ -105,10 +109,8 @@ export function RouteFlowStepDetails({
             />
             <span
               className={cn(
-                'min-w-0 flex-1 font-medium leading-snug text-zinc-800',
-                compact
-                  ? 'text-[0.5625rem] sm:text-[0.6rem]'
-                  : 'text-[0.6875rem] sm:text-xs',
+                'min-w-0 flex-1 font-medium leading-snug wrap-break-word text-zinc-800',
+                compact ? 'text-[0.625rem] sm:text-xs' : 'text-xs sm:text-sm',
               )}
             >
               {item.text}

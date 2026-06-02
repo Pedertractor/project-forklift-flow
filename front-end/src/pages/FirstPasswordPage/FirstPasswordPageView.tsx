@@ -21,22 +21,31 @@ export function FirstPasswordPageView(vm: FirstPasswordPageViewModel) {
   return (
     <div className="flex min-h-svh flex-col bg-zinc-100 text-zinc-900">
       <header className="border-b border-zinc-200 bg-white px-4 py-4">
-        <p className="m-0 text-sm font-bold uppercase tracking-wider text-[#005fb8]">ForkLift Flow</p>
+        <p className="m-0 text-sm font-bold uppercase tracking-wider text-brand">
+          ForkLift Flow
+        </p>
       </header>
       <div className="flex flex-1 items-center justify-center px-4 py-10">
         <Card className="w-full max-w-md border border-zinc-200 p-8 shadow-lg">
-          <h1 className="m-0 text-xl font-bold tracking-tight text-zinc-900">Definir nova senha</h1>
+          <h1 className="m-0 text-xl font-bold tracking-tight text-zinc-900">
+            Definir nova senha
+          </h1>
           <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-            Este é o seu primeiro acesso. Escolha uma nova senha para continuar. Depois você será
-            direcionado ao início do sistema.
+            Este é o seu primeiro acesso. Escolha uma nova senha para continuar.
+            Depois você será direcionado ao início do sistema.
           </p>
           {user?.name ? (
             <p className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-              Conta: <span className="font-semibold text-zinc-900">{user.name}</span>
+              Conta:{' '}
+              <span className="font-semibold text-zinc-900">{user.name}</span>
             </p>
           ) : null}
 
-          <form className="mt-6 flex flex-col gap-5" onSubmit={onSubmit} noValidate>
+          <form
+            className="mt-6 flex flex-col gap-5"
+            onSubmit={onSubmit}
+            noValidate
+          >
             <div className={fieldGap}>
               <Label htmlFor="fp-new">Nova senha</Label>
               <div className="relative">
@@ -58,7 +67,9 @@ export function FirstPasswordPageView(vm: FirstPasswordPageViewModel) {
                 </button>
               </div>
               {errors.newPassword ? (
-                <p className="m-0 text-sm text-red-600">{errors.newPassword.message}</p>
+                <p className="m-0 text-sm text-red-600">
+                  {errors.newPassword.message}
+                </p>
               ) : null}
             </div>
             <div className={fieldGap}>
@@ -76,18 +87,24 @@ export function FirstPasswordPageView(vm: FirstPasswordPageViewModel) {
                   type="button"
                   className="absolute right-2 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100"
                   onClick={() => setShowB((v) => !v)}
-                  aria-label={showB ? 'Ocultar confirmação' : 'Mostrar confirmação'}
+                  aria-label={
+                    showB ? 'Ocultar confirmação' : 'Mostrar confirmação'
+                  }
                 >
                   {showB ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
               {errors.confirmPassword ? (
-                <p className="m-0 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p className="m-0 text-sm text-red-600">
+                  {errors.confirmPassword.message}
+                </p>
               ) : null}
             </div>
             {mut.isError ? (
               <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                {mut.error instanceof Error ? mut.error.message : 'Não foi possível alterar a senha.'}
+                {mut.error instanceof Error
+                  ? mut.error.message
+                  : 'Não foi possível alterar a senha.'}
               </p>
             ) : null}
             <Button type="submit" className="w-full" disabled={mut.isPending}>

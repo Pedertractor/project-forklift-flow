@@ -36,7 +36,6 @@ export interface ReplenishmentRequestListItem {
   destination: {
     id: string;
     name: string;
-    position: string;
     userId: string | null;
     typeMachine: { id: string; name: string };
     sector: { id: string; typeSector: string };

@@ -28,13 +28,15 @@ import {
 } from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
 import {
+  MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
+  SUPERVISION_ROLES,
   type AppRole,
 } from '@/types/role.types';
 import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types';
-import { countOpenMovimentTasksForPallet } from '@/utils/operator-moviment-work';
-import { replenishmentMovimentTypesForRole } from '@/utils/operator-moviment-role';
+import { countOpenMovimentTasksForOperator } from '@/utils/operator-moviment-work';
+import { replenishmentMovimentTypesForOperatingMode } from '@/utils/operator-moviment-role';
 
 function isMovimentOperatorRole(role: string | undefined): boolean {
   return (
@@ -47,6 +49,17 @@ function isMachineOperatorRole(role: string | undefined): boolean {
   return (
     role !== undefined &&
     (OPERATOR_MACHINE_ROLES as readonly AppRole[]).includes(role as AppRole)
+  );
+}
+
+function isMachineCadastroRole(role: string | undefined): boolean {
+  if (!role) {
+    return false;
+  }
+  const r = role as AppRole;
+  return (
+    (MACHINE_DOMAIN_ROLES as readonly AppRole[]).includes(r) ||
+    (SUPERVISION_ROLES as readonly AppRole[]).includes(r)
   );
 }
 
@@ -92,12 +105,15 @@ export function OperatorMovimentWorkProvider({
 
   const isMovimentOperator = isMovimentOperatorRole(user?.role);
   const isMachineOperator = isMachineOperatorRole(user?.role);
+  const isMachineCadastro = isMachineCadastroRole(user?.role);
   const realtimeEnabled = Boolean(
-    ENV.API_URL && token && (isMovimentOperator || isMachineOperator),
+    ENV.API_URL &&
+      token &&
+      (isMovimentOperator || isMachineOperator || isMachineCadastro),
   );
   const allowedMovimentTypes = useMemo(
-    () => replenishmentMovimentTypesForRole(user?.role),
-    [user?.role],
+    () => replenishmentMovimentTypesForOperatingMode(user?.isOperating),
+    [user?.isOperating],
   );
 
   const myPalletQuery = useQuery({
@@ -112,19 +128,15 @@ export function OperatorMovimentWorkProvider({
     enabled:
       realtimeEnabled &&
       isMovimentOperator &&
-      myPalletQuery.isSuccess &&
-      myPalletQuery.data !== null,
+      Boolean(user?.isOperating ?? myPalletQuery.data),
     refetchInterval: realtimeEnabled && isMovimentOperator ? 45_000 : false,
     refetchOnWindowFocus: true,
   });
 
   const incompleteTaskCount = useMemo(
     () =>
-      countOpenMovimentTasksForPallet(
-        myTasksQuery.data ?? [],
-        myPalletQuery.data?.id,
-      ),
-    [myTasksQuery.data, myPalletQuery.data?.id],
+      countOpenMovimentTasksForOperator(myTasksQuery.data ?? [], user?.id),
+    [myTasksQuery.data, user?.id],
   );
 
   const refreshRealtimeData = useCallback(async () => {
@@ -135,6 +147,10 @@ export function OperatorMovimentWorkProvider({
       }),
       queryClient.invalidateQueries({
         queryKey: ['operator-machine'],
+        cancelRefetch: false,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['machines'],
         cancelRefetch: false,
       }),
     ]);
@@ -158,6 +174,7 @@ export function OperatorMovimentWorkProvider({
           allowedMovimentTypes,
           isMovimentOperator,
           isMachineOperator,
+          isMachineCadastro,
         })
       ) {
         return;
@@ -165,12 +182,25 @@ export function OperatorMovimentWorkProvider({
 
       void refreshRealtimeData();
 
+      if (
+        event.type === 'machine_operator_updated' &&
+        isMachineOperator &&
+        event.affectedUserId === user?.id &&
+        event.operatorUserId === null
+      ) {
+        toast.message('Vínculo com a máquina encerrado', {
+          description:
+            'Um gestor desvinculou você desta máquina. Selecione outra máquina para continuar.',
+        });
+      }
+
       if (!isMovimentOperator) {
         return;
       }
     },
     [
       allowedMovimentTypes,
+      isMachineCadastro,
       isMachineOperator,
       isMovimentOperator,
       refreshRealtimeData,

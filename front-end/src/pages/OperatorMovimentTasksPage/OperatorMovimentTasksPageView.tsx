@@ -5,24 +5,27 @@ import { OpenTasksFlowSection } from './OpenTasksFlowSection';
 import type { OperatorMovimentTasksPageViewModel } from './useOperatorMovimentTasksPage';
 
 const linkOutlineClass =
-  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function OperatorMovimentTasksPageView(
   vm: OperatorMovimentTasksPageViewModel,
 ) {
   const {
     token,
+    userId,
     currentPallet,
     myTasksQuery,
     tasks,
+    tasksLoading,
     completeDeliverMut,
     completePickupMut,
     busy,
   } = vm;
 
   const bound = currentPallet !== null;
+
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
+    <main className="relative px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -42,23 +45,25 @@ export function OperatorMovimentTasksPageView(
           </p>
         ) : null}
 
-        <OpenTasksFlowSection
-          tasks={tasks}
-          myPalletId={currentPallet?.id ?? null}
-          isLoading={myTasksQuery.isLoading}
-          bound={bound}
-          busy={busy}
-          completeDeliverMut={completeDeliverMut}
-          completePickupMut={completePickupMut}
-          emptyAction={
-            <Link
-              to={OPERATOR_MOVIMENT_TASKS_QUEUE_PATH}
-              className={linkOutlineClass}
-            >
-              Aceitar nova tarefa
-            </Link>
-          }
-        />
+        {token ? (
+          <OpenTasksFlowSection
+            tasks={tasks}
+            myOperatorUserId={userId}
+            isLoading={tasksLoading && !busy}
+            bound={bound}
+            busy={busy}
+            completeDeliverMut={completeDeliverMut}
+            completePickupMut={completePickupMut}
+            emptyAction={
+              <Link
+                to={OPERATOR_MOVIMENT_TASKS_QUEUE_PATH}
+                className={linkOutlineClass}
+              >
+                Aceitar nova tarefa
+              </Link>
+            }
+          />
+        ) : null}
       </div>
     </main>
   );

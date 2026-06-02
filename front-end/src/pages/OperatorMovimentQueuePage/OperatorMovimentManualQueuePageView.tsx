@@ -5,7 +5,7 @@ import { OperatorMovimentManualQueueSection } from './OperatorMovimentManualQueu
 import type { OperatorMovimentManualQueuePageViewModel } from './useOperatorMovimentManualQueuePage';
 
 const linkOutlineClass =
-  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#005fb8]/25';
+  'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function OperatorMovimentManualQueuePageView(
   vm: OperatorMovimentManualQueuePageViewModel,
@@ -16,6 +16,8 @@ export function OperatorMovimentManualQueuePageView(
     queueQuery,
     queue,
     busy,
+    pendingReplenishmentRequestId,
+    pendingPickupTaskId,
     onAcceptReplenishment,
     onAcceptPickup,
   } = vm;
@@ -24,9 +26,7 @@ export function OperatorMovimentManualQueuePageView(
     <main className="px-4 py-8 max-[800px]:px-3">
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-          <div>
-           
-          </div>
+          <div></div>
           <Link
             to={OPERATOR_MOVIMENT_TASKS_QUEUE_PATH}
             className={linkOutlineClass}
@@ -51,6 +51,8 @@ export function OperatorMovimentManualQueuePageView(
             deliverRows={queue.requests}
             pickupRows={queue.onMachinePickupTasks}
             busy={busy}
+            pendingReplenishmentRequestId={pendingReplenishmentRequestId}
+            pendingPickupTaskId={pendingPickupTaskId}
             onAcceptReplenishment={onAcceptReplenishment}
             onAcceptPickup={onAcceptPickup}
           />

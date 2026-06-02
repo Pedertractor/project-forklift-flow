@@ -1,7 +1,11 @@
 import type { RouteHandlerMethod } from 'fastify'
-import { OperatorMachineSupplyRequestStatus } from '../generated/prisma/enums.js'
+import {
+  OperatorMachineSupplyRequestStatus,
+  TypeMovimentPallet,
+} from '../generated/prisma/enums.js'
 import {
   MachineHasNoMaterialForPickupError,
+  OperatorRequestBlockedByPalletAtReceivingError,
   MachineNotFoundError,
   MachineNotInOperatorSectorError,
   OperatorMachineNotBoundError,
@@ -38,6 +42,42 @@ function parseOptionalOperatorSupplyRequestStatus(
     return undefined
   }
   return value as OperatorMachineSupplyRequestStatus
+}
+
+function parseOptionalTypeMovimentPallet(
+  value: unknown,
+): TypeMovimentPallet | undefined {
+  if (value === undefined || value === '') return undefined
+  if (typeof value !== 'string') return undefined
+  if (!(Object.values(TypeMovimentPallet) as string[]).includes(value)) {
+    return undefined
+  }
+  return value as TypeMovimentPallet
+}
+
+function parsePickupRequestBody(body: {
+  isCritical?: boolean
+  typeMovimentPallet?: unknown
+}):
+  | { ok: true; options: { isCritical?: boolean; typeMovimentPallet?: TypeMovimentPallet } }
+  | { ok: false; error: string } {
+  const typeMovimentPallet = parseOptionalTypeMovimentPallet(
+    body.typeMovimentPallet,
+  )
+  if (
+    body.typeMovimentPallet !== undefined &&
+    body.typeMovimentPallet !== '' &&
+    typeMovimentPallet === undefined
+  ) {
+    return { ok: false, error: 'typeMovimentPallet invalido.' }
+  }
+  return {
+    ok: true,
+    options: {
+      isCritical: body.isCritical === true,
+      ...(typeMovimentPallet ? { typeMovimentPallet } : {}),
+    },
+  }
 }
 
 export const postBindOperatorMachine: RouteHandlerMethod = async (
@@ -123,11 +163,16 @@ export const postRequestPickupOnly: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
-  const body = (request.body ?? {}) as { isCritical?: boolean }
+  const body = (request.body ?? {}) as {
+    isCritical?: boolean
+    typeMovimentPallet?: unknown
+  }
+  const parsed = parsePickupRequestBody(body)
+  if (!parsed.ok) {
+    return reply.status(400).send({ error: parsed.error })
+  }
   try {
-    const result = await requestPickupOnly(user.sub, {
-      isCritical: body.isCritical === true,
-    })
+    const result = await requestPickupOnly(user.sub, parsed.options)
     return reply.status(201).send(result)
   } catch (error) {
     if (error instanceof OperatorMachineNotBoundError) {
@@ -155,6 +200,9 @@ export const postRequestSupplyOnly: RouteHandlerMethod = async (
     if (error instanceof OperatorMachineNotBoundError) {
       return reply.status(400).send({ error: error.message })
     }
+    if (error instanceof OperatorRequestBlockedByPalletAtReceivingError) {
+      return reply.status(409).send({ error: error.message })
+    }
     throw error
   }
 }
@@ -164,11 +212,16 @@ export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
-  const body = (request.body ?? {}) as { isCritical?: boolean }
+  const body = (request.body ?? {}) as {
+    isCritical?: boolean
+    typeMovimentPallet?: unknown
+  }
+  const parsed = parsePickupRequestBody(body)
+  if (!parsed.ok) {
+    return reply.status(400).send({ error: parsed.error })
+  }
   try {
-    const result = await requestPickupWithReplenishment(user.sub, {
-      isCritical: body.isCritical === true,
-    })
+    const result = await requestPickupWithReplenishment(user.sub, parsed.options)
     return reply.status(201).send(result)
   } catch (error) {
     if (error instanceof OperatorMachineNotBoundError) {
@@ -178,6 +231,9 @@ export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
       return reply.status(409).send({ error: error.message })
     }
     if (error instanceof PickupTaskAlreadyOpenError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof OperatorRequestBlockedByPalletAtReceivingError) {
       return reply.status(409).send({ error: error.message })
     }
     throw error

@@ -15,9 +15,13 @@ import type {
   OperatorPickupTaskQueueItem,
   OperatorReplenishmentRequestItem,
 } from '@/types/operator-moviment-pallet.types';
-import { formatTaskDate, priorityLabel } from '@/utils/operator-moviment-display';
+import {
+  formatTaskDate,
+  priorityLabel,
+} from '@/utils/operator-moviment-display';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { OperatorReplenishmentQueueResponse } from '@/types/operator-moviment-pallet.types';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function DeliverRequestFlow({
   row,
@@ -25,7 +29,7 @@ function DeliverRequestFlow({
   row: OperatorReplenishmentRequestItem;
 }) {
   return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-0.5 pt-0 [-webkit-overflow-scrolling:touch]">
+    <div className="flex w-full min-w-0 items-start pb-0.5 pt-0">
       <SuggestionFlowStep
         size="compact"
         stepId="receiving"
@@ -42,10 +46,7 @@ function DeliverRequestFlow({
         stepId="machine"
         label="Máquina"
         details={[
-          machineLocationDetail(
-            row.destination?.name ?? '—',
-            row.destination?.position ?? '',
-          ),
+          machineLocationDetail(row.destination?.name ?? '—'),
           prismaDetail(row.movementCube, 'deliver-to-machine'),
         ]}
         accent="mid"
@@ -57,17 +58,12 @@ function DeliverRequestFlow({
 function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
   const req = task.request;
   return (
-    <div className="flex w-full min-w-0 items-start overflow-x-auto pb-0.5 pt-0 [-webkit-overflow-scrolling:touch]">
+    <div className="flex w-full min-w-0 items-start pb-0.5 pt-0">
       <SuggestionFlowStep
         size="compact"
         stepId="machine"
         label="Máquina"
-        details={[
-          machineLocationDetail(
-            req.destination?.name ?? '—',
-            req.destination?.position ?? '',
-          ),
-        ]}
+        details={[machineLocationDetail(req.destination?.name ?? '—')]}
         accent="mid"
       />
       <SuggestionFlowConnector size="compact" />
@@ -87,6 +83,8 @@ export interface OperatorMovimentManualQueueSectionProps {
   deliverRows: OperatorReplenishmentRequestItem[];
   pickupRows: OperatorPickupTaskQueueItem[];
   busy: boolean;
+  pendingReplenishmentRequestId: string | null;
+  pendingPickupTaskId: string | null;
   onAcceptReplenishment: (requestId: string) => void;
   onAcceptPickup: (taskId: string) => void;
 }
@@ -96,6 +94,8 @@ export function OperatorMovimentManualQueueSection({
   deliverRows,
   pickupRows,
   busy,
+  pendingReplenishmentRequestId,
+  pendingPickupTaskId,
   onAcceptReplenishment,
   onAcceptPickup,
 }: OperatorMovimentManualQueueSectionProps) {
@@ -122,9 +122,9 @@ export function OperatorMovimentManualQueueSection({
         ) : (
           <div className="p-2.5 sm:p-3">
             {queueQuery.isLoading ? (
-              <p className="py-4 text-center text-xs text-zinc-600">
-                Carregando…
-              </p>
+              <div className="flex items-center justify-center py-4">
+                <AccordionLoader />
+              </div>
             ) : null}
             {!queueQuery.isLoading && deliverRows.length === 0 ? (
               <p className="py-4 text-center text-xs text-zinc-600">
@@ -159,7 +159,9 @@ export function OperatorMovimentManualQueueSection({
                       disabled={busy}
                       onClick={() => onAcceptReplenishment(row.id)}
                     >
-                      Aceitar
+                      {pendingReplenishmentRequestId === row.id
+                        ? 'Aceitando…'
+                        : 'Aceitar'}
                     </Button>
                   </div>
                 </div>
@@ -190,9 +192,9 @@ export function OperatorMovimentManualQueueSection({
         ) : (
           <div className="p-2.5 sm:p-3">
             {queueQuery.isLoading ? (
-              <p className="py-4 text-center text-xs text-zinc-600">
-                Carregando…
-              </p>
+              <div className="flex items-center justify-center py-4">
+                <AccordionLoader />
+              </div>
             ) : null}
             {!queueQuery.isLoading && pickupRows.length === 0 ? (
               <p className="py-4 text-center text-xs text-zinc-600">
@@ -225,7 +227,9 @@ export function OperatorMovimentManualQueueSection({
                         disabled={busy}
                         onClick={() => onAcceptPickup(task.id)}
                       >
-                        Aceitar
+                        {pendingPickupTaskId === task.id
+                          ? 'Aceitando…'
+                          : 'Aceitar'}
                       </Button>
                     </div>
                   </div>

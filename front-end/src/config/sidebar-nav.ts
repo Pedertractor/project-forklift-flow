@@ -1,11 +1,9 @@
-import { PLANT_MAP_PAGE_PATH } from '@/constants/plant-map-routes';
 import type { AppRole } from '@/types/role.types';
 import {
   ADMIN_OR_LEADER_ROLES,
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
-  PLANT_MAP_SUPERVISION_ROLES,
 } from '@/types/role.types';
 import {
   OPERATOR_MOVIMENT_EQUIPMENT_PATH,
@@ -51,19 +49,6 @@ function itemVisibleForRole(
  */
 export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   {
-    id: 'supervisao',
-    title: 'Supervisão',
-    rolesDescription:
-      'Líder (LEADER), supervisor (SUPERVISOR), gestor (MANAGER) e administrador (ADMIN).',
-    items: [
-      {
-        to: PLANT_MAP_PAGE_PATH,
-        label: 'Mapa da planta',
-        allowedRoles: PLANT_MAP_SUPERVISION_ROLES,
-      },
-    ],
-  },
-  {
     id: 'dobra',
     title: 'Operação — máquina de dobra',
     rolesDescription:
@@ -80,17 +65,12 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     id: 'supply-cadastros',
     title: 'Máquinas e equipamentos',
     rolesDescription:
-      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas e solicitações. Cadastro de equipamentos de movimentação: líder e administrador.',
+      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas de produção.',
     items: [
       {
         to: '/cadastro/maquinas',
         label: 'Máquinas de produção',
         allowedRoles: MACHINE_DOMAIN_ROLES,
-      },
-      {
-        to: '/abastecimento/equipamentos',
-        label: 'Equipamentos de movimentação',
-        allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
     ],
   },
@@ -136,7 +116,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     id: 'operacao-movimentacao',
     title: 'Operação — movimentação',
     rolesDescription:
-      'Empilhadeirista (FORKLIFT_OPERATOR), transpaleteira / follow-up (FOLLOW_UP_OPERATOR) e administrador (ADMIN) para testes.',
+      'Transportador de pallet (PALLET_TRANSPORTER) e administrador (ADMIN) para testes.',
     items: [
       {
         to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,

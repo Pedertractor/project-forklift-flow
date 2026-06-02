@@ -1,7 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { plantMapCreateMachinePath } from '@/constants/plant-map-routes';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
@@ -42,7 +40,6 @@ function sectorsForForms(
 }
 
 export function useMachinesPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
@@ -95,62 +92,63 @@ export function useMachinesPage() {
   const [deleteRow, setDeleteRow] = useState<MachineListItem | null>(null);
 
   const [name, setName] = useState('');
-  const [position, setPosition] = useState('');
   const [typeMachineId, setTypeMachineId] = useState('');
   const [sectorId, setSectorId] = useState('');
   const [userId, setUserId] = useState('');
   const [plantUnit, setPlantUnit] = useState<PlantMapUnit>('PEDERTRACTOR');
-  const [clearOperator, setClearOperator] = useState(false);
 
   const resetForm = useCallback(() => {
     setName('');
-    setPosition('');
     setTypeMachineId('');
     setSectorId('');
     setUserId('');
     setPlantUnit('PEDERTRACTOR');
-    setClearOperator(false);
   }, []);
 
-  const goToMapToCreateMachine = useCallback(() => {
+  const openCreate = useCallback(() => {
     if (cannotCreateMachine) {
       toast.message('Cadastro indisponível', {
         description:
-          'Cadastre ao menos um tipo de máquina e um setor antes de criar no mapa.',
+          'Cadastre ao menos um tipo de máquina e um setor antes de criar uma máquina.',
       });
       return;
     }
-    navigate(
-      plantMapCreateMachinePath(
-        plantUnitFilter === '' ? undefined : plantUnitFilter,
-      ),
-    );
-  }, [cannotCreateMachine, navigate, plantUnitFilter]);
+    resetForm();
+    if (plantUnitFilter !== '') {
+      setPlantUnit(plantUnitFilter);
+    }
+    setCreateOpen(true);
+  }, [cannotCreateMachine, plantUnitFilter, resetForm]);
 
   const openEdit = (row: MachineListItem) => {
     setName(row.name);
-    setPosition(row.position);
     setPlantUnit(row.plantUnit);
     setTypeMachineId(row.typeMachineId);
     setSectorId(row.sectorId);
     setUserId(row.userId ?? '');
-    setClearOperator(false);
     setEditRow(row);
   };
+
+  const editMachineLive = useMemo(() => {
+    if (!editRow) {
+      return null;
+    }
+    return machinesQuery.data?.find((m) => m.id === editRow.id) ?? editRow;
+  }, [editRow, machinesQuery.data]);
+
+  const editOperator = editMachineLive?.user ?? null;
 
   const createMut = useMutation({
     mutationFn: async () => {
       const n = name.trim();
-      const p = position.trim();
-      if (!n || !p) {
-        throw new Error('Nome e posição são obrigatórios.');
+      if (!n) {
+        throw new Error('Informe o nome da máquina.');
       }
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
       return createMachine({
         name: n,
-        position: p,
         plantUnit,
         typeMachineId,
         sectorId,
@@ -172,32 +170,42 @@ export function useMachinesPage() {
         throw new Error('Sem registro.');
       }
       const n = name.trim();
-      const p = position.trim();
-      if (!n || !p) {
-        throw new Error('Nome e posição são obrigatórios.');
+      if (!n) {
+        throw new Error('Informe o nome da máquina.');
       }
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
-      const patch: Parameters<typeof updateMachine>[1] = {
+      return updateMachine(editRow.id, {
         name: n,
-        position: p,
         plantUnit,
         typeMachineId,
         sectorId,
-      };
-      if (clearOperator) {
-        patch.userId = null;
-      } else if (userId.trim() !== '') {
-        patch.userId = userId.trim();
-      }
-      return updateMachine(editRow.id, patch);
+      });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['machines'] });
       setEditRow(null);
       resetForm();
       toast.success('Máquina atualizada.');
+    },
+    onError: toastApiError,
+  });
+
+  const unlinkOperatorMut = useMutation({
+    mutationFn: async () => {
+      if (!editRow) {
+        throw new Error('Sem máquina selecionada.');
+      }
+      return updateMachine(editRow.id, { userId: null });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['machines'] });
+      setEditRow((prev) =>
+        prev ? { ...prev, userId: null, user: null } : null,
+      );
+      setUserId('');
+      toast.success('Operador desvinculado da máquina.');
     },
     onError: toastApiError,
   });
@@ -213,7 +221,10 @@ export function useMachinesPage() {
   });
 
   const busy =
-    createMut.isPending || updateMut.isPending || deleteMut.isPending;
+    createMut.isPending ||
+    updateMut.isPending ||
+    deleteMut.isPending ||
+    unlinkOperatorMut.isPending;
   const createError =
     createMut.error instanceof Error ? createMut.error.message : null;
   const updateError =
@@ -240,21 +251,19 @@ export function useMachinesPage() {
     setCreateOpen,
     editRow,
     setEditRow,
+    editOperator,
     deleteRow,
     setDeleteRow,
     name,
     setName,
-    position,
-    setPosition,
     typeMachineId,
     setTypeMachineId,
     sectorId,
     setSectorId,
     userId,
     setUserId,
-    clearOperator,
-    setClearOperator,
-    goToMapToCreateMachine,
+    unlinkOperatorMut,
+    openCreate,
     openEdit,
     createMut,
     updateMut,

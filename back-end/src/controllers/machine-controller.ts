@@ -17,7 +17,6 @@ import {
 export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   const body = (request.body ?? {}) as {
     name?: string
-    position?: string
     plantUnit?: string
     typeMachineId?: string
     sectorId?: string
@@ -25,9 +24,6 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   }
   if (typeof body.name !== 'string' || body.name.trim() === '') {
     return reply.status(400).send({ error: 'Informe name (texto nao vazio).' })
-  }
-  if (typeof body.position !== 'string' || body.position.trim() === '') {
-    return reply.status(400).send({ error: 'Informe position (texto nao vazio).' })
   }
   if (typeof body.typeMachineId !== 'string' || body.typeMachineId.trim() === '') {
     return reply.status(400).send({ error: 'Informe typeMachineId.' })
@@ -46,7 +42,6 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   try {
     const row = await createMachine({
       name: body.name,
-      position: body.position,
       plantUnit,
       typeMachineId: body.typeMachineId.trim(),
       sectorId: body.sectorId.trim(),
@@ -107,7 +102,6 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
   const { machineId } = request.params as { machineId?: string }
   const body = (request.body ?? {}) as {
     name?: string
-    position?: string
     plantUnit?: string
     typeMachineId?: string
     sectorId?: string
@@ -119,7 +113,6 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
 
   const patch: {
     name?: string
-    position?: string
     plantUnit?: 'PEDERTRACTOR' | 'TRACTOR'
     typeMachineId?: string
     sectorId?: string
@@ -130,12 +123,6 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
       return reply.status(400).send({ error: 'name nao pode ser vazio.' })
     }
     patch.name = body.name
-  }
-  if (typeof body.position === 'string') {
-    if (body.position.trim() === '') {
-      return reply.status(400).send({ error: 'position nao pode ser vazio.' })
-    }
-    patch.position = body.position
   }
   if (body.plantUnit !== undefined) {
     if (typeof body.plantUnit !== 'string' || body.plantUnit.trim() === '') {
@@ -168,7 +155,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
       .status(400)
       .send({
         error:
-          'Envie ao menos um campo: name, position, plantUnit, typeMachineId, sectorId ou userId.',
+          'Envie ao menos um campo: name, plantUnit, typeMachineId, sectorId ou userId.',
       })
   }
 
