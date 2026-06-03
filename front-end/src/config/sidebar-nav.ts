@@ -135,11 +135,6 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
         label: 'Tarefas disponíveis',
         allowedRoles: MOVIMENT_OPERATOR_ROLES,
       },
-      {
-        to: OPERATOR_MOVIMENT_MY_TASKS_PATH,
-        label: 'Minhas tarefas',
-        allowedRoles: MOVIMENT_OPERATOR_ROLES,
-      },
     ],
   },
 ];
