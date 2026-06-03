@@ -1,6 +1,13 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import { RoleUser } from '../generated/prisma/enums.js'
+import {
+  IsOperating,
+  RoleUser,
+  TypeMovimentPallet,
+} from '../generated/prisma/enums.js'
+import { machineRepository } from '../repositories/machine.repository.js'
+import { userRepository } from '../repositories/user.repository.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
+import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-type.js'
 import { operatorMovimentPalletWsRegisterClient } from './operator-moviment-pallet-ws.hub.js'
 
 const MOVIMENT_WS_ROLES: readonly RoleUser[] = [
@@ -15,6 +22,23 @@ const MOVIMENT_WS_ROLES: readonly RoleUser[] = [
 
 const WS_PATH = '/ws/operator-moviment-pallet'
 
+function allowedTypesForClient(user: {
+  role: RoleUser
+  isOperating: IsOperating | null
+}) {
+  if (
+    (user.role === RoleUser.PALLET_TRANSPORTER || user.role === RoleUser.ADMIN) &&
+    (user.isOperating === IsOperating.FORKLIFT ||
+      user.isOperating === IsOperating.PALLET_TRUCK)
+  ) {
+    return openPoolTypesForOperatingMode(user.isOperating)
+  }
+  if (user.role === RoleUser.ADMIN) {
+    return [TypeMovimentPallet.FORKLIFT, TypeMovimentPallet.ANY]
+  }
+  return []
+}
+
 /**
  * WebSocket para operadores de movimentação (mesmo path que o front em `operator-moviment-ws.ts`).
  * Autenticação: query `token` (JWT). Operadores de movimentação/dobra, cadastro de máquinas e supervisão.
@@ -23,7 +47,7 @@ export function registerOperatorMovimentPalletWebSocket(app: FastifyInstance): v
   app.get(
     WS_PATH,
     { websocket: true },
-    (socket /* WebSocket */, req: FastifyRequest) => {
+    async (socket /* WebSocket */, req: FastifyRequest) => {
       const q = req.query as { token?: string }
       const token = typeof q.token === 'string' ? q.token.trim() : ''
       if (!token) {
@@ -44,7 +68,28 @@ export function registerOperatorMovimentPalletWebSocket(app: FastifyInstance): v
         return
       }
 
-      operatorMovimentPalletWsRegisterClient(socket)
+      try {
+        const user = await userRepository.findProfileById(payload.sub)
+        if (!user || !MOVIMENT_WS_ROLES.includes(user.role)) {
+          socket.close()
+          return
+        }
+
+        const boundMachine =
+          user.role === RoleUser.OPERATOR_MACHINE || user.role === RoleUser.ADMIN
+            ? await machineRepository.findFirstByOperatorUserId(user.id)
+            : null
+
+        operatorMovimentPalletWsRegisterClient(socket, {
+          userId: user.id,
+          role: user.role,
+          sectorId: user.sectorId ?? null,
+          boundMachineId: boundMachine?.id ?? null,
+          allowedTypes: allowedTypesForClient(user),
+        })
+      } catch {
+        socket.close()
+      }
     },
   )
 }
