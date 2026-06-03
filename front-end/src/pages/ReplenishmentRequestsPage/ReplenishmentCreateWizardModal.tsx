@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { SimpleModal } from '@/components/crud/SimpleModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

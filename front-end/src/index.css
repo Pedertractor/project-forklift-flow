@@ -2,10 +2,31 @@
 @import './styles/globals.css';
 
 @theme {
+  --radius-md: 0.75rem;
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-background: #ffffff;
+  --color-foreground: #18181b;
+  --color-card: #ffffff;
+  --color-card-foreground: #18181b;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-primary: var(--brand);
+  --color-primary-foreground: #ffffff;
+  --color-accent: #f4f4f5;
+  --color-accent-foreground: #18181b;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #18181b;
+  --color-input: #e4e4e7;
+  --color-ring: #71717a;
+  --color-border: #e4e4e7;
 }
 
 #root {

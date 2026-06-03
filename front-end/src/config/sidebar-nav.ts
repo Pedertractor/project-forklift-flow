@@ -6,8 +6,6 @@ import {
   OPERATOR_MACHINE_ROLES,
 } from '@/types/role.types';
 import {
-  OPERATOR_MOVIMENT_EQUIPMENT_PATH,
-  OPERATOR_MOVIMENT_MY_TASKS_PATH,
   OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
 } from '@/constants/operator-moviment-routes';
 
@@ -88,6 +86,18 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     ],
   },
   {
+    id: 'admin-dashboard',
+    title: 'Supervisão',
+    rolesDescription: 'Líder (LEADER) e administrador (ADMIN).',
+    items: [
+      {
+        to: '/dashboard',
+        label: 'Painel operacional',
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
+      },
+    ],
+  },
+  {
     id: 'admin-setores',
     title: 'Administração — setores',
     rolesDescription: 'Somente administrador (ADMIN).',
@@ -121,11 +131,6 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       {
         to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
         label: 'Tarefas disponíveis',
-        allowedRoles: MOVIMENT_OPERATOR_ROLES,
-      },
-      {
-        to: OPERATOR_MOVIMENT_MY_TASKS_PATH,
-        label: 'Minhas tarefas',
         allowedRoles: MOVIMENT_OPERATOR_ROLES,
       },
     ],

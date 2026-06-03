@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { ReplenishmentCreateWizardModal } from './ReplenishmentCreateWizardModal';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,9 @@ import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentReque
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
 import { ReplenishmentRequestsTable } from './ReplenishmentRequestsTable';
 import { HistoryIcon, ListIcon, PanelRightOpen, PlusIcon } from 'lucide-react';
+import { SelectCombobox } from '@/components/ui/select-combobox';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 export function ReplenishmentRequestsPageView(
   vm: ReplenishmentRequestsPageViewModel,
@@ -142,21 +140,22 @@ export function ReplenishmentRequestsPageView(
           <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row sm:items-end">
             <div className="min-w-0 flex-1 space-y-2 sm:min-w-48 sm:flex-none">
               <Label htmlFor="rr-status-filter">Status</Label>
-              <select
+              <SelectCombobox
                 id="rr-status-filter"
-                className={selectClass}
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onValueChange={setStatusFilter}
                 disabled={!apiReady}
-              >
-                <option value="">Todos</option>
-                <option value="PALLET_READY">Pallet no recebimento</option>
-                <option value="CREATED">Criado</option>
-                <option value="IN_PROGRESS">Em andamento</option>
-                <option value="ON_MACHINE">Na máquina</option>
-                <option value="COMPLETED">Concluído</option>
-                <option value="CANCELED">Cancelado</option>
-              </select>
+                placeholder="Todos"
+                options={[
+                  { value: '', label: 'Todos' },
+                  { value: 'PALLET_READY', label: 'Pallet no recebimento' },
+                  { value: 'CREATED', label: 'Criado' },
+                  { value: 'IN_PROGRESS', label: 'Em andamento' },
+                  { value: 'ON_MACHINE', label: 'Na máquina' },
+                  { value: 'COMPLETED', label: 'Concluído' },
+                  { value: 'CANCELED', label: 'Cancelado' },
+                ]}
+              />
             </div>
             {user?.role === 'ADMIN' ? (
               <label className="flex cursor-pointer items-center gap-2 pb-0 text-sm text-zinc-700 sm:pb-2">
@@ -331,18 +330,15 @@ export function ReplenishmentRequestsPageView(
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="rr-edit-dest">Máquina de destino</Label>
-            <select
+            <SelectCombobox
               id="rr-edit-dest"
-              className={selectClass}
               value={destinationId}
-              onChange={(e) => setDestinationId(e.target.value)}
-            >
-              {machinesForSelect.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} — {m.sector.typeSector}
-                </option>
-              ))}
-            </select>
+              onValueChange={setDestinationId}
+              options={machinesForSelect.map((m) => ({
+                value: m.id,
+                label: `${m.name} — ${m.sector.typeSector}`,
+              }))}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="rr-edit-cube">Código do prisma / pallet</Label>
@@ -354,38 +350,37 @@ export function ReplenishmentRequestsPageView(
           </div>
           <div className="space-y-2">
             <Label htmlFor="rr-edit-mov">Tipo de movimentação</Label>
-            <select
+            <SelectCombobox
               id="rr-edit-mov"
-              className={selectClass}
               value={typeMovimentPallet}
-              onChange={(e) =>
-                setTypeMovimentPallet(
-                  e.target.value as ReplenishmentMovimentType,
-                )
+              onValueChange={(value) =>
+                setTypeMovimentPallet(value as ReplenishmentMovimentType)
               }
-            >
-              <option value="FORKLIFT">Empilhadeira</option>
-              <option value="ANY">
-                Qualquer tipo (empilhadeira ou transpaleteira)
-              </option>
-            </select>
+              searchable={false}
+              options={[
+                { value: 'FORKLIFT', label: 'Empilhadeira' },
+                {
+                  value: 'ANY',
+                  label: 'Qualquer tipo (empilhadeira ou transpaleteira)',
+                },
+              ]}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="rr-edit-prio">Prioridade</Label>
-            <select
+            <SelectCombobox
               id="rr-edit-prio"
-              className={selectClass}
               value={priorityLevel}
-              onChange={(e) =>
-                setPriorityLevel(
-                  e.target.value as 'VERY_HIGH' | 'HIGH' | 'NORMAL',
-                )
+              onValueChange={(value) =>
+                setPriorityLevel(value as 'VERY_HIGH' | 'HIGH' | 'NORMAL')
               }
-            >
-              <option value="NORMAL">Normal</option>
-              <option value="HIGH">Alta</option>
-              <option value="VERY_HIGH">Muito alta</option>
-            </select>
+              searchable={false}
+              options={[
+                { value: 'NORMAL', label: 'Normal' },
+                { value: 'HIGH', label: 'Alta' },
+                { value: 'VERY_HIGH', label: 'Muito alta' },
+              ]}
+            />
           </div>
         </div>
       </SimpleModal>

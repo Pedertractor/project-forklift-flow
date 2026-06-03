@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { ENV } from '@/constants/env';

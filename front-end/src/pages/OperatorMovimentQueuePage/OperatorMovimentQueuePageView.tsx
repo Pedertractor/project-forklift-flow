@@ -1,6 +1,6 @@
 import { ChevronDown, List, Repeat, RouteOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { cn } from '@/lib/utils';
 import { ENV } from '@/constants/env';
 import { OPERATOR_MOVIMENT_MANUAL_QUEUE_PATH } from '@/constants/operator-moviment-routes';

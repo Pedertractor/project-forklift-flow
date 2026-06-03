@@ -64,4 +64,7 @@ export const API_ENDPOINTS = {
     COMPLETE_PICKUP: (taskId: string) =>
       `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/complete-pickup`,
   },
+  OPERATIONAL_DASHBOARD: {
+    SNAPSHOT: '/operational-dashboard/snapshot',
+  },
 } as const;

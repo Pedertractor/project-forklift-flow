@@ -9,7 +9,6 @@ import type {
   OperatorMovimentPalletsListResponse,
   OperatorMovimentTaskItem,
   OperatorMyMovimentPalletResponse,
-  OperatorMyTasksResponse,
   OperatorPickupTaskQueueItem,
   OperatorReplenishmentQueueResponse,
   OperatorReplenishmentRequestItem,
@@ -21,13 +20,12 @@ import type {
 } from '@/types/operator-moviment-pallet.types';
 
 type DeliveryTaskApiRow = DeliveryTaskListItem & {
-  machine?: DeliveryTaskListItem['machine'];
-  requestedBy?: DeliveryTaskListItem['requestedBy'];
+  assignedOperatorId?: string | null;
 };
 
 type PickupTaskApiRow = PickupTaskListItem & {
-  machine?: PickupTaskListItem['machine'];
-  requestedBy?: PickupTaskListItem['requestedBy'];
+  assignedOperatorId?: string | null;
+  requestedBy?: DeliveryTaskListItem['requestedBy'];
 };
 
 function mapMachineToDestination(

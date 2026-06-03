@@ -16,7 +16,8 @@ export type RequestStatusApi =
   | 'IN_PROGRESS'
   | 'ON_MACHINE'
   | 'COMPLETED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'PALLET_READY';
 
 export type ForkliftTaskStatusApi =
   | 'CREATED'

@@ -173,15 +173,12 @@ export function OperatorMovimentWorkProvider({
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: ['operator-moviment'],
-        cancelRefetch: false,
       }),
       queryClient.invalidateQueries({
         queryKey: ['operator-machine'],
-        cancelRefetch: false,
       }),
       queryClient.invalidateQueries({
         queryKey: ['machines'],
-        cancelRefetch: false,
       }),
     ]);
     await queryClient.refetchQueries({ type: 'active' });
@@ -271,8 +268,10 @@ export function OperatorMovimentWorkProvider({
         }
       } else if (isMachineOperator) {
         if (
-          event.type === 'pickup_task_updated' ||
-          event.type === 'delivery_task_updated'
+          (event.type === 'pickup_task_updated' ||
+            event.type === 'delivery_task_updated') &&
+          'taskId' in event &&
+          'status' in event
         ) {
           const patched = applyMachineOperatorWsEvent(queryClient, event);
           if (!patched) {
@@ -289,6 +288,7 @@ export function OperatorMovimentWorkProvider({
       if (
         event.type === 'machine_operator_updated' &&
         isMachineOperator &&
+        'affectedUserId' in event &&
         event.affectedUserId === user?.id &&
         event.operatorUserId === null
       ) {

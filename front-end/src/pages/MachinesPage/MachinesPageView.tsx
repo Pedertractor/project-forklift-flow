@@ -1,8 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { UserRound, UserRoundX } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
-import { Card } from '@/components/ui/card';
+import { DataTableCard } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
@@ -10,8 +10,7 @@ import { type MachinesPageViewModel } from './useMachinesPage';
 import { typeMachineImageSrc } from '../TypeMachinesPage/useTypeMachinesPage';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
-const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
+import { SelectCombobox } from '@/components/ui/select-combobox';
 
 export function MachinesPageView(vm: MachinesPageViewModel) {
   const {
@@ -42,8 +41,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setTypeMachineId,
     sectorId,
     setSectorId,
-    userId,
-    setUserId,
     editOperator,
     unlinkOperatorMut,
     openCreate,
@@ -120,45 +117,44 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <div className="min-w-48 space-y-2">
             <Label htmlFor="machine-sector-filter">Filtrar por setor</Label>
-            <select
+            <SelectCombobox
               id="machine-sector-filter"
-              className={selectClass}
               value={sectorFilter}
-              onChange={(e) => setSectorFilter(e.target.value)}
+              onValueChange={setSectorFilter}
               disabled={!apiReady}
-            >
-              <option value="">Todos</option>
-              {sectorsForSelect.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.typeSector}
-                  {typeof s.sectorIdAPI === 'number'
-                    ? ` (#${s.sectorIdAPI})`
-                    : ''}
-                </option>
-              ))}
-            </select>
+              placeholder="Todos"
+              options={[
+                { value: '', label: 'Todos' },
+                ...sectorsForSelect.map((s) => ({
+                  value: s.id,
+                  label: `${s.typeSector}${
+                    typeof s.sectorIdAPI === 'number'
+                      ? ` (#${s.sectorIdAPI})`
+                      : ''
+                  }`,
+                })),
+              ]}
+            />
           </div>
           <div className="min-w-48 space-y-2">
             <Label htmlFor="machine-plant-unit-filter">
               Filtrar por unidade
             </Label>
-            <select
+            <SelectCombobox
               id="machine-plant-unit-filter"
-              className={selectClass}
               value={plantUnitFilter}
-              onChange={(e) =>
-                setPlantUnitFilter(
-                  e.target.value as '' | 'PEDERTRACTOR' | 'TRACTOR',
-                )
+              onValueChange={(value) =>
+                setPlantUnitFilter(value as '' | 'PEDERTRACTOR' | 'TRACTOR')
               }
               disabled={!apiReady}
-            >
-              <option value="">Todas</option>
-              <option value="PEDERTRACTOR">
-                {plantUnitLabel.PEDERTRACTOR}
-              </option>
-              <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
-            </select>
+              placeholder="Todas"
+              searchable={false}
+              options={[
+                { value: '', label: 'Todas' },
+                { value: 'PEDERTRACTOR', label: plantUnitLabel.PEDERTRACTOR },
+                { value: 'TRACTOR', label: plantUnitLabel.TRACTOR },
+              ]}
+            />
           </div>
         </div>
 
@@ -170,7 +166,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </p>
         ) : null}
 
-        <Card className="mt-6 overflow-x-auto border border-zinc-200 shadow-sm">
+        <DataTableCard className="mt-6">
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -264,7 +260,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               )}
             </tbody>
           </table>
-        </Card>
+        </DataTableCard>
       </div>
 
       <SimpleModal
@@ -321,54 +317,54 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-plant-unit">Unidade</Label>
-            <select
+            <SelectCombobox
               id="m-plant-unit"
-              className={selectClass}
               value={plantUnit}
-              onChange={(e) =>
-                setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')
+              onValueChange={(value) =>
+                setPlantUnit(value as 'PEDERTRACTOR' | 'TRACTOR')
               }
-            >
-              <option value="PEDERTRACTOR">
-                {plantUnitLabel.PEDERTRACTOR}
-              </option>
-              <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
-            </select>
+              searchable={false}
+              options={[
+                { value: 'PEDERTRACTOR', label: plantUnitLabel.PEDERTRACTOR },
+                { value: 'TRACTOR', label: plantUnitLabel.TRACTOR },
+              ]}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-type">Tipo de máquina (modelo de produção)</Label>
-            <select
+            <SelectCombobox
               id="m-type"
-              className={selectClass}
               value={typeMachineId}
-              onChange={(e) => setTypeMachineId(e.target.value)}
-            >
-              <option value="">Selecione…</option>
-              {typesQuery.data?.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+              onValueChange={setTypeMachineId}
+              placeholder="Selecione…"
+              options={[
+                { value: '', label: 'Selecione…' },
+                ...(typesQuery.data?.map((t) => ({
+                  value: t.id,
+                  label: t.name,
+                })) ?? []),
+              ]}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-sector">Setor</Label>
-            <select
+            <SelectCombobox
               id="m-sector"
-              className={selectClass}
               value={sectorId}
-              onChange={(e) => setSectorId(e.target.value)}
-            >
-              <option value="">Selecione…</option>
-              {sectorsForSelect.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.typeSector}
-                  {typeof s.sectorIdAPI === 'number'
-                    ? ` (#${s.sectorIdAPI})`
-                    : ''}
-                </option>
-              ))}
-            </select>
+              onValueChange={setSectorId}
+              placeholder="Selecione…"
+              options={[
+                { value: '', label: 'Selecione…' },
+                ...sectorsForSelect.map((s) => ({
+                  value: s.id,
+                  label: `${s.typeSector}${
+                    typeof s.sectorIdAPI === 'number'
+                      ? ` (#${s.sectorIdAPI})`
+                      : ''
+                  }`,
+                })),
+              ]}
+            />
           </div>
         </div>
       </SimpleModal>
@@ -403,54 +399,50 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-plant-unit">Unidade</Label>
-            <select
+            <SelectCombobox
               id="m-edit-plant-unit"
-              className={selectClass}
               value={plantUnit}
-              onChange={(e) =>
-                setPlantUnit(e.target.value as 'PEDERTRACTOR' | 'TRACTOR')
+              onValueChange={(value) =>
+                setPlantUnit(value as 'PEDERTRACTOR' | 'TRACTOR')
               }
-            >
-              <option value="PEDERTRACTOR">
-                {plantUnitLabel.PEDERTRACTOR}
-              </option>
-              <option value="TRACTOR">{plantUnitLabel.TRACTOR}</option>
-            </select>
+              searchable={false}
+              options={[
+                { value: 'PEDERTRACTOR', label: plantUnitLabel.PEDERTRACTOR },
+                { value: 'TRACTOR', label: plantUnitLabel.TRACTOR },
+              ]}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-type">
               Tipo de máquina (modelo de produção)
             </Label>
-            <select
+            <SelectCombobox
               id="m-edit-type"
-              className={selectClass}
               value={typeMachineId}
-              onChange={(e) => setTypeMachineId(e.target.value)}
-            >
-              {typesQuery.data?.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+              onValueChange={setTypeMachineId}
+              options={
+                typesQuery.data?.map((t) => ({
+                  value: t.id,
+                  label: t.name,
+                })) ?? []
+              }
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-sector">Setor</Label>
-            <select
+            <SelectCombobox
               id="m-edit-sector"
-              className={selectClass}
               value={sectorId}
-              onChange={(e) => setSectorId(e.target.value)}
-            >
-              {sectorsForSelect.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.typeSector}
-                  {typeof s.sectorIdAPI === 'number'
+              onValueChange={setSectorId}
+              options={sectorsForSelect.map((s) => ({
+                value: s.id,
+                label: `${s.typeSector}${
+                  typeof s.sectorIdAPI === 'number'
                     ? ` (#${s.sectorIdAPI})`
-                    : ''}
-                </option>
-              ))}
-            </select>
+                    : ''
+                }`,
+              }))}
+            />
           </div>
           <div className="space-y-2">
             <Label>Operador na máquina</Label>

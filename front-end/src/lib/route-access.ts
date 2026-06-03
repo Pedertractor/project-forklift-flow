@@ -47,7 +47,12 @@ export function isPathAllowedForAppRole(
   ) {
     return Boolean(role && OPERATOR_MACHINE_ROLES.includes(role as AppRole));
   }
-  const rule = PATH_RULES.find((r) => r.path === normalized);
+  const rule = PATH_RULES.find((r) => {
+    if (r.path === '/dashboard') {
+      return normalized === '/dashboard' || normalized.startsWith('/dashboard/');
+    }
+    return r.path === normalized;
+  });
   if (!rule) {
     return false;
   }

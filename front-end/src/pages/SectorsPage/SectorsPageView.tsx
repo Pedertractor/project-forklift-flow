@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
-import { Card } from '@/components/ui/card';
+import { DataTableCard } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
@@ -73,7 +73,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
           </p>
         ) : null}
 
-        <Card className="mt-6 overflow-x-auto border border-zinc-200 shadow-sm">
+        <DataTableCard className="mt-6">
           <table className="w-full min-w-[320px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -142,7 +142,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
               )}
             </tbody>
           </table>
-        </Card>
+        </DataTableCard>
       </div>
 
       <SimpleModal

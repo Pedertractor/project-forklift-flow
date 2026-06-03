@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
@@ -14,8 +14,8 @@ import {
 } from '@/services/operator-moviment-pallet-api';
 import { useAuthStore } from '@/store/auth.store';
 import {
-  countOpenMovimentTasksForOperator,
   filterTasksForMyOperator,
+  hasCompletableMovimentWorkForOperator,
 } from '@/utils/operator-moviment-work';
 
 function useApiReady(): boolean {
@@ -78,8 +78,47 @@ export function useOperatorMovimentTasksPage() {
     }
 
     const operatorId = useAuthStore.getState().user?.id ?? null;
-    return countOpenMovimentTasksForOperator(tasks ?? [], operatorId);
+    const myTasks = filterTasksForMyOperator(tasks ?? [], operatorId);
+    return hasCompletableMovimentWorkForOperator(myTasks, operatorId);
   }, [queryClient]);
+
+  const goToAvailableTasks = useCallback(() => {
+    navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
+      state: { fromTaskCompletion: true },
+      replace: true,
+    });
+  }, [navigate]);
+
+  const handleTaskCompleteSuccess = useCallback(
+    async (successMessage: string) => {
+      try {
+        const stillHasWork = await afterTaskComplete();
+        toast.success(successMessage);
+        setCompletingFlow(null);
+        if (!stillHasWork) {
+          goToAvailableTasks();
+        }
+      } catch (error) {
+        if (!isQueryCancellationError(error)) {
+          setCompletingFlow(null);
+          throw error;
+        }
+        toast.success(successMessage);
+        setCompletingFlow(null);
+        const operatorId = useAuthStore.getState().user?.id ?? null;
+        const cached = filterTasksForMyOperator(
+          queryClient.getQueryData<
+            Awaited<ReturnType<typeof fetchOperatorMyTasks>>
+          >(['operator-moviment', 'my-tasks']) ?? [],
+          operatorId,
+        );
+        if (!hasCompletableMovimentWorkForOperator(cached, operatorId)) {
+          goToAvailableTasks();
+        }
+      }
+    },
+    [afterTaskComplete, goToAvailableTasks, queryClient],
+  );
 
   const completeDeliverMut = useMutation({
     mutationFn: (taskId: string) => postCompleteDeliverTask(taskId),
@@ -87,24 +126,7 @@ export function useOperatorMovimentTasksPage() {
       setCompletingFlow('deliver');
     },
     onSuccess: async () => {
-      try {
-        const stillOpenCount = await afterTaskComplete();
-        toast.success('Entrega na máquina registrada.');
-        if (stillOpenCount > 0) {
-          setCompletingFlow(null);
-          return;
-        }
-        navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
-          state: { fromTaskCompletion: true },
-        });
-      } catch (error) {
-        if (!isQueryCancellationError(error)) {
-          setCompletingFlow(null);
-          throw error;
-        }
-        toast.success('Entrega na máquina registrada.');
-        setCompletingFlow(null);
-      }
+      await handleTaskCompleteSuccess('Entrega na máquina registrada.');
     },
     onError: (error) => {
       setCompletingFlow(null);
@@ -118,24 +140,7 @@ export function useOperatorMovimentTasksPage() {
       setCompletingFlow('pickup');
     },
     onSuccess: async () => {
-      try {
-        const stillOpenCount = await afterTaskComplete();
-        toast.success('Retirada para expedição registrada.');
-        if (stillOpenCount > 0) {
-          setCompletingFlow(null);
-          return;
-        }
-        navigate(OPERATOR_MOVIMENT_TASKS_QUEUE_PATH, {
-          state: { fromTaskCompletion: true },
-        });
-      } catch (error) {
-        if (!isQueryCancellationError(error)) {
-          setCompletingFlow(null);
-          throw error;
-        }
-        toast.success('Retirada para expedição registrada.');
-        setCompletingFlow(null);
-      }
+      await handleTaskCompleteSuccess('Retirada para expedição registrada.');
     },
     onError: (error) => {
       setCompletingFlow(null);
@@ -153,6 +158,24 @@ export function useOperatorMovimentTasksPage() {
     completeDeliverMut.isPending ||
     completePickupMut.isPending ||
     completingFlow !== null;
+
+  useEffect(() => {
+    if (!apiReady || tasksLoading || busy || myTasksQuery.isError) {
+      return;
+    }
+    if (hasCompletableMovimentWorkForOperator(tasks, userId)) {
+      return;
+    }
+    goToAvailableTasks();
+  }, [
+    apiReady,
+    tasksLoading,
+    busy,
+    myTasksQuery.isError,
+    tasks,
+    userId,
+    goToAvailableTasks,
+  ]);
 
   const completingOverlayMessage =
     completingFlow === 'deliver'

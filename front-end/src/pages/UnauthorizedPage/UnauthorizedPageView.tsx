@@ -13,9 +13,6 @@ const linkPrimary =
 
 export function UnauthorizedPageView(vm: UnauthorizedPageViewModel) {
   const {
-    userName,
-    role,
-    attemptedPath,
     canUseHomeAndDashboard,
     workspacePath,
     hasWorkspaceLink,
