@@ -1,4 +1,7 @@
-import type { ForkliftTaskStatusApi } from '@/types/operator-moviment-pallet.types';
+import type {
+  ForkliftTaskStatusApi,
+  ForkliftTaskTypeApi,
+} from '@/types/operator-moviment-pallet.types';
 
 export const OPEN_MOVIMENT_TASK_STATUSES: readonly ForkliftTaskStatusApi[] = [
   'CREATED',
@@ -59,3 +62,54 @@ export function filterTasksForMyOperator<
 
 /** @deprecated Use filterTasksForMyOperator */
 export const filterTasksForMyPallet = filterTasksForMyOperator;
+
+export function canCompleteMovimentDeliver(
+  type: ForkliftTaskTypeApi,
+  status: ForkliftTaskStatusApi,
+): boolean {
+  return type === 'DELIVER_TO_MACHINE' && isOpenMovimentTaskStatus(status);
+}
+
+export function canCompleteMovimentPickup(
+  task: {
+    type: ForkliftTaskTypeApi;
+    status: ForkliftTaskStatusApi;
+    assignedOperatorId?: string | null;
+    assignedMovimentPalletId?: string | null;
+  },
+  myOperatorUserId: string | null | undefined,
+): boolean {
+  if (task.type !== 'PICKUP_TO_EXPEDITION') {
+    return false;
+  }
+  if (!isOpenMovimentTaskStatus(task.status)) {
+    return false;
+  }
+  if (!myOperatorUserId) {
+    return false;
+  }
+  const assignedId = taskAssignedOperatorId(task);
+  if (assignedId != null && assignedId !== myOperatorUserId) {
+    return false;
+  }
+  return true;
+}
+
+/** Alinhado ao que a tela «Minhas tarefas» exibe como trabalho em aberto. */
+export function hasCompletableMovimentWorkForOperator(
+  tasks: ReadonlyArray<{
+    type: ForkliftTaskTypeApi;
+    status: ForkliftTaskStatusApi;
+    assignedOperatorId?: string | null;
+    assignedMovimentPalletId?: string | null;
+    request?: { destination?: unknown } | null;
+  }>,
+  myOperatorUserId: string | null | undefined,
+): boolean {
+  return tasks.some(
+    (task) =>
+      Boolean(task.request?.destination) &&
+      (canCompleteMovimentDeliver(task.type, task.status) ||
+        canCompleteMovimentPickup(task, myOperatorUserId)),
+  );
+}

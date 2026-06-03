@@ -9,7 +9,7 @@ import {
   SuggestionFlowConnector,
   SuggestionFlowStep,
 } from '@/components/operator-moviment/route-flow-icons';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
 import type {
   OperatorPickupTaskQueueItem,

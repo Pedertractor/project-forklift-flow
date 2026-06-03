@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { cn } from '@/lib/utils';
 import type { TypeMovimentPalletValue } from '@/types/machine-task.types';

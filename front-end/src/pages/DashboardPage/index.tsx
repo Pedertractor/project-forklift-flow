@@ -1,6 +1,4 @@
-import { DashboardPageView } from './DashboardPageView';
-import { useDashboardPage } from './useDashboardPage';
-
-export function DashboardPage() {
-  return <DashboardPageView {...useDashboardPage()} />;
-}
+export { DashboardAreaLayout } from './DashboardAreaLayout';
+export { DashboardHubPage } from './DashboardHubPage';
+export { DashboardGeralPage } from './DashboardGeralPage';
+export { DashboardPorEmpilhadeiristaPage } from './DashboardPorEmpilhadeiristaPage';

@@ -1,6 +1,20 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
+/** Container for native HTML tables — avoids flex Card breaking thead layout. */
+export function DataTableCard({ className, ...props }: ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="data-table-card"
+      className={cn(
+        'overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export function Table({ className, ...props }: ComponentProps<'table'>) {
   return (
     <div data-slot="table-container" className="relative w-full overflow-x-auto">

@@ -10,7 +10,7 @@ import {
 } from '@/components/operator-moviment/route-flow-step-details';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, Box, MapPinned, Truck } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 
 export function DeliverFlowCriticalBadge({
   className,

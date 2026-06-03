@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
 import { PageLoader } from '@/components/layout/PageLoader';
 import { ENV } from '@/constants/env';

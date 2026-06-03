@@ -7,7 +7,7 @@ import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-mach
 import type { SupplyPendingPreparationPageViewModel } from './useSupplyPendingPreparationPage';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import { ArrowLeftIcon } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { useNavigate } from 'react-router-dom';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';

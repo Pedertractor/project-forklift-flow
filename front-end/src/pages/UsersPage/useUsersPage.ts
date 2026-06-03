@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
@@ -70,6 +70,51 @@ export function useUsersPage() {
 
   const [detailUser, setDetailUser] = useState<UserListRow | null>(null);
   const [resetTarget, setResetTarget] = useState<UserListRow | null>(null);
+
+  const [searchFilter, setSearchFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [sectorFilter, setSectorFilter] = useState('');
+  const [unitFilter, setUnitFilter] = useState<'' | 'PEDERTRACTOR' | 'TRACTOR'>('');
+
+  const filteredUsers = useMemo(() => {
+    const rows = usersQuery.data ?? [];
+    const search = searchFilter.trim().toLowerCase();
+
+    return rows.filter((row) => {
+      if (search) {
+        const haystack = `${row.name} ${row.card}`.toLowerCase();
+        if (!haystack.includes(search)) {
+          return false;
+        }
+      }
+      if (roleFilter && row.role !== roleFilter) {
+        return false;
+      }
+      if (sectorFilter && row.sectorId !== sectorFilter) {
+        return false;
+      }
+      if (unitFilter && row.unit !== unitFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    usersQuery.data,
+    searchFilter,
+    roleFilter,
+    sectorFilter,
+    unitFilter,
+  ]);
+
+  const roleFilterOptions = useMemo(() => {
+    if (isAdmin) {
+      return rolesQuery.data ?? [];
+    }
+    const fromData = new Set(
+      (usersQuery.data ?? []).map((row) => row.role),
+    );
+    return [...fromData].sort();
+  }, [isAdmin, rolesQuery.data, usersQuery.data]);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- limpar validação ao mudar cartão/unidade */
@@ -218,6 +263,19 @@ export function useUsersPage() {
   const busyCreate = verifyMut.isPending || createMut.isPending;
   const busyAdmin = rolePatchMut.isPending || resetMut.isPending;
 
+  const hasActiveFilters =
+    searchFilter.trim() !== '' ||
+    roleFilter !== '' ||
+    sectorFilter !== '' ||
+    unitFilter !== '';
+
+  const clearFilters = useCallback(() => {
+    setSearchFilter('');
+    setRoleFilter('');
+    setSectorFilter('');
+    setUnitFilter('');
+  }, []);
+
   return {
     apiReady,
     token,
@@ -264,6 +322,18 @@ export function useUsersPage() {
     openUserDetail,
     openResetFromDetail,
     openRoleEditFromDetail,
+    searchFilter,
+    setSearchFilter,
+    roleFilter,
+    setRoleFilter,
+    sectorFilter,
+    setSectorFilter,
+    unitFilter,
+    setUnitFilter,
+    filteredUsers,
+    roleFilterOptions,
+    hasActiveFilters,
+    clearFilters,
   };
 }
 

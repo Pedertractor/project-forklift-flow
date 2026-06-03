@@ -30,6 +30,8 @@ export interface OperationalDashboardMachineRow {
 export interface OperationalDashboardSnapshot {
   now: string;
   date: string;
+  end_date: string | null;
+  sector_id: string | null;
   machine_id: string | null;
   pickup_wait: OperationalDashboardWaitMetrics;
   delivery_wait: OperationalDashboardWaitMetrics;
@@ -39,26 +41,86 @@ export interface OperationalDashboardSnapshot {
 }
 
 export interface OperationalDashboardFilters {
+  /** @deprecated Prefer startDate/endDate */
   date?: string;
+  startDate?: string;
+  endDate?: string;
+  sectorId?: string;
   machineId?: string;
+  typeMovimentPallet?: 'FORKLIFT' | 'ANY';
+}
+
+export interface OperationalDashboardOperatorRow {
+  operator_id: string;
+  operator_name: string;
+  pickups_total: number;
+  deliveries_total: number;
+  pickups_open: number;
+  deliveries_open: number;
+  avg_pickup_duration_ms: number | null;
+  avg_delivery_duration_ms: number | null;
+}
+
+export interface OperationalDashboardByOperatorSnapshot {
+  now: string;
+  date: string;
+  end_date: string | null;
+  sector_id: string | null;
+  type_moviment_pallet: 'FORKLIFT' | 'ANY' | null;
+  machine_id: string | null;
+  operators: OperationalDashboardOperatorRow[];
+}
+
+function appendDashboardQueryParams(
+  params: URLSearchParams,
+  filters?: OperationalDashboardFilters,
+) {
+  if (filters?.startDate) {
+    params.set('startDate', filters.startDate);
+  }
+  if (filters?.endDate) {
+    params.set('endDate', filters.endDate);
+  }
+  if (!filters?.startDate && !filters?.endDate && filters?.date) {
+    params.set('date', filters.date);
+  }
+  if (filters?.sectorId) {
+    params.set('sectorId', filters.sectorId);
+  }
+  if (filters?.machineId) {
+    params.set('machineId', filters.machineId);
+  }
+  if (filters?.typeMovimentPallet) {
+    params.set('typeMovimentPallet', filters.typeMovimentPallet);
+  }
 }
 
 export async function getOperationalDashboardSnapshot(
   filters?: OperationalDashboardFilters,
 ) {
   const params = new URLSearchParams();
-  if (filters?.date) {
-    params.set('date', filters.date);
-  }
-  if (filters?.machineId) {
-    params.set('machineId', filters.machineId);
-  }
+  appendDashboardQueryParams(params, filters);
   const query = params.toString();
   const data = await apiAuthFetch<OperationalDashboardSnapshot>(
     `/operational-dashboard/snapshot${query ? `?${query}` : ''}`,
   );
   if (!data) {
     throw new Error('Resposta vazia do painel operacional.');
+  }
+  return data;
+}
+
+export async function getOperationalDashboardByOperator(
+  filters?: OperationalDashboardFilters,
+) {
+  const params = new URLSearchParams();
+  appendDashboardQueryParams(params, filters);
+  const query = params.toString();
+  const data = await apiAuthFetch<OperationalDashboardByOperatorSnapshot>(
+    `/operational-dashboard/by-operator${query ? `?${query}` : ''}`,
+  );
+  if (!data) {
+    throw new Error('Resposta vazia do painel por empilhadeirista.');
   }
   return data;
 }

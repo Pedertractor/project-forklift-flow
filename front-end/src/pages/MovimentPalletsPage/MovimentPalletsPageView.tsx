@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
-import { Card } from '@/components/ui/card';
+import { DataTableCard } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
@@ -9,10 +9,8 @@ import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types'
 import type { MovimentPalletsPageViewModel } from './useMovimentPalletsPage';
 import { movimentTypePublicIconPath } from '@/utils/operator-moviment-display';
 import { PlusIcon } from 'lucide-react';
+import { SelectCombobox } from '@/components/ui/select-combobox';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
-
-const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 function typeLabel(t: string): string {
   return t === 'FORKLIFT' ? 'Empilhadeira' : 'Transpaleteira';
@@ -158,38 +156,37 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <div className="min-w-48 space-y-2">
             <Label htmlFor="mp-sector-filter">Filtrar por setor</Label>
-            <select
+            <SelectCombobox
               id="mp-sector-filter"
-              className={selectClass}
               value={sectorFilter}
-              onChange={(e) => setSectorFilter(e.target.value)}
+              onValueChange={setSectorFilter}
               disabled={!apiReady}
-            >
-              <option value="">Todos</option>
-              {sectorOptions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.typeSector}
-                </option>
-              ))}
-            </select>
+              placeholder="Todos"
+              options={[
+                { value: '', label: 'Todos' },
+                ...sectorOptions.map((s) => ({
+                  value: s.id,
+                  label: s.typeSector,
+                })),
+              ]}
+            />
           </div>
           <div className="min-w-48 space-y-2">
             <Label htmlFor="mp-type-filter">Tipo</Label>
-            <select
+            <SelectCombobox
               id="mp-type-filter"
-              className={selectClass}
               value={typeFilter}
-              onChange={(e) =>
-                setTypeFilter(
-                  e.target.value as 'all' | 'FORKLIFT' | 'PALLET_TRUCK',
-                )
+              onValueChange={(value) =>
+                setTypeFilter(value as 'all' | 'FORKLIFT' | 'PALLET_TRUCK')
               }
               disabled={!apiReady}
-            >
-              <option value="all">Todos</option>
-              <option value="FORKLIFT">Empilhadeira</option>
-              <option value="PALLET_TRUCK">Transpaleteira</option>
-            </select>
+              searchable={false}
+              options={[
+                { value: 'all', label: 'Todos' },
+                { value: 'FORKLIFT', label: 'Empilhadeira' },
+                { value: 'PALLET_TRUCK', label: 'Transpaleteira' },
+              ]}
+            />
           </div>
         </div>
 
@@ -201,7 +198,7 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
           </p>
         ) : null}
 
-        <Card className="mt-6 overflow-x-auto border border-zinc-200 shadow-sm">
+        <DataTableCard className="mt-6">
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -295,7 +292,7 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
               )}
             </tbody>
           </table>
-        </Card>
+        </DataTableCard>
       </div>
 
       <SimpleModal
@@ -338,23 +335,23 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="mp-sector">Setor</Label>
-            <select
+            <SelectCombobox
               id="mp-sector"
-              className={selectClass}
               value={noSector ? '' : sectorId}
-              onChange={(e) => {
+              onValueChange={(value) => {
                 setNoSector(false);
-                setSectorId(e.target.value);
+                setSectorId(value);
               }}
               disabled={noSector}
-            >
-              <option value="">Selecione…</option>
-              {sectorOptions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.typeSector}
-                </option>
-              ))}
-            </select>
+              placeholder="Selecione…"
+              options={[
+                { value: '', label: 'Selecione…' },
+                ...sectorOptions.map((s) => ({
+                  value: s.id,
+                  label: s.typeSector,
+                })),
+              ]}
+            />
           </div>
         </div>
       </SimpleModal>
@@ -397,23 +394,23 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="mp-edit-sector">Setor</Label>
-            <select
+            <SelectCombobox
               id="mp-edit-sector"
-              className={selectClass}
               value={noSector ? '' : sectorId}
-              onChange={(e) => {
+              onValueChange={(value) => {
                 setNoSector(false);
-                setSectorId(e.target.value);
+                setSectorId(value);
               }}
               disabled={noSector}
-            >
-              <option value="">Nenhum</option>
-              {sectorOptions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.typeSector}
-                </option>
-              ))}
-            </select>
+              placeholder="Nenhum"
+              options={[
+                { value: '', label: 'Nenhum' },
+                ...sectorOptions.map((s) => ({
+                  value: s.id,
+                  label: s.typeSector,
+                })),
+              ]}
+            />
             <label className="flex items-center gap-2 text-sm text-zinc-700">
               <input
                 type="checkbox"

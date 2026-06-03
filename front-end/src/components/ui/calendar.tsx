@@ -26,7 +26,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        'group/calendar bg-background p-3 [--cell-size:2rem] [[data-slot=popover-content]_&]:bg-transparent',
+        'group/calendar bg-background p-3 [--cell-size:2rem] [--rdp-accent-color:var(--brand)] [--rdp-accent-background-color:#f4f4f5] [--rdp-day_button-border-radius:0.375rem] [--rdp-range_end-date-background-color:#e4e4e7] [--rdp-range_start-date-background-color:#e4e4e7] [--rdp-selected-border:0px_solid_transparent] [[data-slot=popover-content]_&]:bg-transparent',
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className,
@@ -81,7 +81,6 @@ function Calendar({
             : 'flex h-8 items-center gap-1 rounded-md pr-1 pl-2 text-sm [&>svg]:size-3.5 [&>svg]:text-zinc-500',
           defaultClassNames.caption_label,
         ),
-        table: 'w-full border-collapse',
         weekdays: cn('flex', defaultClassNames.weekdays),
         weekday: cn(
           'flex-1 rounded-md text-[0.8rem] font-normal text-zinc-500 select-none',
@@ -101,7 +100,7 @@ function Calendar({
           defaultClassNames.day,
         ),
         range_start: cn('rounded-l-md bg-zinc-100', defaultClassNames.range_start),
-        range_middle: cn('rounded-none', defaultClassNames.range_middle),
+        range_middle: cn('rounded-none bg-zinc-100', defaultClassNames.range_middle),
         range_end: cn('rounded-r-md bg-zinc-100', defaultClassNames.range_end),
         today: cn(
           'rounded-md bg-zinc-100 text-zinc-900 data-[selected=true]:rounded-none',
@@ -144,7 +143,10 @@ function Calendar({
           }
 
           return (
-            <ChevronDownIcon className={cn('size-4', className)} {...chevronProps} />
+            <ChevronDownIcon
+              className={cn('size-4', className)}
+              {...chevronProps}
+            />
           );
         },
         DayButton: CalendarDayButton,
@@ -191,7 +193,7 @@ function CalendarDayButton({
       data-range-middle={modifiers.range_middle}
       className={cn(
         ghostButtonClass,
-        'flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 text-sm leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-brand group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-brand/35 data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md data-[selected-single=true]:rounded-md data-[selected-single=true]:bg-brand data-[selected-single=true]:text-white [&>span]:text-xs [&>span]:opacity-70',
+        'flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 text-sm leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-brand group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-brand/35 data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-end=true]:bg-zinc-200 data-[range-end=true]:font-semibold data-[range-end=true]:text-zinc-900 data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-zinc-100 data-[range-middle=true]:text-zinc-900 data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md data-[range-start=true]:bg-zinc-200 data-[range-start=true]:font-semibold data-[range-start=true]:text-zinc-900 data-[selected-single=true]:rounded-md data-[selected-single=true]:bg-brand data-[selected-single=true]:font-semibold data-[selected-single=true]:text-white [&>span]:text-xs [&>span]:opacity-70',
         defaultClassNames.day,
         className,
       )}

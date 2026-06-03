@@ -1,15 +1,13 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
-import { Card } from '@/components/ui/card';
+import { DataTableCard } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { LEADER_CREATABLE_ROLES } from '@/types/role.types';
 import type { UsersPageViewModel } from './useUsersPage';
+import { SelectCombobox } from '@/components/ui/select-combobox';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
-
-const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -74,6 +72,18 @@ export function UsersPageView(vm: UsersPageViewModel) {
     openUserDetail,
     openResetFromDetail,
     openRoleEditFromDetail,
+    searchFilter,
+    setSearchFilter,
+    roleFilter,
+    setRoleFilter,
+    sectorFilter,
+    setSectorFilter,
+    unitFilter,
+    setUnitFilter,
+    filteredUsers,
+    roleFilterOptions,
+    hasActiveFilters,
+    clearFilters,
   } = vm;
 
   const canManageRow = isAdmin || isLeader;
@@ -134,7 +144,114 @@ export function UsersPageView(vm: UsersPageViewModel) {
         ) : null}
 
         {canListUsers ? (
-          <Card className="mt-6 overflow-x-auto border border-zinc-200 shadow-sm">
+          <div className="mt-4 overflow-x-auto pb-1">
+            <div className="flex w-max max-w-full flex-nowrap items-end justify-start gap-2">
+              <div className="flex w-36 shrink-0 flex-col gap-1.5">
+                <Label htmlFor="users-search-filter" className="text-xs">
+                  Buscar
+                </Label>
+                <Input
+                  id="users-search-filter"
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  placeholder="Nome ou cartão"
+                  disabled={!apiReady || usersQuery.isLoading}
+                  className="h-10"
+                />
+              </div>
+              <div className="flex w-36 shrink-0 flex-col gap-1.5">
+                <Label htmlFor="users-role-filter" className="text-xs">
+                  Perfil
+                </Label>
+                <SelectCombobox
+                  id="users-role-filter"
+                  value={roleFilter}
+                  onValueChange={setRoleFilter}
+                  disabled={!apiReady || usersQuery.isLoading}
+                  placeholder="Todos"
+                  searchable={false}
+                  className="w-36"
+                  options={[
+                    { value: '', label: 'Todos' },
+                    ...roleFilterOptions.map((r) => ({
+                      value: r,
+                      label: roleLabel(r),
+                    })),
+                  ]}
+                />
+              </div>
+              {isAdmin ? (
+                <div className="flex w-36 shrink-0 flex-col gap-1.5">
+                  <Label htmlFor="users-sector-filter" className="text-xs">
+                    Setor
+                  </Label>
+                  <SelectCombobox
+                    id="users-sector-filter"
+                    value={sectorFilter}
+                    onValueChange={setSectorFilter}
+                    disabled={!apiReady || sectorsQuery.isLoading}
+                    placeholder="Todos"
+                    className="w-36"
+                    options={[
+                      { value: '', label: 'Todos' },
+                      ...(sectorsQuery.data ?? []).map((s) => ({
+                        value: s.id,
+                        label: s.typeSector,
+                      })),
+                    ]}
+                  />
+                </div>
+              ) : null}
+              <div className="flex shrink-0 flex-col gap-1.5">
+                <span className="text-xs font-medium text-zinc-900">
+                  Unidade
+                </span>
+                <div className="flex h-10 gap-1">
+                  <Button
+                    type="button"
+                    variant={
+                      unitFilter === 'PEDERTRACTOR' ? 'default' : 'outline'
+                    }
+                    className="h-10 min-w-10 px-3"
+                    disabled={!apiReady || usersQuery.isLoading}
+                    onClick={() =>
+                      setUnitFilter(
+                        unitFilter === 'PEDERTRACTOR' ? '' : 'PEDERTRACTOR',
+                      )
+                    }
+                    title="PEDERTRACTOR"
+                  >
+                    P
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={unitFilter === 'TRACTOR' ? 'default' : 'outline'}
+                    className="h-10 min-w-10 px-3"
+                    disabled={!apiReady || usersQuery.isLoading}
+                    onClick={() =>
+                      setUnitFilter(unitFilter === 'TRACTOR' ? '' : 'TRACTOR')
+                    }
+                    title="TRACTOR"
+                  >
+                    T
+                  </Button>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 shrink-0 whitespace-nowrap"
+                disabled={!apiReady || usersQuery.isLoading || !hasActiveFilters}
+                onClick={clearFilters}
+              >
+                Limpar filtros
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {canListUsers ? (
+          <DataTableCard className="mt-6">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -183,8 +300,17 @@ export function UsersPageView(vm: UsersPageViewModel) {
                         : 'Nenhum usuário retornado.'}
                     </td>
                   </tr>
+                ) : filteredUsers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={isAdmin ? 6 : 5}
+                      className="px-4 py-8 text-center text-zinc-500"
+                    >
+                      Nenhum usuário corresponde aos filtros selecionados.
+                    </td>
+                  </tr>
                 ) : (
-                  usersQuery.data?.map((row) => (
+                  filteredUsers.map((row) => (
                     <tr
                       key={row.id}
                       className={
@@ -223,7 +349,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 )}
               </tbody>
             </table>
-          </Card>
+          </DataTableCard>
         ) : null}
 
         <SimpleModal
@@ -326,44 +452,43 @@ export function UsersPageView(vm: UsersPageViewModel) {
 
             <div className="space-y-2">
               <Label htmlFor="nu-role">Perfil</Label>
-              <select
+              <SelectCombobox
                 id="nu-role"
-                className={selectClass}
                 value={formRole}
-                onChange={(e) => setFormRole(e.target.value)}
+                onValueChange={setFormRole}
                 disabled={busyCreate || (isAdmin && !rolesQuery.data?.length)}
-              >
-                {isLeader
-                  ? LEADER_CREATABLE_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {roleLabel(r)}
-                      </option>
-                    ))
-                  : (rolesQuery.data ?? []).map((r) => (
-                      <option key={r} value={r}>
-                        {roleLabel(r)}
-                      </option>
-                    ))}
-              </select>
+                searchable={false}
+                options={
+                  isLeader
+                    ? LEADER_CREATABLE_ROLES.map((r) => ({
+                        value: r,
+                        label: roleLabel(r),
+                      }))
+                    : (rolesQuery.data ?? []).map((r) => ({
+                        value: r,
+                        label: roleLabel(r),
+                      }))
+                }
+              />
             </div>
 
             {isAdmin ? (
               <div className="space-y-2">
                 <Label htmlFor="nu-sector">Setor (opcional)</Label>
-                <select
+                <SelectCombobox
                   id="nu-sector"
-                  className={selectClass}
                   value={formSectorId}
-                  onChange={(e) => setFormSectorId(e.target.value)}
+                  onValueChange={setFormSectorId}
                   disabled={busyCreate || sectorsQuery.isLoading}
-                >
-                  <option value="">Sem setor</option>
-                  {(sectorsQuery.data ?? []).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.typeSector}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Sem setor"
+                  options={[
+                    { value: '', label: 'Sem setor' },
+                    ...(sectorsQuery.data ?? []).map((s) => ({
+                      value: s.id,
+                      label: s.typeSector,
+                    })),
+                  ]}
+                />
                 <p className="m-0 text-xs text-zinc-500">
                   Administradores podem vincular qualquer setor ou deixar sem
                   setor.
@@ -490,19 +615,17 @@ export function UsersPageView(vm: UsersPageViewModel) {
           ) : null}
           <div className="space-y-2">
             <Label htmlFor="edit-role">Novo perfil</Label>
-            <select
+            <SelectCombobox
               id="edit-role"
-              className={selectClass}
               value={roleEditValue}
-              onChange={(e) => setRoleEditValue(e.target.value)}
+              onValueChange={setRoleEditValue}
               disabled={busyAdmin || roleEditOptions.length === 0}
-            >
-              {roleEditOptions.map((r) => (
-                <option key={r} value={r}>
-                  {roleLabel(r)}
-                </option>
-              ))}
-            </select>
+              searchable={false}
+              options={roleEditOptions.map((r) => ({
+                value: r,
+                label: roleLabel(r),
+              }))}
+            />
           </div>
         </SimpleModal>
 

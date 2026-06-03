@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EyeIcon } from '@/components/icons/EyeIcon';
 import { EyeOffIcon } from '@/components/icons/EyeOffIcon';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { loginSchema, type LoginPayload } from '@/schemas/auth.schema';

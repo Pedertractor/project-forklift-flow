@@ -1,6 +1,10 @@
-import { endOfDay, format, startOfDay } from 'date-fns'
-import { MachineTaskStatus } from '../generated/prisma/enums.js'
+import { endOfDay, format, startOfDay, min, max } from 'date-fns'
+import {
+  MachineTaskStatus,
+  TypeMovimentPallet,
+} from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
+import { buildMachineScopeFilter } from './operational-dashboard-sector.js'
 
 export interface OperationalDashboardWaitMetrics {
   avg_wait_ms: number | null
@@ -32,6 +36,8 @@ export interface OperationalDashboardMachineRow {
 export interface OperationalDashboardSnapshot {
   now: string
   date: string
+  end_date: string | null
+  sector_id: string | null
   machine_id: string | null
   pickup_wait: OperationalDashboardWaitMetrics
   delivery_wait: OperationalDashboardWaitMetrics
@@ -40,35 +46,77 @@ export interface OperationalDashboardSnapshot {
   machines: OperationalDashboardMachineRow[]
 }
 
-type PickupRow = {
-  id: string
-  machineId: string
+export interface OperationalDashboardOperatorRow {
+  operator_id: string
+  operator_name: string
+  pickups_total: number
+  deliveries_total: number
+  pickups_open: number
+  deliveries_open: number
+  avg_pickup_duration_ms: number | null
+  avg_delivery_duration_ms: number | null
+}
+
+export interface OperationalDashboardByOperatorSnapshot {
+  now: string
+  date: string
+  end_date: string | null
+  sector_id: string | null
+  type_moviment_pallet: TypeMovimentPallet | null
+  machine_id: string | null
+  operators: OperationalDashboardOperatorRow[]
+}
+
+type TaskDurationRow = {
   status: MachineTaskStatus
   createdAt: Date
-  updatedAt: Date
-  assignedOperatorId: string | null
+  completedAt: Date | null
+}
+
+type PickupRow = TaskDurationRow & {
+  id: string
+  machineId: string
   machine: { id: string; name: string }
 }
 
-type DeliveryRow = {
+type DeliveryRow = TaskDurationRow & {
   id: string
   machineId: string
-  status: MachineTaskStatus
-  createdAt: Date
-  updatedAt: Date
   preparedAt: Date | null
-  assignedOperatorId: string | null
   machine: { id: string; name: string }
 }
 
-function parseDashboardDate(value?: string): Date {
+function parseDashboardIsoDate(value?: string): Date | null {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const parsed = new Date(`${value}T12:00:00`)
     if (!Number.isNaN(parsed.getTime())) {
       return parsed
     }
   }
-  return new Date()
+  return null
+}
+
+function resolveDashboardRange(options?: {
+  date?: string
+  startDate?: string
+  endDate?: string
+}): { rangeStart: Date; rangeEnd: Date; labelStart: string; labelEnd: string } {
+  const parsedStart =
+    parseDashboardIsoDate(options?.startDate) ??
+    parseDashboardIsoDate(options?.date) ??
+    new Date()
+  const parsedEnd =
+    parseDashboardIsoDate(options?.endDate) ?? parsedStart
+
+  const startDay = startOfDay(min([parsedStart, parsedEnd]))
+  const endDay = endOfDay(max([parsedStart, parsedEnd]))
+
+  return {
+    rangeStart: startDay,
+    rangeEnd: endDay,
+    labelStart: format(startDay, 'yyyy-MM-dd'),
+    labelEnd: format(endOfDay(max([parsedStart, parsedEnd])), 'yyyy-MM-dd'),
+  }
 }
 
 function percentile(sorted: number[], p: number): number | null {
@@ -85,61 +133,49 @@ function average(values: number[]): number | null {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
 }
 
-function pickupWaitMs(task: PickupRow, referenceNow: Date): number | null {
+/** Duração da tarefa: criação até conclusão; em aberto, até o instante da consulta. */
+function taskCycleDurationMs(task: TaskDurationRow, referenceNow: Date): number {
   const start = task.createdAt.getTime()
-  if (task.status === MachineTaskStatus.CANCELED && !task.assignedOperatorId) {
-    return null
+  if (task.status === MachineTaskStatus.COMPLETED) {
+    const end = task.completedAt?.getTime() ?? referenceNow.getTime()
+    return Math.max(0, end - start)
   }
-  if (task.status === MachineTaskStatus.CREATED) {
-    return referenceNow.getTime() - start
-  }
-  return task.updatedAt.getTime() - start
+  return Math.max(0, referenceNow.getTime() - start)
 }
 
-function deliveryWaitMs(task: DeliveryRow, referenceNow: Date): number | null {
-  if (!task.preparedAt) {
-    if (task.status === MachineTaskStatus.CREATED) {
-      return null
-    }
-  }
-  const start = (task.preparedAt ?? task.createdAt).getTime()
-  if (task.status === MachineTaskStatus.CANCELED && !task.assignedOperatorId) {
-    return null
-  }
-  if (task.status === MachineTaskStatus.CREATED) {
-    return referenceNow.getTime() - start
-  }
-  return task.updatedAt.getTime() - start
+const PEAK_SLOT_MINUTES = 30
+const PEAK_SLOTS_PER_DAY = (24 * 60) / PEAK_SLOT_MINUTES
+
+function peakSlotIndex(date: Date): number {
+  const minutes = date.getHours() * 60 + date.getMinutes()
+  return Math.min(
+    PEAK_SLOTS_PER_DAY - 1,
+    Math.floor(minutes / PEAK_SLOT_MINUTES),
+  )
 }
 
 function buildPeakSlots(
   pickups: PickupRow[],
   deliveries: DeliveryRow[],
-  day: Date,
 ): OperationalDashboardPeakSlot[] {
-  const dayStart = startOfDay(day)
   const slots: OperationalDashboardPeakSlot[] = []
 
-  for (let minutes = 0; minutes < 24 * 60; minutes += 30) {
-    const slotStart = new Date(dayStart.getTime() + minutes * 60_000)
-    const slotEnd = new Date(slotStart.getTime() + 30 * 60_000)
-    const slotLabel = format(slotStart, 'HH:mm')
+  for (let index = 0; index < PEAK_SLOTS_PER_DAY; index += 1) {
+    const hour = Math.floor((index * PEAK_SLOT_MINUTES) / 60)
+    const minute = (index * PEAK_SLOT_MINUTES) % 60
+    const slotLabel = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+    slots.push({ slot: slotLabel, pickups: 0, deliveries: 0 })
+  }
 
-    const pickupCount = pickups.filter((task) => {
-      const at = task.createdAt.getTime()
-      return at >= slotStart.getTime() && at < slotEnd.getTime()
-    }).length
+  for (const task of pickups) {
+    const slot = slots[peakSlotIndex(task.createdAt)]
+    if (slot) slot.pickups += 1
+  }
 
-    const deliveryCount = deliveries.filter((task) => {
-      const at = (task.preparedAt ?? task.createdAt).getTime()
-      return at >= slotStart.getTime() && at < slotEnd.getTime()
-    }).length
-
-    slots.push({
-      slot: slotLabel,
-      pickups: pickupCount,
-      deliveries: deliveryCount,
-    })
+  for (const task of deliveries) {
+    const at = task.preparedAt ?? task.createdAt
+    const slot = slots[peakSlotIndex(at)]
+    if (slot) slot.deliveries += 1
   }
 
   return slots
@@ -187,19 +223,13 @@ function buildMachineRows(
   for (const task of pickups) {
     const bucket = ensureMachine(task.machineId, task.machine.name)
     bucket.pickups_total += 1
-    const wait = pickupWaitMs(task, referenceNow)
-    if (wait != null) {
-      bucket.pickupWaits.push(wait)
-    }
+    bucket.pickupWaits.push(taskCycleDurationMs(task, referenceNow))
   }
 
   for (const task of deliveries) {
     const bucket = ensureMachine(task.machineId, task.machine.name)
     bucket.deliveries_total += 1
-    const wait = deliveryWaitMs(task, referenceNow)
-    if (wait != null) {
-      bucket.deliveryWaits.push(wait)
-    }
+    bucket.deliveryWaits.push(taskCycleDurationMs(task, referenceNow))
   }
 
   return [...byMachine.entries()]
@@ -217,16 +247,18 @@ function buildMachineRows(
 function buildSnapshot(
   pickups: PickupRow[],
   deliveries: DeliveryRow[],
-  day: Date,
   referenceNow: Date,
-): Omit<OperationalDashboardSnapshot, 'now' | 'date' | 'machine_id'> {
-  const pickupWaits = pickups
-    .map((task) => pickupWaitMs(task, referenceNow))
-    .filter((value): value is number => value != null)
+): Omit<
+  OperationalDashboardSnapshot,
+  'now' | 'date' | 'end_date' | 'sector_id' | 'machine_id'
+> {
+  const pickupWaits = pickups.map((task) =>
+    taskCycleDurationMs(task, referenceNow),
+  )
 
-  const deliveryWaits = deliveries
-    .map((task) => deliveryWaitMs(task, referenceNow))
-    .filter((value): value is number => value != null)
+  const deliveryWaits = deliveries.map((task) =>
+    taskCycleDurationMs(task, referenceNow),
+  )
 
   const pickupTotal = pickups.length
   const deliveryTotal = deliveries.length
@@ -239,25 +271,31 @@ function buildSnapshot(
       deliveries: deliveryTotal,
       total: pickupTotal + deliveryTotal,
     },
-    peak_slots: buildPeakSlots(pickups, deliveries, day),
+    peak_slots: buildPeakSlots(pickups, deliveries),
     machines: buildMachineRows(pickups, deliveries, referenceNow),
   }
 }
 
 export async function getOperationalDashboardSnapshot(options?: {
   date?: string
+  startDate?: string
+  endDate?: string
   machineId?: string
+  sectorId?: string | null
 }): Promise<OperationalDashboardSnapshot> {
   const referenceNow = new Date()
-  const day = parseDashboardDate(options?.date)
-  const rangeStart = startOfDay(day)
-  const rangeEnd = endOfDay(day)
+  const { rangeStart, rangeEnd, labelStart, labelEnd } =
+    resolveDashboardRange(options)
   const machineId =
     typeof options?.machineId === 'string' && options.machineId.trim() !== ''
       ? options.machineId.trim()
       : null
+  const sectorId =
+    typeof options?.sectorId === 'string' && options.sectorId.trim() !== ''
+      ? options.sectorId.trim()
+      : null
 
-  const machineFilter = machineId ? { machineId } : {}
+  const machineFilter = buildMachineScopeFilter({ machineId, sectorId })
 
   const [pickups, deliveries] = await Promise.all([
     prisma.pickupTask.findMany({
@@ -271,8 +309,7 @@ export async function getOperationalDashboardSnapshot(options?: {
         machineId: true,
         status: true,
         createdAt: true,
-        updatedAt: true,
-        assignedOperatorId: true,
+        completedAt: true,
         machine: { select: { id: true, name: true } },
       },
     }),
@@ -290,20 +327,190 @@ export async function getOperationalDashboardSnapshot(options?: {
         machineId: true,
         status: true,
         createdAt: true,
-        updatedAt: true,
+        completedAt: true,
         preparedAt: true,
-        assignedOperatorId: true,
         machine: { select: { id: true, name: true } },
       },
     }),
   ])
 
-  const metrics = buildSnapshot(pickups, deliveries, day, referenceNow)
+  const metrics = buildSnapshot(pickups, deliveries, referenceNow)
 
   return {
     now: referenceNow.toISOString(),
-    date: format(day, 'yyyy-MM-dd'),
+    date: labelStart,
+    end_date: labelStart === labelEnd ? null : labelEnd,
+    sector_id: sectorId,
     machine_id: machineId,
     ...metrics,
+  }
+}
+
+const openTaskStatuses: MachineTaskStatus[] = [
+  MachineTaskStatus.CREATED,
+  MachineTaskStatus.ASSIGNED,
+  MachineTaskStatus.IN_PROGRESS,
+]
+
+function isOpenTaskStatus(status: MachineTaskStatus): boolean {
+  return openTaskStatuses.includes(status)
+}
+
+function parseTypeMovimentPalletFilter(
+  value?: string,
+): TypeMovimentPallet | null {
+  if (value === TypeMovimentPallet.FORKLIFT || value === TypeMovimentPallet.ANY) {
+    return value
+  }
+  return null
+}
+
+type OperatorTaskRow = TaskDurationRow & {
+  assignedOperatorId: string | null
+  assignedOperator: { id: string; name: string } | null
+}
+
+function buildOperatorRows(
+  pickups: OperatorTaskRow[],
+  deliveries: OperatorTaskRow[],
+  referenceNow: Date,
+): OperationalDashboardOperatorRow[] {
+  const byOperator = new Map<
+    string,
+    {
+      operator_name: string
+      pickups_total: number
+      deliveries_total: number
+      pickups_open: number
+      deliveries_open: number
+      pickupDurations: number[]
+      deliveryDurations: number[]
+    }
+  >()
+
+  const ensureOperator = (operatorId: string, operatorName: string) => {
+    const existing = byOperator.get(operatorId)
+    if (existing) return existing
+    const created = {
+      operator_name: operatorName,
+      pickups_total: 0,
+      deliveries_total: 0,
+      pickups_open: 0,
+      deliveries_open: 0,
+      pickupDurations: [] as number[],
+      deliveryDurations: [] as number[],
+    }
+    byOperator.set(operatorId, created)
+    return created
+  }
+
+  for (const task of pickups) {
+    if (!task.assignedOperatorId || !task.assignedOperator) continue
+    const bucket = ensureOperator(
+      task.assignedOperatorId,
+      task.assignedOperator.name,
+    )
+    bucket.pickups_total += 1
+    if (isOpenTaskStatus(task.status)) {
+      bucket.pickups_open += 1
+    }
+    bucket.pickupDurations.push(taskCycleDurationMs(task, referenceNow))
+  }
+
+  for (const task of deliveries) {
+    if (!task.assignedOperatorId || !task.assignedOperator) continue
+    const bucket = ensureOperator(
+      task.assignedOperatorId,
+      task.assignedOperator.name,
+    )
+    bucket.deliveries_total += 1
+    if (isOpenTaskStatus(task.status)) {
+      bucket.deliveries_open += 1
+    }
+    bucket.deliveryDurations.push(taskCycleDurationMs(task, referenceNow))
+  }
+
+  return [...byOperator.entries()]
+    .map(([operator_id, row]) => ({
+      operator_id,
+      operator_name: row.operator_name,
+      pickups_total: row.pickups_total,
+      deliveries_total: row.deliveries_total,
+      pickups_open: row.pickups_open,
+      deliveries_open: row.deliveries_open,
+      avg_pickup_duration_ms: average(row.pickupDurations),
+      avg_delivery_duration_ms: average(row.deliveryDurations),
+    }))
+    .sort((a, b) => a.operator_name.localeCompare(b.operator_name, 'pt-BR'))
+}
+
+export async function getOperationalDashboardByOperator(options?: {
+  date?: string
+  startDate?: string
+  endDate?: string
+  machineId?: string
+  typeMovimentPallet?: string
+  sectorId?: string | null
+}): Promise<OperationalDashboardByOperatorSnapshot> {
+  const referenceNow = new Date()
+  const { rangeStart, rangeEnd, labelStart, labelEnd } =
+    resolveDashboardRange(options)
+  const machineId =
+    typeof options?.machineId === 'string' && options.machineId.trim() !== ''
+      ? options.machineId.trim()
+      : null
+  const sectorId =
+    typeof options?.sectorId === 'string' && options.sectorId.trim() !== ''
+      ? options.sectorId.trim()
+      : null
+  const typeMovimentPallet = parseTypeMovimentPalletFilter(
+    options?.typeMovimentPallet,
+  )
+
+  const machineFilter = buildMachineScopeFilter({ machineId, sectorId })
+  const typeFilter = typeMovimentPallet ? { typeMovimentPallet } : {}
+
+  const operatorSelect = {
+    assignedOperatorId: true,
+    assignedOperator: { select: { id: true, name: true } },
+    status: true,
+    createdAt: true,
+    completedAt: true,
+  } as const
+
+  const [pickups, deliveries] = await Promise.all([
+    prisma.pickupTask.findMany({
+      where: {
+        createdAt: { gte: rangeStart, lte: rangeEnd },
+        status: { not: MachineTaskStatus.CANCELED },
+        assignedOperatorId: { not: null },
+        ...machineFilter,
+        ...typeFilter,
+      },
+      select: operatorSelect,
+    }),
+    prisma.deliveryTask.findMany({
+      where: {
+        OR: [
+          { createdAt: { gte: rangeStart, lte: rangeEnd } },
+          { preparedAt: { gte: rangeStart, lte: rangeEnd } },
+        ],
+        status: { not: MachineTaskStatus.CANCELED },
+        assignedOperatorId: { not: null },
+        ...machineFilter,
+        ...typeFilter,
+      },
+      select: operatorSelect,
+    }),
+  ])
+
+  return {
+    now: referenceNow.toISOString(),
+    date: labelStart,
+    end_date: labelStart === labelEnd ? null : labelEnd,
+    sector_id: sectorId,
+    type_moviment_pallet: typeMovimentPallet,
+    machine_id: machineId,
+    operators: buildOperatorRows(pickups, deliveries, referenceNow),
   }
 }
