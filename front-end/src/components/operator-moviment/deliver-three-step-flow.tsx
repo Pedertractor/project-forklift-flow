@@ -1,15 +1,13 @@
 import { Fragment, type ReactNode } from 'react';
 import {
-  ReceivingIcon,
   routeFlowStepLucideIcon,
 } from '@/components/operator-moviment/route-flow-icons';
 import type { RouteFlowStepId } from '@/components/operator-moviment/route-flow-icons';
 import {
-  ROUTE_FLOW_DETAIL_META,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Box, MapPinned, Truck } from 'lucide-react';
+import { AlertTriangle, Box, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 
 export function DeliverFlowCriticalBadge({
@@ -189,60 +187,6 @@ function FlowStepIconRing({
         strokeWidth={1.5}
         aria-hidden
       />
-    </div>
-  );
-}
-
-function FlowStepDetailsCard({
-  items,
-  className,
-  layout = 'row',
-}: {
-  items: RouteFlowDetailItem[];
-  className?: string;
-  /** `stacked` no fluxo horizontal: ícone acima do texto, com quebra de linha. */
-  layout?: 'row' | 'stacked';
-}) {
-  const stacked = layout === 'stacked';
-
-  return (
-    <div
-      className={cn(
-        'flex w-full flex-col gap-1.5',
-        stacked ? 'mt-1.5' : 'mt-1',
-        className,
-      )}
-    >
-      {items.map((item, index) => {
-        const { Icon } = ROUTE_FLOW_DETAIL_META[item.kind];
-        return (
-          <div
-            key={`${item.kind}-${index}`}
-            className={cn(
-              stacked
-                ? 'flex flex-col items-center gap-1 rounded-lg bg-zinc-50/90 px-2 py-2 text-center'
-                : 'flex items-start gap-2 rounded-lg bg-zinc-50/90 px-2.5 py-2',
-              index > 0 && !stacked && 'border-t border-zinc-200',
-            )}
-          >
-            <Icon
-              className={cn(
-                'shrink-0 text-brand',
-                stacked ? 'size-4' : 'mt-0.5 size-4',
-              )}
-              aria-hidden
-            />
-            <span
-              className={cn(
-                'w-full text-xs leading-snug text-zinc-800 wrap-break-word',
-                stacked ? 'text-center' : 'min-w-0 flex-1 text-left',
-              )}
-            >
-              {item.text}
-            </span>
-          </div>
-        );
-      })}
     </div>
   );
 }

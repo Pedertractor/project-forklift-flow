@@ -1,5 +1,4 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { PageLoader } from '@/components/layout/PageLoader';
 import { useAuthMe } from '@/hooks/useAuthMe';
 import { resolvePostLoginPath } from '@/lib/route-access';
 import { useAuthStore } from '@/store/auth.store';
@@ -13,17 +12,13 @@ export function PrivateRoute() {
   const user = useAuthStore((s) => s.user);
   const requiresPasswordChange = useAuthStore((s) => s.requiresPasswordChange);
   const location = useLocation();
-  const meQuery = useAuthMe();
+  useAuthMe();
 
   if (!token && !user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  /** Sessão já restaurada do localStorage: entra no app e valida /auth/me em segundo plano. */
-  const awaitingProfile =
-    Boolean(token) && !user && (meQuery.isPending || meQuery.isFetching);
-
-  // if (awaitingProfile) {
+  // if (Boolean(token) && !user && (meQuery.isPending || meQuery.isFetching)) {
   //   return <PageLoader />;
   // }
 

@@ -41,8 +41,6 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setTypeMachineId,
     sectorId,
     setSectorId,
-    userId,
-    setUserId,
     editOperator,
     unlinkOperatorMut,
     openCreate,

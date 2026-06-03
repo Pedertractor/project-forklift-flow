@@ -132,7 +132,7 @@ export function wsEventMatchesMachineOperator(
   if (!operatorUserId || !MACHINE_OPERATOR_EVENT_TYPES.has(event.type)) {
     return false;
   }
-  if (event.type === 'machine_operator_updated') {
+  if (event.type === 'machine_operator_updated' && 'affectedUserId' in event) {
     return event.affectedUserId === operatorUserId;
   }
   const destinationUserId = destinationUserIdFromEvent(event);

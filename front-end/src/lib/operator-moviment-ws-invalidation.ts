@@ -24,10 +24,11 @@ export function shouldInvalidateTripSuggestions(
     case 'delivery_task_updated':
     case 'pickup_task_updated':
       return (
-        event.status === 'ASSIGNED' ||
-        event.status === 'IN_PROGRESS' ||
-        event.status === 'COMPLETED' ||
-        event.status === 'CREATED'
+        'status' in event &&
+        (event.status === 'ASSIGNED' ||
+          event.status === 'IN_PROGRESS' ||
+          event.status === 'COMPLETED' ||
+          event.status === 'CREATED')
       );
     default:
       return false;

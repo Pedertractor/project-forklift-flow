@@ -8,6 +8,8 @@ import type {
   OperatorMachineBindResponse,
   OperatorMachinesListResponse,
   OperatorMyMachineResponse,
+  OperatorPickupProgressPhase,
+  OperatorPickupProgressResponse,
   OperatorSupplyRequestsResponse,
 } from '@/types/operator-machine.types';
 
@@ -139,4 +141,121 @@ export async function postOperatorPickupWithReplenishment(options?: {
     throw new Error('Resposta inválida ao solicitar retirada e abastecimento.');
   }
   return res;
+}
+
+function transportLabelFor(typeMovimentPallet: string): string {
+  return typeMovimentPallet === 'FORKLIFT'
+    ? 'empilhadeira'
+    : 'transporte (empilhadeira ou transpaleteira)';
+}
+
+function resolvePickupProgressPhase(
+  delivery: DeliveryTaskListItem | null,
+  pickup: PickupTaskListItem | null,
+): OperatorPickupProgressPhase {
+  if (pickup?.status === 'COMPLETED') {
+    return 'PICKUP_FINISHED';
+  }
+  if (pickup?.status === 'IN_PROGRESS') {
+    return 'TRANSPORT_REMOVING';
+  }
+  if (pickup?.status === 'ASSIGNED') {
+    return 'TRANSPORT_ASSIGNED';
+  }
+  if (pickup?.status === 'CREATED') {
+    return 'AWAITING_TRANSPORT_PICKUP';
+  }
+  if (delivery?.status === 'COMPLETED') {
+    return 'AT_MACHINE_AWAITING_PICKUP';
+  }
+  if (
+    delivery &&
+    (delivery.status === 'CREATED' ||
+      delivery.status === 'ASSIGNED' ||
+      delivery.status === 'IN_PROGRESS')
+  ) {
+    return 'DELIVERY_IN_PROGRESS';
+  }
+  return 'OTHER';
+}
+
+function resolveRequestStatus(
+  delivery: DeliveryTaskListItem | null,
+  pickup: PickupTaskListItem | null,
+): string {
+  if (pickup?.status === 'COMPLETED' || delivery?.status === 'COMPLETED') {
+    return pickup?.status === 'COMPLETED' ? 'COMPLETED' : 'ON_MACHINE';
+  }
+  if (pickup) {
+    return 'ON_MACHINE';
+  }
+  if (delivery?.status === 'ASSIGNED' || delivery?.status === 'IN_PROGRESS') {
+    return 'IN_PROGRESS';
+  }
+  return delivery?.status ?? 'OTHER';
+}
+
+export async function fetchOperatorPickupProgress(
+  requestId: string,
+): Promise<OperatorPickupProgressResponse> {
+  const trimmedId = requestId.trim();
+  if (!trimmedId) {
+    throw new Error('Pedido inválido.');
+  }
+
+  const { deliveryTasks, pickupTasks } = await fetchOperatorMachineTasks();
+  const delivery =
+    deliveryTasks.find((task) => task.id === trimmedId) ?? null;
+  let pickup = pickupTasks.find((task) => task.id === trimmedId) ?? null;
+
+  if (!pickup && delivery) {
+    pickup =
+      pickupTasks.find(
+        (task) =>
+          task.machineId === delivery.machineId &&
+          task.status !== 'CANCELED' &&
+          new Date(task.createdAt).getTime() >=
+            new Date(delivery.createdAt).getTime(),
+      ) ?? null;
+  }
+
+  const relatedDelivery =
+    delivery ??
+    (pickup
+      ? deliveryTasks.find((task) => task.machineId === pickup!.machineId) ??
+        null
+      : null);
+
+  if (!relatedDelivery && !pickup) {
+    throw new Error('Pedido não encontrado ou sem permissão.');
+  }
+
+  const typeMovimentPallet =
+    relatedDelivery?.typeMovimentPallet ??
+    pickup?.typeMovimentPallet ??
+    'FORKLIFT';
+
+  return {
+    phase: resolvePickupProgressPhase(relatedDelivery, pickup),
+    transportLabel: transportLabelFor(typeMovimentPallet),
+    request: {
+      id: trimmedId,
+      movementCube: relatedDelivery?.movementCube ?? '—',
+      status: resolveRequestStatus(relatedDelivery, pickup),
+      typeMovimentPallet,
+    },
+    pickupTask: pickup
+      ? {
+          id: pickup.id,
+          requestId: relatedDelivery?.id ?? pickup.id,
+          type: 'PICKUP_TO_EXPEDITION',
+          status: pickup.status,
+          assignedMovimentPalletId: pickup.assignedMovimentPalletId,
+          requestedById: pickup.requestedById,
+          createdAt: pickup.createdAt,
+          updatedAt: pickup.updatedAt,
+          completedAt: pickup.completedAt,
+        }
+      : null,
+  };
 }

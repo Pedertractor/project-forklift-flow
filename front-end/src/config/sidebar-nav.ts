@@ -6,8 +6,6 @@ import {
   OPERATOR_MACHINE_ROLES,
 } from '@/types/role.types';
 import {
-  OPERATOR_MOVIMENT_EQUIPMENT_PATH,
-  OPERATOR_MOVIMENT_MY_TASKS_PATH,
   OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
 } from '@/constants/operator-moviment-routes';
 

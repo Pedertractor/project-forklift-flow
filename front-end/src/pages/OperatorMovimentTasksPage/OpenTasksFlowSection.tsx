@@ -248,45 +248,7 @@ function buildOpenTaskSteps(
   ];
 }
 
-function resolveActivityStepProgress(
-  group: TaskRouteGroup,
-  allTasks: OperatorMovimentTaskItem[],
-  myOperatorUserId: string | null,
-): { currentStep: number; totalSteps: number } | null {
-  const deliverOpen =
-    group.deliverTask !== null &&
-    canCompleteDeliver(group.deliverTask.type, group.deliverTask.status);
-  const pickupOpen =
-    group.pickupTask !== null &&
-    canCompletePickup(group.pickupTask, myOperatorUserId);
-  const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
-
-  if (!isCombinedRoute) {
-    return null;
-  }
-
-  if (pickupOpen && !deliverOpen) {
-    return { currentStep: 2, totalSteps: 2 };
-  }
-
-  return { currentStep: 1, totalSteps: 2 };
-}
-
-function ActivityStepNumber({ value }: { value: number }) {
-  return (
-    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
-      {value}
-    </span>
-  );
-}
-
-function OpenActivityHeading({
-  currentStep,
-  totalSteps,
-}: {
-  currentStep?: number;
-  totalSteps?: number;
-}) {
+function OpenActivityHeading() {
   return (
     <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 md:text-base">
       <span
@@ -451,20 +413,10 @@ export function OpenTasksFlowSection({
 
       {!isLoading && hasOpenWork && groups.length > 0 ? (
         <ul className="m-0  flex list-none flex-col gap-5 p-0">
-          {groups.map((group) => {
-            const stepProgress = resolveActivityStepProgress(
-              group,
-              tasks,
-              myOperatorUserId,
-            );
-
-            return (
-              <li key={group.machineId} className="flex flex-col gap-2.5">
-                <OpenActivityHeading
-                  currentStep={stepProgress?.currentStep}
-                  totalSteps={stepProgress?.totalSteps}
-                />
-                <OpenTaskRouteCard
+          {groups.map((group) => (
+            <li key={group.machineId} className="flex flex-col gap-2.5">
+              <OpenActivityHeading />
+              <OpenTaskRouteCard
                   group={group}
                   allTasks={tasks}
                   bound={bound}
@@ -474,8 +426,7 @@ export function OpenTasksFlowSection({
                   completePickupMut={completePickupMut}
                 />
               </li>
-            );
-          })}
+            ))}
         </ul>
       ) : null}
     </section>
