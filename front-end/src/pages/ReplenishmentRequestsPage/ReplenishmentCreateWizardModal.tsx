@@ -190,9 +190,9 @@ export function ReplenishmentCreateWizardModal({
   const stepDescription = (() => {
     switch (step) {
       case 1:
-        return 'Selecione a máquina de produção que receberá o prisma.';
+        return 'Selecione a máquina de produção que receberá o pallet.';
       case 2:
-        return 'Informe o identificador físico do prisma ou pallet.';
+        return 'Informe o prisma do pallet.';
       case 3:
         return 'Defina qual equipamento de transporte pode atender — ou deixe aberto para qualquer um.';
       case 4:
@@ -205,7 +205,7 @@ export function ReplenishmentCreateWizardModal({
   return (
     <SimpleModal
       open={open}
-      title="Nova solicitação de reposição"
+      title="Nova reposição"
       description={stepDescription}
       panelClassName="max-w-2xl"
       onClose={() => (!busy ? onClose() : undefined)}
@@ -311,7 +311,8 @@ export function ReplenishmentCreateWizardModal({
             </div>
           </div>
           <p className="text-xs text-zinc-500">
-            Informe apenas o número; o código será salvo como {PRISMA_CODE_PREFIX}
+            Informe apenas o número; o código será salvo como{' '}
+            {PRISMA_CODE_PREFIX}
             seguido do valor (ex.: {PRISMA_CODE_PREFIX}20).
           </p>
         </div>
@@ -319,7 +320,7 @@ export function ReplenishmentCreateWizardModal({
 
       {step === 3 ? (
         <ul
-          className="m-0 grid list-none gap-3 p-0"  
+          className="m-0 grid list-none gap-3 p-0"
           role="listbox"
           aria-label="Tipo de movimentação"
         >
