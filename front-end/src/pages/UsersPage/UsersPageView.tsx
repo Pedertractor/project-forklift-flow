@@ -8,6 +8,7 @@ import { LEADER_CREATABLE_ROLES } from '@/types/role.types';
 import type { UsersPageViewModel } from './useUsersPage';
 import { SelectCombobox } from '@/components/ui/select-combobox';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { Building2, KeyRound, UserCog } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -61,6 +62,11 @@ export function UsersPageView(vm: UsersPageViewModel) {
     roleEditValue,
     setRoleEditValue,
     rolePatchMut,
+    sectorEditUser,
+    setSectorEditUser,
+    sectorEditValue,
+    setSectorEditValue,
+    sectorPatchMut,
     detailUser,
     setDetailUser,
     resetTarget,
@@ -72,6 +78,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
     openUserDetail,
     openResetFromDetail,
     openRoleEditFromDetail,
+    openSectorEditFromDetail,
     searchFilter,
     setSearchFilter,
     roleFilter,
@@ -92,6 +99,8 @@ export function UsersPageView(vm: UsersPageViewModel) {
     createMut.error instanceof Error ? createMut.error.message : null;
   const roleErr =
     rolePatchMut.error instanceof Error ? rolePatchMut.error.message : null;
+  const sectorErr =
+    sectorPatchMut.error instanceof Error ? sectorPatchMut.error.message : null;
   const resetErr =
     resetMut.error instanceof Error ? resetMut.error.message : null;
 
@@ -506,16 +515,21 @@ export function UsersPageView(vm: UsersPageViewModel) {
               : undefined
           }
           onClose={() => (!busyAdmin ? setDetailUser(null) : undefined)}
+          showHeaderClose
+          headerCloseDisabled={busyAdmin}
           footer={
             <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={busyAdmin}
-                onClick={() => setDetailUser(null)}
-              >
-                Fechar
-              </Button>
+              {isAdmin ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!apiReady || busyAdmin}
+                  onClick={openSectorEditFromDetail}
+                >
+                  <Building2 aria-hidden />
+                  Alterar setor
+                </Button>
+              ) : null}
               {isAdmin ||
               (isLeader && detailUser && leaderCanEditUserRole(detailUser)) ? (
                 <Button
@@ -524,6 +538,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                   disabled={!apiReady || busyAdmin}
                   onClick={openRoleEditFromDetail}
                 >
+                  <UserCog aria-hidden />
                   Alterar perfil
                 </Button>
               ) : null}
@@ -534,6 +549,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 disabled={!apiReady || busyAdmin}
                 onClick={openResetFromDetail}
               >
+                <KeyRound aria-hidden />
                 Resetar senha
               </Button>
             </div>
@@ -555,11 +571,11 @@ export function UsersPageView(vm: UsersPageViewModel) {
                     : 'Primeiro acesso'}
                 </dd>
               </div>
-              {isAdmin && detailUser.sector ? (
+              {isAdmin ? (
                 <div className="sm:col-span-2">
                   <dt className="font-medium text-zinc-500">Setor</dt>
                   <dd className="mt-0.5 text-zinc-900">
-                    {detailUser.sector.typeSector}
+                    {detailUser.sector?.typeSector ?? 'Sem setor'}
                   </dd>
                 </div>
               ) : isLeader && leaderSectorLabel ? (
@@ -571,10 +587,64 @@ export function UsersPageView(vm: UsersPageViewModel) {
               <p className="m-0 text-xs text-zinc-500 sm:col-span-2">
                 {isLeader
                   ? 'Altere o perfil de operação ou redefina a senha inicial de colaboradores do seu setor.'
-                  : 'Altere o perfil ou redefina a senha inicial para o padrão do ambiente.'}
+                  : 'Altere o perfil, vincule ou troque o setor, ou redefina a senha inicial para o padrão do ambiente.'}
               </p>
             </dl>
           ) : null}
+        </SimpleModal>
+
+        <SimpleModal
+          open={Boolean(sectorEditUser)}
+          title="Alterar setor"
+          description={
+            sectorEditUser
+              ? `Usuário: ${sectorEditUser.name} (${sectorEditUser.card})`
+              : undefined
+          }
+          onClose={() => (!busyAdmin ? setSectorEditUser(null) : undefined)}
+          footer={
+            <ModalActions
+              onCancel={() => !busyAdmin && setSectorEditUser(null)}
+              submitLabel={busyAdmin ? 'Salvando…' : 'Salvar setor'}
+              disabled={busyAdmin}
+              onSubmit={() => {
+                if (sectorEditUser) {
+                  sectorPatchMut.mutate({
+                    id: sectorEditUser.id,
+                    sectorId:
+                      sectorEditValue.trim() === '' ? null : sectorEditValue,
+                  });
+                }
+              }}
+            />
+          }
+        >
+          {sectorErr ? (
+            <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              {sectorErr}
+            </p>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="edit-sector">Setor</Label>
+            <SelectCombobox
+              id="edit-sector"
+              value={sectorEditValue}
+              onValueChange={setSectorEditValue}
+              disabled={busyAdmin || sectorsQuery.isLoading}
+              placeholder="Sem setor"
+              options={[
+                { value: '', label: 'Sem setor' },
+                ...(sectorsQuery.data ?? []).map((s) => ({
+                  value: s.id,
+                  label: s.typeSector,
+                })),
+              ]}
+            />
+            <p className="m-0 text-xs text-zinc-500">
+              Selecione um setor existente ou deixe sem setor para remover o
+              vínculo.
+            </p>
+          </div>
         </SimpleModal>
 
         <SimpleModal

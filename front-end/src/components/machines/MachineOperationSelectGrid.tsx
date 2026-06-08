@@ -34,7 +34,7 @@ export function MachineOperationSelectGrid({
 
   return (
     <ul
-      className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2"
+      className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3"
       role="listbox"
       aria-label={ariaLabel}
     >
@@ -74,7 +74,9 @@ export function MachineOperationSelectGrid({
                 <p className="mt-1 text-sm text-zinc-600">
                   {m.typeMachine.name}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-500">{m.sector.typeSector}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {m.sector.typeSector}
+                </p>
               </div>
             </button>
           </li>

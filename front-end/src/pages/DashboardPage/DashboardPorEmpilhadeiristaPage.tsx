@@ -142,7 +142,7 @@ export function DashboardPorEmpilhadeiristaPage() {
     <div className="flex flex-col gap-6 pb-2">
       <div>
         <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl md:text-3xl">
-          Por empilhadeirista
+          Por operador de movimentação
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
           Volume de retiradas e entregas por operador, follow-ups em aberto e

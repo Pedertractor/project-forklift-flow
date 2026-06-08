@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
     ROLES: '/users/roles',
     EMPLOYEE_INFO: '/users/employee-info',
     ROLE: (userId: string) => `/users/${userId}/role`,
+    SECTOR: (userId: string) => `/users/${userId}/sector`,
     RESET_PASSWORD: (userId: string) => `/users/${userId}/reset-password`,
   },
   SECTORS: {

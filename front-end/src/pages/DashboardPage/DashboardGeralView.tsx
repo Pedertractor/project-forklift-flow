@@ -380,6 +380,7 @@ export function DashboardGeralView({
                           tickLine={false}
                           axisLine={false}
                           allowDecimals={false}
+                          domain={[0, 'auto']}
                         />
                         <ChartTooltip
                           cursor={false}
@@ -387,14 +388,16 @@ export function DashboardGeralView({
                         />
                         <Area
                           dataKey="entregas"
-                          type="natural"
+                          type="monotone"
+                          baseValue={0}
                           fill="url(#fillEntregas)"
                           stroke="var(--color-entregas)"
                           strokeWidth={2}
                         />
                         <Area
                           dataKey="retiradas"
-                          type="natural"
+                          type="monotone"
+                          baseValue={0}
                           fill="url(#fillRetiradas)"
                           stroke="var(--color-retiradas)"
                           strokeWidth={2}

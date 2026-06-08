@@ -10,6 +10,7 @@ import {
   fetchUserRolesEnum,
   fetchUsersList,
   patchUserRoleRequest,
+  patchUserSectorRequest,
   postResetUserPasswordRequest,
 } from '@/services/users-api';
 import { useAuthStore } from '@/store/auth.store';
@@ -79,6 +80,9 @@ export function useUsersPage() {
 
   const [roleEditUser, setRoleEditUser] = useState<UserListRow | null>(null);
   const [roleEditValue, setRoleEditValue] = useState('');
+
+  const [sectorEditUser, setSectorEditUser] = useState<UserListRow | null>(null);
+  const [sectorEditValue, setSectorEditValue] = useState('');
 
   const [detailUser, setDetailUser] = useState<UserListRow | null>(null);
   const [resetTarget, setResetTarget] = useState<UserListRow | null>(null);
@@ -262,6 +266,17 @@ export function useUsersPage() {
     onError: toastApiError,
   });
 
+  const sectorPatchMut = useMutation({
+    mutationFn: ({ id, sectorId }: { id: string; sectorId: string | null }) =>
+      patchUserSectorRequest(id, sectorId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] });
+      setSectorEditUser(null);
+      toast.success('Setor do usuário atualizado.');
+    },
+    onError: toastApiError,
+  });
+
   const resetMut = useMutation({
     mutationFn: (userId: string) => postResetUserPasswordRequest(userId),
     onSuccess: () => {
@@ -311,9 +326,19 @@ export function useUsersPage() {
     setDetailUser(null);
   };
 
+  const openSectorEditFromDetail = () => {
+    if (!detailUser) {
+      return;
+    }
+    setSectorEditUser(detailUser);
+    setSectorEditValue(detailUser.sectorId ?? '');
+    setDetailUser(null);
+  };
+
   const isVerifying = verifyMut.isPending;
   const busyCreate = isVerifying || createMut.isPending;
-  const busyAdmin = rolePatchMut.isPending || resetMut.isPending;
+  const busyAdmin =
+    rolePatchMut.isPending || sectorPatchMut.isPending || resetMut.isPending;
 
   const hasActiveFilters =
     searchFilter.trim() !== '' ||
@@ -364,6 +389,12 @@ export function useUsersPage() {
     rolePatchMut,
     roleEditOptions,
     leaderCanEditUserRole,
+    sectorEditUser,
+    setSectorEditUser,
+    sectorEditValue,
+    setSectorEditValue,
+    sectorPatchMut,
+    openSectorEditFromDetail,
     detailUser,
     setDetailUser,
     resetTarget,
