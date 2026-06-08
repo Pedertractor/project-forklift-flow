@@ -190,6 +190,30 @@ function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
   );
 }
 
+function formatSuggestionRequestedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function resolveSuggestionRequestedAtIso(
+  deliverTask?: OperatorPickupTaskQueueItem | null,
+  pickupTask?: OperatorPickupTaskQueueItem | null,
+): string | undefined {
+  const primary = deliverTask ?? pickupTask;
+  if (!primary) {
+    return undefined;
+  }
+  return primary.request?.createdAt ?? primary.createdAt;
+}
+
 function SuggestionFlowCardBody({
   activityLabel,
   title,
@@ -197,6 +221,7 @@ function SuggestionFlowCardBody({
   machineName,
   hint,
   cube,
+  requestedAt,
 }: {
   /** Subtítulo do tipo de operação (Entrega / Retirada / Rota combinada). */
   activityLabel?: 'Entrega' | 'Retirada' | 'Rota combinada';
@@ -206,7 +231,13 @@ function SuggestionFlowCardBody({
   machineName?: string;
   hint?: string;
   cube?: string;
+  /** ISO da solicitação (ex.: `request.createdAt` da tarefa). */
+  requestedAt?: string;
 }) {
+  const requestedAtLabel = requestedAt
+    ? formatSuggestionRequestedAt(requestedAt)
+    : undefined;
+
   return (
     <div className="min-w-0 px-3 py-3 md:px-8 md:py-4">
       {activityLabel ? (
@@ -236,6 +267,16 @@ function SuggestionFlowCardBody({
                 </>
               ) : null}
             </div>
+          }
+          end={
+            requestedAtLabel ? (
+              <time
+                dateTime={requestedAt}
+                className="whitespace-nowrap text-[10px] font-medium normal-case tracking-normal text-zinc-500 sm:text-[11px] md:text-xs"
+              >
+                {requestedAtLabel}
+              </time>
+            ) : null
           }
         >
           <span className="inline-flex items-center gap-1 text-[11px] leading-tight sm:text-xs">
@@ -320,6 +361,10 @@ function CombinedRouteCard({
         steps={steps}
         machineName={row.machine.name}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
+        requestedAt={resolveSuggestionRequestedAtIso(
+          row.deliverTask,
+          row.pickupTask,
+        )}
       />
 
       <DeliverFlowActionFooter isCritical={isCritical}>
@@ -377,6 +422,7 @@ function StandaloneDeliverRouteCard({
         steps={steps}
         machineName={row.machine.name}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
+        requestedAt={resolveSuggestionRequestedAtIso(row.deliverTask)}
       />
 
       <DeliverFlowActionFooter isCritical={isCritical}>
@@ -437,6 +483,7 @@ function StandalonePickupRouteCard({
         activityLabel="Retirada"
         steps={steps}
         machineName={row.machine.name}
+        requestedAt={resolveSuggestionRequestedAtIso(undefined, row.pickupTask)}
       />
 
       <DeliverFlowActionFooter isCritical={isCritical}>

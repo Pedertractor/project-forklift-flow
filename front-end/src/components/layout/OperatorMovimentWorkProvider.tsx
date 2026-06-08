@@ -26,8 +26,12 @@ import {
 import {
   OPERATOR_REPLENISHMENT_QUEUE_QUERY_KEY,
   OPERATOR_TRIP_SUGGESTIONS_QUERY_KEY,
+  SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
+  SUPPLY_PENDING_PREPARATION_QUERY_KEY,
+  SUPPLY_REPLENISHMENT_REQUESTS_QUERY_KEY,
   shouldInvalidateMyMovimentTasks,
   shouldInvalidateReplenishmentQueue,
+  shouldInvalidateSupplyReplenishmentPage,
   shouldInvalidateTripSuggestions,
   WS_INVALIDATE_DEBOUNCE_MS,
 } from '@/lib/operator-moviment-ws-invalidation';
@@ -66,6 +70,13 @@ function isMachineOperatorRole(role: string | undefined): boolean {
   return (
     role !== undefined &&
     (OPERATOR_MACHINE_ROLES as readonly AppRole[]).includes(role as AppRole)
+  );
+}
+
+function isSupplyReplenishmentRole(role: string | undefined): boolean {
+  return (
+    role !== undefined &&
+    (MACHINE_DOMAIN_ROLES as readonly AppRole[]).includes(role as AppRole)
   );
 }
 
@@ -125,13 +136,20 @@ export function OperatorMovimentWorkProvider({
   const replenishmentQueueInvalidateTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
+  const supplyReplenishmentInvalidateTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const isMovimentOperator = isMovimentOperatorRole(user?.role);
   const isMachineOperator = isMachineOperatorRole(user?.role);
   const isMachineCadastro = isMachineCadastroRole(user?.role);
+  const isSupplyReplenishment = isSupplyReplenishmentRole(user?.role);
   const realtimeEnabled = Boolean(
     ENV.API_URL &&
       token &&
-      (isMovimentOperator || isMachineOperator || isMachineCadastro),
+      (isMovimentOperator ||
+        isMachineOperator ||
+        isMachineCadastro ||
+        isSupplyReplenishment),
   );
   const allowedMovimentTypes = useMemo(
     () => replenishmentMovimentTypesForOperatingMode(user?.isOperating),
@@ -202,6 +220,31 @@ export function OperatorMovimentWorkProvider({
     [queryClient],
   );
 
+  const invalidateSupplyReplenishmentPage = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: [...SUPPLY_REPLENISHMENT_REQUESTS_QUERY_KEY],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: [...SUPPLY_PENDING_PREPARATION_QUERY_KEY],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: [...SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ['sector-transport-operators'],
+    });
+  }, [queryClient]);
+
+  const scheduleSupplyReplenishmentInvalidate = useCallback(() => {
+    if (supplyReplenishmentInvalidateTimerRef.current) {
+      clearTimeout(supplyReplenishmentInvalidateTimerRef.current);
+    }
+    supplyReplenishmentInvalidateTimerRef.current = setTimeout(() => {
+      supplyReplenishmentInvalidateTimerRef.current = null;
+      invalidateSupplyReplenishmentPage();
+    }, WS_INVALIDATE_DEBOUNCE_MS);
+  }, [invalidateSupplyReplenishmentPage]);
+
   const refetchMyTasks = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: ['operator-moviment', 'my-tasks'],
@@ -228,9 +271,23 @@ export function OperatorMovimentWorkProvider({
           isMovimentOperator,
           isMachineOperator,
           isMachineCadastro,
+          isSupplyReplenishment,
         })
       ) {
         return;
+      }
+
+      if (
+        isSupplyReplenishment &&
+        shouldInvalidateSupplyReplenishmentPage(event)
+      ) {
+        scheduleSupplyReplenishmentInvalidate();
+        if (event.type === 'operator_supply_request_created') {
+          toast.message('Nova solicitação de reposição', {
+            description:
+              'A dobra solicitou montagem de pallet.',
+          });
+        }
       }
 
       const movimentSectorMatch =
@@ -303,9 +360,11 @@ export function OperatorMovimentWorkProvider({
       isMachineCadastro,
       isMachineOperator,
       isMovimentOperator,
+      isSupplyReplenishment,
       queryClient,
       refreshRealtimeData,
       scheduleDebouncedInvalidate,
+      scheduleSupplyReplenishmentInvalidate,
       resolveBoundMachineId,
       user?.id,
       user?.sectorId,
@@ -388,6 +447,10 @@ export function OperatorMovimentWorkProvider({
       if (replenishmentQueueInvalidateTimerRef.current) {
         clearTimeout(replenishmentQueueInvalidateTimerRef.current);
         replenishmentQueueInvalidateTimerRef.current = null;
+      }
+      if (supplyReplenishmentInvalidateTimerRef.current) {
+        clearTimeout(supplyReplenishmentInvalidateTimerRef.current);
+        supplyReplenishmentInvalidateTimerRef.current = null;
       }
       wsRef.current?.close();
       wsRef.current = null;
