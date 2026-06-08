@@ -21,7 +21,7 @@ export type LoginResult = {
 export async function loginWithPassword(payload: LoginPayload): Promise<LoginResult> {
   if (!ENV.API_URL) {
     throw new Error(
-      'Defina VITE_API_URL no .env na raiz do projeto (ex.: http://localhost:3131/api) e reinicie o Vite.',
+      'Defina VITE_API_URL no front-end/.env (ex.: http://localhost:3131/api) e reinicie o Vite.',
     );
   }
 

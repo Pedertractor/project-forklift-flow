@@ -49,7 +49,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
     setFormUnit,
     verifiedEmployee,
     verifyState,
-    verifyMut,
+    isVerifying,
     formRole,
     setFormRole,
     formSectorId,
@@ -424,15 +424,9 @@ export function UsersPageView(vm: UsersPageViewModel) {
               </div>
             </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full sm:w-auto"
-              disabled={busyCreate || !formCard.trim()}
-              onClick={() => verifyMut.mutate()}
-            >
-              {verifyMut.isPending ? 'Validando…' : 'Validar colaborador'}
-            </Button>
+            {isVerifying ? (
+              <p className="m-0 text-sm text-zinc-500">Validando colaborador…</p>
+            ) : null}
 
             {verifyState === 'fail' ? (
               <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
