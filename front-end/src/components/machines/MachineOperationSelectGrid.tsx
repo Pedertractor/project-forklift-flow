@@ -1,6 +1,8 @@
 import { cn } from '@/lib/utils';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import type { MachineListItem } from '@/types/machine.types';
+import { captalizeString } from '@/utils/captalizeString';
+import { User } from 'lucide-react';
 
 const selectCardBase =
   'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
@@ -77,6 +79,13 @@ export function MachineOperationSelectGrid({
                 <p className="mt-0.5 text-xs text-zinc-500">
                   {m.sector.typeSector}
                 </p>
+                {m.user && (
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-zinc-500">
+                    <User className="size-4" aria-hidden />
+                    Operador:{' '}
+                    {captalizeString(String(m.user.name).split(' ')[0])}
+                  </p>
+                )}
               </div>
             </button>
           </li>

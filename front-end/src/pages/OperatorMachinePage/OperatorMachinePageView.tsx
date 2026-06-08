@@ -20,6 +20,10 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     machines,
     selectedMachineId,
     selectMachine,
+    bindConfirmMachine,
+    bindConfirmMachineId,
+    setBindConfirmMachineId,
+    confirmBindMachine,
     bindPending,
     operatorSupplyQuery,
     tasksQuery,
@@ -116,7 +120,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                 id="op-select-machine-heading"
                 className="mb-3 text-lg font-semibold tracking-tight text-zinc-900"
               >
-                Máquinas do seu setor
+                Selecione a máquina em que você está operando
               </h2>
 
               {machinesQuery.isLoading || myMachineQuery.isLoading ? (
@@ -205,6 +209,28 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
           {cancelIncludesReplenishment
             ? 'O transporte ainda não aceitou a retirada. O aviso ao abastecimento também será cancelado (e a entrega em preparo, se já tiver sido registrada). Deseja continuar? Esta ação não pode ser desfeita.'
             : 'O transporte ainda não aceitou esta retirada. Deseja cancelar a solicitação? Esta ação não pode ser desfeita.'}
+        </p>
+      </SimpleModal>
+
+      <SimpleModal
+        open={bindConfirmMachineId !== null}
+        onClose={() => !bindPending && setBindConfirmMachineId(null)}
+        title="Operador já vinculado"
+        footer={
+          <ModalActions
+            onCancel={() => !bindPending && setBindConfirmMachineId(null)}
+            submitLabel={bindPending ? 'Vinculando…' : 'Se vincular'}
+            onSubmit={confirmBindMachine}
+            disabled={bindPending}
+          />
+        }
+      >
+        <p className="m-0 text-sm text-zinc-600">
+          Tem um operador já vinculado nessa máquina
+          {bindConfirmMachine?.user
+            ? ` (${bindConfirmMachine.user.name})`
+            : ''}
+          . Realmente deseja se vincular?
         </p>
       </SimpleModal>
 
