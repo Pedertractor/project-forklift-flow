@@ -48,7 +48,7 @@ export function DashboardSegmentNav() {
           title="Retiradas e entregas por empilhadeirista"
         >
           <UsersRound className="size-4 shrink-0 opacity-90" aria-hidden />
-          <span className="truncate">Por empilhadeirista</span>
+          <span className="truncate">Por operador</span>
         </Link>
       </div>
     </nav>

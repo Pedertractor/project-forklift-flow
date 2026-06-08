@@ -74,7 +74,7 @@ export function DashboardHubPage() {
           />
           <ChoiceCard
             to="/dashboard/por-empilhadeirista"
-            title="Por empilhadeirista"
+            title="Por operador"
             description="Quantidade de retiradas e entregas por operador, tarefas em aberto e filtros por equipamento."
             icon={UsersRound}
           />

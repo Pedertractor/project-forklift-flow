@@ -26,7 +26,7 @@ function OperatorsTableSection({
           id="dashboard-operators-heading"
           className="m-0 text-base font-semibold text-zinc-900"
         >
-          Por empilhadeirista
+          Por operador de transporte
         </h2>
       </div>
       <DataTableCard className="min-w-0 border-0 shadow-sm">
@@ -34,7 +34,7 @@ function OperatorsTableSection({
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50/90">
               <th className="px-3 py-3 font-semibold text-zinc-700">
-                Empilhadeirista
+                Operador de transporte
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 Retiradas

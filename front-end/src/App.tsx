@@ -124,9 +124,11 @@ export function App() {
                     />
                   </Route>
                 </Route>
-                <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
+                <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
                   <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />
                   <Route path="cadastro/maquinas" element={<MachinesPage />} />
+                </Route>
+                <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
                   <Route
                     path="abastecimento/solicitacoes"
                     element={<ReplenishmentRequestsPage />}

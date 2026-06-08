@@ -63,12 +63,12 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     id: 'supply-cadastros',
     title: 'Máquinas e equipamentos',
     rolesDescription:
-      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas de produção.',
+      'Líder (LEADER) e administrador (ADMIN) — máquinas de produção.',
     items: [
       {
         to: '/cadastro/maquinas',
         label: 'Máquinas de produção',
-        allowedRoles: MACHINE_DOMAIN_ROLES,
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
     ],
   },

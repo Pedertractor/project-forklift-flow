@@ -250,7 +250,9 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 type="button"
                 variant="outline"
                 className="h-10 shrink-0 whitespace-nowrap"
-                disabled={!apiReady || usersQuery.isLoading || !hasActiveFilters}
+                disabled={
+                  !apiReady || usersQuery.isLoading || !hasActiveFilters
+                }
                 onClick={clearFilters}
               >
                 Limpar filtros
@@ -434,7 +436,9 @@ export function UsersPageView(vm: UsersPageViewModel) {
             </div>
 
             {isVerifying ? (
-              <p className="m-0 text-sm text-zinc-500">Validando colaborador…</p>
+              <p className="m-0 text-sm text-zinc-500">
+                Validando colaborador…
+              </p>
             ) : null}
 
             {verifyState === 'fail' ? (
@@ -698,7 +702,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
           title="Redefinir senha inicial"
           description={
             resetTarget
-              ? `Confirma redefinição da senha de «${resetTarget.name}» para a senha padrão do ambiente? O usuário precisará trocar a senha no próximo fluxo de primeiro acesso.`
+              ? `Confirme a redefinição, a primeira senha é 123`
               : undefined
           }
           onClose={() => (!busyAdmin ? setResetTarget(null) : undefined)}
