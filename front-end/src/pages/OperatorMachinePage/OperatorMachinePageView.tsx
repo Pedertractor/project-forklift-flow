@@ -8,6 +8,7 @@ import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
 import { LogOut } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { captalizeString } from '@/utils/captalizeString';
 
 export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
   const {
@@ -228,7 +229,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
         <p className="m-0 text-sm text-zinc-600">
           Tem um operador já vinculado nessa máquina
           {bindConfirmMachine?.user
-            ? ` (${bindConfirmMachine.user.name})`
+            ? ` (${captalizeString(String(bindConfirmMachine.user.name).split(' ')[0])})`
             : ''}
           . Realmente deseja se vincular?
         </p>
