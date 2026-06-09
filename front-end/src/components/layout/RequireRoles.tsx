@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
 import type { AppRole } from '@/types/role.types';
+import { hasFullSystemAccess } from '@/types/role.types';
 
 interface RequireRolesProps {
   roles: readonly AppRole[];
@@ -19,7 +20,9 @@ export function RequireRoles({ roles }: RequireRolesProps) {
   }
 
   const role = user.role;
-  const allowed = role !== undefined && roles.includes(role as AppRole);
+  const allowed =
+    hasFullSystemAccess(role) ||
+    (role !== undefined && roles.includes(role as AppRole));
 
   if (!allowed) {
     return (

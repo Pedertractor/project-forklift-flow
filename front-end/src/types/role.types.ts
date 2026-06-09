@@ -6,9 +6,8 @@ export const APP_ROLES = [
   'PALLET_TRANSPORTER',
   'SUPPLY_OPERATOR',
   'LEADER',
-  'SUPERVISOR',
-  'MANAGER',
   'ADMIN',
+  'SUPERADMIN',
 ] as const;
 
 export type AppRole = (typeof APP_ROLES)[number];
@@ -17,9 +16,38 @@ export function isAppRole(value: string): value is AppRole {
   return (APP_ROLES as readonly string[]).includes(value);
 }
 
+export function isSuperAdmin(role: string | undefined): role is 'SUPERADMIN' {
+  return role === 'SUPERADMIN';
+}
+
+/** ADMIN ou SUPERADMIN — gestão de usuários, setores e cadastros administrativos. */
+export function hasAdminPrivileges(role: string | undefined): boolean {
+  return role === 'ADMIN' || role === 'SUPERADMIN';
+}
+
+/** Acesso total ao sistema (todas as telas e APIs). */
+export function hasFullSystemAccess(role: string | undefined): boolean {
+  return isSuperAdmin(role);
+}
+
+/** Papéis que o ator pode atribuir ao criar/editar usuários. */
+export function assignableRolesForActor(
+  actorRole: string | undefined,
+  allRoles: readonly string[],
+): string[] {
+  if (isSuperAdmin(actorRole)) {
+    return [...allRoles];
+  }
+  if (actorRole === 'ADMIN') {
+    return allRoles.filter((role) => role !== 'SUPERADMIN');
+  }
+  return [];
+}
+
 /** Papéis com acesso às telas de abastecimento (solicitações e preparo). */
 export const MACHINE_DOMAIN_ROLES: readonly AppRole[] = [
   'ADMIN',
+  'SUPERADMIN',
   'LEADER',
   'SUPPLY_OPERATOR',
 ];
@@ -31,26 +59,31 @@ export const LEADER_CREATABLE_ROLES: readonly AppRole[] = [
   'SUPPLY_OPERATOR',
 ];
 
-export const ADMIN_OR_LEADER_ROLES: readonly AppRole[] = ['ADMIN', 'LEADER'];
+export const ADMIN_OR_LEADER_ROLES: readonly AppRole[] = [
+  'ADMIN',
+  'SUPERADMIN',
+  'LEADER',
+];
 
 export const OPERATOR_MACHINE_ROLES: readonly AppRole[] = [
   'OPERATOR_MACHINE',
   'ADMIN',
+  'SUPERADMIN',
 ];
 
 /**
  * Transportador de pallet (empilhadeira ou transpaleteira via `isOperating`).
- * ADMIN incluído para testes e suporte.
+ * ADMIN e SUPERADMIN incluídos para testes e suporte.
  */
 export const MOVIMENT_OPERATOR_ROLES: readonly AppRole[] = [
   'PALLET_TRANSPORTER',
   'ADMIN',
+  'SUPERADMIN',
 ];
 
-/** Papéis de supervisão/gestão (leitura ampliada de filas e cadastros). */
+/** Papéis de gestão com leitura ampliada de filas e cadastros. */
 export const SUPERVISION_ROLES: readonly AppRole[] = [
   'LEADER',
-  'SUPERVISOR',
-  'MANAGER',
   'ADMIN',
+  'SUPERADMIN',
 ];

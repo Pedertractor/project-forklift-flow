@@ -55,7 +55,12 @@ type DashboardGeralViewProps = {
 function formatDuration(ms: number | null | undefined) {
   if (ms == null) return '-';
   const minutes = ms / 60_000;
-  if (minutes < 0.1) return '< 0,1 min';
+  if (minutes < 1) {
+    const seconds = ms / 1_000;
+    if (seconds < 1) return '< 1 s';
+    if (seconds < 10) return `${seconds.toFixed(1).replace('.', ',')} s`;
+    return `${Math.round(seconds)} s`;
+  }
   if (minutes < 10) return `${minutes.toFixed(1).replace('.', ',')} min`;
   return `${Math.round(minutes)} min`;
 }

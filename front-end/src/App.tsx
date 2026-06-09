@@ -138,7 +138,7 @@ export function App() {
                     element={<SupplyPendingPreparationPage />}
                   />
                 </Route>
-                <Route element={<RequireRoles roles={['ADMIN']} />}>
+                <Route element={<RequireRoles roles={['ADMIN', 'SUPERADMIN']} />}>
                   <Route path="administracao/setores" element={<SectorsPage />} />
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>

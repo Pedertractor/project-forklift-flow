@@ -54,25 +54,27 @@ const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated'])
 const MOVIMENT_OPERATOR_ROLES = new Set<RoleUser>([
   RoleUser.PALLET_TRANSPORTER,
   RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
 ])
 
 const OPERATOR_MACHINE_ROLES = new Set<RoleUser>([
   RoleUser.OPERATOR_MACHINE,
   RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
 ])
 
 const MACHINE_CADASTRO_ROLES = new Set<RoleUser>([
   RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
   RoleUser.LEADER,
   RoleUser.SUPPLY_OPERATOR,
-  RoleUser.SUPERVISOR,
-  RoleUser.MANAGER,
 ])
 
 const SUPPLY_REPLENISHMENT_ROLES = new Set<RoleUser>([
   RoleUser.SUPPLY_OPERATOR,
   RoleUser.LEADER,
   RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
 ])
 
 function safeSend(socket: WebSocket, payload: Record<string, unknown>): void {

@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 
 import { fetchSectors } from '@/services/sectors-api';
 import { useAuthStore } from '@/store/auth.store';
+import { hasAdminPrivileges } from '@/types/role.types';
 
 export function useDashboardSectorFilter() {
   const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = hasAdminPrivileges(user?.role);
   const isLeader = user?.role === 'LEADER';
   const [selectedSectorId, setSelectedSectorId] = useState('');
 

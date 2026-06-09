@@ -11,13 +11,12 @@ import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { Building2, KeyRound, UserCog } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
+  SUPERADMIN: 'Superadministrador',
   ADMIN: 'Administrador',
   LEADER: 'Líder',
   SUPPLY_OPERATOR: 'Operador de abastecimento',
   OPERATOR_MACHINE: 'Operador de máquina',
   PALLET_TRANSPORTER: 'Transportador de pallet',
-  SUPERVISOR: 'Supervisor',
-  MANAGER: 'Gestor',
 };
 
 function roleLabel(role: string): string {

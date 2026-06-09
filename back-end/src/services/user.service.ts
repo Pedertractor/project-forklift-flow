@@ -10,6 +10,10 @@ import { infoByCardAndUnit } from '../external-api/employee-verify/index.js'
 import { sectorRepository } from '../repositories/sector.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { hashPassword } from '../shared/password.js'
+import {
+  assertActorCanAssignRole,
+  isAdminOrSuperAdmin,
+} from '../utils/role-user.js'
 
 export type CreateUserActor = {
   userId: string
@@ -46,7 +50,7 @@ async function resolveSectorIdForNewUser(
   input: CreateUserInput,
   actor: CreateUserActor,
 ): Promise<string | null> {
-  if (actor.role === RoleUser.ADMIN) {
+  if (isAdminOrSuperAdmin(actor.role)) {
     if (
       input.sectorId === undefined ||
       input.sectorId === null ||
@@ -105,6 +109,8 @@ export async function createUser(
   input: CreateUserInput,
   actor: CreateUserActor,
 ): Promise<UserModel> {
+  assertActorCanAssignRole(actor.role, input.role)
+
   if (actor.role === RoleUser.LEADER && !LEADER_CREATABLE_ROLES.includes(input.role)) {
     throw new CreateUserError(
       'Lider so pode criar usuarios com perfil OPERATOR_MACHINE, PALLET_TRANSPORTER ou SUPPLY_OPERATOR.',
@@ -155,7 +161,7 @@ export type ListUsersActor = {
 }
 
 export async function listUsers(actor: ListUsersActor) {
-  if (actor.role === RoleUser.ADMIN) {
+  if (isAdminOrSuperAdmin(actor.role)) {
     return userRepository.findManyForList()
   }
 
@@ -198,9 +204,13 @@ async function assertLeaderCanManageTargetUser(
       `Lider so pode ${actionLabel} usuarios do seu setor.`,
     )
   }
-  if (target.role === RoleUser.ADMIN || target.role === RoleUser.LEADER) {
+  if (
+    target.role === RoleUser.ADMIN ||
+    target.role === RoleUser.LEADER ||
+    target.role === RoleUser.SUPERADMIN
+  ) {
     throw new CreateUserError(
-      'Lider nao pode gerenciar administradores ou outros lideres.',
+      'Lider nao pode gerenciar administradores, superadministradores ou outros lideres.',
     )
   }
 }
@@ -222,8 +232,10 @@ export async function updateUserRole(
         'Lider so pode atribuir perfil OPERATOR_MACHINE, PALLET_TRANSPORTER ou SUPPLY_OPERATOR.',
       )
     }
-  } else if (actor.role !== RoleUser.ADMIN) {
+  } else if (!isAdminOrSuperAdmin(actor.role)) {
     throw new CreateUserError('Sem permissao para alterar perfil.')
+  } else {
+    assertActorCanAssignRole(actor.role, role)
   }
 
   return userRepository.update(targetUserId, { role })
@@ -239,7 +251,7 @@ export async function updateUserSector(
     throw new UserNotFoundError()
   }
 
-  if (actor.role !== RoleUser.ADMIN) {
+  if (!isAdminOrSuperAdmin(actor.role)) {
     throw new CreateUserError('Sem permissao para alterar setor.')
   }
 
@@ -278,7 +290,7 @@ export async function resetUserPasswordToDefault(
       }
       throw error
     }
-  } else if (actor.role !== RoleUser.ADMIN) {
+  } else if (!isAdminOrSuperAdmin(actor.role)) {
     throw new UserPasswordError('Sem permissao para redefinir senha.')
   }
 

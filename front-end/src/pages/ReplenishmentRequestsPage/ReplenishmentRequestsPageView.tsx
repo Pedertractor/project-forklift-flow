@@ -13,6 +13,7 @@ import { HistoryIcon, ListIcon, PanelRightOpen, PlusIcon } from 'lucide-react';
 import { SelectCombobox } from '@/components/ui/select-combobox';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { hasAdminPrivileges } from '@/types/role.types';
 
 export function ReplenishmentRequestsPageView(
   vm: ReplenishmentRequestsPageViewModel,
@@ -157,7 +158,7 @@ export function ReplenishmentRequestsPageView(
                 ]}
               />
             </div>
-            {user?.role === 'ADMIN' ? (
+            {hasAdminPrivileges(user?.role) ? (
               <label className="flex cursor-pointer items-center gap-2 pb-0 text-sm text-zinc-700 sm:pb-2">
                 <input
                   type="checkbox"

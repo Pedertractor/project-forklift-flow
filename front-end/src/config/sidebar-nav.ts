@@ -4,6 +4,7 @@ import {
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
+  hasFullSystemAccess,
 } from '@/types/role.types';
 import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 
@@ -30,6 +31,9 @@ function itemVisibleForRole(
   item: SidebarNavItem,
   role: string | undefined,
 ): boolean {
+  if (hasFullSystemAccess(role)) {
+    return true;
+  }
   if (item.allowedRoles === null) {
     return true;
   }
@@ -103,7 +107,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       {
         to: '/administracao/setores',
         label: 'Setores',
-        allowedRoles: ['ADMIN'],
+        allowedRoles: ['ADMIN', 'SUPERADMIN'],
       },
     ],
   },

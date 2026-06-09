@@ -7,6 +7,7 @@ import {
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
+import { isAdminOrSuperAdmin } from '../utils/role-user.js'
 import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-type.js'
 import { operatorMovimentPalletWsRegisterClient } from './operator-moviment-pallet-ws.hub.js'
 
@@ -14,10 +15,9 @@ const MOVIMENT_WS_ROLES: readonly RoleUser[] = [
   RoleUser.PALLET_TRANSPORTER,
   RoleUser.OPERATOR_MACHINE,
   RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
   RoleUser.LEADER,
   RoleUser.SUPPLY_OPERATOR,
-  RoleUser.SUPERVISOR,
-  RoleUser.MANAGER,
 ]
 
 const WS_PATH = '/ws/operator-moviment-pallet'
@@ -27,13 +27,13 @@ function allowedTypesForClient(user: {
   isOperating: IsOperating | null
 }) {
   if (
-    (user.role === RoleUser.PALLET_TRANSPORTER || user.role === RoleUser.ADMIN) &&
+    (user.role === RoleUser.PALLET_TRANSPORTER || isAdminOrSuperAdmin(user.role)) &&
     (user.isOperating === IsOperating.FORKLIFT ||
       user.isOperating === IsOperating.PALLET_TRUCK)
   ) {
     return openPoolTypesForOperatingMode(user.isOperating)
   }
-  if (user.role === RoleUser.ADMIN) {
+  if (isAdminOrSuperAdmin(user.role)) {
     return [TypeMovimentPallet.FORKLIFT, TypeMovimentPallet.ANY]
   }
   return []
@@ -76,7 +76,7 @@ export function registerOperatorMovimentPalletWebSocket(app: FastifyInstance): v
         }
 
         const boundMachine =
-          user.role === RoleUser.OPERATOR_MACHINE || user.role === RoleUser.ADMIN
+          user.role === RoleUser.OPERATOR_MACHINE || isAdminOrSuperAdmin(user.role)
             ? await machineRepository.findFirstByOperatorUserId(user.id)
             : null
 

@@ -1,6 +1,7 @@
 import { RoleUser } from '../generated/prisma/enums.js'
 import { userRepository } from '../repositories/user.repository.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
+import { isAdminOrSuperAdmin } from '../utils/role-user.js'
 
 export async function resolveOperationalDashboardSectorId(
   actor: AppJwtPayload,
@@ -11,7 +12,7 @@ export async function resolveOperationalDashboardSectorId(
     return leader?.sectorId ?? null
   }
 
-  if (actor.role === RoleUser.ADMIN) {
+  if (isAdminOrSuperAdmin(actor.role)) {
     if (typeof requestedSectorId === 'string' && requestedSectorId.trim() !== '') {
       return requestedSectorId.trim()
     }

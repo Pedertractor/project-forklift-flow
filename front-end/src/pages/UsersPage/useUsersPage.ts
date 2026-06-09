@@ -16,6 +16,8 @@ import {
 import { useAuthStore } from '@/store/auth.store';
 import type { EmployeeInfoResponse } from '@/types/employee-api.types';
 import {
+  assignableRolesForActor,
+  hasAdminPrivileges,
   isAppRole,
   LEADER_CREATABLE_ROLES,
 } from '@/types/role.types';
@@ -38,7 +40,8 @@ export function useUsersPage() {
   const authUser = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const apiReady = useApiReady();
-  const isAdmin = authUser?.role === 'ADMIN';
+  const isAdmin = hasAdminPrivileges(authUser?.role);
+  const isSuperAdmin = authUser?.role === 'SUPERADMIN';
   const isLeader = authUser?.role === 'LEADER';
   const leaderSectorLabel = authUser?.sector?.typeSector ?? null;
   const leaderMissingSector = isLeader && !authUser?.sectorId;
@@ -132,6 +135,11 @@ export function useUsersPage() {
     return [...fromData].sort();
   }, [isAdmin, rolesQuery.data, usersQuery.data]);
 
+  const assignableRoles = useMemo(
+    () => assignableRolesForActor(authUser?.role, rolesQuery.data ?? []),
+    [authUser?.role, rolesQuery.data],
+  );
+
   const resetCreateForm = useCallback(() => {
     setFormCard('');
     setFormUnit('pedertractor');
@@ -155,13 +163,13 @@ export function useUsersPage() {
     if (!createOpen || !isAdmin) {
       return;
     }
-    const roles = rolesQuery.data;
+    const roles = assignableRoles;
     if (!roles?.length) {
       return;
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- default do select quando a lista de roles carrega
     setFormRole((prev) => (prev === '' ? roles[0] : prev));
-  }, [createOpen, isAdmin, rolesQuery.data]);
+  }, [createOpen, isAdmin, assignableRoles]);
 
   const verifyMut = useMutation({
     mutationFn: ({ card, unit }: { card: string; unit: AppUnit }) =>
@@ -288,11 +296,13 @@ export function useUsersPage() {
   });
 
   const roleEditOptions = isAdmin
-    ? (rolesQuery.data ?? [])
+    ? assignableRoles
     : [...LEADER_CREATABLE_ROLES];
 
   const leaderCanEditUserRole = (row: UserListRow) =>
-    row.role !== 'ADMIN' && row.role !== 'LEADER';
+    row.role !== 'ADMIN' &&
+    row.role !== 'SUPERADMIN' &&
+    row.role !== 'LEADER';
 
   const openRoleEdit = (row: UserListRow) => {
     setRoleEditUser(row);
@@ -358,6 +368,7 @@ export function useUsersPage() {
     token,
     authUser,
     isAdmin,
+    isSuperAdmin,
     isLeader,
     canListUsers,
     leaderSectorLabel,
