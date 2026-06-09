@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { DataTableCard } from '@/components/ui/table';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
+import { Button } from '@/components/ui/brand-button';
 import type { OperationalDashboardOperatorRow } from '@/services/operational-dashboard-api';
 
 import { DashboardFilters } from './DashboardFilters';
+import { OperatorCurrentTrajectoryDialog } from './OperatorCurrentTrajectoryDialog';
 import { useDashboardByOperatorPage } from './useDashboardByOperatorPage';
-import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Route } from 'lucide-react';
 
 function formatDuration(ms: number | null | undefined) {
   if (ms == null) return '-';
@@ -20,6 +23,9 @@ function OperatorsTableSection({
 }: {
   rows: OperationalDashboardOperatorRow[];
 }) {
+  const [trajectoryOperator, setTrajectoryOperator] =
+    useState<OperationalDashboardOperatorRow | null>(null);
+
   return (
     <section aria-labelledby="dashboard-operators-heading">
       <div className="mb-3 min-w-0">
@@ -36,30 +42,24 @@ function OperatorsTableSection({
             <tr className="border-b border-zinc-200 bg-zinc-50/90">
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 Operador de transporte
-              </th> 
+              </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 <div className="flex items-center gap-2">
-                <ArrowDownLeft
-                className="size-4 rounded-full bg-red-200"
-                aria-hidden
-              />
+                  <ArrowDownLeft
+                    className="size-4 rounded-full bg-red-200"
+                    aria-hidden
+                  />
                   Retiradas
                 </div>
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 <div className="flex items-center gap-2">
-                <ArrowUpRight
-                className="size-4 rounded-full bg-green-200"
-                aria-hidden
-              />
+                  <ArrowUpRight
+                    className="size-4 rounded-full bg-green-200"
+                    aria-hidden
+                  />
                   Entregas
                 </div>
-              </th>
-              <th className="px-3 py-3 font-semibold text-zinc-700">
-                Retiradas em aberto
-              </th>
-              <th className="px-3 py-3 font-semibold text-zinc-700">
-                Entregas em aberto
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 Média tempo retirada
@@ -67,12 +67,15 @@ function OperatorsTableSection({
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 Média tempo entrega
               </th>
+              <th className="px-3 py-3 font-semibold text-zinc-700">
+                <span className="sr-only">Ações</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                   <EmptyStateMessage
                     title="Sem movimentações no período"
                     description="Não há tarefas atribuídas a empilhadeiristas para os filtros selecionados."
@@ -95,28 +98,22 @@ function OperatorsTableSection({
                     {operator.deliveries_total}
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {operator.pickups_open > 0 ? (
-                      <span className="font-medium text-amber-700">
-                        {operator.pickups_open}
-                      </span>
-                    ) : (
-                      operator.pickups_open
-                    )}
-                  </td>
-                  <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {operator.deliveries_open > 0 ? (
-                      <span className="font-medium text-amber-700">
-                        {operator.deliveries_open}
-                      </span>
-                    ) : (
-                      operator.deliveries_open
-                    )}
-                  </td>
-                  <td className="px-3 py-3 tabular-nums text-zinc-700">
                     {formatDuration(operator.avg_pickup_duration_ms)}
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
                     {formatDuration(operator.avg_delivery_duration_ms)}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="whitespace-nowrap"
+                      onClick={() => setTrajectoryOperator(operator)}
+                    >
+                      <Route className="size-3.5" aria-hidden />
+                      Visualizar trajeto atual
+                    </Button>
                   </td>
                 </tr>
               ))
@@ -124,6 +121,13 @@ function OperatorsTableSection({
           </tbody>
         </table>
       </DataTableCard>
+
+      <OperatorCurrentTrajectoryDialog
+        open={trajectoryOperator !== null}
+        operatorId={trajectoryOperator?.operator_id ?? null}
+        operatorName={trajectoryOperator?.operator_name ?? ''}
+        onClose={() => setTrajectoryOperator(null)}
+      />
     </section>
   );
 }
@@ -158,8 +162,8 @@ export function DashboardPorEmpilhadeiristaPage() {
           Por operador de movimentação
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
-          Volume de retiradas e entregas por operador, follow-ups em aberto e
-          tempos médios
+          Volume de retiradas e entregas por operador, tempos médios e trajeto
+          assistido da atividade em curso
           {formattedDate ? (
             <>
               {' '}

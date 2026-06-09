@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { RoleUser } from '../generated/prisma/enums.js'
 import {
+  getOperatorCurrentTrajectoryHandler,
   getOperationalDashboardByOperatorHandler,
   getOperationalDashboardSnapshotHandler,
 } from '../controllers/operational-dashboard-controller.js'
@@ -29,6 +30,13 @@ export async function registerOperationalDashboardRoutes(fastify: FastifyInstanc
           preHandler: [fastify.authenticate, requireRoles(...dashboardRoles)],
         },
         getOperationalDashboardByOperatorHandler,
+      )
+      router.get(
+        '/operators/:operatorId/current-trajectory',
+        {
+          preHandler: [fastify.authenticate, requireRoles(...dashboardRoles)],
+        },
+        getOperatorCurrentTrajectoryHandler,
       )
     },
     { prefix: '/operational-dashboard' },

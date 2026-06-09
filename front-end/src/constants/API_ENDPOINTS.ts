@@ -67,5 +67,8 @@ export const API_ENDPOINTS = {
   },
   OPERATIONAL_DASHBOARD: {
     SNAPSHOT: '/operational-dashboard/snapshot',
+    BY_OPERATOR: '/operational-dashboard/by-operator',
+    OPERATOR_CURRENT_TRAJECTORY: (operatorId: string) =>
+      `/operational-dashboard/operators/${encodeURIComponent(operatorId)}/current-trajectory`,
   },
 } as const;
