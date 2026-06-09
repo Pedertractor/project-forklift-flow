@@ -1,6 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
 import {
-  ArrowDown,
   ArrowDownLeft,
   ArrowDownToLine,
   ArrowUpFromLine,

@@ -262,7 +262,7 @@ type ActiveFlowTaskRow = {
   task: DeliveryTaskApiRow | PickupTaskApiRow;
 };
 
-type ActiveFlowApiResponse = {
+export type ActiveFlowApiResponse = {
   tasks?: ActiveFlowTaskRow[];
   deliveryTasks?: DeliveryTaskApiRow[];
   pickupTasks?: PickupTaskApiRow[];

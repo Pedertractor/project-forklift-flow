@@ -3,7 +3,6 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import type { MachineListItem } from '@/types/machine.types';
 import { captalizeString } from '@/utils/captalizeString';
 import { User } from 'lucide-react';
-import { Separator } from '../ui/separator';
 
 const selectCardBase =
   'flex w-full flex-col items-stretch gap-3 rounded-2xl border-2 bg-white p-4 text-left outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
