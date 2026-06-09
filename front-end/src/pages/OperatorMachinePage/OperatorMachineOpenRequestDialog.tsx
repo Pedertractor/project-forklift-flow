@@ -42,7 +42,7 @@ const MOVEMENT_OPTIONS: {
   {
     value: 'ANY',
     description:
-      'Empilhadeirista ou transpaleteirista pode aceitar na fila de transporte.',
+      'Empilhadeirista ou transpaleteirista pode aceitar a retirada do pallet.',
   },
 ];
 
