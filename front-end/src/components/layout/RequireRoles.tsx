@@ -1,6 +1,9 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { PageLoader } from '@/components/layout/PageLoader';
+import { useSessionRole } from '@/hooks/useAuthMe';
 import { useAuthStore } from '@/store/auth.store';
 import type { AppRole } from '@/types/role.types';
+import { hasFullSystemAccess } from '@/types/role.types';
 
 interface RequireRolesProps {
   roles: readonly AppRole[];
@@ -12,14 +15,20 @@ interface RequireRolesProps {
  */
 export function RequireRoles({ roles }: RequireRolesProps) {
   const user = useAuthStore((s) => s.user);
+  const { role, isBootstrapping } = useSessionRole();
   const location = useLocation();
 
-  if (!user) {
+  if (isBootstrapping) {
+    return <PageLoader />;
+  }
+
+  if (!user && !role) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  const role = user.role;
-  const allowed = role !== undefined && roles.includes(role as AppRole);
+  const allowed =
+    hasFullSystemAccess(role) ||
+    (role !== undefined && roles.includes(role as AppRole));
 
   if (!allowed) {
     return (

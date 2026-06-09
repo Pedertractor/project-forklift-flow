@@ -1,6 +1,9 @@
 import { API_ENDPOINTS } from '@/constants/API_ENDPOINTS';
 import { apiAuthFetch } from '@/lib/api';
-import { mapOperatorActiveFlowResponse } from '@/services/operator-moviment-pallet-api';
+import {
+  mapOperatorActiveFlowResponse,
+  type ActiveFlowApiResponse,
+} from '@/services/operator-moviment-pallet-api';
 import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
 
 export interface OperationalDashboardWaitMetrics {
@@ -136,7 +139,7 @@ export async function getOperatorCurrentTrajectory(
     throw new Error('Operador inválido.');
   }
 
-  const data = await apiAuthFetch(
+  const data = await apiAuthFetch<ActiveFlowApiResponse>(
     API_ENDPOINTS.OPERATIONAL_DASHBOARD.OPERATOR_CURRENT_TRAJECTORY(trimmedId),
     { method: 'GET' },
   );

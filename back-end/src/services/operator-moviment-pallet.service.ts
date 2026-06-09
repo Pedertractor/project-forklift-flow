@@ -49,9 +49,13 @@ import {
   openPoolTypesForOperatingMode,
   requestTypeMatchesOperatingMode,
 } from "../utils/replenishment-moviment-type.js";
+import { isAdminOrSuperAdmin } from "../utils/role-user.js";
 
 function assertPalletTransporterRole(role: RoleUser) {
-  if (role !== RoleUser.PALLET_TRANSPORTER && role !== RoleUser.ADMIN) {
+  if (
+    role !== RoleUser.PALLET_TRANSPORTER &&
+    !isAdminOrSuperAdmin(role)
+  ) {
     throw new InvalidOperatingModeError(
       "Sem permissao para operar movimentacao de pallets.",
     );

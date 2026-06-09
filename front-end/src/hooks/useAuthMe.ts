@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { performLogout } from '@/lib/auth-session';
 import { fetchAuthMe } from '@/services/auth.service';
@@ -25,6 +25,8 @@ export function useAuthMe() {
   const token = useAuthStore((s) => s.token);
   const syncSessionFromProfile = useAuthStore((s) => s.syncSessionFromProfile);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const previousTokenRef = useRef<string | null>(token);
 
   const query = useQuery({
     queryKey: [...authMeQueryKeyBase, token ?? ''],
@@ -41,8 +43,16 @@ export function useAuthMe() {
     if (!query.data) {
       return;
     }
-    syncSessionFromProfile(mapLoginUserToAppUser(query.data), query.data.firstAccess);
-  }, [query.data, syncSessionFromProfile]);
+    syncSessionFromProfile(
+      mapLoginUserToAppUser(query.data),
+      query.data.firstAccess,
+      query.data.token,
+    );
+    if (query.data.token && query.data.token !== previousTokenRef.current) {
+      previousTokenRef.current = query.data.token;
+      void queryClient.invalidateQueries();
+    }
+  }, [query.data, queryClient, syncSessionFromProfile]);
 
   useEffect(() => {
     if (!query.isError || query.error == null) {
@@ -60,4 +70,22 @@ export function useAuthMe() {
   }, [query.isError, query.error, navigate]);
 
   return query;
+}
+
+/**
+ * Papel efetivo da sessão: prioriza `GET /auth/me` para não usar role desatualizada do localStorage.
+ */
+export function useSessionRole(): {
+  role: string | undefined;
+  /** Aguardando primeira resposta de `/auth/me` com JWT presente. */
+  isBootstrapping: boolean;
+} {
+  const token = useAuthStore((s) => s.token);
+  const storeUser = useAuthStore((s) => s.user);
+  const meQuery = useAuthMe();
+
+  return {
+    role: meQuery.data?.role ?? storeUser?.role,
+    isBootstrapping: Boolean(token) && !meQuery.isFetched,
+  };
 }

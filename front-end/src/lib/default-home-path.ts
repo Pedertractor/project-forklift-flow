@@ -1,11 +1,18 @@
 import { OPERATOR_MOVIMENT_EQUIPMENT_PATH } from '@/constants/operator-moviment-routes';
-import { ADMIN_OR_LEADER_ROLES, type AppRole } from '@/types/role.types';
+import {
+  ADMIN_OR_LEADER_ROLES,
+  hasFullSystemAccess,
+  type AppRole,
+} from '@/types/role.types';
 
 /**
  * Rota inicial após login / troca de senha, quando não há deep-link.
- * Início (`/`) e Painel (`/dashboard`) são só para ADMIN e LEADER.
+ * Início (`/`) e Painel (`/dashboard`) são para ADMIN, SUPERADMIN e LEADER.
  */
 export function defaultHomePathForRole(role: string | undefined): string {
+  if (hasFullSystemAccess(role)) {
+    return '/';
+  }
   if (role && ADMIN_OR_LEADER_ROLES.includes(role as AppRole)) {
     return '/';
   }

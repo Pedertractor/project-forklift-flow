@@ -53,9 +53,19 @@ export const getMe: RouteHandlerMethod = async (request, reply) => {
     return reply.status(404).send({ error: 'Usuario nao encontrado.' })
   }
 
+  const refreshedToken =
+    jwtUser.role !== user.role
+      ? await reply.jwtSign({
+          sub: user.id,
+          role: user.role,
+          firstAccess: !user.isLogged,
+        })
+      : undefined
+
   return {
     ...publicAuthUser(user),
     firstAccess: !user.isLogged,
+    ...(refreshedToken ? { token: refreshedToken } : {}),
   }
 }
 
@@ -116,9 +126,13 @@ export const postPassword: RouteHandlerMethod = async (request, reply) => {
       newPassword,
       ...(typeof currentPassword === 'string' ? { currentPassword } : {}),
     })
+    const user = await getUserProfileById(jwtUser.sub)
+    if (!user) {
+      return reply.status(404).send({ error: 'Usuario nao encontrado.' })
+    }
     const token = await reply.jwtSign({
-      sub: jwtUser.sub,
-      role: jwtUser.role,
+      sub: user.id,
+      role: user.role,
       firstAccess: false,
     })
     return { ok: true, token }

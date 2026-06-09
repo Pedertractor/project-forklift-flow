@@ -7,12 +7,7 @@ import {
 } from '../controllers/operational-dashboard-controller.js'
 import { requireRoles } from '../middleware/require-roles.js'
 
-const dashboardRoles = [
-  RoleUser.ADMIN,
-  RoleUser.LEADER,
-  RoleUser.SUPERVISOR,
-  RoleUser.MANAGER,
-] as const
+const dashboardRoles = [RoleUser.ADMIN, RoleUser.LEADER] as const
 
 export async function registerOperationalDashboardRoutes(fastify: FastifyInstance) {
   await fastify.register(

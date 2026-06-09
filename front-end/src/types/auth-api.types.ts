@@ -21,6 +21,8 @@ export interface LoginApiResponse {
 /** Resposta de `GET /auth/me` (mesmo shape público do usuário + `firstAccess`). */
 export interface AuthMeApiResponse extends LoginApiUser {
   firstAccess: boolean;
+  /** Emitido quando a role no JWT está desatualizada em relação ao banco. */
+  token?: string;
 }
 
 function unitFromApi(unit: LoginApiUser['unit']): AppUnit {

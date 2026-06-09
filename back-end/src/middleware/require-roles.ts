@@ -5,6 +5,9 @@ import type { AppJwtPayload } from "../types/auth.types.js";
 export function requireRoles(...allowed: RoleUser[]) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as AppJwtPayload;
+    if (user.role === RoleUser.SUPERADMIN) {
+      return;
+    }
     if (!allowed.includes(user.role)) {
       return reply
         .status(403)
@@ -24,17 +27,11 @@ export function requireMachineDomainRoles() {
 
 
 /**
- * Leitura de catalogo de maquinas (lista e detalhe) para supervisao no mapa.
+ * Leitura de catalogo de maquinas (lista e detalhe).
  * Mutacoes (POST/PATCH/DELETE) continuam em `requireMachineDomainRoles`.
  */
 export function requireMachineCatalogReadRoles() {
-  return requireRoles(
-    RoleUser.LEADER,
-    RoleUser.SUPPLY_OPERATOR,
-    RoleUser.ADMIN,
-    RoleUser.SUPERVISOR,
-    RoleUser.MANAGER,
-  );
+  return requireMachineDomainRoles();
 }
 
 /** Solicitacoes de reposicao para o empilhadeirista: SUPPLY_OPERATOR, LEADER ou ADMIN. */
@@ -47,17 +44,11 @@ export function requireMachineReplenishmentRequestRoles() {
 }
 
 /**
- * Leitura de pedidos de reposicao (lista, detalhe, preparo pendente) para mapa / supervisao.
+ * Leitura de pedidos de reposicao (lista, detalhe, preparo pendente).
  * Escritas (POST/PATCH/DELETE/mark-pallet-ready) continuam em `requireMachineReplenishmentRequestRoles`.
  */
 export function requireMachineReplenishmentReadRoles() {
-  return requireRoles(
-    RoleUser.SUPPLY_OPERATOR,
-    RoleUser.LEADER,
-    RoleUser.ADMIN,
-    RoleUser.SUPERVISOR,
-    RoleUser.MANAGER,
-  );
+  return requireMachineReplenishmentRequestRoles();
 }
 
 /** Transportador de pallet: modo de operacao (empilhadeira ou transpaleteira) e fila. */
