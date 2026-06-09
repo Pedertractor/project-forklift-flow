@@ -5,6 +5,12 @@ import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types
 /** Caminho do WebSocket no servidor (sem prefixo `/api`). */
 const WS_PATH = '/ws/operator-moviment-pallet';
 
+const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
+  'operator_supply_request_created',
+  'delivery_task_created',
+  'delivery_task_updated',
+]);
+
 const SECTOR_QUEUE_EVENT_TYPES = new Set([
   'delivery_task_created',
   'delivery_queue_updated',
@@ -173,6 +179,20 @@ export function wsEventMatchesMachineCadastro(
   return event.sectorId === sectorId;
 }
 
+/** Abastecimento / líder — tela de reposição e fila aguardando preparo. */
+export function wsEventMatchesSupplyReplenishment(
+  event: OperatorMovimentWsEvent,
+  sectorId: string | null | undefined,
+): boolean {
+  if (!SUPPLY_REPLENISHMENT_EVENT_TYPES.has(event.type)) {
+    return false;
+  }
+  if (event.sectorId && sectorId && event.sectorId !== sectorId) {
+    return false;
+  }
+  return true;
+}
+
 export function wsEventMatchesSubscriber(
   event: OperatorMovimentWsEvent,
   options: {
@@ -184,8 +204,15 @@ export function wsEventMatchesSubscriber(
     isMovimentOperator: boolean;
     isMachineOperator: boolean;
     isMachineCadastro: boolean;
+    isSupplyReplenishment: boolean;
   },
 ): boolean {
+  if (
+    options.isSupplyReplenishment &&
+    wsEventMatchesSupplyReplenishment(event, options.sectorId)
+  ) {
+    return true;
+  }
   if (
     options.isMachineCadastro &&
     wsEventMatchesMachineCadastro(event, options.sectorId)

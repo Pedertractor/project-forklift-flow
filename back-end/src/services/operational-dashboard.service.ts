@@ -1,10 +1,15 @@
 import { endOfDay, format, startOfDay, min, max } from 'date-fns'
 import {
   MachineTaskStatus,
+  RoleUser,
   TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
+import { AuthError, UserNotFoundError } from '../errors/domain-errors.js'
 import { prisma } from '../lib/prisma.js'
+import { userRepository } from '../repositories/user.repository.js'
+import { getOperatorMovimentPalletActiveFlow } from './operator-moviment-pallet.service.js'
 import { buildMachineScopeFilter } from './operational-dashboard-sector.js'
+import type { AppJwtPayload } from '../types/auth.types.js'
 
 export interface OperationalDashboardWaitMetrics {
   avg_wait_ms: number | null
@@ -513,4 +518,31 @@ export async function getOperationalDashboardByOperator(options?: {
     machine_id: machineId,
     operators: buildOperatorRows(pickups, deliveries, referenceNow),
   }
+}
+
+export async function getOperatorCurrentTrajectoryForDashboard(
+  actor: AppJwtPayload,
+  operatorUserId: string,
+) {
+  const trimmedOperatorId = operatorUserId.trim()
+  if (!trimmedOperatorId) {
+    throw new UserNotFoundError('Operador invalido.')
+  }
+
+  const operator = await userRepository.findUniqueByIdWithSector(trimmedOperatorId)
+  if (!operator) {
+    throw new UserNotFoundError('Operador nao encontrado.')
+  }
+
+  if (actor.role === RoleUser.LEADER) {
+    const leader = await userRepository.findUniqueByIdWithSector(actor.sub)
+    if (!leader?.sectorId) {
+      throw new AuthError('Lider sem setor vinculado.')
+    }
+    if (operator.sectorId !== leader.sectorId) {
+      throw new AuthError('Operador fora do setor do lider.')
+    }
+  }
+
+  return getOperatorMovimentPalletActiveFlow(trimmedOperatorId, actor.role)
 }

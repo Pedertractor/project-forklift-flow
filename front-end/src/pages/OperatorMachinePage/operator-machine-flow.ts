@@ -117,7 +117,7 @@ export function hasPalletAtReceiving(
 }
 
 export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE =
-  'Há pallet no recebimento aguardando transporte. Solicite apenas a retirada do pallet na máquina para abrir a sugestão de entrega e retirada.';
+  'Há pallet no recebimento aguardando transporte.';
 
 export function canRequestPickup(
   deliveryTasks: DeliveryTaskListItem[],

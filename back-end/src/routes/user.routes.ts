@@ -5,6 +5,7 @@ import {
   getListRoles,
   getListUsers,
   patchUserRole,
+  patchUserSector,
   postCreateUser,
   postResetUserPassword,
 } from "../controllers/user-controller.js";
@@ -59,6 +60,13 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
           ],
         },
         patchUserRole,
+      );
+      userRouter.patch(
+        "/:userId/sector",
+        {
+          preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
+        },
+        patchUserSector,
       );
       userRouter.post(
         "/:userId/reset-password",

@@ -11,6 +11,7 @@ import {
   listUsers,
   resetUserPasswordToDefault,
   updateUserRole,
+  updateUserSector,
 } from '../services/user.service.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
 import { isRole, isUnit } from '../utils/unit-role.js'
@@ -144,6 +145,47 @@ export const patchUserRole: RouteHandlerMethod = async (request, reply) => {
       card: user.card,
       unit: user.unit,
       employeeId: user.employeeId,
+    })
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof CreateUserError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const patchUserSector: RouteHandlerMethod = async (request, reply) => {
+  const { userId } = request.params as { userId?: string }
+  const body = request.body
+  if (!userId) {
+    return reply.status(400).send({ error: 'userId invalido.' })
+  }
+  if (body === null || typeof body !== 'object' || !('sectorId' in body)) {
+    return reply.status(400).send({ error: 'Informe sectorId (UUID ou null).' })
+  }
+
+  const sectorId = parseSectorIdFromBody(body)
+  if (sectorId === undefined) {
+    return reply.status(400).send({ error: 'sectorId invalido.' })
+  }
+
+  const jwtUser = request.user as AppJwtPayload
+  try {
+    const user = await updateUserSector(userId, sectorId, {
+      userId: jwtUser.sub,
+      role: jwtUser.role,
+    })
+    return reply.send({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      card: user.card,
+      unit: user.unit,
+      employeeId: user.employeeId,
+      sectorId: user.sectorId ?? null,
     })
   } catch (error) {
     if (error instanceof UserNotFoundError) {

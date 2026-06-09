@@ -18,6 +18,7 @@ import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
 import { syncTripSuggestionPairForMachine } from './trip-suggestion-sync.service.js'
 import {
+  operatorMovimentPalletWsBroadcastDeliveryTaskCreated,
   operatorMovimentPalletWsBroadcastQueueUpdated,
   operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
   operatorMovimentPalletWsNotifyDeliveryTaskChange,
@@ -85,6 +86,13 @@ export async function createDeliveryTask(input: CreateDeliveryTaskInput) {
 
     return task
   })
+
+  if (machine.sectorId) {
+    operatorMovimentPalletWsBroadcastDeliveryTaskCreated(
+      machine.sectorId,
+      row.typeMovimentPallet,
+    )
+  }
 
   if (row.preparedAt && machine.sectorId) {
     await syncTripSuggestionPairForMachine(machine.id)

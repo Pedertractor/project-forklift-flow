@@ -36,6 +36,12 @@ const SECTOR_QUEUE_EVENT_TYPES = new Set([
   'replenishment_queue_updated',
 ])
 
+const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
+  'operator_supply_request_created',
+  'delivery_task_created',
+  'delivery_task_updated',
+])
+
 const MACHINE_OPERATOR_EVENT_TYPES = new Set([
   'delivery_task_updated',
   'pickup_task_updated',
@@ -61,6 +67,12 @@ const MACHINE_CADASTRO_ROLES = new Set<RoleUser>([
   RoleUser.SUPPLY_OPERATOR,
   RoleUser.SUPERVISOR,
   RoleUser.MANAGER,
+])
+
+const SUPPLY_REPLENISHMENT_ROLES = new Set<RoleUser>([
+  RoleUser.SUPPLY_OPERATOR,
+  RoleUser.LEADER,
+  RoleUser.ADMIN,
 ])
 
 function safeSend(socket: WebSocket, payload: Record<string, unknown>): void {
@@ -134,9 +146,22 @@ function matchesMachineCadastro(client: WsClient, payload: WsPayload): boolean {
   return sectorMatches(client, payload)
 }
 
+/** Tela de reposição / abastecimento (nova solicitação da dobra, tarefa de entrega). */
+function matchesSupplyReplenishment(client: WsClient, payload: WsPayload): boolean {
+  if (
+    !payload.type ||
+    !SUPPLY_REPLENISHMENT_EVENT_TYPES.has(payload.type) ||
+    !SUPPLY_REPLENISHMENT_ROLES.has(client.role)
+  ) {
+    return false
+  }
+  return sectorMatches(client, payload)
+}
+
 function shouldSendToClient(client: WsClient, payload: WsPayload): boolean {
   return (
     matchesMachineCadastro(client, payload) ||
+    matchesSupplyReplenishment(client, payload) ||
     matchesMachineOperator(client, payload) ||
     matchesMovimentOperator(client, payload)
   )
@@ -169,6 +194,17 @@ export function operatorMovimentPalletWsBroadcastDeliveryTaskCreated(
     type: 'delivery_task_created' as const,
     sectorId,
     typeMovimentPallet,
+  })
+}
+
+export function operatorMovimentPalletWsBroadcastOperatorSupplyRequestCreated(
+  sectorId: string,
+  machineId: string,
+): void {
+  broadcast({
+    type: 'operator_supply_request_created' as const,
+    sectorId,
+    machineId,
   })
 }
 

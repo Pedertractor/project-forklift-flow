@@ -229,6 +229,36 @@ export async function updateUserRole(
   return userRepository.update(targetUserId, { role })
 }
 
+export async function updateUserSector(
+  targetUserId: string,
+  sectorId: string | null,
+  actor: ListUsersActor,
+): Promise<UserModel> {
+  const user = await userRepository.findUniqueById(targetUserId)
+  if (!user) {
+    throw new UserNotFoundError()
+  }
+
+  if (actor.role !== RoleUser.ADMIN) {
+    throw new CreateUserError('Sem permissao para alterar setor.')
+  }
+
+  if (sectorId === null || String(sectorId).trim() === '') {
+    return userRepository.update(targetUserId, {
+      sector: { disconnect: true },
+    })
+  }
+
+  const sector = await sectorRepository.findUniqueById(String(sectorId).trim())
+  if (!sector) {
+    throw new CreateUserError('Setor informado nao existe.')
+  }
+
+  return userRepository.update(targetUserId, {
+    sector: { connect: { id: sector.id } },
+  })
+}
+
 export async function resetUserPasswordToDefault(
   targetUserId: string,
   actor: ListUsersActor,

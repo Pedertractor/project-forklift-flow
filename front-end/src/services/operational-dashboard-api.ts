@@ -1,4 +1,7 @@
+import { API_ENDPOINTS } from '@/constants/API_ENDPOINTS';
 import { apiAuthFetch } from '@/lib/api';
+import { mapOperatorActiveFlowResponse } from '@/services/operator-moviment-pallet-api';
+import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
 
 export interface OperationalDashboardWaitMetrics {
   avg_wait_ms: number | null;
@@ -117,10 +120,25 @@ export async function getOperationalDashboardByOperator(
   appendDashboardQueryParams(params, filters);
   const query = params.toString();
   const data = await apiAuthFetch<OperationalDashboardByOperatorSnapshot>(
-    `/operational-dashboard/by-operator${query ? `?${query}` : ''}`,
+    `${API_ENDPOINTS.OPERATIONAL_DASHBOARD.BY_OPERATOR}${query ? `?${query}` : ''}`,
   );
   if (!data) {
     throw new Error('Resposta vazia do painel por empilhadeirista.');
   }
   return data;
+}
+
+export async function getOperatorCurrentTrajectory(
+  operatorId: string,
+): Promise<OperatorMovimentTaskItem[]> {
+  const trimmedId = operatorId.trim();
+  if (!trimmedId) {
+    throw new Error('Operador inválido.');
+  }
+
+  const data = await apiAuthFetch(
+    API_ENDPOINTS.OPERATIONAL_DASHBOARD.OPERATOR_CURRENT_TRAJECTORY(trimmedId),
+    { method: 'GET' },
+  );
+  return mapOperatorActiveFlowResponse(data);
 }

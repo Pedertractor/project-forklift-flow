@@ -1,5 +1,7 @@
 import type { RouteHandlerMethod } from 'fastify'
+import { AuthError, UserNotFoundError } from '../errors/domain-errors.js'
 import {
+  getOperatorCurrentTrajectoryForDashboard,
   getOperationalDashboardByOperator,
   getOperationalDashboardSnapshot,
 } from '../services/operational-dashboard.service.js'
@@ -79,3 +81,27 @@ export const getOperationalDashboardByOperatorHandler: RouteHandlerMethod =
     const snapshot = await getOperationalDashboardByOperator(options)
     return reply.send(snapshot)
   }
+
+export const getOperatorCurrentTrajectoryHandler: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const { operatorId } = request.params as { operatorId?: string }
+  const actor = request.user as AppJwtPayload
+
+  try {
+    const payload = await getOperatorCurrentTrajectoryForDashboard(
+      actor,
+      operatorId ?? '',
+    )
+    return reply.send(payload)
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof AuthError) {
+      return reply.status(403).send({ error: error.message })
+    }
+    throw error
+  }
+}

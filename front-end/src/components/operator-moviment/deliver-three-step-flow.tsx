@@ -39,17 +39,20 @@ export function DeliverFlowDeferBanner({ children }: { children: ReactNode }) {
 export function DeliverFlowActivitySubtitle({
   children,
   start,
+  end,
 }: {
   children: ReactNode;
   /** Conteúdo alinhado ao início (ex.: nome da máquina). Com `start`, `children` fica centralizado na linha. */
   start?: ReactNode;
+  /** Conteúdo alinhado ao fim (ex.: horário da solicitação). */
+  end?: ReactNode;
 }) {
   if (start != null) {
     return (
-      <div className="mb-4 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase leading-tight tracking-wide sm:text-xs sm:leading-normal sm:tracking-wider md:grid md:grid-cols-[1fr_auto_1fr] md:gap-0">
-        <div className="min-w-0 shrink">{start}</div>
-        <div className="shrink-0 md:justify-self-center">{children}</div>
-        <div className="hidden md:block" aria-hidden />
+      <div className="mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 text-[11px] font-semibold uppercase leading-tight tracking-wide sm:text-xs sm:leading-normal sm:tracking-wider">
+        <div className="min-w-0 justify-self-start">{start}</div>
+        <div className="shrink-0 justify-self-center px-0.5">{children}</div>
+        <div className="min-w-0 justify-self-end text-right">{end ?? null}</div>
       </div>
     );
   }

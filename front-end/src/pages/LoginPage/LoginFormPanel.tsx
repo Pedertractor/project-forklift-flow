@@ -39,23 +39,26 @@ export function LoginFormPanel() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center overflow-y-auto overscroll-contain bg-white px-8 pb-8 pt-9 max-[800px]:justify-start max-[800px]:px-4 max-[800px]:py-5">
-      <header className="mb-6 max-[800px]:mb-4">
-        <h2 className="m-0 text-xl font-bold tracking-tight text-zinc-900 max-[800px]:text-lg">
+    <div className="flex h-full min-h-0 min-w-0 flex-col justify-center overflow-y-auto overscroll-contain bg-white px-8 pb-8 pt-9 max-[767px]:justify-start max-[767px]:px-4 max-[767px]:py-5 min-[768px]:px-4 min-[768px]:py-5 lg:px-8 lg:pb-8 lg:pt-9">
+      <header className="mb-6 max-[767px]:mb-4 min-[768px]:mb-4 lg:mb-6">
+        <h2 className="m-0 text-xl font-bold tracking-tight text-zinc-900 max-[767px]:text-lg min-[768px]:text-lg lg:text-xl">
           Fazer login
         </h2>
-        <p className="mt-2 text-sm text-zinc-500 max-[800px]:mt-1 max-[800px]:text-xs">
+        <p className="mt-2 text-sm text-zinc-500 max-[767px]:mt-1 max-[767px]:text-xs min-[768px]:mt-1 min-[768px]:text-xs lg:mt-2 lg:text-sm">
           Insira suas credenciais abaixo.
         </p>
       </header>
 
       <form
-        className="flex w-full max-w-md flex-col gap-5 max-[800px]:gap-4"
+        className="flex w-full min-w-0 max-w-md flex-col gap-5 max-[767px]:gap-4 min-[768px]:max-w-none min-[768px]:gap-3.5 lg:max-w-md lg:gap-5"
         onSubmit={handleSubmit(onSubmit)}
         noValidate
       >
         <div className={fieldGap}>
-          <Label htmlFor="login-card" className="text-base font-medium">
+          <Label
+            htmlFor="login-card"
+            className="text-base font-medium min-[768px]:text-sm lg:text-base"
+          >
             Cartão
           </Label>
           <Input
@@ -73,13 +76,13 @@ export function LoginFormPanel() {
 
         <div className={fieldGap}>
           <span
-            className="text-base font-medium leading-none text-zinc-900"
+            className="text-base font-medium leading-none text-zinc-900 min-[768px]:text-sm lg:text-base"
             id={unitGroupId}
           >
             Unidade
           </span>
           <div
-            className="grid w-full grid-cols-2 gap-3"
+            className="grid w-full min-w-0 grid-cols-2 gap-2 min-[768px]:gap-1.5 lg:gap-3"
             role="group"
             aria-labelledby={unitGroupId}
           >
@@ -91,7 +94,7 @@ export function LoginFormPanel() {
               onClick={() =>
                 setValue('unit', 'pedertractor', { shouldValidate: true })
               }
-              className="h-[var(--control-height,2.5rem)] min-w-0 gap-0 px-3 py-0 text-sm font-semibold leading-none tracking-tight"
+              className="h-[var(--control-height,2.5rem)] min-w-0 gap-0 px-3 py-0 text-sm font-semibold leading-none tracking-tight min-[768px]:px-1.5 min-[768px]:text-[10px] lg:px-3 lg:text-sm"
             >
               <span className="min-w-0 max-w-full truncate">PEDERTRACTOR</span>
             </Button>
@@ -102,7 +105,7 @@ export function LoginFormPanel() {
               onClick={() =>
                 setValue('unit', 'tractor', { shouldValidate: true })
               }
-              className="h-[var(--control-height,2.5rem)] min-w-0 gap-0 px-3 py-0 text-base font-semibold leading-none"
+              className="h-[var(--control-height,2.5rem)] min-w-0 gap-0 px-3 py-0 text-base font-semibold leading-none min-[768px]:px-1.5 min-[768px]:text-[11px] lg:px-3 lg:text-base"
             >
               <span className="min-w-0 max-w-full truncate">TRACTOR</span>
             </Button>
@@ -113,7 +116,10 @@ export function LoginFormPanel() {
         </div>
 
         <div className={fieldGap}>
-          <Label htmlFor="login-password" className="text-base font-medium">
+          <Label
+            htmlFor="login-password"
+            className="text-base font-medium min-[768px]:text-sm lg:text-base"
+          >
             Senha
           </Label>
           <div className="relative isolate">
@@ -148,7 +154,7 @@ export function LoginFormPanel() {
           <Button
             type="submit"
             size="default"
-            className="w-full text-base font-semibold"
+            className="w-full text-base font-semibold min-[768px]:text-sm lg:text-base"
             disabled={isPending}
           >
             {isPending ? 'Entrando…' : 'Entrar'}

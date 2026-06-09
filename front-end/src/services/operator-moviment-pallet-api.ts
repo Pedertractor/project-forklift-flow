@@ -262,13 +262,15 @@ type ActiveFlowTaskRow = {
   task: DeliveryTaskApiRow | PickupTaskApiRow;
 };
 
-export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]> {
-  const res = await apiAuthFetch<{
-    tasks?: ActiveFlowTaskRow[];
-    deliveryTasks?: DeliveryTaskApiRow[];
-    pickupTasks?: PickupTaskApiRow[];
-  }>(API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.MY_TASKS, { method: 'GET' });
+type ActiveFlowApiResponse = {
+  tasks?: ActiveFlowTaskRow[];
+  deliveryTasks?: DeliveryTaskApiRow[];
+  pickupTasks?: PickupTaskApiRow[];
+};
 
+export function mapOperatorActiveFlowResponse(
+  res: ActiveFlowApiResponse | null | undefined,
+): OperatorMovimentTaskItem[] {
   if (res?.tasks?.length) {
     return res.tasks.map((row) => {
       if (row.kind === 'DELIVERY') {
@@ -286,6 +288,14 @@ export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]
     items.push(mapPickupTaskToQueueItem(p));
   }
   return items;
+}
+
+export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]> {
+  const res = await apiAuthFetch<ActiveFlowApiResponse>(
+    API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.MY_TASKS,
+    { method: 'GET' },
+  );
+  return mapOperatorActiveFlowResponse(res);
 }
 
 type TripSuggestionApiRow = {

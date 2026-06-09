@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
@@ -10,6 +10,7 @@ import {
   fetchUserRolesEnum,
   fetchUsersList,
   patchUserRoleRequest,
+  patchUserSectorRequest,
   postResetUserPasswordRequest,
 } from '@/services/users-api';
 import { useAuthStore } from '@/store/auth.store';
@@ -21,9 +22,15 @@ import {
 import type { AppUnit } from '@/types/user.types';
 import type { UserListRow } from '@/types/users-admin.types';
 
+const VERIFY_DEBOUNCE_MS = 800;
+
 function useApiReady(): boolean {
   const t = useAuthStore((s) => s.token);
   return Boolean(ENV.API_URL && t);
+}
+
+function employeeVerifyKey(card: string, unit: AppUnit): string {
+  return `${card}|${unit}`;
 }
 
 export function useUsersPage() {
@@ -65,8 +72,17 @@ export function useUsersPage() {
   const [formRole, setFormRole] = useState('');
   const [formSectorId, setFormSectorId] = useState('');
 
+  const formCardRef = useRef(formCard);
+  const formUnitRef = useRef(formUnit);
+  const verifiedKeyRef = useRef<string | null>(null);
+  formCardRef.current = formCard;
+  formUnitRef.current = formUnit;
+
   const [roleEditUser, setRoleEditUser] = useState<UserListRow | null>(null);
   const [roleEditValue, setRoleEditValue] = useState('');
+
+  const [sectorEditUser, setSectorEditUser] = useState<UserListRow | null>(null);
+  const [sectorEditValue, setSectorEditValue] = useState('');
 
   const [detailUser, setDetailUser] = useState<UserListRow | null>(null);
   const [resetTarget, setResetTarget] = useState<UserListRow | null>(null);
@@ -116,18 +132,12 @@ export function useUsersPage() {
     return [...fromData].sort();
   }, [isAdmin, rolesQuery.data, usersQuery.data]);
 
-  useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- limpar validação ao mudar cartão/unidade */
-    setVerifiedEmployee(null);
-    setVerifyState('idle');
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [formCard, formUnit]);
-
   const resetCreateForm = useCallback(() => {
     setFormCard('');
     setFormUnit('pedertractor');
     setVerifiedEmployee(null);
     setVerifyState('idle');
+    verifiedKeyRef.current = null;
     setFormRole('');
     setFormSectorId('');
   }, []);
@@ -154,28 +164,73 @@ export function useUsersPage() {
   }, [createOpen, isAdmin, rolesQuery.data]);
 
   const verifyMut = useMutation({
-    mutationFn: () => {
-      const card = formCard.trim();
-      if (!card) {
-        throw new Error('Informe o número do cartão.');
-      }
-      return fetchEmployeeInfoByCardAndUnit(card, formUnit);
-    },
+    mutationFn: ({ card, unit }: { card: string; unit: AppUnit }) =>
+      fetchEmployeeInfoByCardAndUnit(card, unit),
     onMutate: () => {
       setVerifyState('idle');
       setVerifiedEmployee(null);
     },
-    onSuccess: (data) => {
+    onSuccess: (data, { card, unit }) => {
+      if (
+        card !== formCardRef.current.trim() ||
+        unit !== formUnitRef.current
+      ) {
+        return;
+      }
+      verifiedKeyRef.current = employeeVerifyKey(card, unit);
       setVerifiedEmployee(data);
       setVerifyState('ok');
-      toast.success('Colaborador encontrado na API de verificação.');
     },
-    onError: (err) => {
+    onError: (err, { card, unit }) => {
+      if (
+        card !== formCardRef.current.trim() ||
+        unit !== formUnitRef.current
+      ) {
+        return;
+      }
       setVerifiedEmployee(null);
       setVerifyState('fail');
       toastApiError(err);
     },
   });
+
+  const { mutate: verifyEmployee } = verifyMut;
+
+  useEffect(() => {
+    if (!createOpen) {
+      return;
+    }
+
+    const card = formCard.trim();
+    if (!card || !formUnit) {
+      /* eslint-disable react-hooks/set-state-in-effect -- limpar validação sem cartão/unidade */
+      setVerifiedEmployee(null);
+      setVerifyState('idle');
+      verifiedKeyRef.current = null;
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
+
+    /* eslint-disable react-hooks/set-state-in-effect -- limpar validação ao mudar cartão/unidade */
+    verifiedKeyRef.current = null;
+    setVerifiedEmployee(null);
+    setVerifyState('idle');
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    const timer = window.setTimeout(() => {
+      const currentCard = formCardRef.current.trim();
+      const currentUnit = formUnitRef.current;
+      if (!currentCard || !currentUnit) {
+        return;
+      }
+      if (verifiedKeyRef.current === employeeVerifyKey(currentCard, currentUnit)) {
+        return;
+      }
+      verifyEmployee({ card: currentCard, unit: currentUnit });
+    }, VERIFY_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [createOpen, formCard, formUnit, verifyEmployee]);
 
   const createMut = useMutation({
     mutationFn: () => {
@@ -207,6 +262,17 @@ export function useUsersPage() {
       void queryClient.invalidateQueries({ queryKey: ['users'] });
       setRoleEditUser(null);
       toast.success('Perfil do usuário atualizado.');
+    },
+    onError: toastApiError,
+  });
+
+  const sectorPatchMut = useMutation({
+    mutationFn: ({ id, sectorId }: { id: string; sectorId: string | null }) =>
+      patchUserSectorRequest(id, sectorId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['users'] });
+      setSectorEditUser(null);
+      toast.success('Setor do usuário atualizado.');
     },
     onError: toastApiError,
   });
@@ -260,8 +326,19 @@ export function useUsersPage() {
     setDetailUser(null);
   };
 
-  const busyCreate = verifyMut.isPending || createMut.isPending;
-  const busyAdmin = rolePatchMut.isPending || resetMut.isPending;
+  const openSectorEditFromDetail = () => {
+    if (!detailUser) {
+      return;
+    }
+    setSectorEditUser(detailUser);
+    setSectorEditValue(detailUser.sectorId ?? '');
+    setDetailUser(null);
+  };
+
+  const isVerifying = verifyMut.isPending;
+  const busyCreate = isVerifying || createMut.isPending;
+  const busyAdmin =
+    rolePatchMut.isPending || sectorPatchMut.isPending || resetMut.isPending;
 
   const hasActiveFilters =
     searchFilter.trim() !== '' ||
@@ -298,7 +375,7 @@ export function useUsersPage() {
     setFormUnit,
     verifiedEmployee,
     verifyState,
-    verifyMut,
+    isVerifying,
     formRole,
     setFormRole,
     formSectorId,
@@ -312,6 +389,12 @@ export function useUsersPage() {
     rolePatchMut,
     roleEditOptions,
     leaderCanEditUserRole,
+    sectorEditUser,
+    setSectorEditUser,
+    sectorEditValue,
+    setSectorEditValue,
+    sectorPatchMut,
+    openSectorEditFromDetail,
     detailUser,
     setDetailUser,
     resetTarget,

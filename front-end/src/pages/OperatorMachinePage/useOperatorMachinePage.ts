@@ -56,6 +56,9 @@ export function useOperatorMachinePage() {
 
   const [endShiftOpen, setEndShiftOpen] = useState(false);
   const [cancelPickupId, setCancelPickupId] = useState<string | null>(null);
+  const [bindConfirmMachineId, setBindConfirmMachineId] = useState<string | null>(
+    null,
+  );
   const [showMachinePicker, setShowMachinePicker] = useState(false);
   const [selectedMachineId, setSelectedMachineId] = useState('');
 
@@ -92,11 +95,26 @@ export function useOperatorMachinePage() {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
+      setBindConfirmMachineId(null);
       setShowMachinePicker(false);
       toast.success('Máquina vinculada com sucesso!');
     },
     onError: toastApiError,
   });
+
+  const machines = machinesQuery.data ?? [];
+
+  const bindConfirmMachine = useMemo(
+    () => machines.find((m) => m.id === bindConfirmMachineId) ?? null,
+    [bindConfirmMachineId, machines],
+  );
+
+  const confirmBindMachine = () => {
+    if (!bindConfirmMachineId || bindMut.isPending) {
+      return;
+    }
+    bindMut.mutate(bindConfirmMachineId);
+  };
 
   const selectMachine = (machineId: string) => {
     if (bindMut.isPending) return;
@@ -105,6 +123,13 @@ export function useOperatorMachinePage() {
       setShowMachinePicker(false);
       return;
     }
+
+    const machine = machines.find((m) => m.id === machineId);
+    if (machine?.user && machine.user.id !== user?.id) {
+      setBindConfirmMachineId(machineId);
+      return;
+    }
+
     bindMut.mutate(machineId);
   };
 
@@ -276,9 +301,13 @@ export function useOperatorMachinePage() {
     showMachinePicker,
     setShowMachinePicker,
     machinesQuery,
-    machines: machinesQuery.data ?? [],
+    machines,
     selectedMachineId,
     selectMachine,
+    bindConfirmMachine,
+    bindConfirmMachineId,
+    setBindConfirmMachineId,
+    confirmBindMachine,
     bindPending: bindMut.isPending,
     tasksQuery,
     deliveryTasks,

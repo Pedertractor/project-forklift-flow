@@ -1,79 +1,284 @@
-import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import {
+  DeliverFlowAcceptButton,
+  DeliverFlowActionFooter,
+  DeliverFlowActivitySubtitle,
+  DeliverFlowCard,
+  DeliverThreeStepFlow,
+  type DeliverFlowStepConfig,
+} from '@/components/operator-moviment/deliver-three-step-flow';
 import {
   expeditionAreaDetail,
+  goToReceivingDetail,
   machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
 } from '@/components/operator-moviment/route-flow-step-details';
-import {
-  SuggestionFlowConnector,
-  SuggestionFlowStep,
-} from '@/components/operator-moviment/route-flow-icons';
-import { Button } from '@/components/ui/brand-button';
-import { Card } from '@/components/ui/card';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import type {
   OperatorPickupTaskQueueItem,
+  OperatorReplenishmentQueueResponse,
   OperatorReplenishmentRequestItem,
 } from '@/types/operator-moviment-pallet.types';
-import {
-  formatTaskDate,
-  priorityLabel,
-} from '@/utils/operator-moviment-display';
+import { isCriticalPriority } from '@/utils/operator-moviment-display';
 import type { UseQueryResult } from '@tanstack/react-query';
-import type { OperatorReplenishmentQueueResponse } from '@/types/operator-moviment-pallet.types';
-import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { ArrowDownLeft, ArrowUpRight, Box, Check } from 'lucide-react';
 
-function DeliverRequestFlow({
-  row,
+function formatSuggestionRequestedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
+  return accepting ? (
+    'Aceitando…'
+  ) : (
+    <>
+      <Check className="size-5 shrink-0" aria-hidden />
+      Aceitar
+    </>
+  );
+}
+
+function SuggestionFlowCardBody({
+  activityLabel,
+  steps,
+  machineName,
+  cube,
+  requestedAt,
 }: {
-  row: OperatorReplenishmentRequestItem;
+  activityLabel: 'Entrega' | 'Retirada';
+  steps: DeliverFlowStepConfig[];
+  machineName?: string;
+  cube?: string;
+  requestedAt?: string;
 }) {
+  const requestedAtLabel = requestedAt
+    ? formatSuggestionRequestedAt(requestedAt)
+    : undefined;
+
   return (
-    <div className="flex w-full min-w-0 items-start pb-0.5 pt-0">
-      <SuggestionFlowStep
-        size="compact"
-        stepId="receiving"
-        label="Recebimento"
-        details={[
-          receivingAreaDetail(),
-          prismaDetail(row.movementCube, 'pick-at-receiving'),
-        ]}
-        accent="start"
-      />
-      <SuggestionFlowConnector size="compact" />
-      <SuggestionFlowStep
-        size="compact"
-        stepId="machine"
-        label="Máquina"
-        details={[
-          machineLocationDetail(row.destination?.name ?? '—'),
-          prismaDetail(row.movementCube, 'deliver-to-machine'),
-        ]}
-        accent="mid"
-      />
+    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4">
+      <DeliverFlowActivitySubtitle
+        start={
+          <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-semibold uppercase tracking-wide text-brand md:gap-x-1.5 md:text-xl md:tracking-wider">
+            {machineName ? (
+              <span className="truncate">{machineName}</span>
+            ) : null}
+            {cube ? (
+              <>
+                {machineName ? (
+                  <span className="shrink-0" aria-hidden>
+                    -
+                  </span>
+                ) : null}
+                <div className="flex items-center gap-0.5 rounded-lg bg-brand/20 px-1 py-0.5 md:gap-1 md:py-0">
+                  <Box
+                    strokeWidth={2.5}
+                    className="size-3.5 shrink-0 text-brand md:size-5"
+                    aria-hidden
+                  />
+                  <span className="text-sm tracking-widest md:text-xl">
+                    {cube}
+                  </span>
+                </div>
+              </>
+            ) : null}
+          </div>
+        }
+        end={
+          requestedAtLabel ? (
+            <time
+              dateTime={requestedAt}
+              className="whitespace-nowrap text-[10px] font-medium normal-case tracking-normal text-zinc-500 sm:text-[11px] md:text-xs"
+            >
+              {requestedAtLabel}
+            </time>
+          ) : null
+        }
+      >
+        <span className="inline-flex items-center gap-1 text-[11px] leading-tight sm:text-xs">
+          {activityLabel === 'Entrega' ? (
+            <>
+              Entrega de pallet
+              <ArrowUpRight
+                className="size-4 rounded-full bg-green-200"
+                aria-hidden
+              />
+            </>
+          ) : (
+            <>
+              Retirada de pallet
+              <ArrowDownLeft
+                className="size-4 rounded-full bg-red-200"
+                aria-hidden
+              />
+            </>
+          )}
+        </span>
+      </DeliverFlowActivitySubtitle>
+
+      <DeliverThreeStepFlow steps={steps} />
     </div>
   );
 }
 
-function PickupTaskFlow({ task }: { task: OperatorPickupTaskQueueItem }) {
-  const req = task.request;
+function buildManualDeliverSteps(
+  row: OperatorReplenishmentRequestItem,
+): DeliverFlowStepConfig[] {
+  const machine = row.destination?.name ?? '—';
+
+  return [
+    {
+      stepNumber: 1,
+      stepId: 'receiving',
+      label: 'Vá ao recebimento',
+      details: [goToReceivingDetail()],
+    },
+    {
+      stepNumber: 2,
+      stepId: 'pallet',
+      label: 'Pegue o pallet no recebimento',
+      details: [
+        receivingAreaDetail(),
+        prismaDetail(row.movementCube, 'pick-at-receiving'),
+      ],
+    },
+    {
+      stepNumber: 3,
+      stepId: 'machine',
+      label: 'Entregue o pallet na máquina',
+      details: [
+        machineLocationDetail(machine),
+        prismaDetail(row.movementCube, 'deliver-to-machine'),
+      ],
+    },
+  ];
+}
+
+function buildManualPickupSteps(
+  task: OperatorPickupTaskQueueItem,
+): DeliverFlowStepConfig[] {
+  const machine = task.request.destination?.name ?? '—';
+
+  return [
+    {
+      stepNumber: 1,
+      stepId: 'machine',
+      label: 'Retire na máquina',
+      details: [machineLocationDetail(machine)],
+    },
+    {
+      stepNumber: 2,
+      stepId: 'expedition',
+      label: 'Leve à expedição',
+      details: [expeditionAreaDetail()],
+    },
+  ];
+}
+
+function ManualDeliverCard({
+  row,
+  busy,
+  isAccepting,
+  onAccept,
+}: {
+  row: OperatorReplenishmentRequestItem;
+  busy: boolean;
+  isAccepting: boolean;
+  onAccept: (requestId: string) => void;
+}) {
+  const isCritical = isCriticalPriority(row.priorityLevel);
+  const cube = formatReplenishmentMovementCubeDisplay(row.movementCube);
+
   return (
-    <div className="flex w-full min-w-0 items-start pb-0.5 pt-0">
-      <SuggestionFlowStep
-        size="compact"
-        stepId="machine"
-        label="Máquina"
-        details={[machineLocationDetail(req.destination?.name ?? '—')]}
-        accent="mid"
+    <DeliverFlowCard>
+      <SuggestionFlowCardBody
+        activityLabel="Entrega"
+        steps={buildManualDeliverSteps(row)}
+        machineName={row.destination?.name}
+        cube={cube}
+        requestedAt={row.createdAt}
       />
-      <SuggestionFlowConnector size="compact" />
-      <SuggestionFlowStep
-        size="compact"
-        stepId="expedition"
-        label="Expedição"
-        details={[expeditionAreaDetail()]}
-        accent="end"
+      <DeliverFlowActionFooter isCritical={isCritical}>
+        <DeliverFlowAcceptButton
+          disabled={busy || isAccepting}
+          onClick={() => onAccept(row.id)}
+        >
+          <AcceptButtonLabel accepting={isAccepting} />
+        </DeliverFlowAcceptButton>
+      </DeliverFlowActionFooter>
+    </DeliverFlowCard>
+  );
+}
+
+function ManualPickupCard({
+  task,
+  busy,
+  isAccepting,
+  onAccept,
+}: {
+  task: OperatorPickupTaskQueueItem;
+  busy: boolean;
+  isAccepting: boolean;
+  onAccept: (taskId: string) => void;
+}) {
+  const req = task.request;
+  const isCritical = isCriticalPriority(req.priorityLevel);
+
+  return (
+    <DeliverFlowCard>
+      <SuggestionFlowCardBody
+        activityLabel="Retirada"
+        steps={buildManualPickupSteps(task)}
+        machineName={req.destination?.name}
+        requestedAt={task.createdAt}
       />
+      <DeliverFlowActionFooter isCritical={isCritical}>
+        <DeliverFlowAcceptButton
+          disabled={busy || isAccepting}
+          onClick={() => onAccept(task.id)}
+        >
+          <AcceptButtonLabel accepting={isAccepting} />
+        </DeliverFlowAcceptButton>
+      </DeliverFlowActionFooter>
+    </DeliverFlowCard>
+  );
+}
+
+function ManualQueueColumnHeading({
+  variant,
+}: {
+  variant: 'deliver' | 'pickup';
+}) {
+  const isDeliver = variant === 'deliver';
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/90 px-3 py-2.5 md:px-4">
+      <div className="flex items-center gap-2">
+        {isDeliver ? (
+          <ArrowUpRight
+            className="size-4 shrink-0 rounded-full bg-green-200"
+            aria-hidden
+          />
+        ) : (
+          <ArrowDownLeft
+            className="size-4 shrink-0 rounded-full bg-red-200"
+            aria-hidden
+          />
+        )}
+        <h2 className="m-0 text-xs font-semibold text-zinc-800 sm:text-sm">
+          {isDeliver ? 'Entrega de pallet' : 'Retirada de pallet'}
+        </h2>
+      </div>
     </div>
   );
 }
@@ -99,146 +304,63 @@ export function OperatorMovimentManualQueueSection({
   onAcceptReplenishment,
   onAcceptPickup,
 }: OperatorMovimentManualQueueSectionProps) {
-  return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card className="overflow-hidden border border-zinc-200 shadow-sm">
-        <div className="border-b border-zinc-100 bg-zinc-50/90 px-3 py-2">
-          <div className="flex items-center gap-2">
-            <ArrowUpRight
-              className="size-4 shrink-0 rounded-full bg-green-200"
-              aria-hidden
-            />
-            <h2 className="m-0 text-xs font-semibold text-zinc-800">
-              Entrega: recebimento → máquina
-            </h2>
-          </div>
-        </div>
-        {queueQuery.isError ? (
-          <p className="p-4 text-sm text-red-700">
-            {queueQuery.error instanceof Error
-              ? queueQuery.error.message
-              : 'Erro ao carregar fila.'}
-          </p>
-        ) : (
-          <div className="p-2.5 sm:p-3">
-            {queueQuery.isLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <AccordionLoader />
-              </div>
-            ) : null}
-            {!queueQuery.isLoading && deliverRows.length === 0 ? (
-              <p className="py-4 text-center text-xs text-zinc-600">
-                Nenhuma solicitação disponível no momento.
-              </p>
-            ) : null}
-            <div className="space-y-2">
-              {deliverRows.map((row) => (
-                <div
-                  key={row.id}
-                  className="rounded-lg border border-zinc-200 bg-white p-2.5 shadow-sm sm:p-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-1.5">
-                    <span className="rounded-full bg-zinc-900/90 px-2 py-px text-[0.625rem] font-semibold leading-tight text-white">
-                      {priorityLabel(row.priorityLevel)}
-                    </span>
-                    <span className="text-[0.625rem] tabular-nums text-zinc-500">
-                      {formatTaskDate(row.createdAt)}
-                    </span>
-                  </div>
-                  <div className="mt-2">
-                    <DeliverRequestFlow row={row} />
-                  </div>
-                  <p className="mt-2 text-[0.625rem] leading-snug text-zinc-600">
-                    <span className="font-medium text-zinc-700">Solic.</span>{' '}
-                    {row.requestedBy?.name ?? '—'}
-                  </p>
-                  <div className="mt-2 flex justify-end border-t border-zinc-100 pt-2">
-                    <Button
-                      type="button"
-                      className="h-7 px-2.5 text-[0.6875rem] font-semibold sm:h-8 sm:px-3"
-                      disabled={busy}
-                      onClick={() => onAcceptReplenishment(row.id)}
-                    >
-                      {pendingReplenishmentRequestId === row.id
-                        ? 'Aceitando…'
-                        : 'Aceitar'}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </Card>
+  if (queueQuery.isError) {
+    return (
+      <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800 md:px-4 md:py-3">
+        {queueQuery.error instanceof Error
+          ? queueQuery.error.message
+          : 'Erro ao carregar fila.'}
+      </p>
+    );
+  }
 
-      <Card className="overflow-hidden border border-zinc-200 shadow-sm">
-        <div className="border-b border-zinc-100 bg-zinc-50/90 px-3 py-2">
-          <div className="flex items-center gap-2">
-            <ArrowDownLeft
-              className="size-4 shrink-0 rounded-full bg-red-200"
-              aria-hidden
-            />
-            <h2 className="m-0 text-xs font-semibold text-zinc-800">
-              Retirada: máquina → expedição
-            </h2>
-          </div>
-        </div>
-        {queueQuery.isError ? (
-          <p className="p-4 text-sm text-red-700">
-            {queueQuery.error instanceof Error
-              ? queueQuery.error.message
-              : 'Erro ao carregar fila.'}
+  if (queueQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-8 md:px-4 md:py-10">
+        <AccordionLoader />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
+      <div className="flex min-w-0 flex-col gap-4 md:gap-5">
+        <ManualQueueColumnHeading variant="deliver" />
+        {deliverRows.length === 0 ? (
+          <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600 md:px-4">
+            Nenhuma solicitação disponível no momento.
           </p>
         ) : (
-          <div className="p-2.5 sm:p-3">
-            {queueQuery.isLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <AccordionLoader />
-              </div>
-            ) : null}
-            {!queueQuery.isLoading && pickupRows.length === 0 ? (
-              <p className="py-4 text-center text-xs text-zinc-600">
-                Nenhuma retirada disponível no momento.
-              </p>
-            ) : null}
-            <div className="space-y-2">
-              {pickupRows.map((task) => {
-                const req = task.request;
-                return (
-                  <div
-                    key={task.id}
-                    className="rounded-lg border border-zinc-200 bg-white p-2.5 shadow-sm sm:p-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <span className="rounded-full bg-zinc-900/90 px-2 py-px text-[0.625rem] font-semibold leading-tight text-white">
-                        {priorityLabel(req.priorityLevel)}
-                      </span>
-                      <span className="text-[0.625rem] tabular-nums text-zinc-500">
-                        {formatTaskDate(task.createdAt)}
-                      </span>
-                    </div>
-                    <div className="mt-2">
-                      <PickupTaskFlow task={task} />
-                    </div>
-                    <div className="mt-2 flex justify-end border-t border-zinc-100 pt-2">
-                      <Button
-                        type="button"
-                        className="h-7 px-2.5 text-[0.6875rem] font-semibold sm:h-8 sm:px-3"
-                        disabled={busy}
-                        onClick={() => onAcceptPickup(task.id)}
-                      >
-                        {pendingPickupTaskId === task.id
-                          ? 'Aceitando…'
-                          : 'Aceitar'}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          deliverRows.map((row) => (
+            <ManualDeliverCard
+              key={row.id}
+              row={row}
+              busy={busy}
+              isAccepting={pendingReplenishmentRequestId === row.id}
+              onAccept={onAcceptReplenishment}
+            />
+          ))
         )}
-      </Card>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-4 md:gap-5">
+        <ManualQueueColumnHeading variant="pickup" />
+        {pickupRows.length === 0 ? (
+          <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600 md:px-4">
+            Nenhuma retirada disponível no momento.
+          </p>
+        ) : (
+          pickupRows.map((task) => (
+            <ManualPickupCard
+              key={task.id}
+              task={task}
+              busy={busy}
+              isAccepting={pendingPickupTaskId === task.id}
+              onAccept={onAcceptPickup}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }

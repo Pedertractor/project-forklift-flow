@@ -12,6 +12,7 @@ export type OperatorMovimentWsEventType =
   | 'pickup_task_updated'
   | 'trip_suggestions_updated'
   | 'machine_operator_updated'
+  | 'operator_supply_request_created'
   /** Legado — mantido para compatibilidade */
   | 'replenishment_request_created'
   | 'replenishment_queue_updated'
@@ -71,10 +72,18 @@ export interface OperatorMovimentWsReplenishmentStatusUpdated
   destinationUserId: string | null;
 }
 
+export interface OperatorMovimentWsOperatorSupplyRequestCreated
+  extends OperatorMovimentWsEventBase {
+  type: 'operator_supply_request_created';
+  sectorId: string;
+  machineId: string;
+}
+
 export type OperatorMovimentWsEvent =
   | OperatorMovimentWsEventBase
   | OperatorMovimentWsSectorEvent
   | OperatorMovimentWsDeliveryTaskUpdated
   | OperatorMovimentWsPickupTaskUpdated
   | OperatorMovimentWsMachineOperatorUpdated
+  | OperatorMovimentWsOperatorSupplyRequestCreated
   | OperatorMovimentWsReplenishmentStatusUpdated;
