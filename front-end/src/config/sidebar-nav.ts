@@ -5,9 +5,7 @@ import {
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
 } from '@/types/role.types';
-import {
-  OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
-} from '@/constants/operator-moviment-routes';
+import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 
 export interface SidebarNavItem {
   to: string;
@@ -87,7 +85,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   },
   {
     id: 'admin-dashboard',
-    title: 'Supervisão',
+    title: 'Dashboard',
     rolesDescription: 'Líder (LEADER) e administrador (ADMIN).',
     items: [
       {

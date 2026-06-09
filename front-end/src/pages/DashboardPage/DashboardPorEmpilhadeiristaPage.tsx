@@ -5,6 +5,7 @@ import type { OperationalDashboardOperatorRow } from '@/services/operational-das
 
 import { DashboardFilters } from './DashboardFilters';
 import { useDashboardByOperatorPage } from './useDashboardByOperatorPage';
+import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 function formatDuration(ms: number | null | undefined) {
   if (ms == null) return '-';
@@ -35,12 +36,24 @@ function OperatorsTableSection({
             <tr className="border-b border-zinc-200 bg-zinc-50/90">
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 Operador de transporte
+              </th> 
+              <th className="px-3 py-3 font-semibold text-zinc-700">
+                <div className="flex items-center gap-2">
+                <ArrowDownLeft
+                className="size-4 rounded-full bg-red-200"
+                aria-hidden
+              />
+                  Retiradas
+                </div>
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
-                Retiradas
-              </th>
-              <th className="px-3 py-3 font-semibold text-zinc-700">
-                Entregas
+                <div className="flex items-center gap-2">
+                <ArrowUpRight
+                className="size-4 rounded-full bg-green-200"
+                aria-hidden
+              />
+                  Entregas
+                </div>
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 Retiradas em aberto
