@@ -4,19 +4,12 @@ import { DataTableCard } from '@/components/ui/table';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
 import { Button } from '@/components/ui/brand-button';
 import type { OperationalDashboardOperatorRow } from '@/services/operational-dashboard-api';
+import { formatDurationMs } from '@/utils/formatDurationMs';
 
 import { DashboardFilters } from './DashboardFilters';
 import { OperatorCurrentTrajectoryDialog } from './OperatorCurrentTrajectoryDialog';
 import { useDashboardByOperatorPage } from './useDashboardByOperatorPage';
 import { ArrowDownLeft, ArrowUpRight, Route } from 'lucide-react';
-
-function formatDuration(ms: number | null | undefined) {
-  if (ms == null) return '-';
-  const minutes = ms / 60_000;
-  if (minutes < 0.1) return '< 0,1 min';
-  if (minutes < 10) return `${minutes.toFixed(1).replace('.', ',')} min`;
-  return `${Math.round(minutes)} min`;
-}
 
 function OperatorsTableSection({
   rows,
@@ -98,10 +91,10 @@ function OperatorsTableSection({
                     {operator.deliveries_total}
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {formatDuration(operator.avg_pickup_duration_ms)}
+                    {formatDurationMs(operator.avg_pickup_duration_ms)}
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {formatDuration(operator.avg_delivery_duration_ms)}
+                    {formatDurationMs(operator.avg_delivery_duration_ms)}
                   </td>
                   <td className="px-3 py-3 text-right">
                     <Button
@@ -159,11 +152,10 @@ export function DashboardPorEmpilhadeiristaPage() {
     <div className="flex flex-col gap-6 pb-2">
       <div>
         <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl md:text-3xl">
-          Por operador de movimentação
+          Por operador de transporte
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
-          Volume de retiradas e entregas por operador, tempos médios e trajeto
-          assistido da atividade em curso
+          Volume de retiradas e entregas por operador de transporte
           {formattedDate ? (
             <>
               {' '}
