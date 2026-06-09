@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { PageLoader } from '@/components/layout/PageLoader';
 import { OPERATOR_MOVIMENT_EQUIPMENT_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
 import { fetchOperatorMyMovimentPallet } from '@/services/operator-moviment-pallet-api';

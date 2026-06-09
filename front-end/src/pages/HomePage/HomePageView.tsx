@@ -12,7 +12,6 @@ function isMachineDomainRole(role: string | undefined): boolean {
 export function HomePageView({
   user,
   unitLabel,
-  envApiUrl,
 }: HomePageViewModel) {
   const showSupplyModule = isMachineDomainRole(user?.role);
   return (

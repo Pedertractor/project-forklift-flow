@@ -1,14 +1,81 @@
 import type { WebSocket } from 'ws'
 import {
   MachineTaskStatus,
+  RoleUser,
   type TypeMovimentPallet,
 } from '../generated/prisma/enums.js'
 
-type WsClient = { socket: WebSocket }
+export type OperatorMovimentPalletWsClientContext = {
+  userId: string
+  role: RoleUser
+  sectorId: string | null
+  boundMachineId: string | null
+  allowedTypes: readonly TypeMovimentPallet[]
+}
+
+type WsPayload = Record<string, unknown> & {
+  type?: string
+  sectorId?: string
+  typeMovimentPallet?: TypeMovimentPallet
+  destinationUserId?: string | null
+  machineId?: string
+  affectedUserId?: string | null
+}
+
+type WsClient = OperatorMovimentPalletWsClientContext & { socket: WebSocket }
 
 const clients = new Set<WsClient>()
 
 const WS_OPEN = 1
+
+const SECTOR_QUEUE_EVENT_TYPES = new Set([
+  'delivery_task_created',
+  'delivery_queue_updated',
+  'trip_suggestions_updated',
+  'replenishment_request_created',
+  'replenishment_queue_updated',
+])
+
+const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
+  'operator_supply_request_created',
+  'delivery_task_created',
+  'delivery_task_updated',
+])
+
+const MACHINE_OPERATOR_EVENT_TYPES = new Set([
+  'delivery_task_updated',
+  'pickup_task_updated',
+  'replenishment_status_updated',
+  'machine_operator_updated',
+])
+
+const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated'])
+
+const MOVIMENT_OPERATOR_ROLES = new Set<RoleUser>([
+  RoleUser.PALLET_TRANSPORTER,
+  RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
+])
+
+const OPERATOR_MACHINE_ROLES = new Set<RoleUser>([
+  RoleUser.OPERATOR_MACHINE,
+  RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
+])
+
+const MACHINE_CADASTRO_ROLES = new Set<RoleUser>([
+  RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
+  RoleUser.LEADER,
+  RoleUser.SUPPLY_OPERATOR,
+])
+
+const SUPPLY_REPLENISHMENT_ROLES = new Set<RoleUser>([
+  RoleUser.SUPPLY_OPERATOR,
+  RoleUser.LEADER,
+  RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
+])
 
 function safeSend(socket: WebSocket, payload: Record<string, unknown>): void {
   if (socket.readyState !== WS_OPEN) {
@@ -21,14 +88,100 @@ function safeSend(socket: WebSocket, payload: Record<string, unknown>): void {
   }
 }
 
-function broadcast(payload: Record<string, unknown>): void {
-  for (const { socket } of clients) {
-    safeSend(socket, payload)
+function sectorMatches(client: WsClient, payload: WsPayload): boolean {
+  if (!payload.sectorId || !client.sectorId) {
+    return true
+  }
+  return payload.sectorId === client.sectorId
+}
+
+function movimentTypeMatches(client: WsClient, payload: WsPayload): boolean {
+  if (!payload.typeMovimentPallet) {
+    return true
+  }
+  return client.allowedTypes.includes(payload.typeMovimentPallet)
+}
+
+function matchesMovimentOperator(client: WsClient, payload: WsPayload): boolean {
+  if (!payload.type || !MOVIMENT_OPERATOR_ROLES.has(client.role)) {
+    return false
+  }
+  if (
+    !SECTOR_QUEUE_EVENT_TYPES.has(payload.type) &&
+    payload.type !== 'delivery_task_updated' &&
+    payload.type !== 'pickup_task_updated'
+  ) {
+    return false
+  }
+  return sectorMatches(client, payload) && movimentTypeMatches(client, payload)
+}
+
+function matchesMachineOperator(client: WsClient, payload: WsPayload): boolean {
+  if (
+    !payload.type ||
+    !MACHINE_OPERATOR_EVENT_TYPES.has(payload.type) ||
+    !OPERATOR_MACHINE_ROLES.has(client.role)
+  ) {
+    return false
+  }
+  if (payload.type === 'machine_operator_updated') {
+    return payload.affectedUserId === client.userId
+  }
+  if (payload.destinationUserId === client.userId) {
+    return true
+  }
+  return Boolean(
+    client.boundMachineId &&
+      payload.machineId &&
+      payload.machineId === client.boundMachineId,
+  )
+}
+
+function matchesMachineCadastro(client: WsClient, payload: WsPayload): boolean {
+  if (
+    !payload.type ||
+    !MACHINE_CADASTRO_EVENT_TYPES.has(payload.type) ||
+    !MACHINE_CADASTRO_ROLES.has(client.role)
+  ) {
+    return false
+  }
+  return sectorMatches(client, payload)
+}
+
+/** Tela de reposição / abastecimento (nova solicitação da dobra, tarefa de entrega). */
+function matchesSupplyReplenishment(client: WsClient, payload: WsPayload): boolean {
+  if (
+    !payload.type ||
+    !SUPPLY_REPLENISHMENT_EVENT_TYPES.has(payload.type) ||
+    !SUPPLY_REPLENISHMENT_ROLES.has(client.role)
+  ) {
+    return false
+  }
+  return sectorMatches(client, payload)
+}
+
+function shouldSendToClient(client: WsClient, payload: WsPayload): boolean {
+  return (
+    matchesMachineCadastro(client, payload) ||
+    matchesSupplyReplenishment(client, payload) ||
+    matchesMachineOperator(client, payload) ||
+    matchesMovimentOperator(client, payload)
+  )
+}
+
+function broadcast(payload: WsPayload): void {
+  for (const client of clients) {
+    if (shouldSendToClient(client, payload)) {
+      safeSend(client.socket, payload)
+    }
   }
 }
 
-export function operatorMovimentPalletWsRegisterClient(socket: WebSocket): void {
-  const entry: WsClient = { socket }
+export function operatorMovimentPalletWsRegisterClient(
+  socket: WebSocket,
+  context: OperatorMovimentPalletWsClientContext,
+): void {
+  const entry: WsClient = { socket, ...context }
   clients.add(entry)
   socket.on('close', () => {
     clients.delete(entry)
@@ -43,6 +196,17 @@ export function operatorMovimentPalletWsBroadcastDeliveryTaskCreated(
     type: 'delivery_task_created' as const,
     sectorId,
     typeMovimentPallet,
+  })
+}
+
+export function operatorMovimentPalletWsBroadcastOperatorSupplyRequestCreated(
+  sectorId: string,
+  machineId: string,
+): void {
+  broadcast({
+    type: 'operator_supply_request_created' as const,
+    sectorId,
+    machineId,
   })
 }
 

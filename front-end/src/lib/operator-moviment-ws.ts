@@ -5,6 +5,12 @@ import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types
 /** Caminho do WebSocket no servidor (sem prefixo `/api`). */
 const WS_PATH = '/ws/operator-moviment-pallet';
 
+const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
+  'operator_supply_request_created',
+  'delivery_task_created',
+  'delivery_task_updated',
+]);
+
 const SECTOR_QUEUE_EVENT_TYPES = new Set([
   'delivery_task_created',
   'delivery_queue_updated',
@@ -34,8 +40,24 @@ export function resolveOperatorMovimentWsUrl(token: string): string | null {
     return null;
   }
 
-  const protocol = origin.startsWith('https') ? 'wss' : 'ws';
-  const host = origin.replace(/^https?:\/\//, '');
+  const apiIsRelative = ENV.API_URL.startsWith('/');
+  const useBrowserHost =
+    typeof window !== 'undefined' &&
+    window.location.host.length > 0 &&
+    (apiIsRelative ||
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin));
+
+  const protocol =
+    useBrowserHost &&
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:'
+      ? 'wss'
+      : origin.startsWith('https')
+        ? 'wss'
+        : 'ws';
+  const host = useBrowserHost
+    ? window.location.host
+    : origin.replace(/^https?:\/\//, '');
   return `${protocol}://${host}${WS_PATH}?token=${encodeURIComponent(token)}`;
 }
 
@@ -97,19 +119,47 @@ function destinationUserIdFromEvent(
   return undefined;
 }
 
-/** Operador de dobra: tarefas da máquina em que está logado (`machine.userId`). */
+function machineIdFromEvent(
+  event: OperatorMovimentWsEvent,
+): string | null | undefined {
+  if ('machineId' in event && typeof event.machineId === 'string') {
+    return event.machineId;
+  }
+  return undefined;
+}
+
+/** Operador de dobra: tarefas da máquina vinculada (`machine.userId` ou `boundMachineId`). */
 export function wsEventMatchesMachineOperator(
   event: OperatorMovimentWsEvent,
   operatorUserId: string | null | undefined,
+  boundMachineId?: string | null,
+  operatorSectorId?: string | null,
 ): boolean {
   if (!operatorUserId || !MACHINE_OPERATOR_EVENT_TYPES.has(event.type)) {
     return false;
   }
-  if (event.type === 'machine_operator_updated') {
+  if (event.type === 'machine_operator_updated' && 'affectedUserId' in event) {
     return event.affectedUserId === operatorUserId;
   }
   const destinationUserId = destinationUserIdFromEvent(event);
-  return destinationUserId === operatorUserId;
+  if (destinationUserId === operatorUserId) {
+    return true;
+  }
+  const eventMachineId = machineIdFromEvent(event);
+  if (boundMachineId && eventMachineId && eventMachineId === boundMachineId) {
+    return true;
+  }
+  // Fallback: mesmo setor + máquina do evento = máquina em operação (userId na máquina pode vir null no WS).
+  if (
+    operatorSectorId &&
+    'sectorId' in event &&
+    event.sectorId === operatorSectorId &&
+    boundMachineId &&
+    eventMachineId === boundMachineId
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Cadastro / supervisão: vínculo operador ↔ máquina no setor (ou todos se sem setor). */
@@ -129,17 +179,40 @@ export function wsEventMatchesMachineCadastro(
   return event.sectorId === sectorId;
 }
 
+/** Abastecimento / líder — tela de reposição e fila aguardando preparo. */
+export function wsEventMatchesSupplyReplenishment(
+  event: OperatorMovimentWsEvent,
+  sectorId: string | null | undefined,
+): boolean {
+  if (!SUPPLY_REPLENISHMENT_EVENT_TYPES.has(event.type)) {
+    return false;
+  }
+  if (event.sectorId && sectorId && event.sectorId !== sectorId) {
+    return false;
+  }
+  return true;
+}
+
 export function wsEventMatchesSubscriber(
   event: OperatorMovimentWsEvent,
   options: {
     sectorId: string | null | undefined;
     userId: string | null | undefined;
+    boundMachineId?: string | null;
+    operatorSectorId?: string | null;
     allowedMovimentTypes: readonly string[];
     isMovimentOperator: boolean;
     isMachineOperator: boolean;
     isMachineCadastro: boolean;
+    isSupplyReplenishment: boolean;
   },
 ): boolean {
+  if (
+    options.isSupplyReplenishment &&
+    wsEventMatchesSupplyReplenishment(event, options.sectorId)
+  ) {
+    return true;
+  }
   if (
     options.isMachineCadastro &&
     wsEventMatchesMachineCadastro(event, options.sectorId)
@@ -148,7 +221,12 @@ export function wsEventMatchesSubscriber(
   }
   if (
     options.isMachineOperator &&
-    wsEventMatchesMachineOperator(event, options.userId)
+    wsEventMatchesMachineOperator(
+      event,
+      options.userId,
+      options.boundMachineId,
+      options.operatorSectorId,
+    )
   ) {
     return true;
   }

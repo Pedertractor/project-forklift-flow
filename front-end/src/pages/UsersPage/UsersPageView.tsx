@@ -1,24 +1,22 @@
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
-import { Card } from '@/components/ui/card';
+import { DataTableCard } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { LEADER_CREATABLE_ROLES } from '@/types/role.types';
 import type { UsersPageViewModel } from './useUsersPage';
+import { SelectCombobox } from '@/components/ui/select-combobox';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
-
-const selectClass =
-  'flex h-[var(--control-height,2.5rem)] w-full rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition-colors focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/25';
+import { Building2, KeyRound, UserCog } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
+  SUPERADMIN: 'Superadministrador',
   ADMIN: 'Administrador',
   LEADER: 'Líder',
   SUPPLY_OPERATOR: 'Operador de abastecimento',
   OPERATOR_MACHINE: 'Operador de máquina',
   PALLET_TRANSPORTER: 'Transportador de pallet',
-  SUPERVISOR: 'Supervisor',
-  MANAGER: 'Gestor',
 };
 
 function roleLabel(role: string): string {
@@ -51,7 +49,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
     setFormUnit,
     verifiedEmployee,
     verifyState,
-    verifyMut,
+    isVerifying,
     formRole,
     setFormRole,
     formSectorId,
@@ -63,6 +61,11 @@ export function UsersPageView(vm: UsersPageViewModel) {
     roleEditValue,
     setRoleEditValue,
     rolePatchMut,
+    sectorEditUser,
+    setSectorEditUser,
+    sectorEditValue,
+    setSectorEditValue,
+    sectorPatchMut,
     detailUser,
     setDetailUser,
     resetTarget,
@@ -74,6 +77,19 @@ export function UsersPageView(vm: UsersPageViewModel) {
     openUserDetail,
     openResetFromDetail,
     openRoleEditFromDetail,
+    openSectorEditFromDetail,
+    searchFilter,
+    setSearchFilter,
+    roleFilter,
+    setRoleFilter,
+    sectorFilter,
+    setSectorFilter,
+    unitFilter,
+    setUnitFilter,
+    filteredUsers,
+    roleFilterOptions,
+    hasActiveFilters,
+    clearFilters,
   } = vm;
 
   const canManageRow = isAdmin || isLeader;
@@ -82,6 +98,8 @@ export function UsersPageView(vm: UsersPageViewModel) {
     createMut.error instanceof Error ? createMut.error.message : null;
   const roleErr =
     rolePatchMut.error instanceof Error ? rolePatchMut.error.message : null;
+  const sectorErr =
+    sectorPatchMut.error instanceof Error ? sectorPatchMut.error.message : null;
   const resetErr =
     resetMut.error instanceof Error ? resetMut.error.message : null;
 
@@ -134,7 +152,116 @@ export function UsersPageView(vm: UsersPageViewModel) {
         ) : null}
 
         {canListUsers ? (
-          <Card className="mt-6 overflow-x-auto border border-zinc-200 shadow-sm">
+          <div className="mt-4 overflow-x-auto pb-1">
+            <div className="flex w-max max-w-full flex-nowrap items-end justify-start gap-2">
+              <div className="flex w-36 shrink-0 flex-col gap-1.5">
+                <Label htmlFor="users-search-filter" className="text-xs">
+                  Buscar
+                </Label>
+                <Input
+                  id="users-search-filter"
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  placeholder="Nome ou cartão"
+                  disabled={!apiReady || usersQuery.isLoading}
+                  className="h-10"
+                />
+              </div>
+              <div className="flex w-36 shrink-0 flex-col gap-1.5">
+                <Label htmlFor="users-role-filter" className="text-xs">
+                  Perfil
+                </Label>
+                <SelectCombobox
+                  id="users-role-filter"
+                  value={roleFilter}
+                  onValueChange={setRoleFilter}
+                  disabled={!apiReady || usersQuery.isLoading}
+                  placeholder="Todos"
+                  searchable={false}
+                  className="w-36"
+                  options={[
+                    { value: '', label: 'Todos' },
+                    ...roleFilterOptions.map((r) => ({
+                      value: r,
+                      label: roleLabel(r),
+                    })),
+                  ]}
+                />
+              </div>
+              {isAdmin ? (
+                <div className="flex w-36 shrink-0 flex-col gap-1.5">
+                  <Label htmlFor="users-sector-filter" className="text-xs">
+                    Setor
+                  </Label>
+                  <SelectCombobox
+                    id="users-sector-filter"
+                    value={sectorFilter}
+                    onValueChange={setSectorFilter}
+                    disabled={!apiReady || sectorsQuery.isLoading}
+                    placeholder="Todos"
+                    className="w-36"
+                    options={[
+                      { value: '', label: 'Todos' },
+                      ...(sectorsQuery.data ?? []).map((s) => ({
+                        value: s.id,
+                        label: s.typeSector,
+                      })),
+                    ]}
+                  />
+                </div>
+              ) : null}
+              <div className="flex shrink-0 flex-col gap-1.5">
+                <span className="text-xs font-medium text-zinc-900">
+                  Unidade
+                </span>
+                <div className="flex h-10 gap-1">
+                  <Button
+                    type="button"
+                    variant={
+                      unitFilter === 'PEDERTRACTOR' ? 'default' : 'outline'
+                    }
+                    className="h-10 min-w-10 px-3"
+                    disabled={!apiReady || usersQuery.isLoading}
+                    onClick={() =>
+                      setUnitFilter(
+                        unitFilter === 'PEDERTRACTOR' ? '' : 'PEDERTRACTOR',
+                      )
+                    }
+                    title="PEDERTRACTOR"
+                  >
+                    P
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={unitFilter === 'TRACTOR' ? 'default' : 'outline'}
+                    className="h-10 min-w-10 px-3"
+                    disabled={!apiReady || usersQuery.isLoading}
+                    onClick={() =>
+                      setUnitFilter(unitFilter === 'TRACTOR' ? '' : 'TRACTOR')
+                    }
+                    title="TRACTOR"
+                  >
+                    T
+                  </Button>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 shrink-0 whitespace-nowrap"
+                disabled={
+                  !apiReady || usersQuery.isLoading || !hasActiveFilters
+                }
+                onClick={clearFilters}
+              >
+                Limpar filtros
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {canListUsers ? (
+          <DataTableCard className="mt-6">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -183,8 +310,17 @@ export function UsersPageView(vm: UsersPageViewModel) {
                         : 'Nenhum usuário retornado.'}
                     </td>
                   </tr>
+                ) : filteredUsers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={isAdmin ? 6 : 5}
+                      className="px-4 py-8 text-center text-zinc-500"
+                    >
+                      Nenhum usuário corresponde aos filtros selecionados.
+                    </td>
+                  </tr>
                 ) : (
-                  usersQuery.data?.map((row) => (
+                  filteredUsers.map((row) => (
                     <tr
                       key={row.id}
                       className={
@@ -223,7 +359,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 )}
               </tbody>
             </table>
-          </Card>
+          </DataTableCard>
         ) : null}
 
         <SimpleModal
@@ -298,15 +434,11 @@ export function UsersPageView(vm: UsersPageViewModel) {
               </div>
             </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full sm:w-auto"
-              disabled={busyCreate || !formCard.trim()}
-              onClick={() => verifyMut.mutate()}
-            >
-              {verifyMut.isPending ? 'Validando…' : 'Validar colaborador'}
-            </Button>
+            {isVerifying ? (
+              <p className="m-0 text-sm text-zinc-500">
+                Validando colaborador…
+              </p>
+            ) : null}
 
             {verifyState === 'fail' ? (
               <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -326,44 +458,43 @@ export function UsersPageView(vm: UsersPageViewModel) {
 
             <div className="space-y-2">
               <Label htmlFor="nu-role">Perfil</Label>
-              <select
+              <SelectCombobox
                 id="nu-role"
-                className={selectClass}
                 value={formRole}
-                onChange={(e) => setFormRole(e.target.value)}
+                onValueChange={setFormRole}
                 disabled={busyCreate || (isAdmin && !rolesQuery.data?.length)}
-              >
-                {isLeader
-                  ? LEADER_CREATABLE_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {roleLabel(r)}
-                      </option>
-                    ))
-                  : (rolesQuery.data ?? []).map((r) => (
-                      <option key={r} value={r}>
-                        {roleLabel(r)}
-                      </option>
-                    ))}
-              </select>
+                searchable={false}
+                options={
+                  isLeader
+                    ? LEADER_CREATABLE_ROLES.map((r) => ({
+                        value: r,
+                        label: roleLabel(r),
+                      }))
+                    : (rolesQuery.data ?? []).map((r) => ({
+                        value: r,
+                        label: roleLabel(r),
+                      }))
+                }
+              />
             </div>
 
             {isAdmin ? (
               <div className="space-y-2">
                 <Label htmlFor="nu-sector">Setor (opcional)</Label>
-                <select
+                <SelectCombobox
                   id="nu-sector"
-                  className={selectClass}
                   value={formSectorId}
-                  onChange={(e) => setFormSectorId(e.target.value)}
+                  onValueChange={setFormSectorId}
                   disabled={busyCreate || sectorsQuery.isLoading}
-                >
-                  <option value="">Sem setor</option>
-                  {(sectorsQuery.data ?? []).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.typeSector}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Sem setor"
+                  options={[
+                    { value: '', label: 'Sem setor' },
+                    ...(sectorsQuery.data ?? []).map((s) => ({
+                      value: s.id,
+                      label: s.typeSector,
+                    })),
+                  ]}
+                />
                 <p className="m-0 text-xs text-zinc-500">
                   Administradores podem vincular qualquer setor ou deixar sem
                   setor.
@@ -387,16 +518,21 @@ export function UsersPageView(vm: UsersPageViewModel) {
               : undefined
           }
           onClose={() => (!busyAdmin ? setDetailUser(null) : undefined)}
+          showHeaderClose
+          headerCloseDisabled={busyAdmin}
           footer={
             <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={busyAdmin}
-                onClick={() => setDetailUser(null)}
-              >
-                Fechar
-              </Button>
+              {isAdmin ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!apiReady || busyAdmin}
+                  onClick={openSectorEditFromDetail}
+                >
+                  <Building2 aria-hidden />
+                  Alterar setor
+                </Button>
+              ) : null}
               {isAdmin ||
               (isLeader && detailUser && leaderCanEditUserRole(detailUser)) ? (
                 <Button
@@ -405,6 +541,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                   disabled={!apiReady || busyAdmin}
                   onClick={openRoleEditFromDetail}
                 >
+                  <UserCog aria-hidden />
                   Alterar perfil
                 </Button>
               ) : null}
@@ -415,6 +552,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 disabled={!apiReady || busyAdmin}
                 onClick={openResetFromDetail}
               >
+                <KeyRound aria-hidden />
                 Resetar senha
               </Button>
             </div>
@@ -436,11 +574,11 @@ export function UsersPageView(vm: UsersPageViewModel) {
                     : 'Primeiro acesso'}
                 </dd>
               </div>
-              {isAdmin && detailUser.sector ? (
+              {isAdmin ? (
                 <div className="sm:col-span-2">
                   <dt className="font-medium text-zinc-500">Setor</dt>
                   <dd className="mt-0.5 text-zinc-900">
-                    {detailUser.sector.typeSector}
+                    {detailUser.sector?.typeSector ?? 'Sem setor'}
                   </dd>
                 </div>
               ) : isLeader && leaderSectorLabel ? (
@@ -452,10 +590,64 @@ export function UsersPageView(vm: UsersPageViewModel) {
               <p className="m-0 text-xs text-zinc-500 sm:col-span-2">
                 {isLeader
                   ? 'Altere o perfil de operação ou redefina a senha inicial de colaboradores do seu setor.'
-                  : 'Altere o perfil ou redefina a senha inicial para o padrão do ambiente.'}
+                  : 'Altere o perfil, vincule ou troque o setor, ou redefina a senha inicial para o padrão do ambiente.'}
               </p>
             </dl>
           ) : null}
+        </SimpleModal>
+
+        <SimpleModal
+          open={Boolean(sectorEditUser)}
+          title="Alterar setor"
+          description={
+            sectorEditUser
+              ? `Usuário: ${sectorEditUser.name} (${sectorEditUser.card})`
+              : undefined
+          }
+          onClose={() => (!busyAdmin ? setSectorEditUser(null) : undefined)}
+          footer={
+            <ModalActions
+              onCancel={() => !busyAdmin && setSectorEditUser(null)}
+              submitLabel={busyAdmin ? 'Salvando…' : 'Salvar setor'}
+              disabled={busyAdmin}
+              onSubmit={() => {
+                if (sectorEditUser) {
+                  sectorPatchMut.mutate({
+                    id: sectorEditUser.id,
+                    sectorId:
+                      sectorEditValue.trim() === '' ? null : sectorEditValue,
+                  });
+                }
+              }}
+            />
+          }
+        >
+          {sectorErr ? (
+            <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              {sectorErr}
+            </p>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="edit-sector">Setor</Label>
+            <SelectCombobox
+              id="edit-sector"
+              value={sectorEditValue}
+              onValueChange={setSectorEditValue}
+              disabled={busyAdmin || sectorsQuery.isLoading}
+              placeholder="Sem setor"
+              options={[
+                { value: '', label: 'Sem setor' },
+                ...(sectorsQuery.data ?? []).map((s) => ({
+                  value: s.id,
+                  label: s.typeSector,
+                })),
+              ]}
+            />
+            <p className="m-0 text-xs text-zinc-500">
+              Selecione um setor existente ou deixe sem setor para remover o
+              vínculo.
+            </p>
+          </div>
         </SimpleModal>
 
         <SimpleModal
@@ -490,19 +682,17 @@ export function UsersPageView(vm: UsersPageViewModel) {
           ) : null}
           <div className="space-y-2">
             <Label htmlFor="edit-role">Novo perfil</Label>
-            <select
+            <SelectCombobox
               id="edit-role"
-              className={selectClass}
               value={roleEditValue}
-              onChange={(e) => setRoleEditValue(e.target.value)}
+              onValueChange={setRoleEditValue}
               disabled={busyAdmin || roleEditOptions.length === 0}
-            >
-              {roleEditOptions.map((r) => (
-                <option key={r} value={r}>
-                  {roleLabel(r)}
-                </option>
-              ))}
-            </select>
+              searchable={false}
+              options={roleEditOptions.map((r) => ({
+                value: r,
+                label: roleLabel(r),
+              }))}
+            />
           </div>
         </SimpleModal>
 
@@ -511,7 +701,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
           title="Redefinir senha inicial"
           description={
             resetTarget
-              ? `Confirma redefinição da senha de «${resetTarget.name}» para a senha padrão do ambiente? O usuário precisará trocar a senha no próximo fluxo de primeiro acesso.`
+              ? `Confirme a redefinição, a primeira senha é 123`
               : undefined
           }
           onClose={() => (!busyAdmin ? setResetTarget(null) : undefined)}

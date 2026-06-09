@@ -5,7 +5,7 @@ import { AppSidebar } from '@/components/layout/AppSidebar';
 import { APP_MAIN_PANE_ID } from '@/components/layout/main-content-portal';
 import { OperatorMovimentWorkProvider } from '@/components/layout/OperatorMovimentWorkProvider';
 import { useAuthStore } from '@/store/auth.store';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
 
 function MenuIcon({ className }: { className?: string }) {

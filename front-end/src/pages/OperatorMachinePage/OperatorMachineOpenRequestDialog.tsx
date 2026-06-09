@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { cn } from '@/lib/utils';
 import type { TypeMovimentPalletValue } from '@/types/machine-task.types';
@@ -15,7 +15,12 @@ import {
   PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
 } from './operator-machine-flow';
 import type { DeliveryTaskListItem } from '@/types/machine-task.types';
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, ChevronLeft } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ChevronLeft,
+} from 'lucide-react';
 
 export type OperatorServiceSelection = {
   pickup: boolean;
@@ -169,8 +174,7 @@ export function OperatorMachineOpenRequestDialog({
   const pickupOnlySelected = pickup && !combinedSelected;
   const supplyOnlySelected = supply && supplyAvailable && !combinedSelected;
 
-  const modalTitle =
-    step === 1 ? 'Abrir solicitação' : 'Tipo de retirada';
+  const modalTitle = step === 1 ? 'Abrir solicitação' : 'Tipo de retirada';
   const modalDescription =
     step === 1
       ? pickupWithReplenishmentAvailable
@@ -280,51 +284,22 @@ export function OperatorMachineOpenRequestDialog({
           })}
         </ul>
       ) : (
-      <div className="flex flex-col gap-4">
-        <ServiceOptionCard
-          selected={combinedSelected}
-          disabled={!canSelectBoth}
-          onToggle={toggleBoth}
-          icon={
-            <span className="flex shrink-0 items-center gap-0.5" aria-hidden>
-              <ArrowDownLeft className="size-5 rounded-full bg-red-200 p-0.5" />
-              <ArrowUpRight className="size-5 rounded-full bg-green-200 p-0.5" />
-            </span>
-          }
-          title="Retirada e abastecimento"
-          description="Solicita retirada do pallet na máquina e aviso ao abastecimento em um único passo."
-          hint={combinedBlockedHint}
-        >
-          {combinedSelected && canPickup ? (
-            <PickupCriticalCheckbox
-              insideCard
-              checked={pickupIsCritical}
-              disabled={submitPending}
-              onChange={setPickupIsCritical}
-            />
-          ) : null}
-        </ServiceOptionCard>
-
-        <p className="m-0 text-center text-xs font-medium text-zinc-500">
-          ou escolha apenas um
-        </p>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-4">
           <ServiceOptionCard
-            selected={pickupOnlySelected}
-            disabled={!canPickup}
-            onToggle={togglePickupOnly}
+            selected={combinedSelected}
+            disabled={!canSelectBoth}
+            onToggle={toggleBoth}
             icon={
-              <ArrowDownLeft
-                className="size-5 shrink-0 rounded-full bg-red-200 p-0.5"
-                aria-hidden
-              />
+              <span className="flex shrink-0 items-center gap-0.5" aria-hidden>
+                <ArrowDownLeft className="size-5 rounded-full bg-red-200 p-0.5" />
+                <ArrowUpRight className="size-5 rounded-full bg-green-200 p-0.5" />
+              </span>
             }
-            title="Solicitar retirada do pallet"
-            description="Aciona o transporte para retirar o prisma na máquina."
-            hint={!canPickup ? pickupBlockedMessage : undefined}
+            title="Retirada e abastecimento"
+            description="Solicita retirada do pallet na máquina e aviso ao abastecimento em um único passo."
+            hint={combinedBlockedHint}
           >
-            {pickupOnlySelected ? (
+            {combinedSelected && canPickup ? (
               <PickupCriticalCheckbox
                 insideCard
                 checked={pickupIsCritical}
@@ -334,28 +309,57 @@ export function OperatorMachineOpenRequestDialog({
             ) : null}
           </ServiceOptionCard>
 
-          <ServiceOptionCard
-            selected={supplyOnlySelected}
-            disabled={!supplyAvailable}
-            onToggle={toggleSupplyOnly}
-            icon={
-              <ArrowUpRight
-                className="size-5 shrink-0 rounded-full bg-green-200 p-0.5"
-                aria-hidden
-              />
-            }
-            title="Solicitar abastecimento de pallet"
-            description="Avisa o abastecimento para registrar a próxima entrega."
-            hint={
-              !pickupWithReplenishmentAvailable
-                ? palletAtReceivingBlockedMessage
-                : supplyAlreadyOpen
-                  ? 'Já existe uma solicitação em aberto — o abastecimento e o transporte já foram avisados.'
-                  : undefined
-            }
-          />
+          <p className="m-0 text-center text-xs font-medium text-zinc-500">
+            ou escolha apenas um
+          </p>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <ServiceOptionCard
+              selected={pickupOnlySelected}
+              disabled={!canPickup}
+              onToggle={togglePickupOnly}
+              icon={
+                <ArrowDownLeft
+                  className="size-5 shrink-0 rounded-full bg-red-200 p-0.5"
+                  aria-hidden
+                />
+              }
+              title="Solicitar retirada do pallet"
+              description="Aciona o transporte para retirar o pallet na máquina."
+              hint={!canPickup ? pickupBlockedMessage : undefined}
+            >
+              {pickupOnlySelected ? (
+                <PickupCriticalCheckbox
+                  insideCard
+                  checked={pickupIsCritical}
+                  disabled={submitPending}
+                  onChange={setPickupIsCritical}
+                />
+              ) : null}
+            </ServiceOptionCard>
+
+            <ServiceOptionCard
+              selected={supplyOnlySelected}
+              disabled={!supplyAvailable}
+              onToggle={toggleSupplyOnly}
+              icon={
+                <ArrowUpRight
+                  className="size-5 shrink-0 rounded-full bg-green-200 p-0.5"
+                  aria-hidden
+                />
+              }
+              title="Solicitar abastecimento de pallet"
+              description="Avisa o abastecimento para registrar a próxima entrega."
+              hint={
+                !pickupWithReplenishmentAvailable
+                  ? palletAtReceivingBlockedMessage
+                  : supplyAlreadyOpen
+                    ? 'Já existe uma solicitação em aberto.'
+                    : undefined
+              }
+            />
+          </div>
         </div>
-      </div>
       )}
     </SimpleModal>
   );

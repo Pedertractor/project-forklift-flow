@@ -1,6 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, Package } from 'lucide-react';
 import { HorizontalActivityStepper } from '@/components/activity/HorizontalActivityStepper';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
 import type {
   DeliveryTaskListItem,

@@ -21,8 +21,25 @@ const HomePage = lazy(() =>
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage/index').then((m) => ({ default: m.LoginPage })),
 );
-const DashboardPage = lazy(() =>
-  import('@/pages/DashboardPage/index').then((m) => ({ default: m.DashboardPage })),
+const DashboardAreaLayout = lazy(() =>
+  import('@/pages/DashboardPage/index').then((m) => ({
+    default: m.DashboardAreaLayout,
+  })),
+);
+const DashboardHubPage = lazy(() =>
+  import('@/pages/DashboardPage/index').then((m) => ({
+    default: m.DashboardHubPage,
+  })),
+);
+const DashboardGeralPage = lazy(() =>
+  import('@/pages/DashboardPage/index').then((m) => ({
+    default: m.DashboardGeralPage,
+  })),
+);
+const DashboardPorEmpilhadeiristaPage = lazy(() =>
+  import('@/pages/DashboardPage/index').then((m) => ({
+    default: m.DashboardPorEmpilhadeiristaPage,
+  })),
 );
 const TypeMachinesPage = lazy(() =>
   import('@/pages/TypeMachinesPage/index').then((m) => ({ default: m.TypeMachinesPage })),
@@ -98,11 +115,20 @@ export function App() {
               <Route element={<MainLayout />}>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
                   <Route index element={<HomePage />} />
-                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="dashboard" element={<DashboardAreaLayout />}>
+                    <Route index element={<DashboardHubPage />} />
+                    <Route path="geral" element={<DashboardGeralPage />} />
+                    <Route
+                      path="por-empilhadeirista"
+                      element={<DashboardPorEmpilhadeiristaPage />}
+                    />
+                  </Route>
                 </Route>
-                <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
+                <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
                   <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />
                   <Route path="cadastro/maquinas" element={<MachinesPage />} />
+                </Route>
+                <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
                   <Route
                     path="abastecimento/solicitacoes"
                     element={<ReplenishmentRequestsPage />}
@@ -112,7 +138,7 @@ export function App() {
                     element={<SupplyPendingPreparationPage />}
                   />
                 </Route>
-                <Route element={<RequireRoles roles={['ADMIN']} />}>
+                <Route element={<RequireRoles roles={['ADMIN', 'SUPERADMIN']} />}>
                   <Route path="administracao/setores" element={<SectorsPage />} />
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>

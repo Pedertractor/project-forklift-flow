@@ -4,6 +4,7 @@ import {
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
+  hasFullSystemAccess,
 } from '@/types/role.types';
 import { defaultHomePathForRole } from '@/lib/default-home-path';
 
@@ -11,12 +12,12 @@ import { defaultHomePathForRole } from '@/lib/default-home-path';
 const PATH_RULES: { path: string; roles: readonly AppRole[] }[] = [
   { path: '/', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/dashboard', roles: ADMIN_OR_LEADER_ROLES },
-  { path: '/cadastro/tipos-maquina', roles: MACHINE_DOMAIN_ROLES },
-  { path: '/cadastro/maquinas', roles: MACHINE_DOMAIN_ROLES },
+  { path: '/cadastro/tipos-maquina', roles: ADMIN_OR_LEADER_ROLES },
+  { path: '/cadastro/maquinas', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/abastecimento/equipamentos', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/abastecimento/solicitacoes', roles: MACHINE_DOMAIN_ROLES },
   { path: '/abastecimento/preparo-pendente', roles: MACHINE_DOMAIN_ROLES },
-  { path: '/administracao/setores', roles: ['ADMIN'] },
+  { path: '/administracao/setores', roles: ['ADMIN', 'SUPERADMIN'] },
   { path: '/administracao/usuarios', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/operacao/equipamento', roles: MOVIMENT_OPERATOR_ROLES },
   { path: '/operacao/aceitar-tarefas', roles: MOVIMENT_OPERATOR_ROLES },
@@ -40,6 +41,9 @@ export function isPathAllowedForAppRole(
   pathname: string,
   role: string | undefined,
 ): boolean {
+  if (hasFullSystemAccess(role)) {
+    return true;
+  }
   const normalized = normalizeAppPathname(pathname);
   if (
     normalized.startsWith('/dobra/retirada/') &&
@@ -47,7 +51,12 @@ export function isPathAllowedForAppRole(
   ) {
     return Boolean(role && OPERATOR_MACHINE_ROLES.includes(role as AppRole));
   }
-  const rule = PATH_RULES.find((r) => r.path === normalized);
+  const rule = PATH_RULES.find((r) => {
+    if (r.path === '/dashboard') {
+      return normalized === '/dashboard' || normalized.startsWith('/dashboard/');
+    }
+    return r.path === normalized;
+  });
   if (!rule) {
     return false;
   }

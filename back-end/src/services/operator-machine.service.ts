@@ -17,13 +17,14 @@ import {
 } from '../errors/domain-errors.js'
 import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
-import { operatorMachineSupplyRequestRepository } from '../repositories/operator-machine-supply-request.repository.js'
+import { operatorMachineSupplyRequestRepository, operatorMachineSupplyRequestListInclude } from '../repositories/operator-machine-supply-request.repository.js'
 import { movimentPalletTripSuggestionRepository } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
 import {
   operatorMovimentPalletWsBroadcastMachineOperatorUpdated,
+  operatorMovimentPalletWsBroadcastOperatorSupplyRequestCreated,
   operatorMovimentPalletWsBroadcastQueueUpdated,
   operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
   operatorMovimentPalletWsNotifyDeliveryTaskChange,
@@ -250,6 +251,13 @@ export async function requestSupplyOnly(operatorUserId: string) {
     },
   )
 
+  if (machine.sectorId) {
+    operatorMovimentPalletWsBroadcastOperatorSupplyRequestCreated(
+      machine.sectorId,
+      machine.id,
+    )
+  }
+
   return { operatorSupplyRequest, created: true as const }
 }
 
@@ -276,6 +284,7 @@ export async function requestPickupWithReplenishment(
       )
 
     let operatorSupplyRequest = existingOpenSupply
+    let createdSupplyRequest = false
     if (!operatorSupplyRequest) {
       operatorSupplyRequest = await tx.operatorMachineSupplyRequest.create({
         data: {
@@ -283,11 +292,9 @@ export async function requestPickupWithReplenishment(
           requestedBy: { connect: { id: operatorUserId } },
           status: OperatorMachineSupplyRequestStatus.OPEN,
         },
-        include: {
-          machine: { select: { id: true, name: true, sectorId: true } },
-          requestedBy: { select: { id: true, name: true } },
-        },
+        include: operatorMachineSupplyRequestListInclude,
       })
+      createdSupplyRequest = true
     }
 
     const pickupTask = await tx.pickupTask.create({
@@ -311,7 +318,7 @@ export async function requestPickupWithReplenishment(
       },
     })
 
-    return { pickupTask, operatorSupplyRequest }
+    return { pickupTask, operatorSupplyRequest, createdSupplyRequest }
   })
 
   await syncOpenTripSuggestionForPreparedDelivery(
@@ -327,6 +334,13 @@ export async function requestPickupWithReplenishment(
       typeMovimentPallet: result.pickupTask.typeMovimentPallet,
       machine: result.pickupTask.machine,
     })
+  }
+
+  if (result.createdSupplyRequest && machine.sectorId) {
+    operatorMovimentPalletWsBroadcastOperatorSupplyRequestCreated(
+      machine.sectorId,
+      machine.id,
+    )
   }
 
   return result

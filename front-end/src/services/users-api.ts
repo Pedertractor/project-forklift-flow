@@ -92,6 +92,23 @@ export async function patchUserRoleRequest(
   return res;
 }
 
+export async function patchUserSectorRequest(
+  userId: string,
+  sectorId: string | null,
+): Promise<CreateUserApiResponse> {
+  const res = await apiAuthFetch<CreateUserApiResponse>(API_ENDPOINTS.USERS.SECTOR(userId), {
+    method: 'PATCH',
+    body: JSON.stringify({
+      sectorId:
+        typeof sectorId === 'string' && sectorId.trim() === '' ? null : sectorId,
+    }),
+  });
+  if (!res) {
+    throw new Error('Resposta vazia.');
+  }
+  return res;
+}
+
 export async function postResetUserPasswordRequest(userId: string): Promise<void> {
   await apiAuthFetch(API_ENDPOINTS.USERS.RESET_PASSWORD(userId), {
     method: 'POST',

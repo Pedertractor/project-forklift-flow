@@ -10,8 +10,6 @@ const apiTarget = `http://localhost:${apiPort}`;
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Carrega `.env` da raiz do monorepo (mesmo arquivo usado pelo docker-compose).
-  envDir: path.resolve(__dirname, '..'),
   server: {
     host: true,
     port: Number(process.env.FRONTEND_PORT) || 5173,
@@ -23,6 +21,9 @@ export default defineConfig({
     },
   },
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    include: ['recharts'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

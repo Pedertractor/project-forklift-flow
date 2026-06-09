@@ -38,8 +38,6 @@ function operatorRoleShort(
   if (equipmentType === 'FORKLIFT') return 'Empilhadeirista';
   if (equipmentType === 'PALLET_TRUCK') return 'Transpaleteirista';
   if (!role) return null;
-  if (role === 'FORKLIFT_OPERATOR') return 'Empilhadeirista';
-  if (role === 'FOLLOW_UP_OPERATOR') return 'Transpaleteirista';
   if (role === 'PALLET_TRANSPORTER') {
     return equipmentType === 'FORKLIFT' ? 'Empilhadeirista' : 'Transpaleteirista';
   }

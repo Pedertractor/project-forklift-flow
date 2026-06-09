@@ -49,9 +49,13 @@ import {
   openPoolTypesForOperatingMode,
   requestTypeMatchesOperatingMode,
 } from "../utils/replenishment-moviment-type.js";
+import { isAdminOrSuperAdmin } from "../utils/role-user.js";
 
 function assertPalletTransporterRole(role: RoleUser) {
-  if (role !== RoleUser.PALLET_TRANSPORTER && role !== RoleUser.ADMIN) {
+  if (
+    role !== RoleUser.PALLET_TRANSPORTER &&
+    !isAdminOrSuperAdmin(role)
+  ) {
     throw new InvalidOperatingModeError(
       "Sem permissao para operar movimentacao de pallets.",
     );
@@ -788,6 +792,16 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
     status: MachineTaskStatus.ASSIGNED,
     assignedOperator: { connect: { id: operatorUserId } },
   });
+
+  if (updated.machine) {
+    operatorMovimentPalletWsNotifyDeliveryTaskChange({
+      id: updated.id,
+      status: updated.status,
+      typeMovimentPallet: updated.typeMovimentPallet,
+      preparedAt: updated.preparedAt,
+      machine: updated.machine,
+    });
+  }
 
   return { task: updated, deliveryTask: updated };
 }

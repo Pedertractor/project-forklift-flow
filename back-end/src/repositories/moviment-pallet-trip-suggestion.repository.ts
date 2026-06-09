@@ -23,6 +23,169 @@ export type MovimentPalletTripSuggestionWithTasks = Prisma.MovimentPalletTripSug
 
 const completedTaskStatus = MachineTaskStatus.COMPLETED
 
+type TripSuggestionPairInput = {
+  deliverTaskId: string
+  pickupTaskId: string
+  machineId: string
+  typeMovimentPallet: TypeMovimentPallet
+}
+
+type TripSuggestionTx = Prisma.TransactionClient
+
+function isTerminalTripSuggestionStatus(
+  status: MovimentPalletTripSuggestionStatus,
+): boolean {
+  return (
+    status === MovimentPalletTripSuggestionStatus.ACCEPTED ||
+    status === MovimentPalletTripSuggestionStatus.COMPLETED
+  )
+}
+
+function isPrismaUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code: string }).code === 'P2002'
+  )
+}
+
+/** Remove linhas não terminais que bloqueiam os uniques de deliver/pickup. */
+async function removeConflictingTripSuggestions(
+  tx: TripSuggestionTx,
+  input: TripSuggestionPairInput,
+  keepId: string,
+): Promise<boolean> {
+  const conflicts = await tx.movimentPalletTripSuggestion.findMany({
+    where: {
+      OR: [
+        { deliverTaskId: input.deliverTaskId },
+        { pickupTaskId: input.pickupTaskId },
+      ],
+      NOT: { id: keepId },
+    },
+  })
+
+  for (const row of conflicts) {
+    if (isTerminalTripSuggestionStatus(row.status)) {
+      return false
+    }
+    await tx.movimentPalletTripSuggestion.delete({ where: { id: row.id } })
+  }
+
+  return true
+}
+
+async function upsertOpenPairInTransaction(
+  tx: TripSuggestionTx,
+  input: TripSuggestionPairInput,
+): Promise<{ created: boolean }> {
+  await tx.movimentPalletTripSuggestion.updateMany({
+    where: {
+      pickupTaskId: input.pickupTaskId,
+      status: MovimentPalletTripSuggestionStatus.OPEN,
+      deliverTaskId: { not: input.deliverTaskId },
+    },
+    data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
+  })
+
+  let rowByDeliver = await tx.movimentPalletTripSuggestion.findUnique({
+    where: { deliverTaskId: input.deliverTaskId },
+  })
+  let rowByPickup = await tx.movimentPalletTripSuggestion.findUnique({
+    where: { pickupTaskId: input.pickupTaskId },
+  })
+
+  if (rowByDeliver && isTerminalTripSuggestionStatus(rowByDeliver.status)) {
+    return { created: false }
+  }
+  if (rowByPickup && isTerminalTripSuggestionStatus(rowByPickup.status)) {
+    return { created: false }
+  }
+
+  if (
+    rowByDeliver &&
+    rowByPickup &&
+    rowByDeliver.id !== rowByPickup.id
+  ) {
+    await tx.movimentPalletTripSuggestion.delete({
+      where: { id: rowByPickup.id },
+    })
+    rowByPickup = null
+  }
+
+  const existing = rowByDeliver ?? rowByPickup
+
+  if (existing) {
+    const canProceed = await removeConflictingTripSuggestions(
+      tx,
+      input,
+      existing.id,
+    )
+    if (!canProceed) {
+      return { created: false }
+    }
+
+    await tx.movimentPalletTripSuggestion.update({
+      where: { id: existing.id },
+      data: {
+        deliverTaskId: input.deliverTaskId,
+        pickupTaskId: input.pickupTaskId,
+        machineId: input.machineId,
+        typeMovimentPallet: input.typeMovimentPallet,
+        status: MovimentPalletTripSuggestionStatus.OPEN,
+      },
+    })
+    return { created: false }
+  }
+
+  try {
+    await tx.movimentPalletTripSuggestion.create({
+      data: {
+        status: MovimentPalletTripSuggestionStatus.OPEN,
+        deliverTask: { connect: { id: input.deliverTaskId } },
+        pickupTask: { connect: { id: input.pickupTaskId } },
+        machine: { connect: { id: input.machineId } },
+        typeMovimentPallet: input.typeMovimentPallet,
+      },
+    })
+    return { created: true }
+  } catch (error) {
+    if (!isPrismaUniqueViolation(error)) {
+      throw error
+    }
+
+    const row = await tx.movimentPalletTripSuggestion.findFirst({
+      where: {
+        OR: [
+          { deliverTaskId: input.deliverTaskId },
+          { pickupTaskId: input.pickupTaskId },
+        ],
+      },
+    })
+    if (!row || isTerminalTripSuggestionStatus(row.status)) {
+      return { created: false }
+    }
+
+    const canProceed = await removeConflictingTripSuggestions(tx, input, row.id)
+    if (!canProceed) {
+      return { created: false }
+    }
+
+    await tx.movimentPalletTripSuggestion.update({
+      where: { id: row.id },
+      data: {
+        deliverTaskId: input.deliverTaskId,
+        pickupTaskId: input.pickupTaskId,
+        machineId: input.machineId,
+        typeMovimentPallet: input.typeMovimentPallet,
+        status: MovimentPalletTripSuggestionStatus.OPEN,
+      },
+    })
+    return { created: false }
+  }
+}
+
 export const movimentPalletTripSuggestionRepository = {
   findByIdWithTasks(id: string) {
     return prisma.movimentPalletTripSuggestion.findUnique({
@@ -110,75 +273,8 @@ export const movimentPalletTripSuggestionRepository = {
     })
   },
 
-  async upsertOpenPair(input: {
-    deliverTaskId: string
-    pickupTaskId: string
-    machineId: string
-    typeMovimentPallet: TypeMovimentPallet
-  }): Promise<{ created: boolean }> {
-    await prisma.movimentPalletTripSuggestion.updateMany({
-      where: {
-        pickupTaskId: input.pickupTaskId,
-        status: MovimentPalletTripSuggestionStatus.OPEN,
-        deliverTaskId: { not: input.deliverTaskId },
-      },
-      data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
-    })
-
-    const existingByPickup = await prisma.movimentPalletTripSuggestion.findUnique({
-      where: { pickupTaskId: input.pickupTaskId },
-    })
-
-    if (existingByPickup) {
-      if (
-        existingByPickup.status === MovimentPalletTripSuggestionStatus.ACCEPTED ||
-        existingByPickup.status === MovimentPalletTripSuggestionStatus.COMPLETED
-      ) {
-        return { created: false }
-      }
-      await prisma.movimentPalletTripSuggestion.update({
-        where: { id: existingByPickup.id },
-        data: {
-          deliverTaskId: input.deliverTaskId,
-          machineId: input.machineId,
-          typeMovimentPallet: input.typeMovimentPallet,
-          status: MovimentPalletTripSuggestionStatus.OPEN,
-        },
-      })
-      return { created: false }
-    }
-
-    const existingByDeliver = await prisma.movimentPalletTripSuggestion.findUnique({
-      where: { deliverTaskId: input.deliverTaskId },
-    })
-    if (!existingByDeliver) {
-      await prisma.movimentPalletTripSuggestion.create({
-        data: {
-          status: MovimentPalletTripSuggestionStatus.OPEN,
-          deliverTask: { connect: { id: input.deliverTaskId } },
-          pickupTask: { connect: { id: input.pickupTaskId } },
-          machine: { connect: { id: input.machineId } },
-          typeMovimentPallet: input.typeMovimentPallet,
-        },
-      })
-      return { created: true }
-    }
-    if (
-      existingByDeliver.status === MovimentPalletTripSuggestionStatus.ACCEPTED ||
-      existingByDeliver.status === MovimentPalletTripSuggestionStatus.COMPLETED
-    ) {
-      return { created: false }
-    }
-    await prisma.movimentPalletTripSuggestion.update({
-      where: { id: existingByDeliver.id },
-      data: {
-        pickupTaskId: input.pickupTaskId,
-        machineId: input.machineId,
-        typeMovimentPallet: input.typeMovimentPallet,
-        status: MovimentPalletTripSuggestionStatus.OPEN,
-      },
-    })
-    return { created: false }
+  async upsertOpenPair(input: TripSuggestionPairInput): Promise<{ created: boolean }> {
+    return prisma.$transaction((tx) => upsertOpenPairInTransaction(tx, input))
   },
 }
 

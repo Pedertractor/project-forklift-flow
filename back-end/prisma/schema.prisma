@@ -225,9 +225,8 @@ enum RoleUser {
   PALLET_TRANSPORTER
   SUPPLY_OPERATOR
   LEADER
-  SUPERVISOR
-  MANAGER
   ADMIN
+  SUPERADMIN
 }
 
 enum MachineTaskStatus {
@@ -251,10 +250,8 @@ enum PlantMapUnit {
   TRACTOR
 }
 
-
 enum OperatorMachineSupplyRequestStatus {
   OPEN
   FULFILLED
   CANCELLED
 }
-

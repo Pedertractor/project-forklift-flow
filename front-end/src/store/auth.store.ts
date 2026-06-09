@@ -66,7 +66,11 @@ interface AuthState {
   setSession: (payload: SetSessionPayload) => void;
   setUser: (user: User | null) => void;
   /** Atualiza usuário e flag de senha a partir de `GET /auth/me`, mantendo o token atual. */
-  syncSessionFromProfile: (user: User, requiresPasswordChange: boolean) => void;
+  syncSessionFromProfile: (
+    user: User,
+    requiresPasswordChange: boolean,
+    token?: string,
+  ) => void;
   logout: () => void;
 }
 
@@ -97,8 +101,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   setUser: (user) => set({ user }),
-  syncSessionFromProfile: (user, requiresPasswordChange) => {
-    const token = get().token;
+  syncSessionFromProfile: (user, requiresPasswordChange, nextToken) => {
+    const token = nextToken ?? get().token;
     if (!token) {
       return;
     }
@@ -110,7 +114,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     }
-    set({ user, requiresPasswordChange });
+    set({ user, requiresPasswordChange, token });
   },
   logout: () => {
     if (typeof localStorage !== 'undefined') {

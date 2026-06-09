@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/card';
+import { DataTableCard } from '@/components/ui/table';
 import {
   formatTaskDate,
   replenishmentMovimentTypeLabel,
@@ -55,7 +55,7 @@ export function ReplenishmentRequestsTable({
   const colSpan = showHistoryColumns ? 7 : 5;
 
   return (
-    <Card className="min-w-0 overflow-x-auto border border-zinc-200 shadow-sm">
+    <DataTableCard className="min-w-0">
       <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
         <thead>
           <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -172,6 +172,6 @@ export function ReplenishmentRequestsTable({
           )}
         </tbody>
       </table>
-    </Card>
+    </DataTableCard>
   );
 }

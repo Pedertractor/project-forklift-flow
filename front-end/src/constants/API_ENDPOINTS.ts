@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
     ROLES: '/users/roles',
     EMPLOYEE_INFO: '/users/employee-info',
     ROLE: (userId: string) => `/users/${userId}/role`,
+    SECTOR: (userId: string) => `/users/${userId}/sector`,
     RESET_PASSWORD: (userId: string) => `/users/${userId}/reset-password`,
   },
   SECTORS: {
@@ -63,5 +64,11 @@ export const API_ENDPOINTS = {
       `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/complete-deliver`,
     COMPLETE_PICKUP: (taskId: string) =>
       `/operator-moviment-pallet/tasks/${encodeURIComponent(taskId)}/complete-pickup`,
+  },
+  OPERATIONAL_DASHBOARD: {
+    SNAPSHOT: '/operational-dashboard/snapshot',
+    BY_OPERATOR: '/operational-dashboard/by-operator',
+    OPERATOR_CURRENT_TRAJECTORY: (operatorId: string) =>
+      `/operational-dashboard/operators/${encodeURIComponent(operatorId)}/current-trajectory`,
   },
 } as const;

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Button } from '@/components/ui/Button';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,8 @@ type SimpleModalProps = {
   footer?: ReactNode;
   /** Classes extras no painel (ex.: `max-w-2xl` para fluxos em etapas). */
   panelClassName?: string;
+  showHeaderClose?: boolean;
+  headerCloseDisabled?: boolean;
 };
 
 export function SimpleModal({
@@ -22,6 +25,8 @@ export function SimpleModal({
   children,
   footer,
   panelClassName,
+  showHeaderClose,
+  headerCloseDisabled,
 }: SimpleModalProps) {
   if (!open) {
     return null;
@@ -42,12 +47,29 @@ export function SimpleModal({
         )}
       >
         <div className="shrink-0 border-b border-zinc-100 px-5 py-4">
-          <h2 className="m-0 text-lg font-semibold tracking-tight text-zinc-900">
-            {title}
-          </h2>
-          {description ? (
-            <p className="mt-2 mb-0 text-sm text-zinc-600">{description}</p>
-          ) : null}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="m-0 text-lg font-semibold tracking-tight text-zinc-900">
+                {title}
+              </h2>
+              {description ? (
+                <p className="mt-2 mb-0 text-sm text-zinc-600">{description}</p>
+              ) : null}
+            </div>
+            {showHeaderClose ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0"
+                aria-label="Fechar"
+                disabled={headerCloseDisabled}
+                onClick={onClose}
+              >
+                <X className="size-5" aria-hidden />
+              </Button>
+            ) : null}
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {children}

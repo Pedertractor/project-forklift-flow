@@ -1,4 +1,7 @@
 import type {
+  ForkliftTaskStatusApi,
+} from '@/types/operator-moviment-pallet.types';
+import type {
   DeliveryTaskListItem,
   MachineTaskStatusValue,
   PickupTaskListItem,
@@ -61,7 +64,10 @@ export function machineSupplyStatusLabel(
 }
 
 export function machineTaskStatusBadge(status: MachineTaskStatusValue): string {
-  return taskStatusLabelPt(status);
+  const normalizedStatus = (
+    status === 'CANCELED' ? 'CANCELLED' : status
+  ) as ForkliftTaskStatusApi;
+  return taskStatusLabelPt(normalizedStatus);
 }
 
 export type OperatorMachineTaskListRow =

@@ -1,6 +1,8 @@
 import fastifyJwt from '@fastify/jwt'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { env } from '../env/index.js'
+import { resolveAuthenticatedUser } from '../services/auth-jwt.service.js'
+import type { AppJwtPayload } from '../types/auth.types.js'
 
 export async function registerJwtAuth(fastify: FastifyInstance) {
   const secret = env.JWT_SECRET
@@ -23,6 +25,15 @@ export async function registerJwtAuth(fastify: FastifyInstance) {
       } catch {
         return reply.status(401).send({ error: 'Nao autorizado' })
       }
+
+      const resolved = await resolveAuthenticatedUser(
+        request.user as AppJwtPayload,
+      )
+      if (!resolved) {
+        return reply.status(404).send({ error: 'Usuario nao encontrado.' })
+      }
+
+      request.user = resolved
     },
   )
 }

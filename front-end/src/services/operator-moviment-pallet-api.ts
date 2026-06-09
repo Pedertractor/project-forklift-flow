@@ -9,7 +9,6 @@ import type {
   OperatorMovimentPalletsListResponse,
   OperatorMovimentTaskItem,
   OperatorMyMovimentPalletResponse,
-  OperatorMyTasksResponse,
   OperatorPickupTaskQueueItem,
   OperatorReplenishmentQueueResponse,
   OperatorReplenishmentRequestItem,
@@ -21,13 +20,12 @@ import type {
 } from '@/types/operator-moviment-pallet.types';
 
 type DeliveryTaskApiRow = DeliveryTaskListItem & {
-  machine?: DeliveryTaskListItem['machine'];
-  requestedBy?: DeliveryTaskListItem['requestedBy'];
+  assignedOperatorId?: string | null;
 };
 
 type PickupTaskApiRow = PickupTaskListItem & {
-  machine?: PickupTaskListItem['machine'];
-  requestedBy?: PickupTaskListItem['requestedBy'];
+  assignedOperatorId?: string | null;
+  requestedBy?: DeliveryTaskListItem['requestedBy'];
 };
 
 function mapMachineToDestination(
@@ -264,13 +262,15 @@ type ActiveFlowTaskRow = {
   task: DeliveryTaskApiRow | PickupTaskApiRow;
 };
 
-export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]> {
-  const res = await apiAuthFetch<{
-    tasks?: ActiveFlowTaskRow[];
-    deliveryTasks?: DeliveryTaskApiRow[];
-    pickupTasks?: PickupTaskApiRow[];
-  }>(API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.MY_TASKS, { method: 'GET' });
+export type ActiveFlowApiResponse = {
+  tasks?: ActiveFlowTaskRow[];
+  deliveryTasks?: DeliveryTaskApiRow[];
+  pickupTasks?: PickupTaskApiRow[];
+};
 
+export function mapOperatorActiveFlowResponse(
+  res: ActiveFlowApiResponse | null | undefined,
+): OperatorMovimentTaskItem[] {
   if (res?.tasks?.length) {
     return res.tasks.map((row) => {
       if (row.kind === 'DELIVERY') {
@@ -288,6 +288,14 @@ export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]
     items.push(mapPickupTaskToQueueItem(p));
   }
   return items;
+}
+
+export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]> {
+  const res = await apiAuthFetch<ActiveFlowApiResponse>(
+    API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.MY_TASKS,
+    { method: 'GET' },
+  );
+  return mapOperatorActiveFlowResponse(res);
 }
 
 type TripSuggestionApiRow = {

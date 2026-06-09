@@ -4,12 +4,9 @@ import {
   MACHINE_DOMAIN_ROLES,
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
+  hasFullSystemAccess,
 } from '@/types/role.types';
-import {
-  OPERATOR_MOVIMENT_EQUIPMENT_PATH,
-  OPERATOR_MOVIMENT_MY_TASKS_PATH,
-  OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
-} from '@/constants/operator-moviment-routes';
+import { OPERATOR_MOVIMENT_TASKS_QUEUE_PATH } from '@/constants/operator-moviment-routes';
 
 export interface SidebarNavItem {
   to: string;
@@ -34,6 +31,9 @@ function itemVisibleForRole(
   item: SidebarNavItem,
   role: string | undefined,
 ): boolean {
+  if (hasFullSystemAccess(role)) {
+    return true;
+  }
   if (item.allowedRoles === null) {
     return true;
   }
@@ -65,12 +65,12 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     id: 'supply-cadastros',
     title: 'Máquinas e equipamentos',
     rolesDescription:
-      'Abastecimento (SUPPLY_OPERATOR), líder (LEADER) e administrador (ADMIN) — máquinas de produção.',
+      'Líder (LEADER) e administrador (ADMIN) — máquinas de produção.',
     items: [
       {
         to: '/cadastro/maquinas',
         label: 'Máquinas de produção',
-        allowedRoles: MACHINE_DOMAIN_ROLES,
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
     ],
   },
@@ -88,6 +88,18 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     ],
   },
   {
+    id: 'admin-dashboard',
+    title: 'Dashboard',
+    rolesDescription: 'Líder (LEADER) e administrador (ADMIN).',
+    items: [
+      {
+        to: '/dashboard',
+        label: 'Painel operacional',
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
+      },
+    ],
+  },
+  {
     id: 'admin-setores',
     title: 'Administração — setores',
     rolesDescription: 'Somente administrador (ADMIN).',
@@ -95,7 +107,7 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       {
         to: '/administracao/setores',
         label: 'Setores',
-        allowedRoles: ['ADMIN'],
+        allowedRoles: ['ADMIN', 'SUPERADMIN'],
       },
     ],
   },
@@ -121,11 +133,6 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
       {
         to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
         label: 'Tarefas disponíveis',
-        allowedRoles: MOVIMENT_OPERATOR_ROLES,
-      },
-      {
-        to: OPERATOR_MOVIMENT_MY_TASKS_PATH,
-        label: 'Minhas tarefas',
         allowedRoles: MOVIMENT_OPERATOR_ROLES,
       },
     ],

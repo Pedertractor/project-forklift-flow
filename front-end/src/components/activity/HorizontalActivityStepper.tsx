@@ -79,14 +79,12 @@ function connectorBetweenSteps(
 ): StepConnectorVariant {
   const prev = statuses[stepIndex - 1] ?? 'pending';
   const curr = statuses[stepIndex] ?? 'pending';
+  /** Pulso só entre a última etapa concluída e a etapa em curso — não em todos os trilhos à frente. */
   if (prev === 'done' && curr === 'active') {
     return 'flowing';
   }
   if (prev === 'done') {
     return 'done';
-  }
-  if (prev === 'active') {
-    return 'flowing';
   }
   return 'pending';
 }

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { PanelRightOpen, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import {
   ReplenishmentEquipmentPanel,
   type ReplenishmentEquipmentPanelProps,

@@ -37,5 +37,17 @@ export function completeOperatorTaskAccept(
     upsertOperatorMyTasksCache(queryClient, acceptedTasks);
   }
   void navigate(OPERATOR_MOVIMENT_MY_TASKS_PATH);
-  void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
+  void queryClient.invalidateQueries({
+    queryKey: ['operator-moviment', 'trip-suggestions'],
+  });
+  void queryClient.invalidateQueries({
+    queryKey: ['operator-moviment', 'replenishment-queue'],
+  });
+  void queryClient.invalidateQueries({
+    queryKey: ['operator-moviment', 'my-tasks'],
+  });
+  void queryClient.invalidateQueries({
+    queryKey: ['operator-moviment', 'my-pallet'],
+  });
+  void queryClient.invalidateQueries({ queryKey: ['operator-machine'] });
 }
