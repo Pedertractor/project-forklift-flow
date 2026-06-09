@@ -36,7 +36,11 @@ export function useLoginPage(): { isRestoringSession: boolean } {
       return;
     }
     const mapped = mapLoginUserToAppUser(bootstrapQuery.data);
-    syncSessionFromProfile(mapped, bootstrapQuery.data.firstAccess);
+    syncSessionFromProfile(
+      mapped,
+      bootstrapQuery.data.firstAccess,
+      bootstrapQuery.data.token,
+    );
     if (bootstrapQuery.data.firstAccess) {
       navigate('/definir-senha', { replace: true });
       return;

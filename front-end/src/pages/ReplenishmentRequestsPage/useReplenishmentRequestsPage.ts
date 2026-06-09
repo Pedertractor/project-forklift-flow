@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { toastApiError } from '@/lib/toast-helpers';
-import { ENV } from '@/constants/env';
+import { useAuthenticatedApiReady } from '@/hooks/useAuthenticatedApiReady';
 import {
   createReplenishmentRequest,
   deleteReplenishmentRequest,
@@ -23,8 +23,7 @@ import type {
 import { isOpenReplenishmentRequest } from '@/utils/replenishment-request-status';
 
 function useApiReady(): boolean {
-  const token = useAuthStore((s) => s.token);
-  return Boolean(ENV.API_URL && token);
+  return useAuthenticatedApiReady();
 }
 
 function canDeleteRequest(_row: ReplenishmentRequestListItem): boolean {

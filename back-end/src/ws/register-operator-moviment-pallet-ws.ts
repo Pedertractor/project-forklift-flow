@@ -63,11 +63,6 @@ export function registerOperatorMovimentPalletWebSocket(app: FastifyInstance): v
         return
       }
 
-      if (!MOVIMENT_WS_ROLES.includes(payload.role)) {
-        socket.close()
-        return
-      }
-
       try {
         const user = await userRepository.findProfileById(payload.sub)
         if (!user || !MOVIMENT_WS_ROLES.includes(user.role)) {
