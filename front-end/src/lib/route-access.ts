@@ -10,7 +10,6 @@ import { defaultHomePathForRole } from '@/lib/default-home-path';
 
 /** Rotas do app (pathnames) alinhadas a `App.tsx` + `RequireRoles`. */
 const PATH_RULES: { path: string; roles: readonly AppRole[] }[] = [
-  { path: '/', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/dashboard', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/cadastro/tipos-maquina', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/cadastro/maquinas', roles: ADMIN_OR_LEADER_ROLES },

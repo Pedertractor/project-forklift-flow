@@ -6,8 +6,6 @@ import type { UnauthorizedPageViewModel } from './useUnauthorizedPage';
 const linkBtnBase =
   'inline-flex h-[var(--control-height,2.5rem)] shrink-0 items-center justify-center rounded-xl px-4 text-sm font-semibold whitespace-nowrap transition-colors outline-none focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/40';
 
-const linkOutline =
-  'border-2 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 w-full sm:w-auto';
 const linkPrimary =
   'border-2 border-transparent bg-brand text-white shadow-sm hover:bg-brand-hover w-full sm:w-auto';
 
@@ -29,14 +27,9 @@ export function UnauthorizedPageView(vm: UnauthorizedPageViewModel) {
         </h1>
         <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:justify-end">
           {canUseHomeAndDashboard ? (
-            <>
-              <Link to="/dashboard" className={cn(linkBtnBase, linkOutline)}>
-                Ir ao painel
-              </Link>
-              <Link to="/" className={cn(linkBtnBase, linkPrimary)}>
-                Ir ao início
-              </Link>
-            </>
+            <Link to="/dashboard" className={cn(linkBtnBase, linkPrimary)}>
+              Ir ao painel
+            </Link>
           ) : hasWorkspaceLink ? (
             <Link to={workspacePath} className={cn(linkBtnBase, linkPrimary)}>
               Ir à minha área de trabalho
