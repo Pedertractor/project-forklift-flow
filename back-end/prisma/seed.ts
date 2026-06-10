@@ -61,7 +61,7 @@ async function main() {
   await upsertUserFromEmployeeApi({
     card: "2287",
     unit: "TRACTOR",
-    role: "OPERATOR_MACHINE",
+    role: "SUPERADMIN",
   });
 
   await upsertUserFromEmployeeApi({
