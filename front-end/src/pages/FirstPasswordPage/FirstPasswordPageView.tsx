@@ -22,7 +22,7 @@ export function FirstPasswordPageView(vm: FirstPasswordPageViewModel) {
     <div className="flex min-h-svh flex-col bg-zinc-100 text-zinc-900">
       <header className="border-b border-zinc-200 bg-white px-4 py-4">
         <p className="m-0 text-sm font-bold uppercase tracking-wider text-brand">
-          ForkLift Flow
+          Fork
         </p>
       </header>
       <div className="flex flex-1 items-center justify-center px-4 py-10">

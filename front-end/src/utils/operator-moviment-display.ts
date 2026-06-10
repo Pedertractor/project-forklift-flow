@@ -25,7 +25,7 @@ export function replenishmentMovimentTypeLabel(
   type: ReplenishmentMovimentType,
 ): string {
   if (type === 'ANY') {
-    return 'Qualquer tipo';
+    return 'Empilhadeira ou transpaleteira';
   }
   return 'Empilhadeira';
 }

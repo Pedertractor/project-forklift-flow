@@ -5,8 +5,9 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const apiHost = process.env.API_HOST ?? 'localhost';
 const apiPort = Number(process.env.API_PORT) || 3131;
-const apiTarget = `http://localhost:${apiPort}`;
+const apiTarget = `http://${apiHost}:${apiPort}`;
 
 // https://vite.dev/config/
 export default defineConfig({

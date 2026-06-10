@@ -134,7 +134,7 @@ export function MainLayout() {
                 </h2>
                 <p className="mt-3 text-[0.9375rem] leading-relaxed text-zinc-600">
                   Você precisará entrar de novo com cartão, unidade e senha para
-                  voltar ao ForkLift Flow.
+                  voltar ao Fork.
                 </p>
                 {user?.name ? (
                   <p className="mt-5 truncate rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs text-zinc-600">

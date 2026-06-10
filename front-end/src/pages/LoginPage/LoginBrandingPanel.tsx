@@ -22,7 +22,7 @@ export function LoginBrandingPanel() {
       />
       <header className="relative z-10 min-w-0">
         <h1 className="m-0 text-2xl font-bold leading-[1.2] tracking-[-0.02em] max-[767px]:text-xl sm:text-[length:var(--text-title,1.5rem)] min-[768px]:text-lg lg:text-2xl">
-          ForkLift Flow
+          Fork
         </h1>
         <p className="mt-2 max-w-[18rem] text-sm font-normal leading-[1.45] text-white/88 max-[767px]:mt-1 max-[767px]:text-xs min-[768px]:mt-1.5 min-[768px]:max-w-none min-[768px]:text-xs lg:mt-2 lg:max-w-[18rem] lg:text-sm">
           Acesse sua conta para continuar na plataforma.
