@@ -44,6 +44,7 @@ import type {
   OperationalDashboardMachineRow,
   OperationalDashboardSnapshot,
 } from '@/services/operational-dashboard-api';
+import { formatDurationMs } from '@/utils/formatDurationMs';
 
 type DashboardGeralViewProps = {
   data: OperationalDashboardSnapshot | undefined;
@@ -161,20 +162,20 @@ function MachinesTableSection({
               <th className="px-3 py-3 font-semibold text-zinc-700">Máquina</th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 <div className="flex items-center gap-2">
-                <ArrowDownLeft
-                className="size-4 rounded-full bg-red-200"
-                aria-hidden
-              />
+                  <ArrowDownLeft
+                    className="size-4 rounded-full bg-red-200"
+                    aria-hidden
+                  />
                   Retiradas de paletes
                 </div>
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
                 <div className="flex items-center gap-2">
-                <ArrowUpRight
-                className="size-4 rounded-full bg-green-200"
-                aria-hidden
-              />
-                Entregas de paletes
+                  <ArrowUpRight
+                    className="size-4 rounded-full bg-green-200"
+                    aria-hidden
+                  />
+                  Entregas de paletes
                 </div>
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
@@ -211,10 +212,10 @@ function MachinesTableSection({
                     {machine.deliveries_total}
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {formatDuration(machine.avg_pickup_wait_ms)}
+                    {formatDurationMs(machine.avg_pickup_wait_ms)}
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {formatDuration(machine.avg_delivery_wait_ms)}
+                    {formatDurationMs(machine.avg_delivery_wait_ms)}
                   </td>
                 </tr>
               ))
@@ -278,7 +279,7 @@ export function DashboardGeralView({
                   subline={
                     data.pickup_wait.sample_size > 0 ? (
                       <span className="whitespace-nowrap">
-                        P95 {formatDuration(data.pickup_wait.p95_wait_ms)} ·{' '}
+                        P95 {formatDuration(data.pickup_wait.p95_wait_ms)}{' '}
                         {data.pickup_wait.sample_size} amostra(s)
                       </span>
                     ) : (
@@ -294,7 +295,7 @@ export function DashboardGeralView({
                   subline={
                     data.delivery_wait.sample_size > 0 ? (
                       <span className="whitespace-nowrap">
-                        P95 {formatDuration(data.delivery_wait.p95_wait_ms)} ·{' '}
+                        P95 {formatDuration(data.delivery_wait.p95_wait_ms)}{' '}
                         {data.delivery_wait.sample_size} amostra(s)
                       </span>
                     ) : (

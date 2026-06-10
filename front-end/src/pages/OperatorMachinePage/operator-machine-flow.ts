@@ -42,7 +42,12 @@ export const COMBINED_FLOW_STEPS = [
 ] as const;
 
 export type PickupFlowPhase = 'AWAITING' | 'IN_PROGRESS' | 'DONE' | 'IDLE';
-export type DeliveryFlowPhase = 'SUPPLY' | 'AWAITING' | 'IN_PROGRESS' | 'DONE' | 'IDLE';
+export type DeliveryFlowPhase =
+  | 'SUPPLY'
+  | 'AWAITING'
+  | 'IN_PROGRESS'
+  | 'DONE'
+  | 'IDLE';
 export type OperationTimelineMode = 'combined' | 'delivery' | 'pickup' | null;
 
 /**
@@ -81,10 +86,10 @@ export function isCombinedTripSuggestion(
   const pickup = pickupTaskDrivingMachineUi(pickupTasks);
   return Boolean(
     delivery &&
-      pickup &&
-      delivery.preparedAt != null &&
-      OPEN_STATUSES.has(delivery.status) &&
-      OPEN_STATUSES.has(pickup.status),
+    pickup &&
+    delivery.preparedAt != null &&
+    OPEN_STATUSES.has(delivery.status) &&
+    OPEN_STATUSES.has(pickup.status),
   );
 }
 
@@ -109,10 +114,7 @@ export function hasPalletAtReceiving(
   deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
   return deliveryTasks.some(
-    (t) =>
-      t.status === 'CREATED' &&
-      t.acceptedBySupply &&
-      t.preparedAt != null,
+    (t) => t.status === 'CREATED' && t.acceptedBySupply && t.preparedAt != null,
   );
 }
 
@@ -232,7 +234,12 @@ export function deriveDeliveryFlowPhaseFromTask(
 export function deliveryFlowStepStatusesFromTask(
   task: DeliveryTaskListItem | null,
 ): FlowStepStatus[] {
-  const pending4: FlowStepStatus[] = ['pending', 'pending', 'pending', 'pending'];
+  const pending4: FlowStepStatus[] = [
+    'pending',
+    'pending',
+    'pending',
+    'pending',
+  ];
   if (!task) return pending4;
   if (task.status === 'COMPLETED') return ['done', 'done', 'done', 'done'];
   if (task.status === 'ASSIGNED' || task.status === 'IN_PROGRESS') {
@@ -349,7 +356,7 @@ export function pickupFlowHeadline(
 ): string {
   const status = task?.status;
   if (status === 'CREATED' || phase === 'AWAITING') {
-    return 'Aguardando um empilhadeirista aceitar a retirada.';
+    return 'Aguardando o transporte aceitar a retirada.';
   }
   if (
     status === 'ASSIGNED' ||
@@ -454,7 +461,8 @@ function replenishmentDeliveryPhaseStatuses(
   if (delivery.preparedAt && delivery.status === 'CREATED') {
     return ['done', 'done', 'active', 'pending'];
   }
-  if (delivery.acceptedBySupply) return ['done', 'active', 'pending', 'pending'];
+  if (delivery.acceptedBySupply)
+    return ['done', 'active', 'pending', 'pending'];
   return ['active', 'pending', 'pending', 'pending'];
 }
 
@@ -513,7 +521,10 @@ export function pickupWithReplenishmentFlowStepStatuses(
   pickup: PickupTaskListItem,
 ): FlowStepStatus[] {
   const deliveryPhase = nextPalletPhaseStatuses(openSupply, delivery);
-  const nextPalletDelivered = isNextPalletDeliveredToMachine(openSupply, delivery);
+  const nextPalletDelivered = isNextPalletDeliveredToMachine(
+    openSupply,
+    delivery,
+  );
   const pickupPhase = pickupPhaseStatuses(pickup, nextPalletDelivered);
   return [...deliveryPhase, ...pickupPhase];
 }
@@ -541,7 +552,7 @@ export function pickupWithReplenishmentFlowHeadline(
     'O abastecimento registrou a entrega — pallet em preparo no recebimento.',
     'Pallet pronto — aguardando o transporte buscar no recebimento.',
     'O transporte está levando o próximo pallet até a máquina.',
-    'Pallet na máquina — aguardando um empilhadeirista aceitar a retirada.',
+    'Pallet na máquina — aguardando o transporte aceitar a retirada.',
     'O transporte aceitou — retirada em curso até a expedição.',
     'Pallet entregue na expedição.',
   ];

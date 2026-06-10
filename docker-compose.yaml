@@ -1,20 +1,38 @@
-name: forklift-back-end
+name: forklift
 
 services:
-  api-forklift:
-    build: .
+  back-end:
+    build: ./back-end
     container_name: api-forklift
     restart: always
     ports:
       - 3131:3131
     env_file:
-      - .env
+      - back-end/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql-forklift:5432/${POSTGRES_DB}?schema=public
     depends_on:
       - postgresql-forklift
     networks:
       - forklift-network
     volumes:
       - api_forklift_uploads:/usr/src/app/uploads
+
+  front-end:
+    build:
+      context: ./front-end
+    container_name: forklift-front-end
+    restart: always
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - API_HOST=back-end
+      - API_PORT=3131
+    ports:
+      - ${FRONTEND_PORT}:5173
+    networks:
+      - forklift-network
+    depends_on:
+      - back-end
 
   postgresql-forklift:
     image: postgres:16
@@ -27,7 +45,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     networks:
-    - forklift-network
+      - forklift-network
     volumes:
       - postgres_data_forklift:/var/lib/postgresql/data
 

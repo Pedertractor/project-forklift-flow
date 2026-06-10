@@ -15,9 +15,6 @@ import {
   OPERATOR_MACHINE_ROLES,
 } from '@/types/role.types';
 
-const HomePage = lazy(() =>
-  import('@/pages/HomePage/index').then((m) => ({ default: m.HomePage })),
-);
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage/index').then((m) => ({ default: m.LoginPage })),
 );
@@ -114,7 +111,10 @@ export function App() {
               <Route path="/nao-autorizado" element={<UnauthorizedPage />} />
               <Route element={<MainLayout />}>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
-                  <Route index element={<HomePage />} />
+                  <Route
+                    index
+                    element={<Navigate to="/dashboard" replace />}
+                  />
                   <Route path="dashboard" element={<DashboardAreaLayout />}>
                     <Route index element={<DashboardHubPage />} />
                     <Route path="geral" element={<DashboardGeralPage />} />

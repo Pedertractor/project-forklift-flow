@@ -67,7 +67,7 @@ export function AppSidebar({
     >
       <div className="flex h-14 shrink-0 items-center border-b border-zinc-200 px-3">
         <p className="m-0 text-sm font-bold uppercase tracking-wider text-brand">
-          ForkLift Flow
+          Fork
         </p>
       </div>
 
