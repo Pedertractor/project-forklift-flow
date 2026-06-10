@@ -317,17 +317,17 @@ function OpenTaskRouteCard({
     pickupOpen,
     isCombinedRoute,
   );
-  const isPickupActivity = pickupOpen && !deliverOpen;
 
   return (
     <DeliverFlowCard>
       <div className="px-5 py-4 sm:px-8">
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
-            start={
-              isPickupActivity ? (
-                <span className="truncate text-brand">{group.machineName}</span>
-              ) : undefined
+            start={<span aria-hidden />}
+            end={
+              <span className="truncate text-brand" title={group.machineName}>
+                {group.machineName}
+              </span>
             }
           >
             {activitySubtitle}
