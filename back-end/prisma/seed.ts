@@ -1,22 +1,22 @@
-import 'dotenv/config';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/generated/prisma/client.js';
-import type { RoleUser, Unit } from '../src/generated/prisma/enums.js';
-import { infoByCardAndUnit } from '../src/external-api/employee-verify/index.js';
-import { hashPassword } from '../src/shared/password.js';
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../src/generated/prisma/client.js";
+import type { RoleUser, Unit } from "../src/generated/prisma/enums.js";
+import { infoByCardAndUnit } from "../src/external-api/employee-verify/index.js";
+import { hashPassword } from "../src/shared/password.js";
 
 const databaseUrl =
   process.env.DATABASE_URL ??
-  'postgresql://docker:docker@localhost:5436/forklift_db?schema=public';
+  "postgresql://docker:docker@localhost:5436/forklift_db?schema=public";
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: databaseUrl }),
 });
 
-const firstPlain = process.env.FIRST_PASSWORD?.trim()
+const firstPlain = process.env.FIRST_PASSWORD?.trim();
 if (!firstPlain) {
-  throw new Error('Seed: FIRST_PASSWORD nao esta definido no ambiente.')
+  throw new Error("Seed: FIRST_PASSWORD nao esta definido no ambiente.");
 }
-const seedPassword = hashPassword(firstPlain)
+const seedPassword = hashPassword(firstPlain);
 
 async function upsertUserFromEmployeeApi(input: {
   card: string;
@@ -59,15 +59,15 @@ async function upsertUserFromEmployeeApi(input: {
 
 async function main() {
   await upsertUserFromEmployeeApi({
-    card: '2287',
-    unit: 'TRACTOR',
-    role: 'OPERATOR_MACHINE',
+    card: "2287",
+    unit: "TRACTOR",
+    role: "OPERATOR_MACHINE",
   });
 
   await upsertUserFromEmployeeApi({
-    card: '2282',
-    unit: 'TRACTOR',
-    role: 'ADMIN',
+    card: "2282",
+    unit: "TRACTOR",
+    role: "SUPERADMIN",
   });
 }
 
