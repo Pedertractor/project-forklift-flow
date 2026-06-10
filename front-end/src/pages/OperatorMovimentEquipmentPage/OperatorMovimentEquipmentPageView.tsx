@@ -42,7 +42,7 @@ export function OperatorMovimentEquipmentPageView(
     ? 'Trocar modo de operação'
     : 'Como você vai operar hoje?';
   const pickingDescription = changeOperatingMode
-    ? 'Escolha empilhadeira ou transpaleteira. Suas tarefas ficam vinculadas a você, não a um equipamento físico cadastrado.'
+    ? 'Qual equipamento você vai operar hoje?'
     : 'Selecione se está operando empilhadeira ou transpaleteira para acessar as tarefas do setor.';
 
   return (
@@ -141,7 +141,9 @@ export function OperatorMovimentEquipmentPageView(
                         {movimentTypeLabel(mode)}
                       </span>
                       {bindPending ? (
-                        <span className="text-xs text-zinc-500">Confirmando…</span>
+                        <span className="text-xs text-zinc-500">
+                          Confirmando…
+                        </span>
                       ) : null}
                     </button>
                   </li>
