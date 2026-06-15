@@ -22,6 +22,17 @@ export async function fetchUserRolesEnum(): Promise<string[]> {
   return res?.roles ?? [];
 }
 
+export async function fetchDefaultFirstPassword(): Promise<string> {
+  const res = await apiAuthFetch<{ defaultPassword: string }>(
+    API_ENDPOINTS.USERS.DEFAULT_PASSWORD,
+    { method: 'GET' },
+  );
+  if (!res?.defaultPassword) {
+    throw new Error('Senha padrão não disponível.');
+  }
+  return res.defaultPassword;
+}
+
 export async function fetchEmployeeInfoByCardAndUnit(
   card: string,
   unit: AppUnit,

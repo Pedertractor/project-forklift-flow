@@ -7,6 +7,7 @@ import {
 import { infoByCardAndUnit } from '../external-api/employee-verify/index.js'
 import {
   createUser,
+  getDefaultFirstPassword as resolveDefaultFirstPassword,
   listRoleUserEnumValues,
   listUsers,
   resetUserPasswordToDefault,
@@ -121,6 +122,20 @@ export const getEmployeeInfo: RouteHandlerMethod = async (request, reply) => {
 
 export const getListRoles: RouteHandlerMethod = async (_request, reply) => {
   return reply.send({ roles: listRoleUserEnumValues() })
+}
+
+export const getDefaultFirstPassword: RouteHandlerMethod = async (
+  _request,
+  reply,
+) => {
+  try {
+    return reply.send({ defaultPassword: resolveDefaultFirstPassword() })
+  } catch (error) {
+    if (error instanceof UserPasswordError) {
+      return reply.status(503).send({ error: error.message })
+    }
+    throw error
+  }
 }
 
 export const patchUserRole: RouteHandlerMethod = async (request, reply) => {
