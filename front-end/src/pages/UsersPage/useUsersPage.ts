@@ -6,6 +6,7 @@ import { toastApiError } from '@/lib/toast-helpers';
 import { fetchSectors } from '@/services/sectors-api';
 import {
   createUserRequest,
+  fetchDefaultFirstPassword,
   fetchEmployeeInfoByCardAndUnit,
   fetchUserRolesEnum,
   fetchUsersList,
@@ -65,6 +66,12 @@ export function useUsersPage() {
     queryKey: ['sectors'],
     queryFn: fetchSectors,
     enabled: apiReady && isAdmin,
+  });
+
+  const defaultPasswordQuery = useQuery({
+    queryKey: ['users', 'default-password'],
+    queryFn: fetchDefaultFirstPassword,
+    enabled: canListUsers,
   });
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -376,6 +383,7 @@ export function useUsersPage() {
     usersQuery,
     rolesQuery,
     sectorsQuery,
+    defaultPasswordQuery,
     createOpen,
     setCreateOpen,
     openCreateModal,
