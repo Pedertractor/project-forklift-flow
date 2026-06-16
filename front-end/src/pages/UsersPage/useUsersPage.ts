@@ -377,6 +377,7 @@ export function useUsersPage() {
     isAdmin,
     isSuperAdmin,
     isLeader,
+    assignableRoles,
     canListUsers,
     leaderSectorLabel,
     leaderMissingSector,

@@ -122,10 +122,10 @@ export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE =
   'Há pallet no recebimento aguardando transporte.';
 
 export function canRequestPickup(
-  deliveryTasks: DeliveryTaskListItem[],
+  _deliveryTasks: DeliveryTaskListItem[],
   _pickupTasks: PickupTaskListItem[],
 ): boolean {
-  return deliveryTasks.some((t) => t.status === 'COMPLETED' && t.completedAt);
+  return true;
 }
 
 export function canRequestPickupWithReplenishment(
@@ -135,11 +135,10 @@ export function canRequestPickupWithReplenishment(
 }
 
 export function pickupBlockedReason(
-  deliveryTasks: DeliveryTaskListItem[],
+  _deliveryTasks: DeliveryTaskListItem[],
   _pickupTasks: PickupTaskListItem[],
 ): string | null {
-  if (canRequestPickup(deliveryTasks, _pickupTasks)) return null;
-  return 'Aguarde uma entrega ser concluída na máquina para solicitar a retirada do pallet.';
+  return null;
 }
 
 export function hasOpenPickup(pickupTasks: PickupTaskListItem[]): boolean {

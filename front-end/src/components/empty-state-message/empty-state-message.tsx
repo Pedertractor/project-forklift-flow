@@ -13,16 +13,19 @@ export function EmptyStateMessage({
   description,
 }: EmptyStateProps) {
   return (
-    <div className={`flex justify-center items-center`}>
-      <div className="flex flex-col items-center justify-center text-center text-white">
-        <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-brand ">
-          {icon ?? <Info className="w-8 h-8" />}
+    <div className="flex items-center justify-center py-4">
+      <div className="flex flex-col items-center justify-center text-center">
+        <div
+          className="flex size-12 items-center justify-center rounded-lg bg-zinc-100 text-zinc-400"
+          aria-hidden
+        >
+          {icon ?? <Info className="size-6" strokeWidth={2} />}
         </div>
 
-        <p className="font-semibold text-black mt-4">{title}</p>
+        <p className="mt-3 font-medium text-zinc-600">{title}</p>
 
         {description && (
-          <p className="text-sm text-black max-w-xs">{description}</p>
+          <p className="mt-1 max-w-xs text-sm text-zinc-500">{description}</p>
         )}
       </div>
     </div>

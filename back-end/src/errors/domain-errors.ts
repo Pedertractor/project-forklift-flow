@@ -116,15 +116,6 @@ export class PickupTaskNotOnOperatorMachineError extends Error {
   }
 }
 
-export class MachineHasNoMaterialForPickupError extends Error {
-  constructor(
-    message = 'Nao ha prisma na maquina para solicitar retirada.',
-  ) {
-    super(message)
-    this.name = 'MachineHasNoMaterialForPickupError'
-  }
-}
-
 export class OperatorRequestBlockedByPalletAtReceivingError extends Error {
   constructor(
     message = 'Ha pallet no recebimento aguardando transporte. Solicite apenas a retirada do pallet na maquina para abrir a sugestao de entrega e retirada.',
