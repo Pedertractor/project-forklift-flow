@@ -38,7 +38,6 @@ export function UsersPageView(vm: UsersPageViewModel) {
     leaderSectorLabel,
     leaderMissingSector,
     usersQuery,
-    rolesQuery,
     sectorsQuery,
     defaultPasswordQuery,
     createOpen,
