@@ -21,14 +21,12 @@ services:
   front-end:
     build:
       context: ./front-end
+      args:
+        - VITE_API_URL=${VITE_API_URL}
     container_name: forklift-front-end
     restart: always
-    environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - API_HOST=back-end
-      - API_PORT=3131
     ports:
-      - ${FRONTEND_PORT}:5173
+      - ${FRONTEND_PORT}:80
     networks:
       - forklift-network
     depends_on:
