@@ -53,6 +53,12 @@ const serviceCardIdle = 'border-zinc-200 hover:border-zinc-300';
 const serviceCardSelected =
   'border-brand bg-gradient-to-br from-brand/[0.08] to-white ring-2 ring-brand/20';
 
+const serviceCardFooterBase =
+  'rounded-b-2xl border-2 border-t-0 bg-white px-3 pb-3 pt-2';
+const serviceCardFooterIdle = 'border-zinc-200';
+const serviceCardFooterSelected =
+  'border-brand bg-gradient-to-br from-brand/[0.04] to-white';
+
 export interface OperatorMachineOpenRequestDialogProps {
   open: boolean;
   onClose: () => void;
@@ -429,22 +435,18 @@ function ServiceOptionCard({
   children?: ReactNode;
 }) {
   const showInner = selected && !disabled && children != null;
+  const cardState =
+    selected && !disabled ? serviceCardSelected : serviceCardIdle;
 
   return (
-    <div
-      className={cn(
-        serviceCardBase,
-        selected && !disabled ? serviceCardSelected : serviceCardIdle,
-        disabled && 'opacity-55',
-      )}
-    >
+    <div className={cn('flex w-full flex-col', disabled && 'opacity-55')}>
       <button
         type="button"
         className={cn(
-          'flex w-full flex-col gap-2 rounded-2xl text-left outline-none transition-colors',
-          'focus-visible:ring-[3px] focus-visible:ring-brand/25',
+          serviceCardBase,
+          cardState,
           disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-          showInner && 'rounded-b-none',
+          showInner && 'rounded-b-none border-b-0',
         )}
         onClick={onToggle}
         disabled={disabled}
@@ -461,9 +463,10 @@ function ServiceOptionCard({
       </button>
       {showInner ? (
         <div
-          className="border-t border-zinc-200/90 px-3 pb-3 pt-2"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
+          className={cn(
+            serviceCardFooterBase,
+            selected ? serviceCardFooterSelected : serviceCardFooterIdle,
+          )}
         >
           {children}
         </div>
