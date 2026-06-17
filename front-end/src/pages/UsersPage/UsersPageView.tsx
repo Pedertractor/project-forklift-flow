@@ -33,11 +33,11 @@ export function UsersPageView(vm: UsersPageViewModel) {
     token,
     isAdmin,
     isLeader,
+    assignableRoles,
     canListUsers,
     leaderSectorLabel,
     leaderMissingSector,
     usersQuery,
-    rolesQuery,
     sectorsQuery,
     defaultPasswordQuery,
     createOpen,
@@ -470,7 +470,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                 id="nu-role"
                 value={formRole}
                 onValueChange={setFormRole}
-                disabled={busyCreate || (isAdmin && !rolesQuery.data?.length)}
+                disabled={busyCreate || (isAdmin && !assignableRoles.length)}
                 searchable={false}
                 options={
                   isLeader
@@ -478,7 +478,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
                         value: r,
                         label: roleLabel(r),
                       }))
-                    : (rolesQuery.data ?? []).map((r) => ({
+                    : assignableRoles.map((r) => ({
                         value: r,
                         label: roleLabel(r),
                       }))

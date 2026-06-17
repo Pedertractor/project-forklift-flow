@@ -15,6 +15,10 @@ const envSchema = z.object({
   APPKEY: z.string().default('forklift-api-key'),
   /** Pasta de uploads (relativa ao cwd ou caminho absoluto). Montada em Docker em /usr/src/app/uploads */
   UPLOAD_DIR: z.string().default('uploads'),
+  /** URL do endpoint Application Event do Orion (opcional). */
+  ORION_URL: z.string().default(''),
+  /** Token da aplicação cadastrada no Orion (opcional). */
+  ORION_APP_TOKEN: z.string().default(''),
 });
 
 export const env = envSchema.parse(process.env);

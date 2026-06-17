@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
@@ -19,6 +24,13 @@ import type { MachineListItem, SectorListItem } from '@/types/machine.types';
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
   return Boolean(ENV.API_URL && token);
+}
+
+function invalidateMachineListQueries(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ['machines'] });
+  void queryClient.invalidateQueries({
+    queryKey: ['operator-machine', 'machines'],
+  });
 }
 
 function sectorsForForms(
@@ -156,7 +168,7 @@ export function useMachinesPage() {
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['machines'] });
+      invalidateMachineListQueries(queryClient);
       setCreateOpen(false);
       resetForm();
       toast.success('Máquina cadastrada.');
@@ -184,7 +196,7 @@ export function useMachinesPage() {
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['machines'] });
+      invalidateMachineListQueries(queryClient);
       setEditRow(null);
       resetForm();
       toast.success('Máquina atualizada.');
@@ -200,7 +212,7 @@ export function useMachinesPage() {
       return updateMachine(editRow.id, { userId: null });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['machines'] });
+      invalidateMachineListQueries(queryClient);
       setEditRow((prev) =>
         prev ? { ...prev, userId: null, user: null } : null,
       );
@@ -213,7 +225,7 @@ export function useMachinesPage() {
   const deleteMut = useMutation({
     mutationFn: async (id: string) => deleteMachine(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['machines'] });
+      invalidateMachineListQueries(queryClient);
       setDeleteRow(null);
       toast.success('Máquina excluída.');
     },

@@ -7,7 +7,6 @@ import {
 import {
   MachineNotFoundError,
   MachineNotInOperatorSectorError,
-  MachineHasNoMaterialForPickupError,
   OperatorRequestBlockedByPalletAtReceivingError,
   OperatorMachineNotBoundError,
   OperatorWithoutSectorError,
@@ -135,15 +134,6 @@ export async function listOperatorSupplyRequestsForOperatorMachine(
   )
 }
 
-/** Exige ao menos uma entrega concluída na máquina; várias retiradas são permitidas. */
-async function assertMaterialOnMachine(machineId: string) {
-  const lastDelivery =
-    await deliveryTaskRepository.findLatestCompletedForMachine(machineId)
-  if (!lastDelivery?.completedAt) {
-    throw new MachineHasNoMaterialForPickupError()
-  }
-}
-
 async function resolveTypeForMachine(machineId: string): Promise<TypeMovimentPallet> {
   const latestDelivery = await prisma.deliveryTask.findFirst({
     where: { machineId },
@@ -194,8 +184,6 @@ export async function requestPickupOnly(
   if (!machine) {
     throw new OperatorMachineNotBoundError()
   }
-
-  await assertMaterialOnMachine(machine.id)
 
   const typeMovimentPallet =
     options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
@@ -272,7 +260,6 @@ export async function requestPickupWithReplenishment(
   }
 
   await assertNoPalletAtReceivingForSupplyRequest(machine.id)
-  await assertMaterialOnMachine(machine.id)
 
   const typeMovimentPallet =
     options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
