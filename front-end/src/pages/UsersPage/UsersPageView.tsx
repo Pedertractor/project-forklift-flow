@@ -39,6 +39,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
     usersQuery,
     rolesQuery,
     sectorsQuery,
+    defaultPasswordQuery,
     createOpen,
     setCreateOpen,
     openCreateModal,
@@ -91,6 +92,13 @@ export function UsersPageView(vm: UsersPageViewModel) {
     hasActiveFilters,
     clearFilters,
   } = vm;
+
+  const defaultFirstPassword = defaultPasswordQuery.data;
+  const defaultPasswordLoading = defaultPasswordQuery.isLoading;
+  const defaultPasswordError =
+    defaultPasswordQuery.error instanceof Error
+      ? defaultPasswordQuery.error.message
+      : null;
 
   const canManageRow = isAdmin || isLeader;
 
@@ -478,6 +486,20 @@ export function UsersPageView(vm: UsersPageViewModel) {
               />
             </div>
 
+            <div className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50/90 px-3 py-2.5 text-sm text-sky-950">
+              <KeyRound className="size-4 shrink-0 text-sky-700" aria-hidden />
+              <span className="font-medium">Senha inicial:</span>
+              {defaultPasswordLoading ? (
+                <span className="text-sky-800">…</span>
+              ) : defaultPasswordError ? (
+                <span className="text-red-800">{defaultPasswordError}</span>
+              ) : (
+                <span className="font-mono text-base tracking-wide text-sky-900">
+                  {defaultFirstPassword}
+                </span>
+              )}
+            </div>
+
             {isAdmin ? (
               <div className="space-y-2">
                 <Label htmlFor="nu-sector">Setor (opcional)</Label>
@@ -701,7 +723,9 @@ export function UsersPageView(vm: UsersPageViewModel) {
           title="Redefinir senha inicial"
           description={
             resetTarget
-              ? `Confirme a redefinição, a primeira senha é 123`
+              ? defaultFirstPassword
+                ? `Confirme a redefinição. A senha voltará para ${defaultFirstPassword}.`
+                : 'Confirme a redefinição da senha inicial.'
               : undefined
           }
           onClose={() => (!busyAdmin ? setResetTarget(null) : undefined)}

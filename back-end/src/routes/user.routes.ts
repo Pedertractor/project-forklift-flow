@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { RoleUser } from "../generated/prisma/enums.js";
 import {
   getEmployeeInfo,
+  getDefaultFirstPassword,
   getListRoles,
   getListUsers,
   patchUserRole,
@@ -40,6 +41,16 @@ export async function registerUserRoutes(fastify: FastifyInstance) {
           preHandler: [fastify.authenticate, requireRoles(RoleUser.ADMIN)],
         },
         getListRoles,
+      );
+      userRouter.get(
+        "/default-password",
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireRoles(RoleUser.ADMIN, RoleUser.LEADER),
+          ],
+        },
+        getDefaultFirstPassword,
       );
       userRouter.post(
         "/",

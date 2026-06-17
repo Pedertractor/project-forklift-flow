@@ -46,6 +46,10 @@ function defaultFirstPasswordForReset(): string {
   return value
 }
 
+export function getDefaultFirstPassword(): string {
+  return defaultFirstPasswordForReset()
+}
+
 async function resolveSectorIdForNewUser(
   input: CreateUserInput,
   actor: CreateUserActor,
