@@ -9,6 +9,7 @@ import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.t
 import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentRequestsPage';
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
 import { ReplenishmentRequestsTable } from './ReplenishmentRequestsTable';
+import { DashboardDateRangePicker } from '@/pages/DashboardPage/DashboardDateRangePicker';
 import { HistoryIcon, ListIcon, PanelRightOpen, PlusIcon } from 'lucide-react';
 import { SelectCombobox } from '@/components/ui/select-combobox';
 import { useState } from 'react';
@@ -29,9 +30,12 @@ export function ReplenishmentRequestsPageView(
     listQuery,
     pendingPreparationCount,
     openRequests,
-    visibleRequests,
     historyOpen,
     setHistoryOpen,
+    closeHistory,
+    historyDates,
+    setHistoryDates,
+    historyRequests,
     machinesForSelect,
     machinesEmpty,
     createOpen,
@@ -251,26 +255,46 @@ export function ReplenishmentRequestsPageView(
         title="Histórico de solicitações"
         description="Todas as solicitações de retirada para máquina, incluindo concluídas e canceladas."
         panelClassName="max-w-[min(96vw,72rem)]"
-        onClose={() => setHistoryOpen(false)}
+        onClose={closeHistory}
         footer={
           <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="default"
-              onClick={() => setHistoryOpen(false)}
-            >
+            <Button type="button" variant="default" onClick={closeHistory}>
               Fechar
             </Button>
           </div>
         }
       >
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 text-sm sm:max-w-[18rem]">
+            <span className="font-medium text-zinc-700">Período</span>
+            <DashboardDateRangePicker
+              id="rr-history-period"
+              dates={historyDates}
+              setDates={setHistoryDates}
+            />
+          </label>
+          {historyDates.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 w-full sm:h-9 sm:w-auto"
+              onClick={() => setHistoryDates([])}
+            >
+              Limpar período
+            </Button>
+          ) : null}
+        </div>
         <ReplenishmentRequestsTable
           variant="history"
-          rows={visibleRequests}
+          rows={historyRequests}
           isLoading={listQuery.isLoading}
-          emptyMessage="Nenhuma solicitação neste filtro."
+          emptyMessage={
+            historyDates.length > 0
+              ? 'Nenhuma solicitação neste período.'
+              : 'Nenhuma solicitação neste filtro.'
+          }
           onRowClick={(row) => {
-            setHistoryOpen(false);
+            closeHistory();
             setDetailRow(row);
           }}
         />
