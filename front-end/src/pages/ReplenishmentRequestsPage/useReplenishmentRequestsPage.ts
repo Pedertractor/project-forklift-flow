@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { toastApiError } from '@/lib/toast-helpers';
 import { useAuthenticatedApiReady } from '@/hooks/useAuthenticatedApiReady';
+import { resolveDashboardQueryDates } from '@/pages/DashboardPage/dashboard-date-utils';
 import {
   createReplenishmentRequest,
   deleteReplenishmentRequest,
@@ -39,6 +40,17 @@ const QUEUE_STATUSES_FOR_TRANSPORT = new Set([
   'IN_PROGRESS',
   'CREATED',
 ]);
+
+function isWithinHistoryDateRange(
+  iso: string,
+  startDate: string,
+  endDate: string,
+): boolean {
+  const timestamp = new Date(iso).getTime();
+  const start = new Date(`${startDate}T00:00:00`).getTime();
+  const end = new Date(`${endDate}T23:59:59.999`).getTime();
+  return timestamp >= start && timestamp <= end;
+}
 
 export function useReplenishmentRequestsPage() {
   const queryClient = useQueryClient();
@@ -99,6 +111,26 @@ export function useReplenishmentRequestsPage() {
   );
 
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyDates, setHistoryDates] = useState<Date[]>([]);
+
+  const historyRequests = useMemo(() => {
+    const sorted = [...visibleRequests].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    if (historyDates.length === 0) {
+      return sorted;
+    }
+    const { startDate, endDate } = resolveDashboardQueryDates(historyDates);
+    return sorted.filter((row) =>
+      isWithinHistoryDateRange(row.createdAt, startDate, endDate),
+    );
+  }, [visibleRequests, historyDates]);
+
+  const closeHistory = useCallback(() => {
+    setHistoryOpen(false);
+    setHistoryDates([]);
+  }, []);
 
   const equipmentSectorId =
     onlyMySector && user?.sectorId ? user.sectorId : undefined;
@@ -311,6 +343,10 @@ export function useReplenishmentRequestsPage() {
     openRequests,
     historyOpen,
     setHistoryOpen,
+    closeHistory,
+    historyDates,
+    setHistoryDates,
+    historyRequests,
     forklifts,
     palletTrucks,
     forkliftStats,
