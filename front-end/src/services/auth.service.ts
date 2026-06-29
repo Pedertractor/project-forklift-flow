@@ -17,11 +17,11 @@ export type LoginResult = {
   requiresPasswordChange: boolean;
 };
 
-/** Autentica na API (`VITE_API_URL` deve incluir o prefixo `/api`, ex.: `http://localhost:3131/api`). */
+/** Autentica na API (`VITE_BASE_URL_API` deve incluir o prefixo `/api`, ex.: `http://localhost:3131/api`). */
 export async function loginWithPassword(payload: LoginPayload): Promise<LoginResult> {
   if (!ENV.API_URL) {
     throw new Error(
-      'Defina VITE_API_URL no front-end/.env (ex.: http://localhost:3131/api) e reinicie o Vite.',
+      'Defina VITE_BASE_URL_API no front-end/.env (ex.: http://localhost:3131/api) e reinicie o Vite.',
     );
   }
 

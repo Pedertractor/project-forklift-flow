@@ -22,7 +22,7 @@ services:
     build:
       context: ./front-end
       args:
-        - VITE_API_URL=${VITE_API_URL}
+        - VITE_BASE_URL_API=${VITE_BASE_URL_API}
     container_name: forklift-front-end
     restart: always
     ports:
