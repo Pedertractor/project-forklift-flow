@@ -317,7 +317,7 @@ export function OperatorMachineOpenRequestDialog({
             ) : null}
           </ServiceOptionCard>
 
-          <p className="m-0 text-center text-xs font-medium text-zinc-500">
+          <p className="m-0 text-center text-xs font-medium text-zinc-500 ">
             ou escolha apenas um
           </p>
 
@@ -443,7 +443,8 @@ function ServiceOptionCard({
   return (
     <div
       className={cn(
-        'flex w-full flex-col',
+        'flex w-full',
+        showInner && 'flex-col',
         disabled && 'opacity-55',
         showInner &&
           cn(
@@ -460,7 +461,7 @@ function ServiceOptionCard({
           serviceCardBase,
           !showInner && cardState,
           showInner &&
-            'rounded-none border-0 bg-transparent shadow-none ring-0 focus-visible:ring-inset',
+            'rounded-none border-0 bg-transparent shadow-none ring-0 focus-visible:ring-inset ',
           disabled ? 'cursor-not-allowed' : 'cursor-pointer',
         )}
         onClick={onToggle}
