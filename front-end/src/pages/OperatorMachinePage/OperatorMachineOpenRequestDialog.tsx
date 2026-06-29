@@ -53,11 +53,13 @@ const serviceCardIdle = 'border-zinc-200 hover:border-zinc-300';
 const serviceCardSelected =
   'border-brand bg-gradient-to-br from-brand/[0.08] to-white ring-2 ring-brand/20';
 
-const serviceCardFooterBase =
-  'rounded-b-2xl border-2 border-t-0 bg-white px-3 pb-3 pt-2';
-const serviceCardFooterIdle = 'border-zinc-200';
-const serviceCardFooterSelected =
-  'border-brand bg-gradient-to-br from-brand/[0.04] to-white';
+const serviceCardExpandedShell =
+  'overflow-hidden rounded-2xl border-2 transition-all';
+const serviceCardExpandedShellIdle = 'border-zinc-200';
+const serviceCardExpandedShellSelected =
+  'border-brand bg-gradient-to-br from-brand/[0.08] to-white ring-2 ring-brand/20';
+const serviceCardExpandedFooter =
+  'border-t border-brand/20 bg-gradient-to-br from-brand/[0.04] to-white px-3 pb-3 pt-2';
 
 export interface OperatorMachineOpenRequestDialogProps {
   open: boolean;
@@ -434,19 +436,32 @@ function ServiceOptionCard({
   hint?: string | null;
   children?: ReactNode;
 }) {
-  const showInner = selected && !disabled && children != null;
-  const cardState =
-    selected && !disabled ? serviceCardSelected : serviceCardIdle;
+  const isActive = selected && !disabled;
+  const showInner = isActive && children != null;
+  const cardState = isActive ? serviceCardSelected : serviceCardIdle;
 
   return (
-    <div className={cn('flex w-full flex-col', disabled && 'opacity-55')}>
+    <div
+      className={cn(
+        'flex w-full flex-col',
+        disabled && 'opacity-55',
+        showInner &&
+          cn(
+            serviceCardExpandedShell,
+            isActive
+              ? serviceCardExpandedShellSelected
+              : serviceCardExpandedShellIdle,
+          ),
+      )}
+    >
       <button
         type="button"
         className={cn(
           serviceCardBase,
-          cardState,
+          !showInner && cardState,
+          showInner &&
+            'rounded-none border-0 bg-transparent shadow-none ring-0 focus-visible:ring-inset',
           disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-          showInner && 'rounded-b-none border-b-0',
         )}
         onClick={onToggle}
         disabled={disabled}
@@ -462,14 +477,7 @@ function ServiceOptionCard({
         ) : null}
       </button>
       {showInner ? (
-        <div
-          className={cn(
-            serviceCardFooterBase,
-            selected ? serviceCardFooterSelected : serviceCardFooterIdle,
-          )}
-        >
-          {children}
-        </div>
+        <div className={serviceCardExpandedFooter}>{children}</div>
       ) : null}
     </div>
   );
