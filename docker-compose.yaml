@@ -6,7 +6,7 @@ services:
     container_name: api-forklift
     restart: always
     ports:
-      - 3131:3131
+      - 5010:5010
     env_file:
       - back-end/.env
     environment:
