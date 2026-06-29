@@ -169,7 +169,7 @@ export async function apiAuthFetch<T>(
       (e instanceof Error && e.name === 'AbortError');
     if (abortedByTimeout) {
       throw new Error(
-        'Tempo esgotado ao enviar ou receber resposta da API. Verifique se o back-end está acessível, a URL em VITE_API_URL e a rede.',
+        'Tempo esgotado ao enviar ou receber resposta da API. Verifique se o back-end está acessível, a URL em VITE_BASE_URL_API e a rede.',
         { cause: e },
       );
     }

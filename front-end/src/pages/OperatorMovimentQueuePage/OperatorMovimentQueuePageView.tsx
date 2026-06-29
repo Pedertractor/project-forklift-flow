@@ -38,7 +38,7 @@ export function OperatorMovimentQueuePageView(
       <div className="mx-auto w-full min-w-0 max-w-6xl">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 md:px-4 md:py-3">
-            Defina <code className="font-mono">VITE_API_URL</code> e faça login.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 md:px-4 md:py-3">
