@@ -1,4 +1,4 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarIcon, ChevronDownIcon } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
@@ -47,8 +47,20 @@ export function DashboardDateRangePicker({
   id = 'dashboard-period',
 }: DashboardDateRangePickerProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const today = useMemo(() => normalizeDashboardDate(new Date()), []);
   const selectedRange = useMemo(() => datesToRange(dates), [dates]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    triggerRef.current?.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [open]);
 
   const formattedPeriod = useMemo(() => {
     if (dates.length === 0) return 'Selecione o período';
@@ -67,6 +79,7 @@ export function DashboardDateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           id={id}
           className={cn(
@@ -90,13 +103,20 @@ export function DashboardDateRangePicker({
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-fit overflow-hidden p-0"
+        className="max-h-[var(--radix-popover-content-available-height)] w-auto max-w-[var(--radix-popover-content-available-width)] min-h-0 overflow-y-auto overscroll-contain p-0"
         align="start"
         side="bottom"
         sideOffset={6}
-        avoidCollisions={false}
+        collisionPadding={24}
       >
         <Calendar
+          className="p-2 [--cell-size:1.625rem]"
+          classNames={{
+            month: 'flex w-full flex-col gap-2',
+            week: 'mt-1 flex w-full',
+            weekday:
+              'flex-1 rounded-md text-[0.7rem] font-normal text-zinc-500 select-none',
+          }}
           mode="range"
           selected={selectedRange}
           onSelect={(range) => {
