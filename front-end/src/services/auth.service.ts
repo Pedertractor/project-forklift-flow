@@ -2,7 +2,10 @@ import { API_ENDPOINTS } from '@/constants/API_ENDPOINTS';
 import { ENV } from '@/constants/env';
 import { apiFetch, apiAuthFetch } from '@/lib/api';
 import type { LoginPayload } from '@/schemas/auth.schema';
-import type { AuthMeApiResponse, LoginApiResponse } from '@/types/auth-api.types';
+import type {
+  AuthMeApiResponse,
+  LoginApiResponse,
+} from '@/types/auth-api.types';
 import { mapLoginUserToAppUser } from '@/types/auth-api.types';
 import type { User } from '@/types/user.types';
 
@@ -18,10 +21,12 @@ export type LoginResult = {
 };
 
 /** Autentica na API (`VITE_BASE_URL_API` deve incluir o prefixo `/api`, ex.: `http://localhost:3131/api`). */
-export async function loginWithPassword(payload: LoginPayload): Promise<LoginResult> {
+export async function loginWithPassword(
+  payload: LoginPayload,
+): Promise<LoginResult> {
   if (!ENV.API_URL) {
     throw new Error(
-      'Defina VITE_BASE_URL_API no front-end/.env (ex.: http://localhost:3131/api) e reinicie o Vite.',
+      'API não configurada: defina VITE_BASE_URL_API (dev: front-end/.env com http://localhost:3131/api; produção/Docker: /api no .env da raiz ou front-end/.env.production) e refaça o build.',
     );
   }
 
@@ -63,10 +68,13 @@ export async function changeOwnPassword(input: {
   if (input.currentPassword !== undefined && input.currentPassword !== '') {
     body.currentPassword = input.currentPassword;
   }
-  const data = await apiAuthFetch<{ ok: boolean; token: string }>(API_ENDPOINTS.AUTH.PASSWORD, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  const data = await apiAuthFetch<{ ok: boolean; token: string }>(
+    API_ENDPOINTS.AUTH.PASSWORD,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
   if (!data?.token) {
     throw new Error('Resposta sem token após alterar senha.');
   }
