@@ -10,10 +10,11 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_BASE_URL_API
+# Padrão /api (proxy nginx → back-end). Sobrescreva via build-arg ou raiz .env.
+ARG VITE_BASE_URL_API=/api
 ENV VITE_BASE_URL_API=${VITE_BASE_URL_API}
 
-RUN npm run build
+RUN export VITE_BASE_URL_API="${VITE_BASE_URL_API:-/api}" && npm run build
 
 FROM nginx:1.29-alpine
 
