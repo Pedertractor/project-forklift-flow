@@ -43,7 +43,7 @@ back-end/
     app.ts
     server.ts
   .env.example
-  docker-compose.yaml
+  docker-compose.yml
   Dockerfile
   package.json
 ```

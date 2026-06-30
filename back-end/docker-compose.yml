@@ -1,0 +1,38 @@
+name: project-forklift
+services:
+  back-end-project-forklift:
+    build: .
+    container_name: project-forklift-back-end
+    restart: always
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@project-forklift-database:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      - project-forklift-database
+    volumes:
+      - backend-uploads-forklift:/usr/src/app/uploads
+    networks:
+      - project-forklift-net
+
+  project-forklift-database:
+    image: postgres:16
+    container_name: project-forklift-database
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres-data-forklift:/var/lib/postgresql/data
+    networks:
+      - project-forklift-net
+
+volumes:
+  backend-uploads-forklift:
+  postgres-data-forklift:
+
+networks:
+  project-forklift-net:
+    name: project-forklift
