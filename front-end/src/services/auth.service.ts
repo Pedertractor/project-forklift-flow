@@ -26,7 +26,7 @@ export async function loginWithPassword(
 ): Promise<LoginResult> {
   if (!ENV.API_URL) {
     throw new Error(
-      'API não configurada: defina VITE_BASE_URL_API (dev: front-end/.env com http://127.0.0.1:3131/api; produção/Docker: /api em front-end/.env.production) e refaça o build.',
+      'API não configurada: defina VITE_BASE_URL_API no front-end/.env (ex.: http://localhost:5010/api) e refaça o build do Docker.',
     );
   }
 

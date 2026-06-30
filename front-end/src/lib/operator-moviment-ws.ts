@@ -41,11 +41,12 @@ export function resolveOperatorMovimentWsUrl(token: string): string | null {
   }
 
   const apiIsRelative = ENV.API_URL.startsWith('/');
+  // Só reutiliza o host do browser quando a API é relativa (/api + proxy na mesma origem).
+  // Com VITE_BASE_URL_API absoluto (ex.: :5010), o WS deve ir para o mesmo host da API.
   const useBrowserHost =
+    apiIsRelative &&
     typeof window !== 'undefined' &&
-    window.location.host.length > 0 &&
-    (apiIsRelative ||
-      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin));
+    window.location.host.length > 0;
 
   const protocol =
     useBrowserHost &&

@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_BASE_URL_API: ${VITE_BASE_URL_API}
     container_name: front-end-project-forklift
     restart: always
     ports:
