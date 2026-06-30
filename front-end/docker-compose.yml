@@ -1,0 +1,19 @@
+name: project-forklift
+services:
+  front-end-project-forklift:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: front-end-project-forklift
+    restart: always
+    ports:
+      - "${FRONTEND_PORT}:80"
+    env_file:
+      - .env
+    networks:
+      - project-forklift-net
+
+networks:
+  project-forklift-net:
+    external: true
+    name: project-forklift

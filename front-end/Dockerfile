@@ -10,7 +10,7 @@ RUN npm ci
 
 COPY . .
 
-# Padrão /api (proxy nginx → back-end). Sobrescreva via build-arg ou raiz .env.
+# Padrão /api (proxy nginx → back-end). Sobrescreva via build-arg ou front-end/.env.production.
 ARG VITE_BASE_URL_API=/api
 ENV VITE_BASE_URL_API=${VITE_BASE_URL_API}
 
