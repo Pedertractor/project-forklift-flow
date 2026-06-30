@@ -10,7 +10,7 @@ RUN npm ci
 
 COPY . .
 
-# Padrão /api (proxy nginx → back-end). Sobrescreva via build-arg ou raiz .env.
+# Padrão /api (proxy nginx → back-end). Sobrescreva via build-arg ou front-end/.env.production.
 ARG VITE_BASE_URL_API=/api
 ENV VITE_BASE_URL_API=${VITE_BASE_URL_API}
 
@@ -18,7 +18,7 @@ RUN export VITE_BASE_URL_API="${VITE_BASE_URL_API:-/api}" && npm run build
 
 FROM nginx:1.29-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /usr/src/app/dist /usr/share/nginx/html
 
 EXPOSE 80

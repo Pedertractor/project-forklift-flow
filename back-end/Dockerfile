@@ -8,7 +8,8 @@ RUN npm set strict-ssl false
 ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 RUN npm install
 
-ENV DATABASE_URL=postgresql://docker:docker@127.0.0.1:5432/forklift_db
+# prisma.config.ts exige DATABASE_URL ao carregar; .env não entra no build (.dockerignore)
+ENV DATABASE_URL=postgresql://docker:docker@project-forklift-database:5432/forklift_db?schema=public
 
 COPY . .
 
