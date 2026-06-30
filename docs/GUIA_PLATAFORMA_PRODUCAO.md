@@ -37,13 +37,13 @@ A plataforma **Fork** funciona como uma **campainha de restaurante digital**: ca
 
 ### Arquitetura
 
-| Camada | Tecnologia |
-|--------|------------|
-| Front-end | React 19 + Vite + TanStack Query |
-| Back-end | Fastify + Prisma + PostgreSQL |
-| Tempo real | WebSocket (atualização de filas e tarefas) |
-| Autenticação | JWT (cartão + unidade + senha) |
-| Deploy | Docker Compose |
+| Camada       | Tecnologia                                 |
+| ------------ | ------------------------------------------ |
+| Front-end    | React 19 + Vite + TanStack Query           |
+| Back-end     | Fastify + Prisma + PostgreSQL              |
+| Tempo real   | WebSocket (atualização de filas e tarefas) |
+| Autenticação | JWT (cartão + unidade + senha)             |
+| Deploy       | Docker Compose                             |
 
 ### Unidades
 
@@ -71,14 +71,14 @@ Cada colaborador pertence a uma unidade e se identifica pelo **número do cartã
 
 ## 3. Papéis (roles) e responsabilidades
 
-| Papel | Código no sistema | Quem é | O que faz |
-|-------|-------------------|--------|-----------|
-| **Operador de máquina** | `OPERATOR_MACHINE` | Colaborador na dobra | Vincula-se a uma máquina; solicita retirada, abastecimento ou ambos |
-| **Abastecimento** | `SUPPLY_OPERATOR` | Recebimento / supply | Recebe avisos; prepara pallets; cria tarefas de entrega |
-| **Transportador de pallet** | `PALLET_TRANSPORTER` | Empilhadeirista ou transpaleteiro | Escolhe equipamento no turno; aceita e conclui tarefas da fila |
-| **Líder de setor** | `LEADER` | Supervisor da dobra | Dashboard, cadastros, cria usuários do setor |
-| **Administrador** | `ADMIN` | TI / responsável pelo sistema | Tudo do líder + setores, papéis, reset de senha |
-| **Superadministrador** | `SUPERADMIN` | Implantação inicial | Acesso total; criado automaticamente no seed |
+| Papel                       | Código no sistema    | Quem é                            | O que faz                                                           |
+| --------------------------- | -------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| **Operador de máquina**     | `OPERATOR_MACHINE`   | Colaborador na dobra              | Vincula-se a uma máquina; solicita retirada, abastecimento ou ambos |
+| **Abastecimento**           | `SUPPLY_OPERATOR`    | Recebimento / supply              | Recebe avisos; prepara pallets; cria tarefas de entrega             |
+| **Transportador de pallet** | `PALLET_TRANSPORTER` | Empilhadeirista ou transpaleteiro | Escolhe equipamento no turno; aceita e conclui tarefas da fila      |
+| **Líder de setor**          | `LEADER`             | Supervisor da dobra               | Dashboard, cadastros, cria usuários do setor                        |
+| **Administrador**           | `ADMIN`              | TI / responsável pelo sistema     | Tudo do líder + setores, papéis, reset de senha                     |
+| **Superadministrador**      | `SUPERADMIN`         | Implantação inicial               | Acesso total; criado automaticamente no seed                        |
 
 ### Hierarquia de permissões
 
@@ -98,19 +98,19 @@ SUPERADMIN ──▶ acesso total (bypass de todas as restrições)
 
 ### Quem pode criar usuários
 
-| Quem cria | Pode criar |
-|-----------|------------|
-| **ADMIN / SUPERADMIN** | Qualquer papel (ADMIN não cria SUPERADMIN) |
-| **LEADER** | Apenas `OPERATOR_MACHINE`, `PALLET_TRANSPORTER` e `SUPPLY_OPERATOR` do mesmo setor |
+| Quem cria              | Pode criar                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| **ADMIN / SUPERADMIN** | Qualquer papel (ADMIN não cria SUPERADMIN)                                         |
+| **LEADER**             | Apenas `OPERATOR_MACHINE`, `PALLET_TRANSPORTER` e `SUPPLY_OPERATOR` do mesmo setor |
 
 ### Tela inicial após login
 
-| Papel | Vai para |
-|-------|----------|
-| ADMIN / SUPERADMIN / LEADER | `/dashboard` |
-| SUPPLY_OPERATOR | `/abastecimento/preparo-pendente` |
-| OPERATOR_MACHINE | `/dobra/operacao` |
-| PALLET_TRANSPORTER | `/operacao/equipamento` (escolher empilhadeira ou transpaleteira) |
+| Papel                       | Vai para                                                          |
+| --------------------------- | ----------------------------------------------------------------- |
+| ADMIN / SUPERADMIN / LEADER | `/dashboard`                                                      |
+| SUPPLY_OPERATOR             | `/abastecimento/preparo-pendente`                                 |
+| OPERATOR_MACHINE            | `/dobra/operacao`                                                 |
+| PALLET_TRANSPORTER          | `/operacao/equipamento` (escolher empilhadeira ou transpaleteira) |
 
 ---
 
@@ -190,19 +190,19 @@ flowchart LR
 
 **Objetivo:** avisar que a máquina precisa de material ou que o pallet atual deve sair.
 
-| Passo | Ação | Detalhe |
-|-------|------|---------|
-| 1 | **Vincular máquina** | No início do turno, seleciona a máquina em que vai operar |
-| 2 | **Escolher operação** | Uma das três opções abaixo |
-| 3 | **Acompanhar tarefas** | Vê status de entregas e retiradas da sua máquina |
+| Passo | Ação                   | Detalhe                                                   |
+| ----- | ---------------------- | --------------------------------------------------------- |
+| 1     | **Vincular máquina**   | No início do turno, seleciona a máquina em que vai operar |
+| 2     | **Escolher operação**  | Uma das três opções abaixo                                |
+| 3     | **Acompanhar tarefas** | Vê status de entregas e retiradas da sua máquina          |
 
 **Três tipos de solicitação:**
 
-| Botão | O que acontece | Quem é notificado |
-|-------|----------------|-------------------|
-| **Só retirada** | Cria `PickupTask` — transportador retira o pallet da máquina | Transportador |
-| **Só abastecimento** | Cria aviso ao abastecimento — supply prepara e cria entrega | Abastecimento |
-| **Retirada + abastecimento** | Cria retirada **e** aviso ao abastecimento ao mesmo tempo | Transportador + Abastecimento |
+| Botão                        | O que acontece                                               | Quem é notificado             |
+| ---------------------------- | ------------------------------------------------------------ | ----------------------------- |
+| **Só retirada**              | Cria `PickupTask` — transportador retira o pallet da máquina | Transportador                 |
+| **Só abastecimento**         | Cria aviso ao abastecimento — supply prepara e cria entrega  | Abastecimento                 |
+| **Retirada + abastecimento** | Cria retirada **e** aviso ao abastecimento ao mesmo tempo    | Transportador + Abastecimento |
 
 > **Retirada:** o operador pode solicitar a qualquer momento (pedido de serviço ao transporte). Não exige entrega concluída registrada no sistema.
 
@@ -212,12 +212,12 @@ flowchart LR
 
 **Objetivo:** preparar pallets e colocá-los na fila do transportador.
 
-| Passo | Ação | Detalhe |
-|-------|------|---------|
-| 1 | **Ver avisos pendentes** | Lista de máquinas que pediram abastecimento (`OPEN`) |
-| 2 | **Preparar pallet** | Informa código do prisma, tipo de movimentação e se é crítico |
-| 3 | **Marcar como pronto** | Preenche `preparedAt` → tarefa entra na fila do transportador |
-| 4 | **Antecipar entrega** | Pode criar entrega antes do aviso (supply proativo) |
+| Passo | Ação                     | Detalhe                                                       |
+| ----- | ------------------------ | ------------------------------------------------------------- |
+| 1     | **Ver avisos pendentes** | Lista de máquinas que pediram abastecimento (`OPEN`)          |
+| 2     | **Preparar pallet**      | Informa código do prisma, tipo de movimentação e se é crítico |
+| 3     | **Marcar como pronto**   | Preenche `preparedAt` → tarefa entra na fila do transportador |
+| 4     | **Antecipar entrega**    | Pode criar entrega antes do aviso (supply proativo)           |
 
 Ao criar a entrega, avisos abertos da mesma máquina são encerrados automaticamente.
 
@@ -227,14 +227,14 @@ Ao criar a entrega, avisos abertos da mesma máquina são encerrados automaticam
 
 **Objetivo:** executar entregas e retiradas de forma ordenada e eficiente.
 
-| Passo | Ação | Detalhe |
-|-------|------|---------|
-| 1 | **Escolher equipamento** | Empilhadeira ou transpaleteira (início do turno) |
-| 2 | **Ver sugestões de viagem** | Pares entrega+retirada na mesma máquina (prioridade) |
-| 3 | **Aceitar tarefa** | Sugestão combinada ou tarefa avulsa da fila |
-| 4 | **Executar entrega** | Leva prisma até a máquina → marca concluída |
-| 5 | **Executar retirada** | Retira prisma da máquina → leva à expedição → marca concluída |
-| 6 | **Fila manual** | Tarefas não críticas avulsas, quando não há sugestão combinada |
+| Passo | Ação                        | Detalhe                                                        |
+| ----- | --------------------------- | -------------------------------------------------------------- |
+| 1     | **Escolher equipamento**    | Empilhadeira ou transpaleteira (início do turno)               |
+| 2     | **Ver sugestões de viagem** | Pares entrega+retirada na mesma máquina (prioridade)           |
+| 3     | **Aceitar tarefa**          | Sugestão combinada ou tarefa avulsa da fila                    |
+| 4     | **Executar entrega**        | Leva prisma até a máquina → marca concluída                    |
+| 5     | **Executar retirada**       | Retira prisma da máquina → leva à expedição → marca concluída  |
+| 6     | **Fila manual**             | Tarefas não críticas avulsas, quando não há sugestão combinada |
 
 **Prioridade da fila:**
 
@@ -248,34 +248,34 @@ Ao criar a entrega, avisos abertos da mesma máquina são encerrados automaticam
 
 **Objetivo:** configurar o ambiente e acompanhar a operação.
 
-| Área | Função |
-|------|--------|
-| **Dashboard** | Visão geral do setor, métricas e trajetória por transportador |
-| **Cadastro de máquinas** | Registrar máquinas de dobra por setor |
-| **Cadastro de tipos** | Tipos de máquina (com foto) |
-| **Setores** | Centros de custo e agrupamento (somente ADMIN) |
-| **Usuários** | Criar colaboradores, atribuir papéis, resetar senha |
+| Área                     | Função                                                        |
+| ------------------------ | ------------------------------------------------------------- |
+| **Dashboard**            | Visão geral do setor, métricas e trajetória por transportador |
+| **Cadastro de máquinas** | Registrar máquinas de dobra por setor                         |
+| **Cadastro de tipos**    | Tipos de máquina (com foto)                                   |
+| **Setores**              | Centros de custo e agrupamento (somente ADMIN)                |
+| **Usuários**             | Criar colaboradores, atribuir papéis, resetar senha           |
 
 ---
 
 ## 6. Telas por papel
 
-| Rota | Tela | Papéis |
-|------|------|--------|
-| `/login` | Login (cartão + unidade + senha) | Todos |
-| `/definir-senha` | Primeira senha (obrigatório no 1º acesso) | Todos |
-| `/dashboard` | Painel operacional | LEADER, ADMIN, SUPERADMIN |
-| `/cadastro/tipos-maquina` | Tipos de máquina | LEADER, ADMIN |
-| `/cadastro/maquinas` | Máquinas de produção | LEADER, ADMIN |
-| `/abastecimento/solicitacoes` | Solicitações de reposição | SUPPLY, LEADER, ADMIN |
-| `/abastecimento/preparo-pendente` | Preparo pendente (wizard) | SUPPLY, LEADER, ADMIN |
-| `/administracao/setores` | Setores | ADMIN, SUPERADMIN |
-| `/administracao/usuarios` | Usuários | LEADER, ADMIN |
-| `/dobra/operacao` | Operação na dobra | OPERATOR_MACHINE |
-| `/operacao/equipamento` | Escolher empilhadeira/transpaleteira | PALLET_TRANSPORTER |
-| `/operacao/aceitar-tarefas` | Tarefas disponíveis (sugestões) | PALLET_TRANSPORTER |
-| `/operacao/filas-manuais` | Fila manual | PALLET_TRANSPORTER |
-| `/operacao/minhas-tarefas` | Tarefas em execução | PALLET_TRANSPORTER |
+| Rota                              | Tela                                      | Papéis                    |
+| --------------------------------- | ----------------------------------------- | ------------------------- |
+| `/login`                          | Login (cartão + unidade + senha)          | Todos                     |
+| `/definir-senha`                  | Primeira senha (obrigatório no 1º acesso) | Todos                     |
+| `/dashboard`                      | Painel operacional                        | LEADER, ADMIN, SUPERADMIN |
+| `/cadastro/tipos-maquina`         | Tipos de máquina                          | LEADER, ADMIN             |
+| `/cadastro/maquinas`              | Máquinas de produção                      | LEADER, ADMIN             |
+| `/abastecimento/solicitacoes`     | Solicitações de reposição                 | SUPPLY, LEADER, ADMIN     |
+| `/abastecimento/preparo-pendente` | Preparo pendente (wizard)                 | SUPPLY, LEADER, ADMIN     |
+| `/administracao/setores`          | Setores                                   | ADMIN, SUPERADMIN         |
+| `/administracao/usuarios`         | Usuários                                  | LEADER, ADMIN             |
+| `/dobra/operacao`                 | Operação na dobra                         | OPERATOR_MACHINE          |
+| `/operacao/equipamento`           | Escolher empilhadeira/transpaleteira      | PALLET_TRANSPORTER        |
+| `/operacao/aceitar-tarefas`       | Tarefas disponíveis (sugestões)           | PALLET_TRANSPORTER        |
+| `/operacao/filas-manuais`         | Fila manual                               | PALLET_TRANSPORTER        |
+| `/operacao/minhas-tarefas`        | Tarefas em execução                       | PALLET_TRANSPORTER        |
 
 ---
 
@@ -302,8 +302,8 @@ POSTGRES_PORT=5432
 
 FRONTEND_PORT=5173
 
-# Em produção com proxy reverso, use o path da API:
-VITE_API_URL=/api
+# Em produção com proxy reverso (nginx do front-end), use o path da API:
+VITE_BASE_URL_API=/api
 ```
 
 #### Back-end (`back-end/.env`)
@@ -434,12 +434,12 @@ O seed cria automaticamente usuários SUPERADMIN (cartões definidos em `back-en
 2. Informe o **cartão** do colaborador (dados vêm da API de RH)
 3. Atribua o papel correto:
 
-| Colaborador | Papel |
-|-------------|-------|
-| Operadores na dobra | `OPERATOR_MACHINE` |
-| Equipe do recebimento | `SUPPLY_OPERATOR` |
+| Colaborador                        | Papel                |
+| ---------------------------------- | -------------------- |
+| Operadores na dobra                | `OPERATOR_MACHINE`   |
+| Equipe do recebimento              | `SUPPLY_OPERATOR`    |
 | Empilhadeiristas e transpaleteiros | `PALLET_TRANSPORTER` |
-| Supervisor do setor | `LEADER` |
+| Supervisor do setor                | `LEADER`             |
 
 4. Vincule cada usuário ao **setor** correto
 5. Comunique a **senha inicial** (`FIRST_PASSWORD`) — todos devem trocar no primeiro login
@@ -506,15 +506,15 @@ Distribua este guia (ou um resumo operacional) para:
 
 Estas regras evitam conflitos na operação. Vale comunicar à equipe:
 
-| Regra | Explicação |
-|-------|------------|
-| **Retirada livre** | Operador da máquina pode solicitar retirada a qualquer momento — pedido de serviço ao transporte, sem exigir entrega concluída no sistema |
-| **Pallet no recebimento bloqueia abastecimento** | Se já existe pallet preparado aguardando entrega, o operador **só pode pedir retirada** — não abastecimento nem retirada+abastecimento |
-| **Entrega só entra na fila quando pronta** | Transportador só vê a entrega após abastecimento marcar `preparedAt` |
-| **Sugestão de viagem = entrega pronta + retirada pendente** | Otimiza deslocamento: levar e buscar na mesma ida |
-| **Crítico sobe na fila** | Tarefas marcadas como críticas têm prioridade sobre as demais |
-| **Tipo de equipamento importa** | Tarefas `FORKLIFT` só aparecem para quem está operando empilhadeira |
-| **Cancelamento de retirada** | Operador pode cancelar retirada em status `CREATED`; se era retirada+abastecimento, cancela também o aviso ao supply |
+| Regra                                                       | Explicação                                                                                                                                |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Retirada livre**                                          | Operador da máquina pode solicitar retirada a qualquer momento — pedido de serviço ao transporte, sem exigir entrega concluída no sistema |
+| **Pallet no recebimento bloqueia abastecimento**            | Se já existe pallet preparado aguardando entrega, o operador **só pode pedir retirada** — não abastecimento nem retirada+abastecimento    |
+| **Entrega só entra na fila quando pronta**                  | Transportador só vê a entrega após abastecimento marcar `preparedAt`                                                                      |
+| **Sugestão de viagem = entrega pronta + retirada pendente** | Otimiza deslocamento: levar e buscar na mesma ida                                                                                         |
+| **Crítico sobe na fila**                                    | Tarefas marcadas como críticas têm prioridade sobre as demais                                                                             |
+| **Tipo de equipamento importa**                             | Tarefas `FORKLIFT` só aparecem para quem está operando empilhadeira                                                                       |
+| **Cancelamento de retirada**                                | Operador pode cancelar retirada em status `CREATED`; se era retirada+abastecimento, cancela também o aviso ao supply                      |
 
 ---
 
@@ -522,9 +522,9 @@ Estas regras evitam conflitos na operação. Vale comunicar à equipe:
 
 ### Endpoints úteis
 
-| Endpoint | Uso |
-|----------|-----|
-| `GET /api/health` | Verificar se a API está no ar |
+| Endpoint           | Uso                              |
+| ------------------ | -------------------------------- |
+| `GET /api/health`  | Verificar se a API está no ar    |
 | `GET /api/auth/me` | Validar sessão do usuário logado |
 
 ### Logs
@@ -537,13 +537,13 @@ docker compose logs -f postgresql-forklift  # Banco
 
 ### Problemas comuns
 
-| Sintoma | Possível causa | Ação |
-|---------|----------------|------|
-| Login falha para todos | API de colaboradores inacessível | Verificar `URL_VERIFY_EMPLOYEES` e rede |
-| Seed falha no deploy | Cartão do seed não existe na API RH | Ajustar cartões em `prisma/seed.ts` ou cadastrar colaborador |
-| Fila vazia para transportador | Nenhum pallet marcado como pronto | Abastecimento deve marcar `preparedAt` |
-| Retirada não aparece na fila | Pedido ainda não aceito ou tipo de equipamento incompatível | Verificar status da tarefa e equipamento vinculado |
-| WebSocket não atualiza | Proxy sem suporte a Upgrade | Configurar Nginx para `/ws/` |
+| Sintoma                       | Possível causa                                              | Ação                                                         |
+| ----------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
+| Login falha para todos        | API de colaboradores inacessível                            | Verificar `URL_VERIFY_EMPLOYEES` e rede                      |
+| Seed falha no deploy          | Cartão do seed não existe na API RH                         | Ajustar cartões em `prisma/seed.ts` ou cadastrar colaborador |
+| Fila vazia para transportador | Nenhum pallet marcado como pronto                           | Abastecimento deve marcar `preparedAt`                       |
+| Retirada não aparece na fila  | Pedido ainda não aceito ou tipo de equipamento incompatível | Verificar status da tarefa e equipamento vinculado           |
+| WebSocket não atualiza        | Proxy sem suporte a Upgrade                                 | Configurar Nginx para `/ws/`                                 |
 
 ### Backup do banco
 
@@ -557,13 +557,13 @@ docker exec postgresql-forklift pg_dump -U <POSTGRES_USER> <POSTGRES_DB> > backu
 
 ## Referências técnicas
 
-| Documento | Conteúdo |
-|-----------|----------|
+| Documento                                            | Conteúdo                           |
+| ---------------------------------------------------- | ---------------------------------- |
 | `back-end/docs/REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md` | Regras de negócio detalhadas (API) |
-| `back-end/prisma/schema.prisma` | Modelos de dados |
-| `docker-compose.yaml` | Orquestração dos serviços |
-| `front-end/src/App.tsx` | Rotas do front-end |
+| `back-end/prisma/schema.prisma`                      | Modelos de dados                   |
+| `docker-compose.yaml`                                | Orquestração dos serviços          |
+| `front-end/src/App.tsx`                              | Rotas do front-end                 |
 
 ---
 
-*Documento gerado para implantação em produção — Fork (Forklift Flow).*
+_Documento gerado para implantação em produção — Fork (Forklift Flow)._
