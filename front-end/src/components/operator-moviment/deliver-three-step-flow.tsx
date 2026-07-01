@@ -36,16 +36,27 @@ export function DeliverFlowActivitySubtitle({
   children,
   start,
   end,
+  typography = 'default',
 }: {
   children: ReactNode;
   /** Conteúdo alinhado ao início (ex.: nome da máquina). Com `start`, `children` fica centralizado na linha. */
   start?: ReactNode;
   /** Conteúdo alinhado ao fim (ex.: horário da solicitação). */
   end?: ReactNode;
+  typography?: ActivityTypography;
 }) {
+  const large = typography === 'large';
+
   if (start != null) {
     return (
-      <div className="mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 text-[11px] font-semibold uppercase leading-tight tracking-wide phone-landscape:mb-1.5 phone-landscape:shrink-0 phone-landscape:gap-x-1 phone-landscape:text-[13px] sm:text-xs sm:leading-normal sm:tracking-wider">
+      <div
+        className={cn(
+          'mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 font-normal uppercase leading-tight tracking-wide phone-landscape:mb-1.5 phone-landscape:shrink-0 phone-landscape:gap-x-1 sm:leading-normal sm:tracking-wider',
+          large
+            ? 'text-xs phone-landscape:text-base'
+            : 'text-[11px] phone-landscape:text-sm sm:text-xs',
+        )}
+      >
         <div className="min-w-0 justify-self-start">{start}</div>
         <div className="shrink-0 justify-self-center px-0.5">{children}</div>
         <div className="min-w-0 justify-self-end text-right">{end ?? null}</div>
@@ -54,9 +65,64 @@ export function DeliverFlowActivitySubtitle({
   }
 
   return (
-    <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider phone-landscape:text-sm">
+    <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-zinc-700 phone-landscape:text-sm">
       {children}
     </p>
+  );
+}
+
+export function DeliverFlowMachineCubeHighlight({
+  machineName,
+  cube,
+  typography = 'default',
+}: {
+  machineName?: string;
+  cube?: string;
+  typography?: ActivityTypography;
+}) {
+  const large = typography === 'large';
+
+  if (!machineName && !cube) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        'inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5',
+        large
+          ? 'text-sm phone-landscape:text-base md:text-xl'
+          : 'text-sm phone-landscape:text-base md:text-xl',
+      )}
+    >
+      {machineName ? (
+        <span className="truncate font-bold uppercase tracking-wide text-brand">
+          {machineName}
+        </span>
+      ) : null}
+      {cube ? (
+        <>
+          {machineName ? (
+            <span className="shrink-0 font-normal text-zinc-400" aria-hidden>
+              -
+            </span>
+          ) : null}
+          <div className="inline-flex items-center gap-1 rounded-lg border border-brand/35 bg-brand/15 px-1.5 py-0.5 font-bold text-brand shadow-sm phone-landscape:px-1 md:gap-1.5 md:px-2 md:py-0.5">
+            <Box
+              strokeWidth={2.75}
+              className={cn(
+                'shrink-0 text-brand',
+                large
+                  ? 'size-3.5 phone-landscape:size-4 md:size-5'
+                  : 'size-3.5 phone-landscape:size-4 md:size-5',
+              )}
+              aria-hidden
+            />
+            <span className="tracking-widest">{cube}</span>
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -171,6 +237,12 @@ const STEP_ICON_RING_CENTER_MT_COMPACT = 'mt-[2.375rem]';
 
 type FlowStepSize = 'default' | 'compact' | 'micro';
 
+export type ActivityTypography = 'default' | 'large';
+
+const LANDSCAPE_LARGE_LABEL_SCALE = 1.35;
+/** Anéis de ícone menores quando só o texto está em `large` (tela Conclua a tarefa). */
+const LANDSCAPE_LARGE_RING_SCALE = 0.82;
+
 interface LandscapeFlowMetrics {
   ringCqh: number;
   ringCqw: number;
@@ -190,7 +262,7 @@ interface LandscapeFlowMetrics {
   cubeTextCqw: number;
 }
 
-function landscapeFlowMetrics(stepCount: number): LandscapeFlowMetrics {
+function landscapeFlowMetricsBase(stepCount: number): LandscapeFlowMetrics {
   if (stepCount <= 2) {
     return {
       ringCqh: 46,
@@ -202,7 +274,7 @@ function landscapeFlowMetrics(stepCount: number): LandscapeFlowMetrics {
       badgeMaxRem: 1.5,
       labelCqh: 10,
       labelCqw: 5.2,
-      labelMaxRem: 0.9375,
+      labelMaxRem: 1.125,
       gapCqh: 6,
       gapCqw: 3,
       cubeIconCqh: 9,
@@ -221,9 +293,9 @@ function landscapeFlowMetrics(stepCount: number): LandscapeFlowMetrics {
       badgeCqh: 11,
       badgeCqw: 5.5,
       badgeMaxRem: 1.375,
-      labelCqh: 9.5,
-      labelCqw: 4.8,
-      labelMaxRem: 0.875,
+      labelCqh: 11.5,
+      labelCqw: 5.8,
+      labelMaxRem: 1.0625,
       gapCqh: 5,
       gapCqw: 2.5,
       cubeIconCqh: 8,
@@ -241,15 +313,46 @@ function landscapeFlowMetrics(stepCount: number): LandscapeFlowMetrics {
     badgeCqh: 10,
     badgeCqw: 5,
     badgeMaxRem: 1.25,
-    labelCqh: 9,
-    labelCqw: 4.5,
-    labelMaxRem: 0.8125,
+    labelCqh: 10.5,
+    labelCqw: 5.4,
+    labelMaxRem: 1,
     gapCqh: 4.5,
     gapCqw: 2.2,
     cubeIconCqh: 7.5,
     cubeIconCqw: 3.8,
     cubeTextCqh: 7,
     cubeTextCqw: 3.5,
+  };
+}
+
+function landscapeFlowMetrics(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): LandscapeFlowMetrics {
+  const base = landscapeFlowMetricsBase(stepCount);
+  if (typography === 'default') {
+    return base;
+  }
+
+  const labelScale = LANDSCAPE_LARGE_LABEL_SCALE;
+  const ringScale = LANDSCAPE_LARGE_RING_SCALE;
+  return {
+    ringCqh: base.ringCqh * ringScale,
+    ringCqw: base.ringCqw * ringScale,
+    ringMaxRem: base.ringMaxRem * ringScale,
+    iconRatio: base.iconRatio,
+    badgeCqh: base.badgeCqh,
+    badgeCqw: base.badgeCqw,
+    badgeMaxRem: base.badgeMaxRem,
+    labelCqh: base.labelCqh * labelScale,
+    labelCqw: base.labelCqw * labelScale,
+    labelMaxRem: base.labelMaxRem * labelScale,
+    gapCqh: base.gapCqh,
+    gapCqw: base.gapCqw,
+    cubeIconCqh: base.cubeIconCqh * labelScale,
+    cubeIconCqw: base.cubeIconCqw * labelScale,
+    cubeTextCqh: base.cubeTextCqh * labelScale,
+    cubeTextCqw: base.cubeTextCqw * labelScale,
   };
 }
 
@@ -262,16 +365,24 @@ function cqClamp(
   return `clamp(${minRem}rem, min(${cqh}cqh, ${cqw}cqw), ${maxRem}rem)`;
 }
 
-function landscapeRingStyle(stepCount: number): CSSProperties {
-  const m = landscapeFlowMetrics(stepCount);
-  const size = cqClamp(2.75, m.ringCqh, m.ringCqw, m.ringMaxRem);
+function landscapeRingStyle(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): CSSProperties {
+  const m = landscapeFlowMetrics(stepCount, typography);
+  const minRem = typography === 'large' ? 2.125 : 2.75;
+  const size = cqClamp(minRem, m.ringCqh, m.ringCqw, m.ringMaxRem);
   return { width: size, height: size };
 }
 
-function landscapeIconStyle(stepCount: number): CSSProperties {
-  const m = landscapeFlowMetrics(stepCount);
+function landscapeIconStyle(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): CSSProperties {
+  const m = landscapeFlowMetrics(stepCount, typography);
+  const minRem = typography === 'large' ? 1.125 : 1.5;
   const size = cqClamp(
-    1.5,
+    minRem,
     +(m.ringCqh * m.iconRatio).toFixed(1),
     +(m.ringCqw * m.iconRatio).toFixed(1),
     +(m.ringMaxRem * m.iconRatio).toFixed(2),
@@ -279,8 +390,12 @@ function landscapeIconStyle(stepCount: number): CSSProperties {
   return { width: size, height: size };
 }
 
-function landscapeBadgeStyle(stepCount: number): CSSProperties {
-  const m = landscapeFlowMetrics(stepCount);
+function landscapeBadgeStyle(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): CSSProperties {
+  const m = landscapeFlowMetrics(stepCount, typography);
+  const badgeFontMax = typography === 'large' ? 0.9375 : 0.6875;
   const size = cqClamp(1, m.badgeCqh, m.badgeCqw, m.badgeMaxRem);
   return {
     width: size,
@@ -295,33 +410,47 @@ function landscapeBadgeStyle(stepCount: number): CSSProperties {
       0.5,
       +(m.badgeCqh * 0.36).toFixed(1),
       +(m.badgeCqw * 0.36).toFixed(1),
-      0.6875,
+      badgeFontMax,
     ),
   };
 }
 
-function landscapeLabelStyle(stepCount: number): CSSProperties {
-  const m = landscapeFlowMetrics(stepCount);
+function landscapeLabelStyle(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): CSSProperties {
+  const m = landscapeFlowMetrics(stepCount, typography);
+  const minRem = typography === 'large' ? 0.8125 : 0.6875;
   return {
-    fontSize: cqClamp(0.6875, m.labelCqh, m.labelCqw, m.labelMaxRem),
+    fontSize: cqClamp(minRem, m.labelCqh, m.labelCqw, m.labelMaxRem),
   };
 }
 
-function landscapeGapStyle(stepCount: number): CSSProperties {
-  const m = landscapeFlowMetrics(stepCount);
+function landscapeGapStyle(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): CSSProperties {
+  const m = landscapeFlowMetrics(stepCount, typography);
   return { gap: cqClamp(0.2, m.gapCqh, m.gapCqw, 0.625) };
 }
 
-function landscapeCubeIconStyle(stepCount: number): CSSProperties {
-  const m = landscapeFlowMetrics(stepCount);
+function landscapeCubeIconStyle(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): CSSProperties {
+  const m = landscapeFlowMetrics(stepCount, typography);
   const size = cqClamp(0.75, m.cubeIconCqh, m.cubeIconCqw, 1.125);
   return { width: size, height: size };
 }
 
-function landscapeCubeTextStyle(stepCount: number): CSSProperties {
-  const m = landscapeFlowMetrics(stepCount);
+function landscapeCubeTextStyle(
+  stepCount: number,
+  typography: ActivityTypography = 'default',
+): CSSProperties {
+  const m = landscapeFlowMetrics(stepCount, typography);
+  const maxRem = typography === 'large' ? 1.25 : 1;
   return {
-    fontSize: cqClamp(0.6875, m.cubeTextCqh, m.cubeTextCqw, 1),
+    fontSize: cqClamp(0.6875, m.cubeTextCqh, m.cubeTextCqw, maxRem),
   };
 }
 
@@ -337,15 +466,10 @@ function FlowStepDotConnector({
   return (
     <div
       className={cn(
-        'relative w-full min-w-0',
-        fillHeight
-          ? 'self-center'
-          : cn(
-              'self-start',
-              size === 'micro'
-                ? STEP_ICON_RING_CENTER_MT_COMPACT
-                : STEP_ICON_RING_CENTER_MT,
-            ),
+        'relative w-full min-w-0 self-start',
+        size === 'micro' || fillHeight
+          ? STEP_ICON_RING_CENTER_MT_COMPACT
+          : STEP_ICON_RING_CENTER_MT,
       )}
       style={{ gridColumn }}
       aria-hidden
@@ -365,11 +489,13 @@ function FlowStepIconRing({
   size = 'default',
   fillHeight = false,
   stepCount = 3,
+  activityTypography = 'default',
 }: {
   stepId: RouteFlowStepId;
   size?: FlowStepSize;
   fillHeight?: boolean;
   stepCount?: number;
+  activityTypography?: ActivityTypography;
 }) {
   const StepIcon = routeFlowStepLucideIcon(stepId);
   const micro = size === 'micro';
@@ -379,11 +505,11 @@ function FlowStepIconRing({
     <div
       className={cn(
         'relative flex shrink-0 items-center justify-center rounded-full bg-white',
-        !landscape && size === 'compact' && 'size-12',
-        !landscape && micro && !fillHeight && 'size-9',
+        !landscape && size === 'compact' && 'size-12 phone-landscape:size-14',
+        !landscape && micro && !fillHeight && 'size-9 phone-landscape:size-11',
         !landscape && size === 'default' && 'size-14 sm:size-16',
       )}
-      style={landscape ? landscapeRingStyle(stepCount) : undefined}
+      style={landscape ? landscapeRingStyle(stepCount, activityTypography) : undefined}
     >
       <span
         className="absolute inset-0 rounded-full ring-1 ring-zinc-300"
@@ -399,11 +525,11 @@ function FlowStepIconRing({
       <StepIcon
         className={cn(
           'relative z-10 text-zinc-800',
-          !landscape && size === 'compact' && 'size-6',
-          !landscape && micro && !fillHeight && 'size-4',
+          !landscape && size === 'compact' && 'size-6 phone-landscape:size-7',
+          !landscape && micro && !fillHeight && 'size-4 phone-landscape:size-5',
           !landscape && size === 'default' && 'size-7 sm:size-8',
         )}
-        style={landscape ? landscapeIconStyle(stepCount) : undefined}
+        style={landscape ? landscapeIconStyle(stepCount, activityTypography) : undefined}
         strokeWidth={1.5}
         aria-hidden
       />
@@ -418,6 +544,7 @@ function FlowStepColumn({
   size = 'default',
   fillHeight = false,
   stepCount = 3,
+  activityTypography = 'default',
 }: {
   step: DeliverFlowStepConfig;
   gridColumn?: number;
@@ -426,13 +553,14 @@ function FlowStepColumn({
   size?: FlowStepSize;
   fillHeight?: boolean;
   stepCount?: number;
+  activityTypography?: ActivityTypography;
 }) {
   const micro = size === 'micro';
   const landscape = micro && fillHeight;
 
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-col justify-center"
+      className="flex min-h-0 min-w-0 flex-col justify-start"
       style={gridColumn != null ? { gridColumn } : undefined}
     >
       <div
@@ -442,17 +570,17 @@ function FlowStepColumn({
           size === 'compact' && !fillHeight && 'gap-1.5',
           !micro && !landscape && size !== 'compact' && 'gap-2',
         )}
-        style={landscape ? landscapeGapStyle(stepCount) : undefined}
+        style={landscape ? landscapeGapStyle(stepCount, activityTypography) : undefined}
       >
         <span
           className={cn(
             'bg-zinc-900 font-bold text-white',
             !landscape && 'flex shrink-0 items-center justify-center rounded-full',
-            !landscape && micro && !fillHeight && 'flex size-4 text-[10px]',
-            !landscape && size === 'compact' && !fillHeight && 'flex size-6 text-xs',
+            !landscape && micro && !fillHeight && 'flex size-4 text-[10px] phone-landscape:size-5 phone-landscape:text-xs',
+            !landscape && size === 'compact' && !fillHeight && 'flex size-6 text-xs phone-landscape:size-7 phone-landscape:text-sm',
             !landscape && size === 'default' && 'flex size-6 text-xs',
           )}
-          style={landscape ? landscapeBadgeStyle(stepCount) : undefined}
+          style={landscape ? landscapeBadgeStyle(stepCount, activityTypography) : undefined}
         >
           {step.stepNumber}
         </span>
@@ -462,17 +590,18 @@ function FlowStepColumn({
           size={size}
           fillHeight={fillHeight}
           stepCount={stepCount}
+          activityTypography={activityTypography}
         />
 
         <p
           className={cn(
-            'm-0 w-full px-0.5 text-center font-semibold leading-tight wrap-break-word text-zinc-900',
+            'm-0 w-full px-0.5 text-center font-semibold leading-tight wrap-break-word text-zinc-800',
             landscape && 'line-clamp-4',
-            micro && !fillHeight && 'line-clamp-4 text-xs leading-snug',
-            size === 'compact' && !fillHeight && 'text-xs leading-snug phone-landscape:text-sm',
+            micro && !fillHeight && 'line-clamp-4 text-xs leading-snug phone-landscape:text-base',
+            size === 'compact' && !fillHeight && 'text-xs leading-snug phone-landscape:text-base phone-landscape:leading-snug',
             size === 'default' && 'px-1 text-xs leading-snug sm:text-sm',
           )}
-          style={landscape ? landscapeLabelStyle(stepCount) : undefined}
+          style={landscape ? landscapeLabelStyle(stepCount, activityTypography) : undefined}
         >
           {step.label}
         </p>
@@ -484,16 +613,16 @@ function FlowStepColumn({
                 !landscape && micro && !fillHeight && 'size-3',
                 !landscape && !micro && 'size-4',
               )}
-              style={landscape ? landscapeCubeIconStyle(stepCount) : undefined}
+              style={landscape ? landscapeCubeIconStyle(stepCount, activityTypography) : undefined}
               aria-hidden
             />
             <span
               className={cn(
-                'font-semibold tracking-widest',
-                !landscape && micro && !fillHeight && 'text-xs',
+                'font-bold tracking-widest text-brand',
+                !landscape && micro && !fillHeight && 'text-xs phone-landscape:text-sm',
                 !landscape && !micro && 'text-xl',
               )}
-              style={landscape ? landscapeCubeTextStyle(stepCount) : undefined}
+              style={landscape ? landscapeCubeTextStyle(stepCount, activityTypography) : undefined}
             >
               {cube}
             </span>
@@ -508,16 +637,23 @@ function FlowStepVerticalRow({
   step,
   isLast,
   cube,
+  activityTypography = 'default',
 }: {
   step: DeliverFlowStepConfig;
   isLast: boolean;
   cube?: string;
+  activityTypography?: ActivityTypography;
 }) {
+  const large = activityTypography === 'large';
+
   return (
     <div className="flex gap-3">
       <div className="flex w-8 shrink-0 flex-col items-center">
         <span
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-sm font-bold text-white"
+          className={cn(
+            'flex shrink-0 items-center justify-center rounded-full bg-zinc-900 font-bold text-white',
+            large ? 'size-9 text-base' : 'size-8 text-sm',
+          )}
           aria-label={`Etapa ${step.stepNumber}`}
         >
           {step.stepNumber}
@@ -527,15 +663,32 @@ function FlowStepVerticalRow({
 
       <div className={cn('min-w-0 flex-1', !isLast && 'pb-4 md:pb-5')}>
         <div className="flex min-w-0 flex-col items-start gap-2">
-          <FlowStepIconRing stepId={step.stepId} size="compact" />
+          <FlowStepIconRing
+            stepId={step.stepId}
+            size={large ? 'micro' : 'compact'}
+            fillHeight={false}
+          />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold leading-snug text-zinc-900">
+            <p
+              className={cn(
+                'font-semibold leading-snug text-zinc-800',
+                large ? 'text-base' : 'text-sm',
+              )}
+            >
               {step.label}
             </p>
             {step.stepId === 'receiving' && cube ? (
               <div className="mt-1 flex items-center gap-1">
-                <Box className="size-4 text-brand" aria-hidden />
-                <span className="font-semibold text-xl tracking-widest">
+                <Box
+                  className={cn('text-brand', large ? 'size-5' : 'size-4')}
+                  aria-hidden
+                />
+                <span
+                  className={cn(
+                    'font-bold tracking-widest text-brand',
+                    large ? 'text-2xl' : 'text-xl',
+                  )}
+                >
                   {cube}
                 </span>
               </div>
@@ -550,9 +703,11 @@ function FlowStepVerticalRow({
 function DeliverThreeStepFlowVertical({
   steps,
   cube,
+  activityTypography = 'default',
 }: {
   steps: DeliverFlowStepConfig[];
   cube?: string;
+  activityTypography?: ActivityTypography;
 }) {
   return (
     <ol className="m-0 list-none space-y-0 p-0">
@@ -562,6 +717,7 @@ function DeliverThreeStepFlowVertical({
             step={step}
             isLast={index === steps.length - 1}
             cube={cube}
+            activityTypography={activityTypography}
           />
         </li>
       ))}
@@ -574,11 +730,13 @@ function DeliverThreeStepFlowHorizontal({
   cube,
   size = 'default',
   fillHeight = false,
+  activityTypography = 'default',
 }: {
   steps: DeliverFlowStepConfig[];
   cube?: string;
   size?: FlowStepSize;
   fillHeight?: boolean;
+  activityTypography?: ActivityTypography;
 }) {
   const micro = size === 'micro';
   const gridColumns = buildFlowGridColumns(steps.length, micro, fillHeight);
@@ -592,19 +750,12 @@ function DeliverThreeStepFlowHorizontal({
     >
       <div
         className={cn(
-          'h-full w-full min-w-0 list-none',
-          fillHeight ? 'items-center' : 'grid',
+          'grid h-full w-full min-w-0 list-none items-start',
           !fillHeight && (micro ? 'gap-y-1' : 'gap-y-3'),
         )}
-        style={
-          fillHeight
-            ? {
-                display: 'grid',
-                gridTemplateColumns: gridColumns,
-                alignItems: 'center',
-              }
-            : { gridTemplateColumns: gridColumns }
-        }
+        style={{
+          gridTemplateColumns: gridColumns,
+        }}
       >
         {steps.map((step, index) => {
           const circleColumn = index * 2 + 1;
@@ -626,6 +777,7 @@ function DeliverThreeStepFlowHorizontal({
                 size={size}
                 fillHeight={fillHeight}
                 stepCount={steps.length}
+                activityTypography={activityTypography}
               />
             </Fragment>
           );
@@ -639,16 +791,23 @@ export function DeliverThreeStepFlow({
   steps,
   cube,
   landscapeFillHeight = true,
+  activityTypography = 'default',
 }: {
   steps: DeliverFlowStepConfig[];
   cube?: string;
   /** Em paisagem no mobile: `true` preenche a área disponível (tela com um card); `false` mantém altura compacta (listas). */
   landscapeFillHeight?: boolean;
+  /** Tipografia maior nas etapas (ex.: tela "Conclua a tarefa"). */
+  activityTypography?: ActivityTypography;
 }) {
   return (
     <>
       <div className="phone-landscape:hidden md:hidden">
-        <DeliverThreeStepFlowVertical steps={steps} cube={cube} />
+        <DeliverThreeStepFlowVertical
+          steps={steps}
+          cube={cube}
+          activityTypography={activityTypography}
+        />
       </div>
       <div
         className={cn(
@@ -662,6 +821,7 @@ export function DeliverThreeStepFlow({
           cube={cube}
           size={landscapeFillHeight ? 'micro' : 'compact'}
           fillHeight={landscapeFillHeight}
+          activityTypography={activityTypography}
         />
       </div>
       <div className="hidden phone-landscape:hidden md:block">

@@ -250,7 +250,7 @@ function buildOpenTaskSteps(
 
 function OpenActivityHeading() {
   return (
-    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-base md:text-base">
+    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-lg md:text-base">
       <span
         className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand phone-landscape:size-9"
         aria-hidden
@@ -323,18 +323,28 @@ function OpenTaskRouteCard({
       <div className="px-5 py-4 sm:px-8 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:px-3 phone-landscape:py-2">
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
+            typography="large"
             start={<span aria-hidden />}
             end={
-              <span className="truncate text-brand" title={group.machineName}>
+              <span
+                className="truncate font-bold uppercase tracking-wide text-brand phone-landscape:text-base md:text-lg"
+                title={group.machineName}
+              >
                 {group.machineName}
               </span>
             }
           >
-            {activitySubtitle}
+            <span className="font-semibold normal-case text-zinc-700">
+              {activitySubtitle}
+            </span>
           </DeliverFlowActivitySubtitle>
         ) : null}
         <div className="w-full phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1">
-          <DeliverThreeStepFlow steps={steps} cube={deliverCubeDisplay} />
+          <DeliverThreeStepFlow
+            steps={steps}
+            cube={deliverCubeDisplay}
+            activityTypography="large"
+          />
         </div>
       </div>
 

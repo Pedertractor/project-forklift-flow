@@ -3,6 +3,7 @@ import {
   DeliverFlowActionFooter,
   DeliverFlowActivitySubtitle,
   DeliverFlowCard,
+  DeliverFlowMachineCubeHighlight,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
@@ -22,7 +23,7 @@ import type {
 } from '@/types/operator-moviment-pallet.types';
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { ArrowDownLeft, ArrowUpRight, Box, Check } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Check } from 'lucide-react';
 
 function formatSuggestionRequestedAt(iso: string): string {
   const date = new Date(iso);
@@ -70,30 +71,10 @@ function SuggestionFlowCardBody({
       <div className="phone-landscape:mb-1 phone-landscape:shrink-0">
         <DeliverFlowActivitySubtitle
           start={
-            <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-semibold uppercase tracking-wide text-brand phone-landscape:gap-x-1 phone-landscape:text-sm md:gap-x-1.5 md:text-xl md:tracking-wider">
-              {machineName ? (
-                <span className="truncate">{machineName}</span>
-              ) : null}
-              {cube ? (
-                <>
-                  {machineName ? (
-                    <span className="shrink-0" aria-hidden>
-                      -
-                    </span>
-                  ) : null}
-                  <div className="flex items-center gap-0.5 rounded-lg bg-brand/20 px-1 py-0.5 phone-landscape:px-0.5 phone-landscape:py-0 md:gap-1 md:py-0">
-                    <Box
-                      strokeWidth={2.5}
-                      className="size-3.5 shrink-0 text-brand phone-landscape:size-3.5 md:size-5"
-                      aria-hidden
-                    />
-                    <span className="text-sm tracking-widest phone-landscape:text-sm md:text-xl">
-                      {cube}
-                    </span>
-                  </div>
-                </>
-              ) : null}
-            </div>
+            <DeliverFlowMachineCubeHighlight
+              machineName={machineName}
+              cube={cube}
+            />
           }
           end={
             requestedAtLabel ? (
@@ -106,7 +87,7 @@ function SuggestionFlowCardBody({
             ) : null
           }
         >
-          <span className="inline-flex items-center gap-1 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-xs sm:text-sm">
+          <span className="inline-flex items-center gap-1 font-semibold normal-case text-zinc-700 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-sm sm:text-sm">
             {activityLabel === 'Entrega' ? (
               <>
                 Entrega de pallet
