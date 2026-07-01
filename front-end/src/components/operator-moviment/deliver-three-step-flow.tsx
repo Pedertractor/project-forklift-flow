@@ -45,7 +45,7 @@ export function DeliverFlowActivitySubtitle({
 }) {
   if (start != null) {
     return (
-      <div className="mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 text-[11px] font-semibold uppercase leading-tight tracking-wide max-md:landscape:mb-2 max-md:landscape:shrink-0 max-md:landscape:gap-x-1.5 max-md:landscape:text-[13px] sm:text-xs sm:leading-normal sm:tracking-wider">
+      <div className="mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 text-[11px] font-semibold uppercase leading-tight tracking-wide max-md:landscape:mb-1.5 max-md:landscape:shrink-0 max-md:landscape:gap-x-1 max-md:landscape:text-[13px] sm:text-xs sm:leading-normal sm:tracking-wider">
         <div className="min-w-0 justify-self-start">{start}</div>
         <div className="shrink-0 justify-self-center px-0.5">{children}</div>
         <div className="min-w-0 justify-self-end text-right">{end ?? null}</div>
@@ -436,7 +436,8 @@ function FlowStepColumn({
         className={cn(
           'flex flex-col items-center',
           micro && !fillHeight && 'gap-0.5',
-          !micro && !landscape && 'gap-2',
+          size === 'compact' && !fillHeight && 'gap-1.5',
+          !micro && !landscape && size !== 'compact' && 'gap-2',
         )}
         style={landscape ? landscapeGapStyle(stepCount) : undefined}
       >
@@ -445,7 +446,8 @@ function FlowStepColumn({
             'bg-zinc-900 font-bold text-white',
             !landscape && 'flex shrink-0 items-center justify-center rounded-full',
             !landscape && micro && !fillHeight && 'flex size-4 text-[10px]',
-            !landscape && !micro && 'flex size-6 text-xs',
+            !landscape && size === 'compact' && !fillHeight && 'flex size-6 text-xs',
+            !landscape && size === 'default' && 'flex size-6 text-xs',
           )}
           style={landscape ? landscapeBadgeStyle(stepCount) : undefined}
         >
@@ -463,8 +465,9 @@ function FlowStepColumn({
           className={cn(
             'm-0 w-full px-0.5 text-center font-semibold leading-tight wrap-break-word text-zinc-900',
             landscape && 'line-clamp-4',
-            micro && !fillHeight && 'line-clamp-3 text-[10px]',
-            !micro && !landscape && 'px-1 text-xs leading-snug sm:text-sm',
+            micro && !fillHeight && 'line-clamp-4 text-xs leading-snug',
+            size === 'compact' && !fillHeight && 'text-xs leading-snug max-md:landscape:text-sm',
+            size === 'default' && 'px-1 text-xs leading-snug sm:text-sm',
           )}
           style={landscape ? landscapeLabelStyle(stepCount) : undefined}
         >
@@ -632,21 +635,30 @@ function DeliverThreeStepFlowHorizontal({
 export function DeliverThreeStepFlow({
   steps,
   cube,
+  landscapeFillHeight = true,
 }: {
   steps: DeliverFlowStepConfig[];
   cube?: string;
+  /** Em paisagem no mobile: `true` preenche a área disponível (tela com um card); `false` mantém altura compacta (listas). */
+  landscapeFillHeight?: boolean;
 }) {
   return (
     <>
       <div className="md:hidden max-md:landscape:hidden">
         <DeliverThreeStepFlowVertical steps={steps} cube={cube} />
       </div>
-      <div className="deliver-flow-landscape-container hidden min-h-0 w-full max-md:landscape:flex md:hidden">
+      <div
+        className={cn(
+          'hidden w-full max-md:landscape:block md:hidden',
+          landscapeFillHeight &&
+            'deliver-flow-landscape-container min-h-0 max-md:landscape:flex',
+        )}
+      >
         <DeliverThreeStepFlowHorizontal
           steps={steps}
           cube={cube}
-          size="micro"
-          fillHeight
+          size={landscapeFillHeight ? 'micro' : 'compact'}
+          fillHeight={landscapeFillHeight}
         />
       </div>
       <div className="hidden md:block">
