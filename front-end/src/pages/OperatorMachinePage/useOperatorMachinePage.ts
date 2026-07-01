@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
+import { markOperatorMachineInitiatedChange } from '@/lib/operator-machine-self-unbind';
 import { toastApiError } from '@/lib/toast-helpers';
 import { ENV } from '@/constants/env';
 import {
@@ -90,7 +91,12 @@ export function useOperatorMachinePage() {
   }, [current?.id]);
 
   const bindMut = useMutation({
-    mutationFn: postOperatorBindMachine,
+    mutationFn: (machineId: string) => {
+      if (user?.id) {
+        markOperatorMachineInitiatedChange(user.id);
+      }
+      return postOperatorBindMachine(machineId);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
@@ -174,7 +180,12 @@ export function useOperatorMachinePage() {
   );
 
   const unbindMut = useMutation({
-    mutationFn: deleteOperatorUnbindMachine,
+    mutationFn: () => {
+      if (user?.id) {
+        markOperatorMachineInitiatedChange(user.id);
+      }
+      return deleteOperatorUnbindMachine();
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });

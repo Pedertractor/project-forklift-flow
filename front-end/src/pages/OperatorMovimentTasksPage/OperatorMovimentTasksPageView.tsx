@@ -25,8 +25,8 @@ export function OperatorMovimentTasksPageView(
   const bound = currentPallet !== null;
 
   return (
-    <main className="relative px-4 py-8 max-[800px]:px-3 max-md:landscape:flex max-md:landscape:min-h-svh max-md:landscape:flex-col max-md:landscape:overflow-hidden max-md:landscape:py-2 max-md:landscape:pr-3">
-      <div className="mx-auto w-full max-w-6xl max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col">
+    <main className="relative px-4 py-8 max-[800px]:px-3 phone-landscape:flex phone-landscape:min-h-svh phone-landscape:flex-col phone-landscape:overflow-hidden phone-landscape:py-2 phone-landscape:pr-3">
+      <div className="mx-auto w-full max-w-6xl phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça

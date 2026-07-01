@@ -104,7 +104,7 @@ export function MainLayout() {
           id={APP_MAIN_PANE_ID}
           className="relative flex min-h-0 min-w-0 flex-1 flex-col"
         >
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3 max-md:landscape:hidden">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3 phone-landscape:hidden">
             <button
               type="button"
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100"
@@ -121,7 +121,7 @@ export function MainLayout() {
 
           <button
             type="button"
-            className="fixed bottom-2 left-2 z-[45] hidden size-11 items-center justify-center rounded-full border border-zinc-200/80 bg-white/95 text-zinc-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 max-md:landscape:inline-flex"
+            className="fixed bottom-2 left-2 z-[45] hidden size-11 items-center justify-center rounded-full border border-zinc-200/80 bg-white/95 text-zinc-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 phone-landscape:inline-flex"
             aria-label={sidebarOpen ? 'Recolher menu' : 'Abrir menu'}
             onClick={() => setSidebarOpen((v) => !v)}
           >

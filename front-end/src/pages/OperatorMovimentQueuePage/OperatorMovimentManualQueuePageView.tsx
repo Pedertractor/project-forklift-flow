@@ -23,20 +23,20 @@ export function OperatorMovimentManualQueuePageView(
   } = vm;
 
   return (
-    <main className="relative min-w-0 px-3 py-4 pb-6 md:px-4 md:py-8 max-md:landscape:flex max-md:landscape:min-h-svh max-md:landscape:flex-col max-md:landscape:overflow-hidden max-md:landscape:py-2 max-md:landscape:pr-3">
-      <div className="mx-auto w-full min-w-0 max-w-6xl max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col">
-        <header className="mb-4 flex shrink-0 flex-col gap-3 border-b border-zinc-200 pb-4 max-md:landscape:mb-2 max-md:landscape:gap-2 max-md:landscape:pb-2 sm:flex-row sm:items-end sm:justify-between md:mb-6 md:pb-6">
+    <main className="relative min-w-0 px-3 py-4 pb-6 md:px-4 md:py-8 phone-landscape:flex phone-landscape:min-h-svh phone-landscape:flex-col phone-landscape:overflow-hidden phone-landscape:py-2 phone-landscape:pr-3">
+      <div className="mx-auto w-full min-w-0 max-w-6xl phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col">
+        <header className="mb-4 flex shrink-0 flex-col gap-3 border-b border-zinc-200 pb-4 phone-landscape:mb-2 phone-landscape:gap-2 phone-landscape:pb-2 sm:flex-row sm:items-end sm:justify-between md:mb-6 md:pb-6">
           <div className="min-w-0">
-            <h1 className="m-0 text-xl font-bold tracking-tight text-zinc-900 max-md:landscape:text-base md:text-2xl">
+            <h1 className="m-0 text-xl font-bold tracking-tight text-zinc-900 phone-landscape:text-base md:text-2xl">
               Atividades avulsas
             </h1>
-            <p className="mt-1 text-sm text-zinc-600 max-md:landscape:mt-0.5 max-md:landscape:text-xs">
+            <p className="mt-1 text-sm text-zinc-600 phone-landscape:mt-0.5 phone-landscape:text-xs">
               Aceite entregas e retiradas disponíveis na fila manual.
             </p>
           </div>
           <Link
             to={OPERATOR_MOVIMENT_TASKS_QUEUE_PATH}
-            className={`${linkOutlineClass} max-md:landscape:h-8 max-md:landscape:px-3 max-md:landscape:text-xs`}
+            className={`${linkOutlineClass} phone-landscape:h-8 phone-landscape:px-3 phone-landscape:text-xs`}
           >
             Voltar às sugestões
           </Link>
@@ -54,7 +54,7 @@ export function OperatorMovimentManualQueuePageView(
 
         {apiReady && token ? (
           <section
-            className="min-w-0 max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col"
+            className="min-w-0 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col"
             aria-label="Atividades avulsas"
           >
           <OperatorMovimentManualQueueSection

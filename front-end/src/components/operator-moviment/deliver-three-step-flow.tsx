@@ -26,7 +26,7 @@ export function DeliverFlowCriticalBadge({
 
 export function DeliverFlowDeferBanner({ children }: { children: ReactNode }) {
   return (
-    <div className="border-b border-amber-200/80 bg-amber-100/60 px-3 py-2 text-center text-xs font-medium leading-snug text-amber-950 max-md:landscape:shrink-0 max-md:landscape:px-2 max-md:landscape:py-0.5 max-md:landscape:text-[10px] max-md:landscape:leading-tight md:px-4">
+    <div className="border-b border-amber-200/80 bg-amber-100/60 px-3 py-2 text-center text-xs font-medium leading-snug text-amber-950 phone-landscape:shrink-0 phone-landscape:px-2 phone-landscape:py-0.5 phone-landscape:text-[10px] phone-landscape:leading-tight md:px-4">
       {children}
     </div>
   );
@@ -45,7 +45,7 @@ export function DeliverFlowActivitySubtitle({
 }) {
   if (start != null) {
     return (
-      <div className="mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 text-[11px] font-semibold uppercase leading-tight tracking-wide max-md:landscape:mb-1.5 max-md:landscape:shrink-0 max-md:landscape:gap-x-1 max-md:landscape:text-[13px] sm:text-xs sm:leading-normal sm:tracking-wider">
+      <div className="mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 text-[11px] font-semibold uppercase leading-tight tracking-wide phone-landscape:mb-1.5 phone-landscape:shrink-0 phone-landscape:gap-x-1 phone-landscape:text-[13px] sm:text-xs sm:leading-normal sm:tracking-wider">
         <div className="min-w-0 justify-self-start">{start}</div>
         <div className="shrink-0 justify-self-center px-0.5">{children}</div>
         <div className="min-w-0 justify-self-end text-right">{end ?? null}</div>
@@ -54,7 +54,7 @@ export function DeliverFlowActivitySubtitle({
   }
 
   return (
-    <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider max-md:landscape:text-sm">
+    <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider phone-landscape:text-sm">
       {children}
     </p>
   );
@@ -69,17 +69,20 @@ export function DeliverFlowActionFooter({
 }) {
   return (
     <DeliverFlowCardFooter>
-      <div className="grid w-full grid-cols-1 items-center gap-3 max-md:landscape:gap-1 md:grid-cols-[1fr_auto_1fr] md:gap-2">
-        <div className="hidden md:block" aria-hidden />
+      <div className="grid w-full grid-cols-1 items-center gap-2 phone-landscape:grid-cols-[1fr_auto_1fr] phone-landscape:gap-1 md:grid-cols-[1fr_auto_1fr] md:gap-2">
+        <div
+          className="hidden phone-landscape:block md:block"
+          aria-hidden
+        />
         <div className="flex min-w-0 flex-col items-center gap-2 justify-self-center">
           {children}
         </div>
         <div
           className={cn(
-            'flex items-center justify-center md:justify-end',
+            'flex items-center justify-end justify-self-end',
             isCritical
-              ? 'min-h-11 max-md:landscape:min-h-0 md:min-h-11'
-              : 'hidden md:block',
+              ? 'min-h-0'
+              : 'hidden phone-landscape:block md:block',
           )}
         >
           {isCritical ? <DeliverFlowCriticalBadge /> : null}
@@ -118,7 +121,7 @@ export function DeliverFlowAcceptButton({
       className={cn(
         'h-11 w-full min-w-0 max-w-full animate-pulse gap-2 rounded-lg px-4 text-sm font-semibold hover:cursor-pointer focus-visible:outline-none focus-visible:ring-[3px]',
         deliverFlowButtonIntentClass[intent],
-        'max-md:landscape:h-9 max-md:landscape:gap-1.5 max-md:landscape:px-5 max-md:landscape:text-sm',
+        'phone-landscape:h-9 phone-landscape:gap-1.5 phone-landscape:px-5 phone-landscape:text-sm',
         'md:h-12 md:w-auto md:min-w-[17rem] md:max-w-none md:gap-2.5 md:px-10 md:text-base',
         className,
       )}
@@ -466,7 +469,7 @@ function FlowStepColumn({
             'm-0 w-full px-0.5 text-center font-semibold leading-tight wrap-break-word text-zinc-900',
             landscape && 'line-clamp-4',
             micro && !fillHeight && 'line-clamp-4 text-xs leading-snug',
-            size === 'compact' && !fillHeight && 'text-xs leading-snug max-md:landscape:text-sm',
+            size === 'compact' && !fillHeight && 'text-xs leading-snug phone-landscape:text-sm',
             size === 'default' && 'px-1 text-xs leading-snug sm:text-sm',
           )}
           style={landscape ? landscapeLabelStyle(stepCount) : undefined}
@@ -644,14 +647,14 @@ export function DeliverThreeStepFlow({
 }) {
   return (
     <>
-      <div className="md:hidden max-md:landscape:hidden">
+      <div className="phone-landscape:hidden md:hidden">
         <DeliverThreeStepFlowVertical steps={steps} cube={cube} />
       </div>
       <div
         className={cn(
-          'hidden w-full max-md:landscape:block md:hidden',
+          'hidden w-full phone-landscape:block',
           landscapeFillHeight &&
-            'deliver-flow-landscape-container min-h-0 max-md:landscape:flex',
+            'deliver-flow-landscape-container min-h-0 phone-landscape:flex',
         )}
       >
         <DeliverThreeStepFlowHorizontal
@@ -661,7 +664,7 @@ export function DeliverThreeStepFlow({
           fillHeight={landscapeFillHeight}
         />
       </div>
-      <div className="hidden md:block">
+      <div className="hidden phone-landscape:hidden md:block">
         <DeliverThreeStepFlowHorizontal steps={steps} cube={cube} />
       </div>
     </>
@@ -734,7 +737,7 @@ export function DeliverFlowCardHeader({
 
 export function DeliverFlowCardFooter({ children }: { children: ReactNode }) {
   return (
-    <div className="border-t border-zinc-200 px-3 py-3 max-md:landscape:shrink-0 max-md:landscape:px-2 max-md:landscape:py-1 md:px-5 md:py-2 lg:px-6">
+    <div className="border-t border-zinc-200 px-3 py-3 phone-landscape:shrink-0 phone-landscape:px-2 phone-landscape:py-1 md:px-5 md:py-2 lg:px-6">
       <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-2">
         {children}
       </div>
@@ -754,7 +757,7 @@ export function DeliverFlowCard({
   return (
     <div
       className={cn(
-        'min-w-0 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md deliver-flow-card-landscape max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col max-md:landscape:rounded-lg max-md:landscape:shadow-sm md:rounded-2xl',
+        'min-w-0 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md deliver-flow-card-landscape phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:rounded-lg phone-landscape:shadow-sm md:rounded-2xl',
         className,
       )}
     >

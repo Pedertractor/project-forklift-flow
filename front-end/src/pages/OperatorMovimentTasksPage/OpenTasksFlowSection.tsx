@@ -250,12 +250,12 @@ function buildOpenTaskSteps(
 
 function OpenActivityHeading() {
   return (
-    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 max-md:landscape:text-base md:text-base">
+    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-base md:text-base">
       <span
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand max-md:landscape:size-9"
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand phone-landscape:size-9"
         aria-hidden
       >
-        <Layers2 className="size-4 max-md:landscape:size-[1.125rem]" strokeWidth={2.25} />
+        <Layers2 className="size-4 phone-landscape:size-[1.125rem]" strokeWidth={2.25} />
       </span>
       <span className="flex flex-wrap items-center gap-1.5">
         Conclua a tarefa
@@ -320,7 +320,7 @@ function OpenTaskRouteCard({
 
   return (
     <DeliverFlowCard>
-      <div className="px-5 py-4 sm:px-8 max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col max-md:landscape:px-3 max-md:landscape:py-2">
+      <div className="px-5 py-4 sm:px-8 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:px-3 phone-landscape:py-2">
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
             start={<span aria-hidden />}
@@ -333,7 +333,7 @@ function OpenTaskRouteCard({
             {activitySubtitle}
           </DeliverFlowActivitySubtitle>
         ) : null}
-        <div className="w-full max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1">
+        <div className="w-full phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1">
           <DeliverThreeStepFlow steps={steps} cube={deliverCubeDisplay} />
         </div>
       </div>
@@ -398,7 +398,7 @@ export function OpenTasksFlowSection({
 
   return (
     <section
-      className="max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col"
+      className="phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col"
       aria-labelledby="open-tasks-flow-heading"
     >
       {isLoading ? (
@@ -417,11 +417,11 @@ export function OpenTasksFlowSection({
       ) : null}
 
       {!isLoading && hasOpenWork && groups.length > 0 ? (
-        <ul className="m-0 flex list-none flex-col gap-5 p-0 max-md:landscape:min-h-0 max-md:landscape:flex-1">
+        <ul className="m-0 flex list-none flex-col gap-5 p-0 phone-landscape:min-h-0 phone-landscape:flex-1">
           {groups.map((group) => (
             <li
               key={group.machineId}
-              className="flex flex-col gap-2.5 max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:justify-center"
+              className="flex flex-col gap-2.5 phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:justify-center"
             >
               <OpenActivityHeading />
               <OpenTaskRouteCard

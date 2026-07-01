@@ -84,8 +84,8 @@ select {
   font-family: inherit;
 }
 
-/* Fluxo em paisagem: ícones escalam com a altura da área do fluxo (inline style + cqh/cqw) */
-@media (max-width: 767px) and (orientation: landscape) {
+/* Fluxo em paisagem no celular (altura curta; ver variant phone-landscape em index.css) */
+@media (orientation: landscape) and (max-height: 32rem) {
   .deliver-flow-card-landscape {
     min-height: 0;
   }

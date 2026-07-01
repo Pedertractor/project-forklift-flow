@@ -9,10 +9,14 @@ import type {
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import {
   canCancelPickupRequest,
+  combinedFlowHeadline,
+  deliveryTaskDrivingMachineUi,
   findOpenReplenishmentDelivery,
   findOpenSupplyForMachine,
   hasOpenPickupWithReplenishment,
+  isCombinedTripSuggestion,
   nextPalletFlowHeadline,
+  pickupTaskDrivingMachineUi,
   supplyFlowHeadline,
 } from './operator-machine-flow';
 import { taskStatusLabelPt } from '@/utils/operator-moviment-labels';
@@ -72,6 +76,17 @@ export function machineTaskStatusBadge(status: MachineTaskStatusValue): string {
 }
 
 export type OperatorMachineTaskListRow =
+  | {
+      kind: 'COMBINED';
+      id: string;
+      deliveryId: string;
+      pickupId: string;
+      createdAt: string;
+      title: string;
+      subtitle: string;
+      statusLabel: string;
+      isCritical: boolean;
+    }
   | {
       kind: 'DELIVERY';
       id: string;
@@ -135,8 +150,42 @@ export function buildOperatorMachineTaskRows(
     pickupTasks,
   );
 
+  let combinedDeliveryId: string | null = null;
+  let combinedPickupId: string | null = null;
+
+  if (isCombinedTripSuggestion(deliveryTasks, pickupTasks)) {
+    const delivery = deliveryTaskDrivingMachineUi(deliveryTasks);
+    const pickup = pickupTaskDrivingMachineUi(pickupTasks);
+    if (
+      delivery &&
+      pickup &&
+      delivery.machineId === pickup.machineId &&
+      !TERMINAL_MACHINE_TASK_STATUSES.has(delivery.status) &&
+      !TERMINAL_MACHINE_TASK_STATUSES.has(pickup.status)
+    ) {
+      combinedDeliveryId = delivery.id;
+      combinedPickupId = pickup.id;
+      rows.push({
+        kind: 'COMBINED',
+        id: `combined-${delivery.id}-${pickup.id}`,
+        deliveryId: delivery.id,
+        pickupId: pickup.id,
+        createdAt:
+          new Date(pickup.createdAt).getTime() >=
+          new Date(delivery.createdAt).getTime()
+            ? pickup.createdAt
+            : delivery.createdAt,
+        title: 'Sugestão de viagem',
+        subtitle: 'Entrega do pallet no recebimento + retirada na máquina',
+        statusLabel: combinedFlowHeadline(delivery, pickup),
+        isCritical: delivery.isCritical || pickup.isCritical,
+      });
+    }
+  }
+
   for (const t of deliveryTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
+    if (t.id === combinedDeliveryId) continue;
     if (shouldHideReplenishmentDeliveryRow(t, pickupTasks)) continue;
     rows.push({
       kind: 'DELIVERY',
@@ -151,6 +200,7 @@ export function buildOperatorMachineTaskRows(
 
   for (const t of pickupTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
+    if (t.id === combinedPickupId) continue;
     const linkedSupply = t.triggersReplenishment
       ? findOpenSupplyForMachine(supplyRequests, t.machineId)
       : null;

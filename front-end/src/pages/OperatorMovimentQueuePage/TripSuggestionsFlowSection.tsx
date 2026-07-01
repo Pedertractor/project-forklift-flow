@@ -184,7 +184,7 @@ function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
     'Aceitando…'
   ) : (
     <>
-      <Check className="size-5 shrink-0 max-md:landscape:size-4" aria-hidden />
+      <Check className="size-5 shrink-0 phone-landscape:size-4" aria-hidden />
       Aceitar
     </>
   );
@@ -239,12 +239,12 @@ function SuggestionFlowCardBody({
     : undefined;
 
   return (
-    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4 max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col max-md:landscape:px-3 max-md:landscape:py-2">
+    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:px-3 phone-landscape:py-2">
       {activityLabel ? (
-        <div className="max-md:landscape:shrink-0">
+        <div className="phone-landscape:shrink-0">
           <DeliverFlowActivitySubtitle
             start={
-              <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-semibold uppercase tracking-wide text-brand max-md:landscape:gap-x-1 max-md:landscape:text-sm md:gap-x-1.5 md:text-xl md:tracking-wider">
+              <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-semibold uppercase tracking-wide text-brand phone-landscape:gap-x-1 phone-landscape:text-sm md:gap-x-1.5 md:text-xl md:tracking-wider">
                 {machineName ? (
                   <span className="truncate">{machineName}</span>
                 ) : null}
@@ -255,13 +255,13 @@ function SuggestionFlowCardBody({
                         -
                       </span>
                     ) : null}
-                    <div className="flex items-center gap-0.5 rounded-lg bg-brand/20 px-1 py-0.5 max-md:landscape:px-0.5 max-md:landscape:py-0 md:gap-1 md:py-0">
+                    <div className="flex items-center gap-0.5 rounded-lg bg-brand/20 px-1 py-0.5 phone-landscape:px-0.5 phone-landscape:py-0 md:gap-1 md:py-0">
                       <Box
                         strokeWidth={2.5}
-                        className="size-3.5 shrink-0 text-brand max-md:landscape:size-3 md:size-5"
+                        className="size-3.5 shrink-0 text-brand phone-landscape:size-3 md:size-5"
                         aria-hidden
                       />
-                      <span className="text-sm tracking-widest max-md:landscape:text-sm md:text-xl">
+                      <span className="text-sm tracking-widest phone-landscape:text-sm md:text-xl">
                         {cube}
                       </span>
                     </div>
@@ -273,19 +273,19 @@ function SuggestionFlowCardBody({
               requestedAtLabel ? (
                 <time
                   dateTime={requestedAt}
-                  className="whitespace-nowrap text-[10px] font-medium normal-case tracking-normal text-zinc-500 max-md:landscape:text-[11px] sm:text-[11px] md:text-xs"
+                  className="whitespace-nowrap text-[10px] font-medium normal-case tracking-normal text-zinc-500 phone-landscape:text-[11px] sm:text-[11px] md:text-xs"
                 >
                   {requestedAtLabel}
                 </time>
               ) : null
             }
           >
-            <span className="inline-flex items-center gap-1 text-[11px] leading-tight max-md:landscape:gap-1 max-md:landscape:text-[13px] sm:text-xs">
+            <span className="inline-flex items-center gap-1 text-[11px] leading-tight phone-landscape:gap-1 phone-landscape:text-[13px] sm:text-xs">
               {activityLabel === 'Entrega' ? (
                 <>
                   Entrega de pallet
                   <ArrowUpRight
-                    className="size-4 rounded-full bg-green-200 max-md:landscape:size-3"
+                    className="size-4 rounded-full bg-green-200 phone-landscape:size-3"
                     aria-hidden
                   />
                 </>
@@ -293,7 +293,7 @@ function SuggestionFlowCardBody({
                 <>
                   Retirada de pallet
                   <ArrowDownLeft
-                    className="size-4 rounded-full bg-red-200 max-md:landscape:size-3"
+                    className="size-4 rounded-full bg-red-200 phone-landscape:size-3"
                     aria-hidden
                   />
                 </>
@@ -305,12 +305,12 @@ function SuggestionFlowCardBody({
         </div>
       ) : null}
       {title ? (
-        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand max-md:landscape:mb-2 max-md:landscape:text-sm max-md:landscape:shrink-0">
+        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand phone-landscape:mb-2 phone-landscape:text-sm phone-landscape:shrink-0">
           {title}
         </p>
       ) : null}
 
-      <div className="w-full max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1">
+      <div className="w-full phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1">
         <DeliverThreeStepFlow steps={steps} />
       </div>
       {hint ? (
@@ -685,7 +685,7 @@ export function TripSuggestionsFlowSection({
 
   return (
     <section
-      className="mt-4 min-w-0 space-y-3 max-md:landscape:mt-0 max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col max-md:landscape:space-y-0 md:mt-8 md:space-y-4"
+      className="mt-4 min-w-0 space-y-3 phone-landscape:mt-0 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:space-y-0 md:mt-8 md:space-y-4"
       aria-labelledby="trip-suggestions-heading"
     >
       {!bound ? (
@@ -694,7 +694,7 @@ export function TripSuggestionsFlowSection({
         </p>
       ) : null}
 
-      <div className="flex min-w-0 flex-col gap-4 max-md:landscape:min-h-0 max-md:landscape:flex-1 md:gap-5">
+      <div className="flex min-w-0 flex-col gap-4 phone-landscape:min-h-0 phone-landscape:flex-1 md:gap-5">
         {renderMainTripQueueItem(topSuggestion, {
           bound,
           busy,
