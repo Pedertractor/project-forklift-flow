@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import './styles/globals.css';
 
+/* Celular deitado: altura curta (não depende de max-width 768px — iPhones modernos passam de 800px em landscape). */
+@custom-variant phone-landscape (@media (orientation: landscape) and (max-height: 32rem));
+
 @theme {
   --radius-md: 0.75rem;
   --color-brand: var(--brand);

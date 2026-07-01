@@ -7,6 +7,7 @@ export function DashboardGeralPage() {
     data,
     isLoading,
     isFetching,
+    isLive,
     dates,
     setDates,
     selectedMachineId,
@@ -38,6 +39,21 @@ export function DashboardGeralPage() {
               —{' '}
               <span className="font-medium text-zinc-800">{formattedDate}</span>
             </>
+          ) : null}
+          {isLive ? (
+            <>
+              {' '}
+              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
+                <span className="relative flex size-2 shrink-0" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                </span>
+                Ao vivo
+              </span>
+            </>
+          ) : null}
+          {isFetching ? (
+            <span className="font-medium text-zinc-500"> (atualizando…)</span>
           ) : null}
           .
         </p>

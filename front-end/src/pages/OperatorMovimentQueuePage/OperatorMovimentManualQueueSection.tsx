@@ -3,6 +3,7 @@ import {
   DeliverFlowActionFooter,
   DeliverFlowActivitySubtitle,
   DeliverFlowCard,
+  DeliverFlowMachineCubeHighlight,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
@@ -22,7 +23,7 @@ import type {
 } from '@/types/operator-moviment-pallet.types';
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { ArrowDownLeft, ArrowUpRight, Box, Check } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Check } from 'lucide-react';
 
 function formatSuggestionRequestedAt(iso: string): string {
   const date = new Date(iso);
@@ -42,7 +43,7 @@ function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
     'Aceitando…'
   ) : (
     <>
-      <Check className="size-5 shrink-0" aria-hidden />
+      <Check className="size-5 shrink-0 phone-landscape:size-5" aria-hidden />
       Aceitar
     </>
   );
@@ -66,67 +67,49 @@ function SuggestionFlowCardBody({
     : undefined;
 
   return (
-    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4">
-      <DeliverFlowActivitySubtitle
-        start={
-          <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-semibold uppercase tracking-wide text-brand md:gap-x-1.5 md:text-xl md:tracking-wider">
-            {machineName ? (
-              <span className="truncate">{machineName}</span>
-            ) : null}
-            {cube ? (
+    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4 phone-landscape:px-2 phone-landscape:py-1.5">
+      <div className="phone-landscape:mb-1 phone-landscape:shrink-0">
+        <DeliverFlowActivitySubtitle
+          start={
+            <DeliverFlowMachineCubeHighlight
+              machineName={machineName}
+              cube={cube}
+            />
+          }
+          end={
+            requestedAtLabel ? (
+              <time
+                dateTime={requestedAt}
+                className="whitespace-nowrap text-xs font-medium normal-case tracking-normal text-zinc-500 phone-landscape:text-xs md:text-xs"
+              >
+                {requestedAtLabel}
+              </time>
+            ) : null
+          }
+        >
+          <span className="inline-flex items-center gap-1 font-semibold normal-case text-zinc-700 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-sm sm:text-sm">
+            {activityLabel === 'Entrega' ? (
               <>
-                {machineName ? (
-                  <span className="shrink-0" aria-hidden>
-                    -
-                  </span>
-                ) : null}
-                <div className="flex items-center gap-0.5 rounded-lg bg-brand/20 px-1 py-0.5 md:gap-1 md:py-0">
-                  <Box
-                    strokeWidth={2.5}
-                    className="size-3.5 shrink-0 text-brand md:size-5"
-                    aria-hidden
-                  />
-                  <span className="text-sm tracking-widest md:text-xl">
-                    {cube}
-                  </span>
-                </div>
+                Entrega de pallet
+                <ArrowUpRight
+                  className="size-3.5 rounded-full bg-green-200 phone-landscape:size-3.5"
+                  aria-hidden
+                />
               </>
-            ) : null}
-          </div>
-        }
-        end={
-          requestedAtLabel ? (
-            <time
-              dateTime={requestedAt}
-              className="whitespace-nowrap text-[10px] font-medium normal-case tracking-normal text-zinc-500 sm:text-[11px] md:text-xs"
-            >
-              {requestedAtLabel}
-            </time>
-          ) : null
-        }
-      >
-        <span className="inline-flex items-center gap-1 text-[11px] leading-tight sm:text-xs">
-          {activityLabel === 'Entrega' ? (
-            <>
-              Entrega de pallet
-              <ArrowUpRight
-                className="size-4 rounded-full bg-green-200"
-                aria-hidden
-              />
-            </>
-          ) : (
-            <>
-              Retirada de pallet
-              <ArrowDownLeft
-                className="size-4 rounded-full bg-red-200"
-                aria-hidden
-              />
-            </>
-          )}
-        </span>
-      </DeliverFlowActivitySubtitle>
+            ) : (
+              <>
+                Retirada de pallet
+                <ArrowDownLeft
+                  className="size-3.5 rounded-full bg-red-200 phone-landscape:size-3.5"
+                  aria-hidden
+                />
+              </>
+            )}
+          </span>
+        </DeliverFlowActivitySubtitle>
+      </div>
 
-      <DeliverThreeStepFlow steps={steps} />
+      <DeliverThreeStepFlow steps={steps} landscapeFillHeight={false} />
     </div>
   );
 }
@@ -200,7 +183,7 @@ function ManualDeliverCard({
   const cube = formatReplenishmentMovementCubeDisplay(row.movementCube);
 
   return (
-    <DeliverFlowCard>
+    <DeliverFlowCard className="phone-landscape:flex-none phone-landscape:shrink-0">
       <SuggestionFlowCardBody
         activityLabel="Entrega"
         steps={buildManualDeliverSteps(row)}
@@ -210,6 +193,7 @@ function ManualDeliverCard({
       />
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={busy || isAccepting}
           onClick={() => onAccept(row.id)}
         >
@@ -235,7 +219,7 @@ function ManualPickupCard({
   const isCritical = isCriticalPriority(req.priorityLevel);
 
   return (
-    <DeliverFlowCard>
+    <DeliverFlowCard className="phone-landscape:flex-none phone-landscape:shrink-0">
       <SuggestionFlowCardBody
         activityLabel="Retirada"
         steps={buildManualPickupSteps(task)}
@@ -244,6 +228,7 @@ function ManualPickupCard({
       />
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={busy || isAccepting}
           onClick={() => onAccept(task.id)}
         >
@@ -262,20 +247,20 @@ function ManualQueueColumnHeading({
   const isDeliver = variant === 'deliver';
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50/90 px-3 py-2.5 md:px-4">
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/90 px-3 py-2.5 phone-landscape:shrink-0 phone-landscape:px-2.5 phone-landscape:py-2 md:px-4">
       <div className="flex items-center gap-2">
         {isDeliver ? (
           <ArrowUpRight
-            className="size-4 shrink-0 rounded-full bg-green-200"
+            className="size-4 shrink-0 rounded-full bg-green-200 phone-landscape:size-5"
             aria-hidden
           />
         ) : (
           <ArrowDownLeft
-            className="size-4 shrink-0 rounded-full bg-red-200"
+            className="size-4 shrink-0 rounded-full bg-red-200 phone-landscape:size-5"
             aria-hidden
           />
         )}
-        <h2 className="m-0 text-xs font-semibold text-zinc-800 sm:text-sm">
+        <h2 className="m-0 text-sm font-semibold text-zinc-800 phone-landscape:text-base sm:text-sm">
           {isDeliver ? 'Entrega de pallet' : 'Retirada de pallet'}
         </h2>
       </div>
@@ -323,8 +308,8 @@ export function OperatorMovimentManualQueueSection({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
-      <div className="flex min-w-0 flex-col gap-4 md:gap-5">
+    <div className="grid gap-4 phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:grid-cols-2 phone-landscape:gap-2 phone-landscape:overflow-hidden lg:grid-cols-2 lg:gap-5">
+      <div className="flex min-w-0 flex-col gap-4 phone-landscape:min-h-0 phone-landscape:gap-2 phone-landscape:overflow-y-auto md:gap-5">
         <ManualQueueColumnHeading variant="deliver" />
         {deliverRows.length === 0 ? (
           <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600 md:px-4">
@@ -343,7 +328,7 @@ export function OperatorMovimentManualQueueSection({
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col gap-4 md:gap-5">
+      <div className="flex min-w-0 flex-col gap-4 phone-landscape:min-h-0 phone-landscape:gap-2 phone-landscape:overflow-y-auto md:gap-5">
         <ManualQueueColumnHeading variant="pickup" />
         {pickupRows.length === 0 ? (
           <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-6 text-center text-sm text-zinc-600 md:px-4">

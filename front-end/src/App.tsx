@@ -39,19 +39,27 @@ const DashboardPorEmpilhadeiristaPage = lazy(() =>
   })),
 );
 const TypeMachinesPage = lazy(() =>
-  import('@/pages/TypeMachinesPage/index').then((m) => ({ default: m.TypeMachinesPage })),
+  import('@/pages/TypeMachinesPage/index').then((m) => ({
+    default: m.TypeMachinesPage,
+  })),
 );
 const MachinesPage = lazy(() =>
-  import('@/pages/MachinesPage/index').then((m) => ({ default: m.MachinesPage })),
+  import('@/pages/MachinesPage/index').then((m) => ({
+    default: m.MachinesPage,
+  })),
 );
 const SectorsPage = lazy(() =>
   import('@/pages/SectorsPage/index').then((m) => ({ default: m.SectorsPage })),
 );
 const UnauthorizedPage = lazy(() =>
-  import('@/pages/UnauthorizedPage/index').then((m) => ({ default: m.UnauthorizedPage })),
+  import('@/pages/UnauthorizedPage/index').then((m) => ({
+    default: m.UnauthorizedPage,
+  })),
 );
 const FirstPasswordPage = lazy(() =>
-  import('@/pages/FirstPasswordPage/index').then((m) => ({ default: m.FirstPasswordPage })),
+  import('@/pages/FirstPasswordPage/index').then((m) => ({
+    default: m.FirstPasswordPage,
+  })),
 );
 const UsersPage = lazy(() =>
   import('@/pages/UsersPage/index').then((m) => ({ default: m.UsersPage })),
@@ -111,10 +119,7 @@ export function App() {
               <Route path="/nao-autorizado" element={<UnauthorizedPage />} />
               <Route element={<MainLayout />}>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
-                  <Route
-                    index
-                    element={<Navigate to="/dashboard" replace />}
-                  />
+                  <Route index element={<Navigate to="/dashboard" replace />} />
                   <Route path="dashboard" element={<DashboardAreaLayout />}>
                     <Route index element={<DashboardHubPage />} />
                     <Route path="geral" element={<DashboardGeralPage />} />
@@ -125,7 +130,10 @@ export function App() {
                   </Route>
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
-                  <Route path="cadastro/tipos-maquina" element={<TypeMachinesPage />} />
+                  <Route
+                    path="cadastro/tipos-maquina"
+                    element={<TypeMachinesPage />}
+                  />
                   <Route path="cadastro/maquinas" element={<MachinesPage />} />
                 </Route>
                 <Route element={<RequireRoles roles={MACHINE_DOMAIN_ROLES} />}>
@@ -138,30 +146,57 @@ export function App() {
                     element={<SupplyPendingPreparationPage />}
                   />
                 </Route>
-                <Route element={<RequireRoles roles={['ADMIN', 'SUPERADMIN']} />}>
-                  <Route path="administracao/setores" element={<SectorsPage />} />
+                <Route
+                  element={<RequireRoles roles={['ADMIN', 'SUPERADMIN']} />}
+                >
+                  <Route
+                    path="administracao/setores"
+                    element={<SectorsPage />}
+                  />
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
-                  <Route path="administracao/usuarios" element={<UsersPage />} />
+                  <Route
+                    path="administracao/usuarios"
+                    element={<UsersPage />}
+                  />
                 </Route>
-                <Route element={<RequireRoles roles={MOVIMENT_OPERATOR_ROLES} />}>
-                  <Route path="operacao/equipamento" element={<OperatorMovimentEquipmentPage />} />
-                  <Route path="operacao/aceitar-tarefas" element={<OperatorMovimentQueuePage />} />
+                <Route
+                  element={<RequireRoles roles={MOVIMENT_OPERATOR_ROLES} />}
+                >
+                  <Route
+                    path="operacao/equipamento"
+                    element={<OperatorMovimentEquipmentPage />}
+                  />
+                  <Route
+                    path="operacao/aceitar-tarefas"
+                    element={<OperatorMovimentQueuePage />}
+                  />
                   <Route element={<RequireBoundMovimentPallet />}>
-                    <Route path="operacao/tarefas" element={<OperatorMovimentQueuePage />} />
+                    <Route
+                      path="operacao/tarefas"
+                      element={<OperatorMovimentQueuePage />}
+                    />
                     <Route
                       path="operacao/filas-manuais"
                       element={<OperatorMovimentManualQueuePage />}
                     />
-                    <Route path="operacao/minhas-tarefas" element={<OperatorMovimentTasksPage />} />
+                    <Route
+                      path="operacao/minhas-tarefas"
+                      element={<OperatorMovimentTasksPage />}
+                    />
                   </Route>
                 </Route>
-                <Route element={<RequireRoles roles={OPERATOR_MACHINE_ROLES} />}>
+                <Route
+                  element={<RequireRoles roles={OPERATOR_MACHINE_ROLES} />}
+                >
                   <Route
                     path="dobra"
                     element={<Navigate to="/dobra/operacao" replace />}
                   />
-                  <Route path="dobra/operacao" element={<OperatorMachinePage />} />
+                  <Route
+                    path="dobra/operacao"
+                    element={<OperatorMachinePage />}
+                  />
                   <Route
                     path="dobra/retirada/:requestId"
                     element={<OperatorMachinePickupProgressPage />}

@@ -47,6 +47,7 @@ import {
   refetchOperatorMachineTasks,
   resolveBoundMachineIdFromCache,
 } from '@/lib/operator-machine-realtime-cache';
+import { hasRecentOperatorMachineInitiatedChange } from '@/lib/operator-machine-self-unbind';
 import { useAuthStore } from '@/store/auth.store';
 import {
   MACHINE_DOMAIN_ROLES,
@@ -283,10 +284,7 @@ export function OperatorMovimentWorkProvider({
       ) {
         scheduleSupplyReplenishmentInvalidate();
         if (event.type === 'operator_supply_request_created') {
-          toast.message('Nova solicitação de reposição', {
-            description:
-              'A dobra solicitou montagem de pallet.',
-          });
+          toast.success('Nova solicitação de reposição na dobra.');
         }
       }
 
@@ -347,12 +345,14 @@ export function OperatorMovimentWorkProvider({
         isMachineOperator &&
         'affectedUserId' in event &&
         event.affectedUserId === user?.id &&
-        event.operatorUserId === null
+        event.operatorUserId === null &&
+        user?.id &&
+        !hasRecentOperatorMachineInitiatedChange(user.id)
       ) {
-        toast.message('Vínculo com a máquina encerrado', {
-          description:
-            'Um gestor desvinculou você desta máquina. Selecione outra máquina para continuar.',
-        });
+        toast.success(
+          'Um gestor desvinculou você desta máquina. Selecione outra máquina para continuar.',
+          { id: `manager-unbind-${user.id}` },
+        );
       }
     },
     [

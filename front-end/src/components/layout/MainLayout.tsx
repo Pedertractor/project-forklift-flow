@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { performLogout } from '@/lib/auth-session';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { APP_HEADER_ACTIONS_ID } from '@/components/layout/MainLayoutHeaderSlot';
 import { APP_MAIN_PANE_ID } from '@/components/layout/main-content-portal';
 import { OperatorMovimentWorkProvider } from '@/components/layout/OperatorMovimentWorkProvider';
 import { useAuthStore } from '@/store/auth.store';
@@ -103,7 +104,7 @@ export function MainLayout() {
           id={APP_MAIN_PANE_ID}
           className="relative flex min-h-0 min-w-0 flex-1 flex-col"
         >
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3 phone-landscape:hidden">
             <button
               type="button"
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100"
@@ -112,7 +113,20 @@ export function MainLayout() {
             >
               <MenuIcon />
             </button>
+            <div
+              id={APP_HEADER_ACTIONS_ID}
+              className="ml-auto flex min-w-0 items-center justify-end gap-2"
+            />
           </header>
+
+          <button
+            type="button"
+            className="fixed bottom-2 left-2 z-[45] hidden size-11 items-center justify-center rounded-full border border-zinc-200/80 bg-white/95 text-zinc-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 phone-landscape:inline-flex"
+            aria-label={sidebarOpen ? 'Recolher menu' : 'Abrir menu'}
+            onClick={() => setSidebarOpen((v) => !v)}
+          >
+            <MenuIcon className="size-5" />
+          </button>
 
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             <Outlet />

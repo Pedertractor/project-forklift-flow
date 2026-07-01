@@ -13,6 +13,9 @@ import {
   type OperatorMachineTaskListRow,
 } from './operator-machine-display';
 import {
+  COMBINED_FLOW_STEPS,
+  combinedFlowHeadline,
+  combinedFlowStepStatusesFromTasks,
   DELIVERY_FLOW_STEPS,
   deliveryFlowHeadline,
   deliveryFlowStepStatusesFromTask,
@@ -34,6 +37,14 @@ import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function TaskKindIcon({ kind }: { kind: OperatorMachineTaskListRow['kind'] }) {
+  if (kind === 'COMBINED') {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-0.5" aria-hidden>
+        <ArrowUpRight className="size-3.5 rounded-full bg-green-200" />
+        <ArrowDownLeft className="size-3.5 rounded-full bg-red-200" />
+      </span>
+    );
+  }
   if (kind === 'DELIVERY') {
     return (
       <ArrowUpRight
@@ -55,6 +66,8 @@ function TaskKindIcon({ kind }: { kind: OperatorMachineTaskListRow['kind'] }) {
 
 function flowCardTitle(row: OperatorMachineTaskListRow): string {
   switch (row.kind) {
+    case 'COMBINED':
+      return 'Entrega de pallet + Retirada de pallet';
     case 'DELIVERY':
       return 'Entrega de pallet';
     case 'PICKUP':
@@ -174,9 +187,17 @@ function RequestFlowCard({
   onRequestCancelPickup,
 }: RequestFlowCardProps) {
   const deliveryTask =
-    row.kind === 'DELIVERY' ? findDeliveryTask(deliveryTasks, row.id) : null;
+    row.kind === 'DELIVERY'
+      ? findDeliveryTask(deliveryTasks, row.id)
+      : row.kind === 'COMBINED'
+        ? findDeliveryTask(deliveryTasks, row.deliveryId)
+        : null;
   const pickupTask =
-    row.kind === 'PICKUP' ? findPickupTask(pickupTasks, row.id) : null;
+    row.kind === 'PICKUP'
+      ? findPickupTask(pickupTasks, row.id)
+      : row.kind === 'COMBINED'
+        ? findPickupTask(pickupTasks, row.pickupId)
+        : null;
   const supplyRequest =
     row.kind === 'SUPPLY'
       ? findSupplyRequest(supplyRequests, row.id)
@@ -235,6 +256,17 @@ function RequestFlowCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-4">
+        {row.kind === 'COMBINED' && deliveryTask && pickupTask ? (
+          <HorizontalActivityStepper
+            steps={[...COMBINED_FLOW_STEPS]}
+            statuses={combinedFlowStepStatusesFromTasks(
+              deliveryTask,
+              pickupTask,
+            )}
+            headline={combinedFlowHeadline(deliveryTask, pickupTask)}
+          />
+        ) : null}
+
         {row.kind === 'DELIVERY' && deliveryTask ? (
           <HorizontalActivityStepper
             steps={[...DELIVERY_FLOW_STEPS]}

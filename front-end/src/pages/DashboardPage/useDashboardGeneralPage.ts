@@ -12,10 +12,13 @@ import { getOperationalDashboardSnapshot } from '@/services/operational-dashboar
 import { fetchMachines } from '@/services/machines-api';
 import type { SectorListItem } from '@/types/machine.types';
 
+const DASHBOARD_LIVE_REFETCH_MS = 15_000;
+
 export interface DashboardGeneralPageViewModel {
   data: Awaited<ReturnType<typeof getOperationalDashboardSnapshot>> | undefined;
   isLoading: boolean;
   isFetching: boolean;
+  isLive: boolean;
   dates: Date[];
   setDates: Dispatch<SetStateAction<Date[]>>;
   selectedMachineId: string;
@@ -63,6 +66,8 @@ export function useDashboardGeneralPage(): DashboardGeneralPageViewModel {
       }),
   });
 
+  const isLive = dashboardIncludesToday(dates);
+
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       'operational-dashboard-snapshot',
@@ -79,7 +84,8 @@ export function useDashboardGeneralPage(): DashboardGeneralPageViewModel {
         machineId: selectedMachineId || undefined,
       }),
     enabled: !leaderMissingSector,
-    refetchInterval: dashboardIncludesToday(dates) ? 30_000 : false,
+    staleTime: 0,
+    refetchInterval: isLive ? DASHBOARD_LIVE_REFETCH_MS : false,
   });
 
   const formattedDate = data
@@ -93,6 +99,7 @@ export function useDashboardGeneralPage(): DashboardGeneralPageViewModel {
     data,
     isLoading,
     isFetching,
+    isLive,
     dates,
     setDates,
     selectedMachineId,

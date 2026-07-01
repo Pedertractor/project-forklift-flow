@@ -16,7 +16,7 @@ function resolveApiProxyTarget(): string {
       /* fallback */
     }
   }
-  return 'http://localhost:3131';
+  return 'http://localhost:5010';
 }
 
 const apiTarget = resolveApiProxyTarget();

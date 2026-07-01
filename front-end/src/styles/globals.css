@@ -83,3 +83,18 @@ textarea,
 select {
   font-family: inherit;
 }
+
+/* Fluxo em paisagem no celular (altura curta; ver variant phone-landscape em index.css) */
+@media (orientation: landscape) and (max-height: 32rem) {
+  .deliver-flow-card-landscape {
+    min-height: 0;
+  }
+
+  .deliver-flow-landscape-container {
+    container-type: size;
+    container-name: deliver-flow;
+    flex: 1 1 0%;
+    min-height: 0;
+    width: 100%;
+  }
+}

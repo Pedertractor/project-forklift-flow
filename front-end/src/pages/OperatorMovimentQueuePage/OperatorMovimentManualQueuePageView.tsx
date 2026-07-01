@@ -23,13 +23,20 @@ export function OperatorMovimentManualQueuePageView(
   } = vm;
 
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
-      <div className="mx-auto w-full max-w-6xl">
-        <header className="mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-          <div></div>
+    <main className="relative min-w-0 px-3 py-4 pb-6 md:px-4 md:py-8 phone-landscape:flex phone-landscape:min-h-svh phone-landscape:flex-col phone-landscape:overflow-hidden phone-landscape:py-2 phone-landscape:pr-3">
+      <div className="mx-auto w-full min-w-0 max-w-6xl phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col">
+        <header className="mb-4 flex shrink-0 flex-col gap-3 border-b border-zinc-200 pb-4 phone-landscape:mb-2 phone-landscape:gap-2 phone-landscape:pb-2 sm:flex-row sm:items-end sm:justify-between md:mb-6 md:pb-6">
+          <div className="min-w-0">
+            <h1 className="m-0 text-xl font-bold tracking-tight text-zinc-900 phone-landscape:text-base md:text-2xl">
+              Atividades avulsas
+            </h1>
+            <p className="mt-1 text-sm text-zinc-600 phone-landscape:mt-0.5 phone-landscape:text-xs">
+              Aceite entregas e retiradas disponíveis na fila manual.
+            </p>
+          </div>
           <Link
             to={OPERATOR_MOVIMENT_TASKS_QUEUE_PATH}
-            className={linkOutlineClass}
+            className={`${linkOutlineClass} phone-landscape:h-8 phone-landscape:px-3 phone-landscape:text-xs`}
           >
             Voltar às sugestões
           </Link>
@@ -46,6 +53,10 @@ export function OperatorMovimentManualQueuePageView(
         ) : null}
 
         {apiReady && token ? (
+          <section
+            className="min-w-0 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col"
+            aria-label="Atividades avulsas"
+          >
           <OperatorMovimentManualQueueSection
             queueQuery={queueQuery}
             deliverRows={queue.requests}
@@ -56,6 +67,7 @@ export function OperatorMovimentManualQueuePageView(
             onAcceptReplenishment={onAcceptReplenishment}
             onAcceptPickup={onAcceptPickup}
           />
+          </section>
         ) : null}
       </div>
     </main>

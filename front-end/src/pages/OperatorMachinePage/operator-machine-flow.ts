@@ -35,6 +35,7 @@ export const DELIVERY_FLOW_STEPS = [
 /** Sugestão de viagem: entrega preparada + retirada na mesma máquina. */
 export const COMBINED_FLOW_STEPS = [
   { key: 'receiving', title: 'Recebimento' },
+  { key: 'awaiting', title: 'Aguardando transporte' },
   { key: 'deliver', title: 'Entrega na máquina' },
   { key: 'on-machine', title: 'Pallet na máquina' },
   { key: 'pickup', title: 'Retirada em curso' },
@@ -116,6 +117,32 @@ export function hasPalletAtReceiving(
   return deliveryTasks.some(
     (t) => t.status === 'CREATED' && t.acceptedBySupply && t.preparedAt != null,
   );
+}
+
+/** Pallet pronto no recebimento para a mesma máquina da retirada (sugestão entrega + retirada). */
+export function hasPalletAtReceivingForMachine(
+  deliveryTasks: DeliveryTaskListItem[],
+  machineId: string,
+): boolean {
+  return deliveryTasks.some(
+    (t) =>
+      t.machineId === machineId &&
+      t.status === 'CREATED' &&
+      t.acceptedBySupply &&
+      t.preparedAt != null,
+  );
+}
+
+/** Retirada em CREATED pode ser cancelada pelo operador da máquina. */
+export function canCancelPickupRequest(
+  pickup: PickupTaskListItem,
+  deliveryTasks: DeliveryTaskListItem[],
+): boolean {
+  if (pickup.status !== 'CREATED') return false;
+  if (hasPalletAtReceivingForMachine(deliveryTasks, pickup.machineId)) {
+    return false;
+  }
+  return true;
 }
 
 export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE =
@@ -276,15 +303,15 @@ export function combinedFlowStepStatusesFromTasks(
   pickup: PickupTaskListItem | null,
 ): FlowStepStatus[] {
   if (!delivery || !pickup) {
-    return ['pending', 'pending', 'pending', 'pending', 'pending'];
+    return ['pending', 'pending', 'pending', 'pending', 'pending', 'pending'];
   }
 
   const prepared = Boolean(delivery.preparedAt);
   const deliveryDone = delivery.status === 'COMPLETED';
-  const deliveryInProgress =
-    delivery.status === 'ASSIGNED' ||
-    delivery.status === 'IN_PROGRESS' ||
-    (delivery.status === 'CREATED' && prepared);
+  const deliveryEnRoute =
+    delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS';
+  const awaitingTransportAccept =
+    prepared && delivery.status === 'CREATED' && !deliveryEnRoute && !deliveryDone;
 
   const pickupDone = pickup.status === 'COMPLETED';
   const pickupInProgress =
@@ -292,9 +319,13 @@ export function combinedFlowStepStatusesFromTasks(
 
   const receiving: FlowStepStatus = prepared ? 'done' : 'active';
 
+  let awaiting: FlowStepStatus = 'pending';
+  if (awaitingTransportAccept) awaiting = 'active';
+  else if (deliveryEnRoute || deliveryDone) awaiting = 'done';
+
   let deliver: FlowStepStatus = 'pending';
   if (deliveryDone) deliver = 'done';
-  else if (deliveryInProgress) deliver = 'active';
+  else if (deliveryEnRoute) deliver = 'active';
 
   let onMachine: FlowStepStatus = 'pending';
   if (deliveryDone) {
@@ -310,7 +341,7 @@ export function combinedFlowStepStatusesFromTasks(
   if (pickupDone) expedition = 'done';
   else if (pickupInProgress) expedition = 'active';
 
-  return [receiving, deliver, onMachine, pickupStep, expedition];
+  return [receiving, awaiting, deliver, onMachine, pickupStep, expedition];
 }
 
 export function combinedFlowHeadline(
@@ -321,9 +352,22 @@ export function combinedFlowHeadline(
     return 'Sugestão de viagem combinada (entrega + retirada) para o transporte.';
   }
   const deliveryDone = delivery.status === 'COMPLETED';
+  const deliveryEnRoute =
+    delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS';
   const pickupInProgress =
     pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS';
 
+  if (
+    delivery.preparedAt &&
+    delivery.status === 'CREATED' &&
+    !deliveryEnRoute &&
+    !deliveryDone
+  ) {
+    return 'Pallet pronto — aguardando o transporte aceitar a rota combinada.';
+  }
+  if (!deliveryDone && deliveryEnRoute) {
+    return 'O transporte está levando o pallet até a máquina.';
+  }
   if (!deliveryDone && delivery.preparedAt) {
     return 'Primeiro o transporte entrega o pallet na máquina; a retirada só começa depois dessa confirmação.';
   }

@@ -1,0 +1,19 @@
+{
+  "name": "Fork",
+  "short_name": "Fork",
+  "description": "Operação de movimentação e empilhadeiras",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f4f5",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/forklift-bg.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

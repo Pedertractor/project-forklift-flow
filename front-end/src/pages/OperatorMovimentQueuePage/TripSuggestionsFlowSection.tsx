@@ -6,6 +6,7 @@ import {
   DeliverFlowActivitySubtitle,
   DeliverFlowCard,
   DeliverFlowDeferBanner,
+  DeliverFlowMachineCubeHighlight,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
@@ -35,7 +36,7 @@ import {
   type MainTripQueueItem,
 } from '@/utils/operator-moviment-trip-queue';
 
-import { ArrowDownLeft, ArrowUpRight, Box, Check } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Check } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function resolveMovementCubeDisplay(
@@ -184,7 +185,7 @@ function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
     'Aceitando…'
   ) : (
     <>
-      <Check className="size-5 shrink-0" aria-hidden />
+      <Check className="size-5 shrink-0 phone-landscape:size-4" aria-hidden />
       Aceitar
     </>
   );
@@ -239,76 +240,62 @@ function SuggestionFlowCardBody({
     : undefined;
 
   return (
-    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4">
+    <div className="min-w-0 px-3 py-3 md:px-8 md:py-4 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:px-3 phone-landscape:py-2">
       {activityLabel ? (
-        <DeliverFlowActivitySubtitle
-          start={
-            <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-sm font-semibold uppercase tracking-wide text-brand md:gap-x-1.5 md:text-xl md:tracking-wider">
-              {machineName ? (
-                <span className="truncate">{machineName}</span>
-              ) : null}
-              {cube ? (
+        <div className="phone-landscape:shrink-0">
+          <DeliverFlowActivitySubtitle
+            typography="large"
+            start={
+              <DeliverFlowMachineCubeHighlight
+                machineName={machineName}
+                cube={cube}
+                typography="large"
+              />
+            }
+            end={
+              requestedAtLabel ? (
+                <time
+                  dateTime={requestedAt}
+                  className="whitespace-nowrap text-[10px] font-medium normal-case tracking-normal text-zinc-500 phone-landscape:text-[11px] sm:text-[11px] md:text-xs"
+                >
+                  {requestedAtLabel}
+                </time>
+              ) : null
+            }
+          >
+            <span className="inline-flex items-center gap-1 font-semibold normal-case text-zinc-700 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-sm sm:text-sm">
+              {activityLabel === 'Entrega' ? (
                 <>
-                  {machineName ? (
-                    <span className="shrink-0" aria-hidden>
-                      -
-                    </span>
-                  ) : null}
-                  <div className="flex items-center gap-0.5 rounded-lg bg-brand/20 px-1 py-0.5 md:gap-1 md:py-0">
-                    <Box
-                      strokeWidth={2.5}
-                      className="size-3.5 shrink-0 text-brand md:size-5"
-                      aria-hidden
-                    />
-                    <span className="text-sm tracking-widest md:text-xl">
-                      {cube}
-                    </span>
-                  </div>
+                  Entrega de pallet
+                  <ArrowUpRight
+                    className="size-4 rounded-full bg-green-200 phone-landscape:size-3"
+                    aria-hidden
+                  />
                 </>
-              ) : null}
-            </div>
-          }
-          end={
-            requestedAtLabel ? (
-              <time
-                dateTime={requestedAt}
-                className="whitespace-nowrap text-[10px] font-medium normal-case tracking-normal text-zinc-500 sm:text-[11px] md:text-xs"
-              >
-                {requestedAtLabel}
-              </time>
-            ) : null
-          }
-        >
-          <span className="inline-flex items-center gap-1 text-[11px] leading-tight sm:text-xs">
-            {activityLabel === 'Entrega' ? (
-              <>
-                Entrega de pallet
-                <ArrowUpRight
-                  className="size-4 rounded-full bg-green-200"
-                  aria-hidden
-                />
-              </>
-            ) : activityLabel === 'Retirada' ? (
-              <>
-                Retirada de pallet
-                <ArrowDownLeft
-                  className="size-4 rounded-full bg-red-200"
-                  aria-hidden
-                />
-              </>
-            ) : (
-              'Rota combinada'
-            )}
-          </span>
-        </DeliverFlowActivitySubtitle>
+              ) : activityLabel === 'Retirada' ? (
+                <>
+                  Retirada de pallet
+                  <ArrowDownLeft
+                    className="size-4 rounded-full bg-red-200 phone-landscape:size-3"
+                    aria-hidden
+                  />
+                </>
+              ) : (
+                'Rota combinada'
+              )}
+            </span>
+          </DeliverFlowActivitySubtitle>
+        </div>
       ) : null}
       {title ? (
-        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-brand">
+        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-zinc-700 phone-landscape:mb-2 phone-landscape:text-base phone-landscape:shrink-0">
           {title}
         </p>
       ) : null}
 
-      <DeliverThreeStepFlow steps={steps} />
+      <div className="w-full phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1">
+        <DeliverThreeStepFlow steps={steps} activityTypography="large" />
+      </div>
       {hint ? (
         <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
           {hint}
@@ -369,6 +356,7 @@ function CombinedRouteCard({
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={!bound || busy || isAcceptingThisTrip}
           onClick={() => onAcceptTrip(row.tripSuggestion.id)}
         >
@@ -427,6 +415,7 @@ function StandaloneDeliverRouteCard({
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={!bound || busy || isAcceptingThisDeliver}
           onClick={() => onAcceptDeliver(row)}
         >
@@ -488,6 +477,7 @@ function StandalonePickupRouteCard({
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={!bound || busy || isAcceptingThisPickup}
           onClick={() => onAcceptPickup(taskId)}
         >
@@ -678,7 +668,7 @@ export function TripSuggestionsFlowSection({
 
   return (
     <section
-      className="mt-4 min-w-0 space-y-3 md:mt-8 md:space-y-4"
+      className="mt-4 min-w-0 space-y-3 phone-landscape:mt-0 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:space-y-0 md:mt-8 md:space-y-4"
       aria-labelledby="trip-suggestions-heading"
     >
       {!bound ? (
@@ -687,7 +677,7 @@ export function TripSuggestionsFlowSection({
         </p>
       ) : null}
 
-      <div className="flex min-w-0 flex-col gap-4 md:gap-5">
+      <div className="flex min-w-0 flex-col gap-4 phone-landscape:min-h-0 phone-landscape:flex-1 md:gap-5">
         {renderMainTripQueueItem(topSuggestion, {
           bound,
           busy,
