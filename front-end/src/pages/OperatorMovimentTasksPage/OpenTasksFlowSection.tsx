@@ -250,12 +250,12 @@ function buildOpenTaskSteps(
 
 function OpenActivityHeading() {
   return (
-    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 md:text-base">
+    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 max-md:landscape:text-base md:text-base">
       <span
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand"
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand max-md:landscape:size-9"
         aria-hidden
       >
-        <Layers2 className="size-4" strokeWidth={2.25} />
+        <Layers2 className="size-4 max-md:landscape:size-[1.125rem]" strokeWidth={2.25} />
       </span>
       <span className="flex flex-wrap items-center gap-1.5">
         Conclua a tarefa
@@ -320,7 +320,7 @@ function OpenTaskRouteCard({
 
   return (
     <DeliverFlowCard>
-      <div className="px-5 py-4 sm:px-8">
+      <div className="px-5 py-4 sm:px-8 max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col max-md:landscape:px-3 max-md:landscape:py-2">
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
             start={<span aria-hidden />}
@@ -333,7 +333,9 @@ function OpenTaskRouteCard({
             {activitySubtitle}
           </DeliverFlowActivitySubtitle>
         ) : null}
-        <DeliverThreeStepFlow steps={steps} cube={deliverCubeDisplay} />
+        <div className="w-full max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1">
+          <DeliverThreeStepFlow steps={steps} cube={deliverCubeDisplay} />
+        </div>
       </div>
 
       <DeliverFlowActionFooter isCritical={isCritical}>
@@ -395,7 +397,10 @@ export function OpenTasksFlowSection({
   const hasOpenWork = groups.length > 0;
 
   return (
-    <section className="" aria-labelledby="open-tasks-flow-heading">
+    <section
+      className="max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col"
+      aria-labelledby="open-tasks-flow-heading"
+    >
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <AccordionLoader />
@@ -412,21 +417,24 @@ export function OpenTasksFlowSection({
       ) : null}
 
       {!isLoading && hasOpenWork && groups.length > 0 ? (
-        <ul className="m-0  flex list-none flex-col gap-5 p-0">
+        <ul className="m-0 flex list-none flex-col gap-5 p-0 max-md:landscape:min-h-0 max-md:landscape:flex-1">
           {groups.map((group) => (
-            <li key={group.machineId} className="flex flex-col gap-2.5">
+            <li
+              key={group.machineId}
+              className="flex flex-col gap-2.5 max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:justify-center"
+            >
               <OpenActivityHeading />
               <OpenTaskRouteCard
-                  group={group}
-                  allTasks={tasks}
-                  bound={bound}
-                  busy={busy}
-                  myOperatorUserId={myOperatorUserId}
-                  completeDeliverMut={completeDeliverMut}
-                  completePickupMut={completePickupMut}
-                />
-              </li>
-            ))}
+                group={group}
+                allTasks={tasks}
+                bound={bound}
+                busy={busy}
+                myOperatorUserId={myOperatorUserId}
+                completeDeliverMut={completeDeliverMut}
+                completePickupMut={completePickupMut}
+              />
+            </li>
+          ))}
         </ul>
       ) : null}
     </section>

@@ -25,11 +25,12 @@ export function OperatorMovimentTasksPageView(
   const bound = currentPallet !== null;
 
   return (
-    <main className="relative px-4 py-8 max-[800px]:px-3">
-      <div className="mx-auto w-full max-w-6xl">
+    <main className="relative px-4 py-8 max-[800px]:px-3 max-md:landscape:flex max-md:landscape:min-h-svh max-md:landscape:flex-col max-md:landscape:overflow-hidden max-md:landscape:py-2 max-md:landscape:pr-3">
+      <div className="mx-auto w-full max-w-6xl max-md:landscape:flex max-md:landscape:min-h-0 max-md:landscape:flex-1 max-md:landscape:flex-col">
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
