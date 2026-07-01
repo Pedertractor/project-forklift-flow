@@ -118,6 +118,32 @@ export function hasPalletAtReceiving(
   );
 }
 
+/** Pallet pronto no recebimento para a mesma máquina da retirada (sugestão entrega + retirada). */
+export function hasPalletAtReceivingForMachine(
+  deliveryTasks: DeliveryTaskListItem[],
+  machineId: string,
+): boolean {
+  return deliveryTasks.some(
+    (t) =>
+      t.machineId === machineId &&
+      t.status === 'CREATED' &&
+      t.acceptedBySupply &&
+      t.preparedAt != null,
+  );
+}
+
+/** Retirada em CREATED pode ser cancelada pelo operador da máquina. */
+export function canCancelPickupRequest(
+  pickup: PickupTaskListItem,
+  deliveryTasks: DeliveryTaskListItem[],
+): boolean {
+  if (pickup.status !== 'CREATED') return false;
+  if (hasPalletAtReceivingForMachine(deliveryTasks, pickup.machineId)) {
+    return false;
+  }
+  return true;
+}
+
 export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE =
   'Há pallet no recebimento aguardando transporte.';
 

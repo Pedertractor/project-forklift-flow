@@ -373,6 +373,7 @@ function CombinedRouteCard({
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={!bound || busy || isAcceptingThisTrip}
           onClick={() => onAcceptTrip(row.tripSuggestion.id)}
         >
@@ -431,6 +432,7 @@ function StandaloneDeliverRouteCard({
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={!bound || busy || isAcceptingThisDeliver}
           onClick={() => onAcceptDeliver(row)}
         >
@@ -492,6 +494,7 @@ function StandalonePickupRouteCard({
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={!bound || busy || isAcceptingThisPickup}
           onClick={() => onAcceptPickup(taskId)}
         >

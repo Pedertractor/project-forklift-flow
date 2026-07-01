@@ -46,3 +46,23 @@ test('frontend: pickupBlockedReason nao bloqueia retirada', () => {
   )
   assert.match(fnBlock, /return null;/)
 })
+
+test('frontend: canCancelPickupRequest bloqueia quando ha pallet no recebimento', () => {
+  const src = readFileSync(flowPath, 'utf8')
+  const fnBlock = src.slice(
+    src.indexOf('export function canCancelPickupRequest'),
+    src.indexOf('export function canRequestPickup'),
+  )
+  assert.match(fnBlock, /hasPalletAtReceivingForMachine/)
+  assert.match(fnBlock, /return false/)
+})
+
+test('cancel pickup: service bloqueia quando ha entrega preparada no recebimento', () => {
+  const src = readFileSync(servicePath, 'utf8')
+  const cancelBlock = src.slice(
+    src.indexOf('export async function cancelPickupRequestByOperator'),
+    src.indexOf('return {\n    pickupTask: updated,'),
+  )
+  assert.match(cancelBlock, /findPalletAtReceivingForMachine/)
+  assert.match(cancelBlock, /PickupTaskCannotBeCanceledError/)
+})

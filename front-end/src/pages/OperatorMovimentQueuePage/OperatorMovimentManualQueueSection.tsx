@@ -210,6 +210,7 @@ function ManualDeliverCard({
       />
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={busy || isAccepting}
           onClick={() => onAccept(row.id)}
         >
@@ -244,6 +245,7 @@ function ManualPickupCard({
       />
       <DeliverFlowActionFooter isCritical={isCritical}>
         <DeliverFlowAcceptButton
+          intent="accept"
           disabled={busy || isAccepting}
           onClick={() => onAccept(task.id)}
         >

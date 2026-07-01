@@ -8,6 +8,7 @@ import type {
 } from '@/types/machine-task.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import {
+  canCancelPickupRequest,
   findOpenReplenishmentDelivery,
   findOpenSupplyForMachine,
   hasOpenPickupWithReplenishment,
@@ -176,7 +177,7 @@ export function buildOperatorMachineTaskRows(
       statusLabel,
       isCritical: t.isCritical,
       triggersReplenishment: t.triggersReplenishment,
-      canCancel: t.status === 'CREATED',
+      canCancel: canCancelPickupRequest(t, deliveryTasks),
       linkedSupplyRequestId: linkedSupply?.id ?? null,
     });
   }

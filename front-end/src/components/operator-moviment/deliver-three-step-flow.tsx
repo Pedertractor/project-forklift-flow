@@ -89,23 +89,38 @@ export function DeliverFlowActionFooter({
   );
 }
 
+export type DeliverFlowButtonIntent = 'accept' | 'complete';
+
+const deliverFlowButtonIntentClass: Record<DeliverFlowButtonIntent, string> = {
+  accept:
+    'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-600/30',
+  complete:
+    'bg-brand text-white shadow-sm hover:bg-brand/80 focus-visible:ring-brand/25',
+};
+
 export function DeliverFlowAcceptButton({
   children,
   disabled,
   onClick,
+  intent = 'complete',
+  className,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onClick: () => void;
+  /** `accept` = aceitar sugestão (verde); `complete` = concluir tarefa (azul marca). */
+  intent?: DeliverFlowButtonIntent;
   className?: string;
 }) {
   return (
     <Button
       type="button"
       className={cn(
-        'h-11 w-full min-w-0 max-w-full animate-pulse gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white shadow-sm hover:cursor-pointer hover:bg-brand/80',
+        'h-11 w-full min-w-0 max-w-full animate-pulse gap-2 rounded-lg px-4 text-sm font-semibold hover:cursor-pointer focus-visible:outline-none focus-visible:ring-[3px]',
+        deliverFlowButtonIntentClass[intent],
         'max-md:landscape:h-9 max-md:landscape:gap-1.5 max-md:landscape:px-5 max-md:landscape:text-sm',
         'md:h-12 md:w-auto md:min-w-[17rem] md:max-w-none md:gap-2.5 md:px-10 md:text-base',
+        className,
       )}
       disabled={disabled}
       onClick={onClick}

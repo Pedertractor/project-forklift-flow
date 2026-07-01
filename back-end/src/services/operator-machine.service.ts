@@ -410,6 +410,13 @@ export async function cancelPickupRequestByOperator(
     throw new PickupTaskCannotBeCanceledError()
   }
 
+  const palletAtReceiving = await findPalletAtReceivingForMachine(machine.id)
+  if (palletAtReceiving) {
+    throw new PickupTaskCannotBeCanceledError(
+      'Nao e possivel cancelar: ha pallet no recebimento aguardando transporte vinculado a esta retirada.',
+    )
+  }
+
   const now = new Date()
   const { pickupTask: updated, canceledDeliveries } = await prisma.$transaction(
     async (tx) => {
