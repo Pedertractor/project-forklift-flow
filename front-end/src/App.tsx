@@ -33,6 +33,11 @@ const DashboardGeralPage = lazy(() =>
     default: m.DashboardGeralPage,
   })),
 );
+const DashboardPorMaquinaPage = lazy(() =>
+  import('@/pages/DashboardPage/index').then((m) => ({
+    default: m.DashboardPorMaquinaPage,
+  })),
+);
 const DashboardPorEmpilhadeiristaPage = lazy(() =>
   import('@/pages/DashboardPage/index').then((m) => ({
     default: m.DashboardPorEmpilhadeiristaPage,
@@ -123,6 +128,7 @@ export function App() {
                   <Route path="dashboard" element={<DashboardAreaLayout />}>
                     <Route index element={<DashboardHubPage />} />
                     <Route path="geral" element={<DashboardGeralPage />} />
+                    <Route path="por-maquina" element={<DashboardPorMaquinaPage />} />
                     <Route
                       path="por-empilhadeirista"
                       element={<DashboardPorEmpilhadeiristaPage />}
