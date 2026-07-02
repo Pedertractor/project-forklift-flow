@@ -17,9 +17,6 @@ export function ReplenishmentEquipmentSidebar({
   onOpenChange,
   ...panelProps
 }: ReplenishmentEquipmentSidebarProps) {
-  const queueTotal =
-    panelProps.forkliftStats.queuePending +
-    panelProps.palletTruckStats.queuePending;
   const readyForQueueTotal =
     panelProps.forkliftStats.readyForQueue +
     panelProps.palletTruckStats.readyForQueue;
@@ -70,28 +67,10 @@ export function ReplenishmentEquipmentSidebar({
             <h2 className="m-0 text-base font-semibold text-zinc-900">
               Meios de locomoção
             </h2>
-            <p className="mt-1 m-0 text-xs leading-snug text-zinc-600">
-              Operadores em operação no setor — sem tarefa ativa podem acatar
-              reposição na fila.
-            </p>
             {!panelProps.isLoading && !panelProps.isError ? (
-              <p className="mt-2 m-0 text-[0.6875rem] font-medium text-zinc-700">
-                <span className="text-sky-700">
-                  {readyForQueueTotal} livre
-                  {readyForQueueTotal === 1 ? '' : 's'} p/ fila agora
-                </span>
-                <span className="text-zinc-400"> · </span>
-                <span className="text-emerald-700">
-                  {withoutTasksTotal} sem tarefa ativa
-                </span>
-                {queueTotal > 0 ? (
-                  <>
-                    <span className="text-zinc-400"> · </span>
-                    <span className="text-brand">
-                      {queueTotal} pedido{queueTotal === 1 ? '' : 's'} na fila
-                    </span>
-                  </>
-                ) : null}
+              <p className="mt-1 m-0 text-xs text-zinc-500">
+                {readyForQueueTotal} livre{readyForQueueTotal === 1 ? '' : 's'} ·{' '}
+                {withoutTasksTotal} sem tarefa
               </p>
             ) : null}
           </div>

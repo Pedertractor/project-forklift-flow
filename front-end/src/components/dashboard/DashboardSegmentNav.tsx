@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LineChart, UsersRound } from 'lucide-react';
+import { Home, LineChart, Package, UsersRound } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ export function DashboardSegmentNav() {
 
   const activeHub = path === base;
   const activeGeral = path === `${base}/geral`;
+  const activePorMaquina = path === `${base}/por-maquina`;
   const activePorEmpilhadeirista = path === `${base}/por-empilhadeirista`;
 
   const pill = (active: boolean) =>
@@ -41,6 +42,10 @@ export function DashboardSegmentNav() {
         <Link to={`${base}/geral`} className={pill(activeGeral)}>
           <LineChart className="size-4 shrink-0 opacity-90" aria-hidden />
           <span>Geral</span>
+        </Link>
+        <Link to={`${base}/por-maquina`} className={pill(activePorMaquina)}>
+          <Package className="size-4 shrink-0 opacity-90" aria-hidden />
+          <span className="truncate">Por máquina</span>
         </Link>
         <Link
           to={`${base}/por-empilhadeirista`}

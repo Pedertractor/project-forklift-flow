@@ -1,4 +1,4 @@
-import { BarChart3, UsersRound } from 'lucide-react';
+import { BarChart3, Package, UsersRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -60,17 +60,23 @@ export function DashboardHubPage() {
             Painel operacional
           </h1>
           <p className="mt-1 text-sm text-zinc-600 sm:text-base">
-            Escolha a visão: indicadores gerais do período ou desempenho por
-            empilhadeirista.
+            Escolha a visão: indicadores gerais do período, desempenho por
+            máquina ou por empilhadeirista.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
           <ChoiceCard
             to="/dashboard/geral"
             title="Geral"
-            description="Tempo médio de ciclo, volume de retiradas e entregas, picos por horário e resumo por máquina."
+            description="Tempo médio de ciclo, volume de retiradas e entregas e picos por horário."
             icon={BarChart3}
+          />
+          <ChoiceCard
+            to="/dashboard/por-maquina"
+            title="Por máquina"
+            description="Retiradas, entregas e tempo médio por máquina no período filtrado."
+            icon={Package}
           />
           <ChoiceCard
             to="/dashboard/por-empilhadeirista"

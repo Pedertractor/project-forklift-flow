@@ -22,7 +22,7 @@ import type {
   OperatorMovimentTaskItem,
 } from '@/types/operator-moviment-pallet.types';
 import { isOpenMovimentTaskStatus } from '@/utils/operator-moviment-work';
-import { Check, Layers2 } from 'lucide-react';
+import { Check, Layers2, Loader2 } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 interface TaskRouteGroup {
@@ -251,12 +251,15 @@ function buildOpenTaskSteps(
 function OpenActivityHeading() {
   return (
     <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-lg md:text-base">
-      <span
+      {/* <span
         className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand phone-landscape:size-9"
         aria-hidden
       >
-        <Layers2 className="size-4 phone-landscape:size-[1.125rem]" strokeWidth={2.25} />
-      </span>
+      </span> */}
+      <Layers2
+        className="text-brand size-4 phone-landscape:size-[1.125rem]"
+        strokeWidth={2.25}
+      />
       <span className="flex flex-wrap items-center gap-1.5">
         Conclua a tarefa
       </span>
@@ -350,23 +353,65 @@ function OpenTaskRouteCard({
 
       <DeliverFlowActionFooter isCritical={isCritical}>
         <div className="flex flex-col items-center gap-2">
-          {deliverOpen && group.deliverTask ? (
-            <DeliverFlowAcceptButton
-              disabled={!bound || busy}
-              onClick={() => completeDeliverMut.mutate(group.deliverTask!.id)}
-            >
-              <Check className="size-5 shrink-0" aria-hidden />
-              Concluir entrega
-            </DeliverFlowAcceptButton>
-          ) : pickupOpen && group.pickupTask ? (
-            <DeliverFlowAcceptButton
-              disabled={!bound || busy}
-              onClick={() => completePickupMut.mutate(group.pickupTask!.id)}
-            >
-              <Check className="size-5 shrink-0" aria-hidden />
-              Confirmar entrega na expedição
-            </DeliverFlowAcceptButton>
-          ) : null}
+          {deliverOpen && group.deliverTask
+            ? (() => {
+                const completing =
+                  completeDeliverMut.isPending &&
+                  completeDeliverMut.variables === group.deliverTask!.id;
+                return (
+                  <DeliverFlowAcceptButton
+                    disabled={!bound || busy}
+                    onClick={() =>
+                      completeDeliverMut.mutate(group.deliverTask!.id)
+                    }
+                  >
+                    {completing ? (
+                      <>
+                        <Loader2
+                          className="size-5 shrink-0 animate-spin"
+                          aria-hidden
+                        />
+                        Concluindo…
+                      </>
+                    ) : (
+                      <>
+                        <Check className="size-5 shrink-0" aria-hidden />
+                        Concluir entrega
+                      </>
+                    )}
+                  </DeliverFlowAcceptButton>
+                );
+              })()
+            : pickupOpen && group.pickupTask
+              ? (() => {
+                  const completing =
+                    completePickupMut.isPending &&
+                    completePickupMut.variables === group.pickupTask!.id;
+                  return (
+                    <DeliverFlowAcceptButton
+                      disabled={!bound || busy}
+                      onClick={() =>
+                        completePickupMut.mutate(group.pickupTask!.id)
+                      }
+                    >
+                      {completing ? (
+                        <>
+                          <Loader2
+                            className="size-5 shrink-0 animate-spin"
+                            aria-hidden
+                          />
+                          Confirmando…
+                        </>
+                      ) : (
+                        <>
+                          <Check className="size-5 shrink-0" aria-hidden />
+                          Confirmar entrega na expedição
+                        </>
+                      )}
+                    </DeliverFlowAcceptButton>
+                  );
+                })()
+              : null}
         </div>
       </DeliverFlowActionFooter>
     </DeliverFlowCard>
@@ -431,7 +476,7 @@ export function OpenTasksFlowSection({
           {groups.map((group) => (
             <li
               key={group.machineId}
-              className="flex flex-col gap-2.5 phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:justify-center"
+              className="flex flex-col  phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:justify-center"
             >
               <OpenActivityHeading />
               <OpenTaskRouteCard

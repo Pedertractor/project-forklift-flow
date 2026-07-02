@@ -127,6 +127,7 @@ function mapPickupTaskToQueueItem(task: PickupTaskApiRow): OperatorPickupTaskQue
       task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,
     requestedById: task.requestedById,
     createdAt: task.createdAt,
+    statusSince: task.statusSince,
     updatedAt: task.updatedAt,
     completedAt: task.completedAt,
     request: requestStub,

@@ -13,7 +13,11 @@ import {
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
-import { isCriticalPriority } from '@/utils/operator-moviment-display';
+import {
+  formatTaskDate,
+  isCriticalPriority,
+} from '@/utils/operator-moviment-display';
+import { formatDurationMs } from '@/utils/formatDurationMs';
 import type {
   ForkliftTaskTypeApi,
   OperatorMovimentTaskItem,
@@ -23,7 +27,8 @@ import {
   canCompleteMovimentPickup,
   isOpenMovimentTaskStatus,
 } from '@/utils/operator-moviment-work';
-import { Route } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, ClipboardList, Route, Timer } from 'lucide-react';
 
 interface TaskRouteGroup {
   machineId: string;
@@ -226,6 +231,60 @@ function resolveFlowActivitySubtitle(
   return null;
 }
 
+/** Cronômetro puramente visual (front-end): conta o tempo desde `startIso` até agora. */
+function LiveActivityTimer({ startIso }: { startIso: string }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const start = new Date(startIso).getTime();
+  const elapsed = Number.isFinite(start) ? now - start : null;
+
+  return (
+    <span className="font-semibold tabular-nums text-brand">
+      {formatDurationMs(elapsed)}
+    </span>
+  );
+}
+
+function AssistedRouteActivityMeta({
+  activeTask,
+}: {
+  activeTask: OperatorMovimentTaskItem;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-2 border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 text-xs sm:grid-cols-3 sm:px-8">
+      <span className="flex items-center gap-1.5 text-zinc-600">
+        <ClipboardList className="size-3.5 shrink-0 text-zinc-400" aria-hidden />
+        <span>
+          Solicitado:{' '}
+          <span className="font-medium text-zinc-900">
+            {formatTaskDate(activeTask.request.createdAt)}
+          </span>
+        </span>
+      </span>
+      <span className="flex items-center gap-1.5 text-zinc-600">
+        <CheckCircle2 className="size-3.5 shrink-0 text-zinc-400" aria-hidden />
+        <span>
+          Aceito:{' '}
+          <span className="font-medium text-zinc-900">
+            {formatTaskDate(activeTask.statusSince)}
+          </span>
+        </span>
+      </span>
+      <span className="flex items-center gap-1.5 text-zinc-600">
+        <Timer className="size-3.5 shrink-0 text-brand" aria-hidden />
+        <span>
+          Em execução: <LiveActivityTimer startIso={activeTask.statusSince} />
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function AssistedRouteCard({
   group,
   allTasks,
@@ -258,6 +317,11 @@ function AssistedRouteCard({
   );
   const isPickupActivity = pickupOpen && !deliverOpen;
   const isCritical = isCriticalPriority(group.priority);
+  const activeTask = deliverOpen
+    ? group.deliverTask
+    : pickupOpen
+      ? group.pickupTask
+      : null;
 
   return (
     <DeliverFlowCard>
@@ -275,6 +339,7 @@ function AssistedRouteCard({
         ) : null}
         <DeliverThreeStepFlow steps={steps} cube={deliverCubeDisplay} />
       </div>
+      {activeTask ? <AssistedRouteActivityMeta activeTask={activeTask} /> : null}
       {isCritical ? (
         <div className="border-t border-zinc-100 bg-zinc-50/80 px-5 py-3 text-center text-xs font-medium text-amber-900">
           Tarefa crítica em andamento

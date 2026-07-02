@@ -80,6 +80,8 @@ export interface OperatorPickupTaskQueueItem {
   assignedMovimentPalletId?: string | null;
   requestedById: string;
   createdAt: string;
+  /** Quando a tarefa entrou no status atual (ex.: momento do aceite quando ASSIGNED). */
+  statusSince: string;
   updatedAt: string;
   completedAt: string | null;
   request: OperatorReplenishmentRequestItem;

@@ -1,8 +1,10 @@
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+
 import { DashboardFilters } from './DashboardFilters';
-import { DashboardGeralView } from './DashboardGeralView';
+import { DashboardMachinesSection } from './DashboardMachinesSection';
 import { useDashboardGeneralPage } from './useDashboardGeneralPage';
 
-export function DashboardGeralPage() {
+export function DashboardPorMaquinaPage() {
   const {
     data,
     isLoading,
@@ -27,11 +29,10 @@ export function DashboardGeralPage() {
     <div className="flex flex-col gap-6 pb-2">
       <div>
         <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl md:text-3xl">
-          Visão geral
+          Por máquina
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-600">
-          Tempo médio da criação até a conclusão, volume de retiradas e
-          entregas, e picos por horário do dia
+          Retiradas, entregas e tempo médio por máquina
           {formattedDate ? (
             <>
               {' '}
@@ -68,11 +69,15 @@ export function DashboardGeralPage() {
             sectorScopeLabel={sectorScopeLabel}
           />
 
-          <DashboardGeralView
-            data={data}
-            isLoading={isLoading}
-            isFetching={isFetching}
-          />
+          {isLoading ? (
+            <div className="flex h-64 w-full items-center justify-center">
+              <AccordionLoader />
+            </div>
+          ) : null}
+
+          {!isLoading && data ? (
+            <DashboardMachinesSection rows={data.machines} />
+          ) : null}
         </>
       )}
     </div>

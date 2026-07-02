@@ -1,5 +1,6 @@
 import { endOfDay, format, startOfDay, min, max } from "date-fns";
 import {
+  IsOperating,
   MachineTaskStatus,
   RoleUser,
   TypeMovimentPallet,
@@ -58,6 +59,10 @@ export interface OperationalDashboardOperatorRow {
   deliveries_total: number;
   pickups_open: number;
   deliveries_open: number;
+  /** Atividades atribuídas ao operador enquanto operava empilhadeira. */
+  forklift_total: number;
+  /** Atividades atribuídas ao operador enquanto operava transpaleteira. */
+  pallet_truck_total: number;
   avg_pickup_duration_ms: number | null;
   avg_delivery_duration_ms: number | null;
 }
@@ -378,9 +383,29 @@ function parseTypeMovimentPalletFilter(
 }
 
 type OperatorTaskRow = TaskDurationRow & {
+  typeMovimentPallet: TypeMovimentPallet;
   assignedOperatorId: string | null;
-  assignedOperator: { id: string; name: string } | null;
+  assignedOperator: {
+    id: string;
+    name: string;
+    isOperating: IsOperating | null;
+  } | null;
 };
+
+/**
+ * Determina o equipamento usado numa tarefa. O banco não guarda o equipamento
+ * por tarefa historicamente, então usamos o modo atual do operador
+ * (`isOperating`) e, quando ausente, inferimos pelo tipo da tarefa
+ * (FORKLIFT só pode ter sido feita por empilhadeira).
+ */
+function resolveTaskEquipment(task: OperatorTaskRow): IsOperating {
+  if (task.assignedOperator?.isOperating) {
+    return task.assignedOperator.isOperating;
+  }
+  return task.typeMovimentPallet === TypeMovimentPallet.FORKLIFT
+    ? IsOperating.FORKLIFT
+    : IsOperating.PALLET_TRUCK;
+}
 
 function buildOperatorRows(
   pickups: OperatorTaskRow[],
@@ -395,6 +420,8 @@ function buildOperatorRows(
       deliveries_total: number;
       pickups_open: number;
       deliveries_open: number;
+      forklift_total: number;
+      pallet_truck_total: number;
       pickupDurations: number[];
       deliveryDurations: number[];
     }
@@ -409,11 +436,24 @@ function buildOperatorRows(
       deliveries_total: 0,
       pickups_open: 0,
       deliveries_open: 0,
+      forklift_total: 0,
+      pallet_truck_total: 0,
       pickupDurations: [] as number[],
       deliveryDurations: [] as number[],
     };
     byOperator.set(operatorId, created);
     return created;
+  };
+
+  const addEquipmentCount = (
+    bucket: { forklift_total: number; pallet_truck_total: number },
+    task: OperatorTaskRow,
+  ) => {
+    if (resolveTaskEquipment(task) === IsOperating.FORKLIFT) {
+      bucket.forklift_total += 1;
+    } else {
+      bucket.pallet_truck_total += 1;
+    }
   };
 
   for (const task of pickups) {
@@ -426,6 +466,7 @@ function buildOperatorRows(
     if (isOpenTaskStatus(task.status)) {
       bucket.pickups_open += 1;
     }
+    addEquipmentCount(bucket, task);
     bucket.pickupDurations.push(taskCycleDurationMs(task, referenceNow));
   }
 
@@ -439,6 +480,7 @@ function buildOperatorRows(
     if (isOpenTaskStatus(task.status)) {
       bucket.deliveries_open += 1;
     }
+    addEquipmentCount(bucket, task);
     bucket.deliveryDurations.push(taskCycleDurationMs(task, referenceNow));
   }
 
@@ -450,6 +492,8 @@ function buildOperatorRows(
       deliveries_total: row.deliveries_total,
       pickups_open: row.pickups_open,
       deliveries_open: row.deliveries_open,
+      forklift_total: row.forklift_total,
+      pallet_truck_total: row.pallet_truck_total,
       avg_pickup_duration_ms: average(row.pickupDurations),
       avg_delivery_duration_ms: average(row.deliveryDurations),
     }))
@@ -484,7 +528,8 @@ export async function getOperationalDashboardByOperator(options?: {
 
   const operatorSelect = {
     assignedOperatorId: true,
-    assignedOperator: { select: { id: true, name: true } },
+    assignedOperator: { select: { id: true, name: true, isOperating: true } },
+    typeMovimentPallet: true,
     status: true,
     createdAt: true,
     completedAt: true,

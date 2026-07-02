@@ -1,9 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import {
-  ArrowDownLeft,
   ArrowDownToLine,
   ArrowUpFromLine,
-  ArrowUpRight,
   Clock3,
   PieChart as PieChartIcon,
   Timer,
@@ -22,7 +20,7 @@ import {
   YAxis,
 } from 'recharts';
 
-import { DataTableCard } from '@/components/ui/table';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import {
   Card,
   CardContent,
@@ -38,13 +36,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart';
-import AccordionLoader from '@/components/accordionLoader/accordion-loader';
-import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
-import type {
-  OperationalDashboardMachineRow,
-  OperationalDashboardSnapshot,
-} from '@/services/operational-dashboard-api';
-import { formatDurationMs } from '@/utils/formatDurationMs';
+import type { OperationalDashboardSnapshot } from '@/services/operational-dashboard-api';
 
 type DashboardGeralViewProps = {
   data: OperationalDashboardSnapshot | undefined;
@@ -133,97 +125,6 @@ function KpiCard({
         </div>
       </div>
     </Card>
-  );
-}
-
-function MachinesTableSection({
-  rows,
-}: {
-  rows: OperationalDashboardMachineRow[];
-}) {
-  return (
-    <section aria-labelledby="dashboard-machines-heading">
-      <div className="mb-3 min-w-0">
-        <h2
-          id="dashboard-machines-heading"
-          className="m-0 text-base font-semibold text-zinc-900"
-        >
-          Por máquina
-        </h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Retiradas, entregas e tempo médio da criação até a conclusão da
-          tarefa.
-        </p>
-      </div>
-      <DataTableCard className="min-w-0 border-0 shadow-sm">
-        <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-50/90">
-              <th className="px-3 py-3 font-semibold text-zinc-700">Máquina</th>
-              <th className="px-3 py-3 font-semibold text-zinc-700">
-                <div className="flex items-center gap-2">
-                  <ArrowDownLeft
-                    className="size-4 rounded-full bg-red-200"
-                    aria-hidden
-                  />
-                  Retiradas de paletes
-                </div>
-              </th>
-              <th className="px-3 py-3 font-semibold text-zinc-700">
-                <div className="flex items-center gap-2">
-                  <ArrowUpRight
-                    className="size-4 rounded-full bg-green-200"
-                    aria-hidden
-                  />
-                  Entregas de paletes
-                </div>
-              </th>
-              <th className="px-3 py-3 font-semibold text-zinc-700">
-                Média tempo retirada de paletes
-              </th>
-              <th className="px-3 py-3 font-semibold text-zinc-700">
-                Média tempo entrega de paletes
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
-                  <EmptyStateMessage
-                    title="Sem movimentações no período"
-                    description="Não há tarefas registradas para os filtros selecionados."
-                  />
-                </td>
-              </tr>
-            ) : (
-              rows.map((machine) => (
-                <tr
-                  key={machine.machine_id}
-                  className="border-b border-zinc-100 last:border-0"
-                >
-                  <td className="px-3 py-3 font-medium text-zinc-900">
-                    {machine.machine_name}
-                  </td>
-                  <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {machine.pickups_total}
-                  </td>
-                  <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {machine.deliveries_total}
-                  </td>
-                  <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {formatDurationMs(machine.avg_pickup_wait_ms)}
-                  </td>
-                  <td className="px-3 py-3 tabular-nums text-zinc-700">
-                    {formatDurationMs(machine.avg_delivery_wait_ms)}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </DataTableCard>
-    </section>
   );
 }
 
@@ -496,8 +397,6 @@ export function DashboardGeralView({
               </p>
             </aside>
           </div>
-
-          <MachinesTableSection rows={data.machines} />
         </div>
       ) : null}
     </>

@@ -9,10 +9,8 @@ import {
   movimentTypePublicIconPath,
 } from '@/utils/operator-moviment-display';
 import {
-  equipmentQueueInsight,
   incompleteAssignedTaskCount,
   isReadyToAcceptReplenishmentQueue,
-  queueInsightMessage,
   type EquipmentColumnStats,
 } from './replenishment-equipment-status';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
@@ -56,21 +54,22 @@ function EquipmentBlock({
   const readyForQueue = isReadyToAcceptReplenishmentQueue(item);
   const operatorLabel = operatorRoleShort(item.operator?.role, item.type);
 
-  const ringClass = readyForQueue
-    ? 'border-sky-300/90 bg-gradient-to-br from-sky-50/90 to-white'
+  const statusLabel = readyForQueue
+    ? 'Livre'
     : unbound
-      ? 'border-emerald-200/90 bg-gradient-to-br from-emerald-50/80 to-white'
+      ? 'Sem operador'
       : activeTasks > 0
-        ? 'border-amber-200/80 bg-gradient-to-br from-amber-50/50 to-white'
-        : 'border-zinc-200 bg-white';
+        ? 'Com tarefa'
+        : 'Em operação';
+
+  const statusClass = readyForQueue
+    ? 'bg-green-100 text-green-700'
+    : activeTasks > 0
+      ? 'bg-amber-100 text-amber-700'
+      : 'bg-zinc-100 text-zinc-600';
 
   return (
-    <li
-      className={cn(
-        'rounded-xl border-2 p-3 shadow-sm transition-colors',
-        ringClass,
-      )}
-    >
+    <li className="rounded-xl border border-zinc-200 bg-white p-3">
       <div
         className={cn(
           'gap-2.5',
@@ -79,16 +78,7 @@ function EquipmentBlock({
             : 'flex items-start',
         )}
       >
-        <div
-          className={cn(
-            'flex shrink-0 items-center justify-center rounded-lg border px-1.5 py-1 bg-white',
-            readyForQueue
-              ? 'border-sky-200/80'
-              : unbound
-                ? 'border-emerald-200/80'
-                : 'border-amber-200/70',
-          )}
-        >
+        <div className="flex shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white px-1.5 py-1">
           <img
             src={movimentTypePublicIconPath(item.type)}
             alt=""
@@ -98,26 +88,23 @@ function EquipmentBlock({
           />
         </div>
         <div className={cn('min-w-0', compact ? 'w-full' : 'flex-1')}>
-          <p className="m-0 text-sm font-bold tracking-tight text-zinc-900">
+          <p className="m-0 text-sm font-semibold tracking-tight text-zinc-900">
             {item.code}
           </p>
-          {readyForQueue ? (
-            <span className="mt-1 inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-sky-900">
-              Livre para transporte
-            </span>
-          ) : unbound ? (
-            <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-emerald-800">
-              Sem operador
-            </span>
-          ) : (
-            <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-amber-900">
-              {activeTasks > 0 ? 'Com tarefa ativa' : 'Em operação'}
-            </span>
-          )}
+          <span
+            className={cn(
+              'mt-1 inline-flex rounded-full px-2 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide',
+              statusClass,
+            )}
+          >
+            {statusLabel}
+          </span>
           {!unbound && item.operator ? (
-            <p className="mt-1.5 m-0 text-xs leading-snug text-zinc-700">
+            <p className="mt-1.5 m-0 text-xs leading-snug text-zinc-600">
               {operatorLabel ? (
-                <span className="font-medium text-zinc-900">{operatorLabel}</span>
+                <span className="font-medium text-zinc-800">
+                  {operatorLabel}
+                </span>
               ) : null}
               {item.operator.card ? (
                 <span className="text-zinc-500">
@@ -127,59 +114,13 @@ function EquipmentBlock({
               ) : null}
             </p>
           ) : unbound ? (
-            <p className="mt-1.5 m-0 text-xs text-zinc-600">
-              {activeTasks === 0
-                ? 'Sem tarefa — aguardando operador vincular'
-                : 'Aguardando operador para retomar'}
-            </p>
-          ) : null}
-          {readyForQueue ? (
-            <p className="mt-1 m-0 text-[0.6875rem] font-medium text-sky-800">
-              Pode acatar pedido de reposição na fila
-            </p>
-          ) : activeTasks > 0 ? (
-            <p className="mt-1 m-0 text-[0.6875rem] text-zinc-500">
-              {activeTasks === 1
-                ? '1 tarefa em andamento'
-                : `${activeTasks} tarefas em andamento`}
-            </p>
-          ) : !unbound ? (
-            <p className="mt-1 m-0 text-[0.6875rem] text-zinc-500">
-              Sem tarefa ativa no momento
+            <p className="mt-1.5 m-0 text-xs text-zinc-500">
+              Aguardando operador
             </p>
           ) : null}
         </div>
       </div>
     </li>
-  );
-}
-
-function QueueInsightBanner({
-  stats,
-  type,
-}: {
-  stats: EquipmentColumnStats;
-  type: MovimentPalletEquipmentType;
-}) {
-  const typeLabel = movimentTypeLabel(type);
-  const message = queueInsightMessage(stats, typeLabel);
-  if (!message) return null;
-
-  const insight = equipmentQueueInsight(stats);
-  return (
-    <p
-      className={cn(
-        'mb-3 rounded-xl border px-3 py-2.5 text-[0.6875rem] leading-snug',
-        insight === 'ready' && 'border-sky-200 bg-sky-50/90 text-sky-950',
-        insight === 'waiting' &&
-          'border-amber-200 bg-amber-50/90 text-amber-950',
-        insight === 'idle_unbound' &&
-          'border-zinc-200 bg-zinc-50 text-zinc-700',
-        insight === 'neutral' && 'border-zinc-200 bg-zinc-50/80 text-zinc-600',
-      )}
-    >
-      {message}
-    </p>
   );
 }
 
@@ -199,7 +140,7 @@ function EquipmentColumn({
   return (
     <div className="flex min-w-0 flex-col">
       <div className="mb-3 flex flex-col items-center gap-2 text-center">
-        <div className="flex size-14 items-center justify-center rounded-2xl border-2 border-zinc-200 bg-zinc-50 shadow-sm">
+        <div className="flex size-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50">
           <img
             src={movimentTypePublicIconPath(type)}
             alt=""
@@ -212,30 +153,12 @@ function EquipmentColumn({
           <h3 className="m-0 text-xs font-bold uppercase tracking-wide text-zinc-800">
             {title}
           </h3>
-          <p className="mt-1 m-0 text-[0.6875rem] leading-snug text-zinc-600">
-            <span className="font-semibold text-sky-700">
-              {stats.readyForQueue}{' '}
-              {stats.readyForQueue === 1 ? 'livre p/ fila' : 'livres p/ fila'}
-            </span>
-            <span className="text-zinc-400"> · </span>
-            <span className="font-semibold text-emerald-700">
-              {stats.withoutActiveTasks}{' '}
-              {stats.withoutActiveTasks === 1 ? 'sem tarefa' : 'sem tarefas'}
-            </span>
+          <p className="mt-1 m-0 text-[0.6875rem] text-zinc-500">
+            {stats.total} no setor · {stats.readyForQueue} livre
+            {stats.readyForQueue === 1 ? '' : 's'}
           </p>
-          <p className="mt-0.5 m-0 text-[0.625rem] text-zinc-500">
-            {stats.total} em operação no setor
-          </p>
-          {stats.queuePending > 0 ? (
-            <p className="mt-0.5 m-0 text-[0.625rem] font-medium text-brand">
-              {stats.queuePending} pedido{stats.queuePending === 1 ? '' : 's'}{' '}
-              na fila
-            </p>
-          ) : null}
         </div>
       </div>
-
-      <QueueInsightBanner stats={stats} type={type} />
 
       {items.length === 0 ? (
         <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 px-3 py-4 text-center text-xs text-zinc-500">
@@ -280,10 +203,6 @@ export function ReplenishmentEquipmentPanel({
           <h2 className="m-0 text-sm font-semibold text-zinc-900">
             Meios de locomoção
           </h2>
-          <p className="mt-1 m-0 text-xs text-zinc-600">
-            Veja quais equipamentos estão sem tarefa ativa e podem atender a
-            fila de reposição.
-          </p>
         </header>
       ) : null}
 

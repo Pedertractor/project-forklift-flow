@@ -15,7 +15,7 @@ import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 const MODES: IsOperatingMode[] = ['FORKLIFT', 'PALLET_TRUCK'];
 
 const modeCardBaseClass =
-  'group flex w-full flex-col items-center gap-3 rounded-2xl border-2 bg-white p-5 text-center outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60';
+  'group flex w-full flex-col items-center gap-3 rounded-2xl border-2 bg-white p-5 text-center outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-60 phone-landscape:gap-1.5 phone-landscape:rounded-xl phone-landscape:p-3';
 
 export function OperatorMovimentEquipmentPageView(
   vm: OperatorMovimentEquipmentPageViewModel,
@@ -46,13 +46,15 @@ export function OperatorMovimentEquipmentPageView(
     : 'Selecione se está operando empilhadeira ou transpaleteira para acessar as tarefas do setor.';
 
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
+    <main className="px-4 py-8 max-[800px]:px-3 phone-landscape:py-3">
       <div className="mx-auto w-full max-w-3xl">
-        <header className="mb-6 border-b border-zinc-200 pb-6">
-          <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
+        <header className="mb-6 border-b border-zinc-200 pb-6 phone-landscape:mb-3 phone-landscape:pb-3">
+          <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900 phone-landscape:text-lg">
             {pickingTitle}
           </h1>
-          <p className="mt-1.5 text-sm text-zinc-600">{pickingDescription}</p>
+          <p className="mt-1.5 text-sm text-zinc-600 phone-landscape:mt-0.5 phone-landscape:text-xs">
+            {pickingDescription}
+          </p>
         </header>
 
         {!ENV.API_URL ? (
@@ -73,26 +75,26 @@ export function OperatorMovimentEquipmentPageView(
         ) : null}
 
         {changeOperatingMode && bound && currentOperatingMode ? (
-          <Card className="mb-6 p-5 shadow-sm">
+          <Card className="mb-6 p-5 shadow-sm phone-landscape:mb-3 phone-landscape:p-3">
             <p className="m-0 text-xs font-semibold uppercase tracking-wider text-brand">
               Modo ativo
             </p>
-            <div className="mt-3 flex items-center gap-4">
+            <div className="mt-3 flex items-center gap-4 phone-landscape:mt-2 phone-landscape:gap-3">
               <img
                 src={movimentTypePublicIconPath(currentOperatingMode)}
                 alt=""
-                className="h-12 w-auto object-contain"
+                className="h-12 w-auto object-contain phone-landscape:h-9"
                 width={144}
                 height={64}
               />
-              <p className="m-0 text-lg font-bold text-zinc-900">
+              <p className="m-0 text-lg font-bold text-zinc-900 phone-landscape:text-base">
                 {movimentTypeLabel(currentOperatingMode)}
               </p>
             </div>
             <Button
               type="button"
               variant="outline"
-              className="mt-5 w-full border-red-200 text-red-700 hover:bg-red-50 sm:w-auto"
+              className="mt-5 w-full border-red-200 text-red-700 hover:bg-red-50 sm:w-auto phone-landscape:mt-3"
               disabled={busy}
               onClick={() => unbindMut.mutate()}
             >
@@ -102,14 +104,14 @@ export function OperatorMovimentEquipmentPageView(
           </Card>
         ) : null}
 
-        <Card className="border border-zinc-200 p-5 shadow-sm">
+        <Card className="border border-zinc-200 p-5 shadow-sm phone-landscape:p-3">
           {operatingQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-8 phone-landscape:py-4">
               <AccordionLoader />
             </div>
           ) : (
             <ul
-              className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2"
+              className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 phone-landscape:grid-cols-2 phone-landscape:gap-3"
               role="listbox"
               aria-label="Modo de operação"
             >
@@ -133,11 +135,11 @@ export function OperatorMovimentEquipmentPageView(
                       <img
                         src={movimentTypePublicIconPath(mode)}
                         alt=""
-                        className="h-14 w-auto object-contain"
+                        className="h-14 w-auto object-contain phone-landscape:h-10"
                         width={160}
                         height={72}
                       />
-                      <span className="text-base font-bold text-zinc-900">
+                      <span className="text-base font-bold text-zinc-900 phone-landscape:text-sm">
                         {movimentTypeLabel(mode)}
                       </span>
                       {bindPending ? (

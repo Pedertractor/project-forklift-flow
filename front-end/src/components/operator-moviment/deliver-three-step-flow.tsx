@@ -164,7 +164,7 @@ const deliverFlowButtonIntentClass: Record<DeliverFlowButtonIntent, string> = {
   accept:
     'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-600/30',
   complete:
-    'bg-brand text-white shadow-sm hover:bg-brand/80 focus-visible:ring-brand/25',
+    'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-600/30',
 };
 
 export function DeliverFlowAcceptButton({
@@ -177,7 +177,7 @@ export function DeliverFlowAcceptButton({
   children: ReactNode;
   disabled?: boolean;
   onClick: () => void;
-  /** `accept` = aceitar sugestão (verde); `complete` = concluir tarefa (azul marca). */
+  /** `accept` = aceitar sugestão (verde); `complete` = concluir tarefa (verde). */
   intent?: DeliverFlowButtonIntent;
   className?: string;
 }) {

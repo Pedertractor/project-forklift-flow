@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { DataTableCard } from '@/components/ui/table';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
@@ -9,7 +9,148 @@ import { formatDurationMs } from '@/utils/formatDurationMs';
 import { DashboardFilters } from './DashboardFilters';
 import { OperatorCurrentTrajectoryDialog } from './OperatorCurrentTrajectoryDialog';
 import { useDashboardByOperatorPage } from './useDashboardByOperatorPage';
-import { ArrowDownLeft, ArrowUpRight, Route } from 'lucide-react';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Clock3,
+  Forklift,
+  Route,
+  Timer,
+  UserRound,
+} from 'lucide-react';
+
+function MobileStatGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <p className="m-0 mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-zinc-400">
+        {title}
+      </p>
+      <div className="grid grid-cols-2 gap-2">{children}</div>
+    </div>
+  );
+}
+
+function MobileStat({
+  icon,
+  iconClassName,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  iconClassName: string;
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-zinc-100 bg-zinc-50/70 px-3 py-2.5">
+      <span
+        className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${iconClassName}`}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="m-0 text-[0.7rem] font-medium leading-tight text-zinc-500">
+          {label}
+        </p>
+        <p className="m-0 text-sm font-semibold leading-tight tabular-nums text-zinc-900">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function OperatorMobileCard({
+  operator,
+  onViewTrajectory,
+}: {
+  operator: OperationalDashboardOperatorRow;
+  onViewTrajectory: (operator: OperationalDashboardOperatorRow) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-2.5 pb-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <UserRound className="size-5" aria-hidden />
+        </span>
+        <h3 className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-zinc-900">
+          {operator.operator_name}
+        </h3>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <MobileStatGroup title="Movimentações">
+          <MobileStat
+            icon={<ArrowDownLeft className="size-4" aria-hidden />}
+            iconClassName="bg-red-100 text-red-600"
+            label="Retiradas"
+            value={operator.pickups_total}
+          />
+          <MobileStat
+            icon={<ArrowUpRight className="size-4" aria-hidden />}
+            iconClassName="bg-green-100 text-green-600"
+            label="Entregas"
+            value={operator.deliveries_total}
+          />
+        </MobileStatGroup>
+
+        <MobileStatGroup title="Por equipamento">
+          <MobileStat
+            icon={<Forklift className="size-4" aria-hidden />}
+            iconClassName="bg-blue-100 text-blue-600"
+            label="Empilhadeira"
+            value={operator.forklift_total}
+          />
+          <MobileStat
+            icon={
+              <img
+                src="/PALLET_TRUCK.png"
+                alt=""
+                aria-hidden
+                className="size-4 object-contain"
+              />
+            }
+            iconClassName="bg-amber-100 text-amber-600"
+            label="Transpaleteira"
+            value={operator.pallet_truck_total}
+          />
+        </MobileStatGroup>
+
+        <MobileStatGroup title="Tempo médio">
+          <MobileStat
+            icon={<Clock3 className="size-4" aria-hidden />}
+            iconClassName="bg-zinc-200 text-zinc-600"
+            label="Retirada"
+            value={formatDurationMs(operator.avg_pickup_duration_ms)}
+          />
+          <MobileStat
+            icon={<Timer className="size-4" aria-hidden />}
+            iconClassName="bg-zinc-200 text-zinc-600"
+            label="Entrega"
+            value={formatDurationMs(operator.avg_delivery_duration_ms)}
+          />
+        </MobileStatGroup>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="mt-4 w-full justify-center gap-2"
+        onClick={() => onViewTrajectory(operator)}
+      >
+        <Route className="size-3.5" aria-hidden />
+        Visualizar trajeto atual
+      </Button>
+    </div>
+  );
+}
 
 function OperatorsTableSection({
   rows,
@@ -29,7 +170,29 @@ function OperatorsTableSection({
           Por operador de transporte
         </h2>
       </div>
-      <DataTableCard className="min-w-0 border-0 shadow-sm">
+
+      {/* Mobile: blocos em coluna (a tabela é ruim em telas pequenas). */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {rows.length === 0 ? (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <EmptyStateMessage
+              title="Sem movimentações no período"
+              description="Não há tarefas atribuídas a operadores para os filtros selecionados."
+            />
+          </div>
+        ) : (
+          rows.map((operator) => (
+            <OperatorMobileCard
+              key={operator.operator_id}
+              operator={operator}
+              onViewTrajectory={setTrajectoryOperator}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Tablet e desktop: tabela. */}
+      <DataTableCard className="hidden min-w-0 border-0 shadow-sm md:block">
         <table className="w-full min-w-[48rem] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50/90">
@@ -55,6 +218,23 @@ function OperatorsTableSection({
                 </div>
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
+                <div className="flex items-center gap-2">
+                  <Forklift className="size-4 text-blue-600" aria-hidden />
+                  Empilhadeira
+                </div>
+              </th>
+              <th className="px-3 py-3 font-semibold text-zinc-700">
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/PALLET_TRUCK.png"
+                    alt=""
+                    aria-hidden
+                    className="size-4 object-contain"
+                  />
+                  Transpaleteira
+                </div>
+              </th>
+              <th className="px-3 py-3 font-semibold text-zinc-700">
                 Média tempo retirada
               </th>
               <th className="px-3 py-3 font-semibold text-zinc-700">
@@ -68,7 +248,7 @@ function OperatorsTableSection({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
                   <EmptyStateMessage
                     title="Sem movimentações no período"
                     description="Não há tarefas atribuídas a empilhadeiristas para os filtros selecionados."
@@ -89,6 +269,12 @@ function OperatorsTableSection({
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
                     {operator.deliveries_total}
+                  </td>
+                  <td className="px-3 py-3 tabular-nums text-zinc-700">
+                    {operator.forklift_total}
+                  </td>
+                  <td className="px-3 py-3 tabular-nums text-zinc-700">
+                    {operator.pallet_truck_total}
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
                     {formatDurationMs(operator.avg_pickup_duration_ms)}

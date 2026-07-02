@@ -63,6 +63,10 @@ export interface OperationalDashboardOperatorRow {
   deliveries_total: number;
   pickups_open: number;
   deliveries_open: number;
+  /** Atividades feitas com empilhadeira (tarefas exclusivas de empilhadeira). */
+  forklift_total: number;
+  /** Atividades feitas com transpaleteira (tarefas de qualquer equipamento). */
+  pallet_truck_total: number;
   avg_pickup_duration_ms: number | null;
   avg_delivery_duration_ms: number | null;
 }
