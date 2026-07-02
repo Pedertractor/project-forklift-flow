@@ -36,7 +36,7 @@ import {
   type MainTripQueueItem,
 } from '@/utils/operator-moviment-trip-queue';
 
-import { ArrowDownLeft, ArrowUpRight, Check } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Check, Loader2 } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function resolveMovementCubeDisplay(
@@ -182,7 +182,13 @@ function buildStandalonePickupSteps(
 
 function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
   return accepting ? (
-    'Aceitando…'
+    <>
+      <Loader2
+        className="size-5 shrink-0 animate-spin phone-landscape:size-4"
+        aria-hidden
+      />
+      Aceitando…
+    </>
   ) : (
     <>
       <Check className="size-5 shrink-0 phone-landscape:size-4" aria-hidden />

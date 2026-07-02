@@ -38,11 +38,11 @@ export function OperatorMovimentQueuePageView(
       {currentPallet && token ? (
         <button
           type="button"
-          className="fixed right-2 top-2 z-[45] hidden size-8 items-center justify-center rounded-lg border border-zinc-200/90 bg-white/95 text-brand shadow-sm transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 phone-landscape:inline-flex"
+          className="fixed bottom-15 left-2 z-[45] hidden size-11 items-center justify-center rounded-full border border-zinc-200/80 bg-white/95 text-brand shadow-lg backdrop-blur-sm transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 phone-landscape:inline-flex"
           onClick={goToEquipment}
           aria-label="Trocar equipamento"
         >
-          <Repeat className="size-3.5 shrink-0" aria-hidden />
+          <Repeat className="size-5 shrink-0" aria-hidden />
         </button>
       ) : null}
 
