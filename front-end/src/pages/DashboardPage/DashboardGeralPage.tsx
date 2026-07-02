@@ -7,7 +7,6 @@ export function DashboardGeralPage() {
     data,
     isLoading,
     isFetching,
-    isLive,
     dates,
     setDates,
     selectedMachineId,
