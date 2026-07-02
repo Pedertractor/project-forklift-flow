@@ -51,6 +51,12 @@ const MACHINE_OPERATOR_EVENT_TYPES = new Set([
 
 const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated'])
 
+/** Eventos de mudança de status de tarefa acompanhados no painel de supervisão. */
+const SUPERVISION_TASK_EVENT_TYPES = new Set([
+  'delivery_task_updated',
+  'pickup_task_updated',
+])
+
 const MOVIMENT_OPERATOR_ROLES = new Set<RoleUser>([
   RoleUser.PALLET_TRANSPORTER,
   RoleUser.ADMIN,
@@ -75,6 +81,13 @@ const SUPPLY_REPLENISHMENT_ROLES = new Set<RoleUser>([
   RoleUser.LEADER,
   RoleUser.ADMIN,
   RoleUser.SUPERADMIN,
+])
+
+/** Papéis que acompanham o trajeto/atividades no painel operacional. */
+const SUPERVISION_ROLES = new Set<RoleUser>([
+  RoleUser.ADMIN,
+  RoleUser.SUPERADMIN,
+  RoleUser.LEADER,
 ])
 
 function safeSend(socket: WebSocket, payload: Record<string, unknown>): void {
@@ -160,12 +173,29 @@ function matchesSupplyReplenishment(client: WsClient, payload: WsPayload): boole
   return sectorMatches(client, payload)
 }
 
+/**
+ * Painel de supervisão (ADMIN/LEADER): recebe mudanças de status de entrega e
+ * retirada do setor para atualizar o trajeto ao vivo (ex.: encerrar cronômetro
+ * quando a atividade é concluída). Ignora `allowedTypes` (líder não opera).
+ */
+function matchesSupervision(client: WsClient, payload: WsPayload): boolean {
+  if (
+    !payload.type ||
+    !SUPERVISION_TASK_EVENT_TYPES.has(payload.type) ||
+    !SUPERVISION_ROLES.has(client.role)
+  ) {
+    return false
+  }
+  return sectorMatches(client, payload)
+}
+
 function shouldSendToClient(client: WsClient, payload: WsPayload): boolean {
   return (
     matchesMachineCadastro(client, payload) ||
     matchesSupplyReplenishment(client, payload) ||
     matchesMachineOperator(client, payload) ||
-    matchesMovimentOperator(client, payload)
+    matchesMovimentOperator(client, payload) ||
+    matchesSupervision(client, payload)
   )
 }
 
