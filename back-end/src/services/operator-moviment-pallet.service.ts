@@ -720,11 +720,13 @@ export async function acceptTripRouteSuggestion(
     });
     if (claimed.count !== 1) throw new TripRouteSuggestionNotOpenError();
 
+    const acceptedAt = new Date();
     await tx.deliveryTask.updateMany({
       where: { id: full.deliverTaskId, status: MachineTaskStatus.CREATED },
       data: {
         status: MachineTaskStatus.ASSIGNED,
         assignedOperatorId: operatorUserId,
+        assignedAt: acceptedAt,
       },
     });
     await tx.pickupTask.updateMany({
@@ -732,6 +734,7 @@ export async function acceptTripRouteSuggestion(
       data: {
         status: MachineTaskStatus.ASSIGNED,
         assignedOperatorId: operatorUserId,
+        assignedAt: acceptedAt,
       },
     });
   });
@@ -791,6 +794,7 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
   const updated = await deliveryTaskRepository.update(taskId, {
     status: MachineTaskStatus.ASSIGNED,
     assignedOperator: { connect: { id: operatorUserId } },
+    assignedAt: new Date(),
   });
 
   if (updated.machine) {
@@ -832,6 +836,7 @@ export async function acceptOpenPickupTaskForMovimentOperator(
   const updated = await pickupTaskRepository.update(taskId, {
     status: MachineTaskStatus.ASSIGNED,
     assignedOperator: { connect: { id: operatorUserId } },
+    assignedAt: new Date(),
   });
 
   if (updated.machine) {
@@ -904,10 +909,12 @@ export async function completePickupTaskToExpedition(
     throw new MovimentPalletPickupTaskCompletionError();
   }
 
+  const completedAt = new Date();
   const updated = await pickupTaskRepository.update(taskId, {
     status: MachineTaskStatus.COMPLETED,
-    completedAt: new Date(),
+    completedAt,
     assignedOperator: { connect: { id: operatorUserId } },
+    ...(task.assignedAt ? {} : { assignedAt: completedAt }),
   });
 
   const acceptedSuggestion =

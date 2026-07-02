@@ -157,6 +157,24 @@ function taskCycleDurationMs(
   return Math.max(0, referenceNow.getTime() - start);
 }
 
+/**
+ * Duração da tarefa sob a ótica do operador: do momento em que ele aceitou a
+ * atividade (`assignedAt`) até a conclusão; em aberto, até o instante da
+ * consulta. Tarefas anteriores ao registro de `assignedAt` usam a criação como
+ * início (mesmo comportamento do painel por máquina).
+ */
+function operatorTaskDurationMs(
+  task: TaskDurationRow & { assignedAt: Date | null },
+  referenceNow: Date,
+): number {
+  const start = (task.assignedAt ?? task.createdAt).getTime();
+  if (task.status === MachineTaskStatus.COMPLETED) {
+    const end = task.completedAt?.getTime() ?? referenceNow.getTime();
+    return Math.max(0, end - start);
+  }
+  return Math.max(0, referenceNow.getTime() - start);
+}
+
 const PEAK_SLOT_MINUTES = 30;
 const PEAK_SLOTS_PER_DAY = (24 * 60) / PEAK_SLOT_MINUTES;
 
@@ -383,6 +401,7 @@ function parseTypeMovimentPalletFilter(
 }
 
 type OperatorTaskRow = TaskDurationRow & {
+  assignedAt: Date | null;
   typeMovimentPallet: TypeMovimentPallet;
   assignedOperatorId: string | null;
   assignedOperator: {
@@ -467,7 +486,7 @@ function buildOperatorRows(
       bucket.pickups_open += 1;
     }
     addEquipmentCount(bucket, task);
-    bucket.pickupDurations.push(taskCycleDurationMs(task, referenceNow));
+    bucket.pickupDurations.push(operatorTaskDurationMs(task, referenceNow));
   }
 
   for (const task of deliveries) {
@@ -481,7 +500,7 @@ function buildOperatorRows(
       bucket.deliveries_open += 1;
     }
     addEquipmentCount(bucket, task);
-    bucket.deliveryDurations.push(taskCycleDurationMs(task, referenceNow));
+    bucket.deliveryDurations.push(operatorTaskDurationMs(task, referenceNow));
   }
 
   return [...byOperator.entries()]
@@ -532,6 +551,7 @@ export async function getOperationalDashboardByOperator(options?: {
     typeMovimentPallet: true,
     status: true,
     createdAt: true,
+    assignedAt: true,
     completedAt: true,
   } as const;
 
