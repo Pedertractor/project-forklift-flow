@@ -50,13 +50,13 @@ function itemVisibleForRole(
 export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
   {
     id: 'dobra',
-    title: 'Operação — máquina de dobra',
+    title: 'Operação — máquina de produção',
     rolesDescription:
       'Papel «operador de máquina» (OPERATOR_MACHINE) e administrador (ADMIN) para testes.',
     items: [
       {
         to: '/dobra/operacao',
-        label: 'Operação na dobra',
+        label: 'Operação na máquina',
         allowedRoles: OPERATOR_MACHINE_ROLES,
       },
     ],
