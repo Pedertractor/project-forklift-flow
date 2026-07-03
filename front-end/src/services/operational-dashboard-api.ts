@@ -41,6 +41,8 @@ export interface OperationalDashboardSnapshot {
   machine_id: string | null;
   pickup_wait: OperationalDashboardWaitMetrics;
   delivery_wait: OperationalDashboardWaitMetrics;
+  operator_pickup_wait: OperationalDashboardWaitMetrics;
+  operator_delivery_wait: OperationalDashboardWaitMetrics;
   counts: OperationalDashboardCounts;
   peak_slots: OperationalDashboardPeakSlot[];
   machines: OperationalDashboardMachineRow[];

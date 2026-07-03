@@ -47,6 +47,10 @@ export interface OperationalDashboardSnapshot {
   machine_id: string | null;
   pickup_wait: OperationalDashboardWaitMetrics;
   delivery_wait: OperationalDashboardWaitMetrics;
+  /** Tempo médio do operador (aceite -> conclusão) nas retiradas atribuídas. */
+  operator_pickup_wait: OperationalDashboardWaitMetrics;
+  /** Tempo médio do operador (aceite -> conclusão) nas entregas atribuídas. */
+  operator_delivery_wait: OperationalDashboardWaitMetrics;
   counts: OperationalDashboardCounts;
   peak_slots: OperationalDashboardPeakSlot[];
   machines: OperationalDashboardMachineRow[];
@@ -86,12 +90,16 @@ type TaskDurationRow = {
 type PickupRow = TaskDurationRow & {
   id: string;
   machineId: string;
+  assignedAt: Date | null;
+  assignedOperatorId: string | null;
   machine: { id: string; name: string };
 };
 
 type DeliveryRow = TaskDurationRow & {
   id: string;
   machineId: string;
+  assignedAt: Date | null;
+  assignedOperatorId: string | null;
   preparedAt: Date | null;
   machine: { id: string; name: string };
 };
@@ -292,12 +300,22 @@ function buildSnapshot(
     taskCycleDurationMs(task, referenceNow),
   );
 
+  const operatorPickupWaits = pickups
+    .filter((task) => task.assignedOperatorId)
+    .map((task) => operatorTaskDurationMs(task, referenceNow));
+
+  const operatorDeliveryWaits = deliveries
+    .filter((task) => task.assignedOperatorId)
+    .map((task) => operatorTaskDurationMs(task, referenceNow));
+
   const pickupTotal = pickups.length;
   const deliveryTotal = deliveries.length;
 
   return {
     pickup_wait: buildWaitMetrics(pickupWaits),
     delivery_wait: buildWaitMetrics(deliveryWaits),
+    operator_pickup_wait: buildWaitMetrics(operatorPickupWaits),
+    operator_delivery_wait: buildWaitMetrics(operatorDeliveryWaits),
     counts: {
       pickups: pickupTotal,
       deliveries: deliveryTotal,
@@ -341,6 +359,8 @@ export async function getOperationalDashboardSnapshot(options?: {
         machineId: true,
         status: true,
         createdAt: true,
+        assignedAt: true,
+        assignedOperatorId: true,
         completedAt: true,
         machine: { select: { id: true, name: true } },
       },
@@ -359,6 +379,8 @@ export async function getOperationalDashboardSnapshot(options?: {
         machineId: true,
         status: true,
         createdAt: true,
+        assignedAt: true,
+        assignedOperatorId: true,
         completedAt: true,
         preparedAt: true,
         machine: { select: { id: true, name: true } },

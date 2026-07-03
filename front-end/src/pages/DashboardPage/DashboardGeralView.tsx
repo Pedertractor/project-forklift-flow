@@ -74,7 +74,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 const kpiCardClass =
-  'relative flex h-full min-h-[132px] min-w-0 flex-col overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-background to-muted/40 p-4 shadow-sm sm:min-h-[140px] sm:p-5';
+  'relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-background to-muted/40 p-3 shadow-sm sm:p-4';
 
 function KpiIcon({ icon: Icon }: { icon: LucideIcon }) {
   return (
@@ -175,34 +175,27 @@ export function DashboardGeralView({
               <div className="auto-rows-fr grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5">
                 <KpiCard
                   icon={Clock3}
-                  label="Tempo médio — retirada de paletes"
+                  label="Tempo médio — retirada de paletes (máquina)"
                   value={formatDuration(data.pickup_wait.avg_wait_ms)}
-                  subline={
-                    data.pickup_wait.sample_size > 0 ? (
-                      <span className="whitespace-nowrap">
-                        P95 {formatDuration(data.pickup_wait.p95_wait_ms)}{' '}
-                        {data.pickup_wait.sample_size} amostra(s)
-                      </span>
-                    ) : (
-                      'Sem amostras no período'
-                    )
-                  }
                 />
 
                 <KpiCard
                   icon={Timer}
-                  label="Tempo médio — entrega de paletes"
+                  label="Tempo médio — entrega de paletes (máquina)"
                   value={formatDuration(data.delivery_wait.avg_wait_ms)}
-                  subline={
-                    data.delivery_wait.sample_size > 0 ? (
-                      <span className="whitespace-nowrap">
-                        P95 {formatDuration(data.delivery_wait.p95_wait_ms)}{' '}
-                        {data.delivery_wait.sample_size} amostra(s)
-                      </span>
-                    ) : (
-                      'Sem amostras no período'
-                    )
-                  }
+                />
+                <KpiCard
+                  icon={Clock3}
+                  label="Tempo médio — retirada de paletes (operador de transporte)"
+                  value={formatDuration(data.operator_pickup_wait.avg_wait_ms)}
+                />
+
+                <KpiCard
+                  icon={Timer}
+                  label="Tempo médio — entrega de paletes (operador de transporte)"
+                  value={formatDuration(
+                    data.operator_delivery_wait.avg_wait_ms,
+                  )}
                 />
 
                 <KpiCard
@@ -217,19 +210,6 @@ export function DashboardGeralView({
                   label="Entregas"
                   value={data.counts.deliveries}
                   valueSuffix="no período"
-                  subline={
-                    <span className="inline-flex items-center whitespace-nowrap">
-                      <span>Atualizado em {formatDateTime(data.now)}</span>
-                      <span
-                        className={
-                          isFetching ? 'inline-block' : 'invisible inline-block'
-                        }
-                      >
-                        {' '}
-                        (atualizando...)
-                      </span>
-                    </span>
-                  }
                 />
               </div>
 
