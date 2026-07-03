@@ -1,6 +1,7 @@
 import type { RouteHandlerMethod } from 'fastify'
 import { TypeMovimentPallet } from '../generated/prisma/enums.js'
 import {
+  DeliveryTaskNotEditableError,
   DeliveryTaskNotFoundError,
   MachineNotFoundError,
   OperatorWithoutSectorError,
@@ -12,6 +13,7 @@ import {
   listPendingSupplyRequestsForUser,
   listSectorTransportOperators,
   markDeliveryTaskPrepared,
+  updateDeliveryTask,
 } from '../services/delivery-task.service.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
 
@@ -126,6 +128,56 @@ export const getPendingSupplyRequests: RouteHandlerMethod = async (
     return reply.send(result)
   } catch (error) {
     if (error instanceof OperatorWithoutSectorError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const patchDeliveryTask: RouteHandlerMethod = async (request, reply) => {
+  const { taskId } = request.params as { taskId?: string }
+  if (!taskId) {
+    return reply.status(400).send({ error: 'taskId invalido.' })
+  }
+
+  const body = (request.body ?? {}) as {
+    machineId?: string
+    movementCube?: string
+    typeMovimentPallet?: string
+    isCritical?: boolean
+  }
+
+  if (
+    body.typeMovimentPallet !== undefined &&
+    (typeof body.typeMovimentPallet !== 'string' ||
+      !isTypeMovimentPallet(body.typeMovimentPallet))
+  ) {
+    return reply.status(400).send({ error: 'typeMovimentPallet invalido.' })
+  }
+
+  try {
+    const task = await updateDeliveryTask(taskId, {
+      ...(body.machineId !== undefined ? { machineId: body.machineId } : {}),
+      ...(body.movementCube !== undefined
+        ? { movementCube: body.movementCube }
+        : {}),
+      ...(body.typeMovimentPallet !== undefined
+        ? { typeMovimentPallet: body.typeMovimentPallet }
+        : {}),
+      ...(body.isCritical !== undefined ? { isCritical: body.isCritical } : {}),
+    })
+    return reply.send({ task })
+  } catch (error) {
+    if (error instanceof DeliveryTaskNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof DeliveryTaskNotEditableError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof MachineNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof Error && error.message.includes('Informe')) {
       return reply.status(400).send({ error: error.message })
     }
     throw error

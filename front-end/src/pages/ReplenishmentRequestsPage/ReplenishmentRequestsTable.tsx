@@ -5,6 +5,7 @@ import {
 } from '@/utils/operator-moviment-display';
 import { requestStatusLabel } from '@/utils/replenishment-labels';
 import { cn } from '@/lib/utils';
+import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import type { ReplenishmentRequestListItem } from '@/types/replenishment-request.types';
 import type { RequestStatusValue } from '@/types/replenishment-request.types';
 import {
@@ -14,7 +15,6 @@ import {
   ChevronRight,
   Clock3,
   Factory,
-  Truck,
   User,
   type LucideIcon,
 } from 'lucide-react';
@@ -27,6 +27,12 @@ function movementTypeLabel(t: string): string {
     return replenishmentMovimentTypeLabel(t);
   }
   return t;
+}
+
+function replenishmentMovimentTypeIconPath(
+  type: ReplenishmentMovimentType | string,
+): string {
+  return type === 'ANY' ? '/PALLET_TRUCK.png' : '/FORKLIFT.png';
 }
 
 function requestStatusColorClass(status: RequestStatusValue): string {
@@ -63,21 +69,32 @@ function requestStatusPillClass(status: RequestStatusValue): string {
 
 function MobileStat({
   icon: Icon,
+  iconSrc,
   iconClass,
   label,
   children,
 }: {
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  iconSrc?: string;
   iconClass?: string;
   label: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex items-start gap-2 rounded-xl border border-zinc-100 bg-zinc-50/70 px-2.5 py-2">
-      <Icon
-        className={cn('mt-0.5 size-4 shrink-0 text-zinc-400', iconClass)}
-        aria-hidden
-      />
+      {iconSrc ? (
+        <img
+          src={iconSrc}
+          alt=""
+          aria-hidden
+          className="mt-0.5 size-4 shrink-0 object-contain"
+        />
+      ) : Icon ? (
+        <Icon
+          className={cn('mt-0.5 size-4 shrink-0 text-zinc-400', iconClass)}
+          aria-hidden
+        />
+      ) : null}
       <div className="min-w-0">
         <p className="m-0 text-[0.65rem] font-medium uppercase leading-tight tracking-wide text-zinc-500">
           {label}
@@ -139,7 +156,10 @@ function ReplenishmentRequestMobileCard({
         <MobileStat icon={Box} iconClass="text-blue-500" label="Prisma">
           <span className="font-mono">{row.movementCube}</span>
         </MobileStat>
-        <MobileStat icon={Truck} label="Tipo mov.">
+        <MobileStat
+          iconSrc={replenishmentMovimentTypeIconPath(row.typeMovimentPallet)}
+          label="Tipo mov."
+        >
           {movementTypeLabel(row.typeMovimentPallet)}
         </MobileStat>
         <MobileStat
@@ -311,7 +331,17 @@ export function ReplenishmentRequestsTable({
                   </td>
                 ) : null}
                 <td className="px-3 py-3 text-zinc-700">
-                  {movementTypeLabel(row.typeMovimentPallet)}
+                  <span className="flex items-center gap-2">
+                    <img
+                      src={replenishmentMovimentTypeIconPath(
+                        row.typeMovimentPallet,
+                      )}
+                      alt=""
+                      aria-hidden
+                      className="size-4 shrink-0 object-contain"
+                    />
+                    {movementTypeLabel(row.typeMovimentPallet)}
+                  </span>
                 </td>
                 <td className="px-3 py-3 text-zinc-700">
                   <p

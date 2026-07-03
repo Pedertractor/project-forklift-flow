@@ -20,6 +20,7 @@ import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.t
 import type {
   PriorityLevelValue,
   ReplenishmentRequestListItem,
+  RequestStatusValue,
 } from '@/types/replenishment-request.types';
 import { isOpenReplenishmentRequest } from '@/utils/replenishment-request-status';
 
@@ -31,8 +32,13 @@ function canDeleteRequest(_row: ReplenishmentRequestListItem): boolean {
   return false;
 }
 
-function canEditRequest(_row: ReplenishmentRequestListItem): boolean {
-  return false;
+function canEditRequest(row: ReplenishmentRequestListItem): boolean {
+  const EDITABLE_STATUSES = new Set<RequestStatusValue>([
+    'CREATED',
+    'AWAITING_PREPARATION',
+    'PALLET_READY',
+  ]);
+  return EDITABLE_STATUSES.has(row.status);
 }
 
 const QUEUE_STATUSES_FOR_TRANSPORT = new Set([
@@ -228,6 +234,9 @@ export function useReplenishmentRequestsPage() {
     setMovementCube(row.movementCube);
     setTypeMovimentPallet(row.typeMovimentPallet);
     setPriorityLevel(row.priorityLevel);
+    setIsCritical(
+      row.priorityLevel === 'VERY_HIGH' || row.priorityLevel === 'HIGH',
+    );
     setEditRow(row);
   };
 
@@ -281,7 +290,7 @@ export function useReplenishmentRequestsPage() {
         destinationId: destinationId.trim(),
         movementCube: cube,
         typeMovimentPallet: typeMovimentPallet,
-        priorityLevel,
+        priorityLevel: isCritical ? 'VERY_HIGH' : 'NORMAL',
       });
     },
     onSuccess: () => {
