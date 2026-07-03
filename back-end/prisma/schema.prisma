@@ -71,6 +71,9 @@ model DeliveryTask {
   assignedOperator   User?   @relation("DeliveryTaskAssignedOperator", fields: [assignedOperatorId], references: [id])
   assignedOperatorId String?
 
+  /// Equipamento efetivamente usado pelo operador ao aceitar a tarefa (registrado no aceite).
+  operatedWith IsOperating?
+
   operatorSupplyRequest OperatorMachineSupplyRequest? @relation("SupplyRequestDeliveryTask")
 
   tripSuggestionAsDeliver MovimentPalletTripSuggestion? @relation("TripSuggestionDeliverTask")
@@ -104,6 +107,9 @@ model PickupTask {
 
   assignedOperator   User?   @relation("PickupTaskAssignedOperator", fields: [assignedOperatorId], references: [id])
   assignedOperatorId String?
+
+  /// Equipamento efetivamente usado pelo operador ao aceitar a tarefa (registrado no aceite).
+  operatedWith IsOperating?
 
   tripSuggestionAsPickup MovimentPalletTripSuggestion? @relation("TripSuggestionPickupTask")
 

@@ -425,6 +425,7 @@ function parseTypeMovimentPalletFilter(
 type OperatorTaskRow = TaskDurationRow & {
   assignedAt: Date | null;
   typeMovimentPallet: TypeMovimentPallet;
+  operatedWith: IsOperating | null;
   assignedOperatorId: string | null;
   assignedOperator: {
     id: string;
@@ -434,12 +435,16 @@ type OperatorTaskRow = TaskDurationRow & {
 };
 
 /**
- * Determina o equipamento usado numa tarefa. O banco não guarda o equipamento
- * por tarefa historicamente, então usamos o modo atual do operador
- * (`isOperating`) e, quando ausente, inferimos pelo tipo da tarefa
- * (FORKLIFT só pode ter sido feita por empilhadeira).
+ * Determina o equipamento usado numa tarefa. Prioriza `operatedWith`, gravado
+ * no momento do aceite (fonte de verdade por tarefa). Para tarefas antigas sem
+ * esse registro, faz o fallback pelo modo atual do operador (`isOperating`) e,
+ * quando ausente, infere pelo tipo da tarefa (FORKLIFT só pode ter sido feita
+ * por empilhadeira).
  */
 function resolveTaskEquipment(task: OperatorTaskRow): IsOperating {
+  if (task.operatedWith) {
+    return task.operatedWith;
+  }
   if (task.assignedOperator?.isOperating) {
     return task.assignedOperator.isOperating;
   }
@@ -571,6 +576,7 @@ export async function getOperationalDashboardByOperator(options?: {
     assignedOperatorId: true,
     assignedOperator: { select: { id: true, name: true, isOperating: true } },
     typeMovimentPallet: true,
+    operatedWith: true,
     status: true,
     createdAt: true,
     assignedAt: true,
