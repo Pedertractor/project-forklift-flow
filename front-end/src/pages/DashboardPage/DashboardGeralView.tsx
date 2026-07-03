@@ -57,11 +57,6 @@ function formatDuration(ms: number | null | undefined) {
   return `${Math.round(minutes)} min`;
 }
 
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return '-';
-  return new Date(value).toLocaleString('pt-BR');
-}
-
 const chartConfig = {
   retiradas: {
     label: 'Retiradas',
@@ -131,7 +126,6 @@ function KpiCard({
 export function DashboardGeralView({
   data,
   isLoading,
-  isFetching,
 }: DashboardGeralViewProps) {
   const peakChartData = useMemo(
     () =>
