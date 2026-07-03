@@ -10,11 +10,89 @@ import type { ReplenishmentRequestsPageViewModel } from './useReplenishmentReque
 import { ReplenishmentEquipmentSidebar } from './ReplenishmentEquipmentSidebar';
 import { ReplenishmentRequestsTable } from './ReplenishmentRequestsTable';
 import { DashboardDateRangePicker } from '@/pages/DashboardPage/DashboardDateRangePicker';
-import { HistoryIcon, ListIcon, PanelRightOpen, PlusIcon } from 'lucide-react';
+import {
+  AlertTriangle,
+  HistoryIcon,
+  ListIcon,
+  PanelRightOpen,
+  PlusIcon,
+} from 'lucide-react';
 import { SelectCombobox } from '@/components/ui/select-combobox';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hasAdminPrivileges } from '@/types/role.types';
+import { cn } from '@/lib/utils';
+
+function OpenRequestsStatusFilters({
+  idPrefix,
+  className,
+  apiReady,
+  userRole,
+  statusFilter,
+  setStatusFilter,
+  onlyMySector,
+  setOnlyMySector,
+}: {
+  idPrefix: string;
+  className?: string;
+  apiReady: boolean;
+  userRole: string | undefined;
+  statusFilter: string;
+  setStatusFilter: (value: string) => void;
+  onlyMySector: boolean;
+  setOnlyMySector: (value: boolean) => void;
+}) {
+  return (
+    <div className={cn('flex w-full flex-col gap-4 sm:flex-row sm:items-end', className)}>
+      <div className="min-w-0 flex-1 space-y-2 sm:min-w-48 sm:flex-none">
+        <Label htmlFor={`${idPrefix}-status-filter`}>Status</Label>
+        <SelectCombobox
+          id={`${idPrefix}-status-filter`}
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          disabled={!apiReady}
+          placeholder="Todos"
+          options={[
+            { value: '', label: 'Todos' },
+            { value: 'PALLET_READY', label: 'Pallet no recebimento' },
+            { value: 'CREATED', label: 'Criado' },
+            { value: 'IN_PROGRESS', label: 'Em andamento' },
+            { value: 'ON_MACHINE', label: 'Na máquina' },
+            { value: 'COMPLETED', label: 'Concluído' },
+            { value: 'CANCELED', label: 'Cancelado' },
+          ]}
+        />
+      </div>
+      {hasAdminPrivileges(userRole) ? (
+        <label className="flex cursor-pointer items-center gap-2 pb-0 text-sm text-zinc-700 sm:pb-2">
+          <input
+            type="checkbox"
+            checked={onlyMySector}
+            onChange={(e) => setOnlyMySector(e.target.checked)}
+            className="size-4 rounded border-zinc-300"
+          />
+          Mostrar apenas pedidos do meu setor
+        </label>
+      ) : null}
+      <Button
+        type="button"
+        variant="outline"
+        className="h-10 w-full shrink-0 whitespace-nowrap sm:h-9 sm:w-auto"
+        disabled={
+          !apiReady ||
+          (statusFilter === '' &&
+            (!hasAdminPrivileges(userRole) || onlyMySector))
+        }
+        onClick={() => {
+          setStatusFilter('');
+          setOnlyMySector(true);
+        }}
+      >
+        Limpar filtros
+      </Button>
+    </div>
+  );
+}
 
 export function ReplenishmentRequestsPageView(
   vm: ReplenishmentRequestsPageViewModel,
@@ -52,8 +130,6 @@ export function ReplenishmentRequestsPageView(
     setMovementCube,
     typeMovimentPallet,
     setTypeMovimentPallet,
-    priorityLevel,
-    setPriorityLevel,
     isCritical,
     setIsCritical,
     openCreate,
@@ -142,54 +218,16 @@ export function ReplenishmentRequestsPageView(
         ) : null}
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-          <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1 space-y-2 sm:min-w-48 sm:flex-none">
-              <Label htmlFor="rr-status-filter">Status</Label>
-              <SelectCombobox
-                id="rr-status-filter"
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-                disabled={!apiReady}
-                placeholder="Todos"
-                options={[
-                  { value: '', label: 'Todos' },
-                  { value: 'PALLET_READY', label: 'Pallet no recebimento' },
-                  { value: 'CREATED', label: 'Criado' },
-                  { value: 'IN_PROGRESS', label: 'Em andamento' },
-                  { value: 'ON_MACHINE', label: 'Na máquina' },
-                  { value: 'COMPLETED', label: 'Concluído' },
-                  { value: 'CANCELED', label: 'Cancelado' },
-                ]}
-              />
-            </div>
-            {hasAdminPrivileges(user?.role) ? (
-              <label className="flex cursor-pointer items-center gap-2 pb-0 text-sm text-zinc-700 sm:pb-2">
-                <input
-                  type="checkbox"
-                  checked={onlyMySector}
-                  onChange={(e) => setOnlyMySector(e.target.checked)}
-                  className="size-4 rounded border-zinc-300"
-                />
-                Mostrar apenas pedidos do meu setor
-              </label>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 w-full shrink-0 whitespace-nowrap sm:h-9 sm:w-auto"
-              disabled={
-                !apiReady ||
-                (statusFilter === '' &&
-                  (!hasAdminPrivileges(user?.role) || onlyMySector))
-              }
-              onClick={() => {
-                setStatusFilter('');
-                setOnlyMySector(true);
-              }}
-            >
-              Limpar filtros
-            </Button>
-          </div>
+          <OpenRequestsStatusFilters
+            idPrefix="rr-desktop"
+            className="hidden md:flex md:w-auto"
+            apiReady={apiReady}
+            userRole={user?.role}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            onlyMySector={onlyMySector}
+            setOnlyMySector={setOnlyMySector}
+          />
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Button
               type="button"
@@ -256,6 +294,16 @@ export function ReplenishmentRequestsPageView(
               Ver histórico completo
             </Button>
           </div>
+          <OpenRequestsStatusFilters
+            idPrefix="rr-mobile"
+            className="mb-4 flex md:hidden"
+            apiReady={apiReady}
+            userRole={user?.role}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            onlyMySector={onlyMySector}
+            setOnlyMySector={setOnlyMySector}
+          />
           <ReplenishmentRequestsTable
             variant="open"
             rows={openRequests}
@@ -408,20 +456,24 @@ export function ReplenishmentRequestsPageView(
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="rr-edit-prio">Prioridade</Label>
-            <SelectCombobox
-              id="rr-edit-prio"
-              value={priorityLevel}
-              onValueChange={(value) =>
-                setPriorityLevel(value as 'VERY_HIGH' | 'HIGH' | 'NORMAL')
-              }
-              searchable={false}
-              options={[
-                { value: 'NORMAL', label: 'Normal' },
-                { value: 'HIGH', label: 'Alta' },
-                { value: 'VERY_HIGH', label: 'Muito alta' },
-              ]}
-            />
+            <Label htmlFor="rr-edit-critical">Prioridade</Label>
+            <label
+              htmlFor="rr-edit-critical"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3"
+            >
+              <input
+                id="rr-edit-critical"
+                type="checkbox"
+                checked={isCritical}
+                onChange={(e) => setIsCritical(e.target.checked)}
+                disabled={busy}
+                className="size-4"
+              />
+              <span className="flex items-center gap-2 text-sm font-medium text-zinc-900">
+                <AlertTriangle className="size-4 text-red-500" aria-hidden />
+                Marcar como crítico
+              </span>
+            </label>
           </div>
         </div>
       </SimpleModal>

@@ -283,7 +283,10 @@ export function OperatorMovimentWorkProvider({
         shouldInvalidateSupplyReplenishmentPage(event)
       ) {
         scheduleSupplyReplenishmentInvalidate();
-        if (event.type === 'operator_supply_request_created') {
+        if (
+          event.type === 'operator_supply_request_created' &&
+          user?.role === 'SUPPLY_OPERATOR'
+        ) {
           toast.success('Nova solicitação de reposição na dobra.');
         }
       }

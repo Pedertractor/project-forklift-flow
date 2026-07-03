@@ -129,17 +129,40 @@ export async function createReplenishmentRequest(input: {
 }
 
 export async function updateReplenishmentRequest(
-  _id: string,
-  _patch: {
+  id: string,
+  patch: {
     destinationId?: string;
     movementCube?: string;
     typeMovimentPallet?: ReplenishmentMovimentType;
     priorityLevel?: PriorityLevelValue;
   },
 ): Promise<ReplenishmentRequestListItem> {
-  throw new Error(
-    'Edição de tarefas de entrega não está disponível; crie uma nova tarefa se necessário.',
+  const body: Record<string, unknown> = {};
+  if (patch.destinationId !== undefined) {
+    body.machineId = patch.destinationId.trim();
+  }
+  if (patch.movementCube !== undefined) {
+    body.movementCube = patch.movementCube.trim();
+  }
+  if (patch.typeMovimentPallet !== undefined) {
+    body.typeMovimentPallet = patch.typeMovimentPallet;
+  }
+  if (patch.priorityLevel !== undefined) {
+    body.isCritical =
+      patch.priorityLevel === 'VERY_HIGH' || patch.priorityLevel === 'HIGH';
+  }
+
+  const res = await apiAuthFetch<{ task: DeliveryTaskListItem }>(
+    API_ENDPOINTS.DELIVERY_TASKS.BY_ID(id),
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
   );
+  if (!res?.task) {
+    throw new Error('Resposta inválida ao atualizar solicitação.');
+  }
+  return mapDeliveryTaskToListItem(res.task);
 }
 
 export async function deleteReplenishmentRequest(_id: string): Promise<void> {

@@ -7,6 +7,7 @@ import {
 } from '../generated/prisma/enums.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
 import {
+  DeliveryTaskNotEditableError,
   DeliveryTaskNotFoundError,
   MachineNotFoundError,
   OperatorWithoutSectorError,
@@ -123,6 +124,78 @@ export async function listPendingSupplyRequestsForUser(userId: string) {
     )
 
   return { operatorSupplyRequests }
+}
+
+export type UpdateDeliveryTaskInput = {
+  machineId?: string
+  movementCube?: string
+  typeMovimentPallet?: TypeMovimentPallet
+  isCritical?: boolean
+}
+
+export async function updateDeliveryTask(
+  taskId: string,
+  input: UpdateDeliveryTaskInput,
+) {
+  const current = await deliveryTaskRepository.findById(taskId)
+  if (!current) {
+    throw new DeliveryTaskNotFoundError()
+  }
+
+  if (
+    current.status !== MachineTaskStatus.CREATED ||
+    current.assignedOperatorId != null
+  ) {
+    throw new DeliveryTaskNotEditableError()
+  }
+
+  const data: Prisma.DeliveryTaskUpdateInput = {}
+
+  if (input.machineId !== undefined) {
+    const machineId = input.machineId.trim()
+    if (machineId === '') {
+      throw new Error('Informe machineId.')
+    }
+    await requireMachineExists(machineId)
+    data.machine = { connect: { id: machineId } }
+  }
+
+  if (input.movementCube !== undefined) {
+    const cube = input.movementCube.trim()
+    if (cube === '') {
+      throw new Error('Informe movementCube (prisma).')
+    }
+    data.movementCube = cube
+  }
+
+  if (input.typeMovimentPallet !== undefined) {
+    data.typeMovimentPallet = input.typeMovimentPallet
+  }
+
+  if (input.isCritical !== undefined) {
+    data.isCritical = input.isCritical
+  }
+
+  const updated = await deliveryTaskRepository.update(taskId, data)
+  const refreshed = await deliveryTaskRepository.findById(taskId)
+
+  if (refreshed) {
+    operatorMovimentPalletWsNotifyDeliveryTaskChange(refreshed)
+  }
+
+  const sectorId = updated.machine.sectorId
+  if (sectorId) {
+    operatorMovimentPalletWsBroadcastQueueUpdated(
+      sectorId,
+      updated.typeMovimentPallet,
+    )
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+      sectorId,
+      updated.typeMovimentPallet,
+    )
+  }
+
+  return updated
 }
 
 export async function markDeliveryTaskPrepared(taskId: string) {

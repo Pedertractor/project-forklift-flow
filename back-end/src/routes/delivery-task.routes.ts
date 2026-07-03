@@ -4,6 +4,7 @@ import {
   getListDeliveryTasks,
   getPendingSupplyRequests,
   getSectorTransportOperators,
+  patchDeliveryTask,
   postCreateDeliveryTask,
   postMarkDeliveryTaskPrepared,
 } from '../controllers/delivery-task-controller.js'
@@ -64,6 +65,16 @@ export async function registerDeliveryTaskRoutes(fastify: FastifyInstance) {
           ],
         },
         getDeliveryTaskByIdHandler,
+      )
+      router.patch(
+        '/:taskId',
+        {
+          preHandler: [
+            fastify.authenticate,
+            requireMachineReplenishmentRequestRoles(),
+          ],
+        },
+        patchDeliveryTask,
       )
       router.post(
         '/:taskId/mark-prepared',

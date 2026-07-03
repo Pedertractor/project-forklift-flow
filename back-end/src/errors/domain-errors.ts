@@ -93,6 +93,15 @@ export class DeliveryTaskNotFoundError extends Error {
   }
 }
 
+export class DeliveryTaskNotEditableError extends Error {
+  constructor(
+    message = 'Solicitacao ja aceita ou em andamento; nao e possivel editar.',
+  ) {
+    super(message)
+    this.name = 'DeliveryTaskNotEditableError'
+  }
+}
+
 export class PickupTaskNotFoundError extends Error {
   constructor(message = 'Tarefa de retirada nao encontrada.') {
     super(message)
