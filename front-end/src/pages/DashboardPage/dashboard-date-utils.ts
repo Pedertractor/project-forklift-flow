@@ -48,3 +48,12 @@ export function todayDashboardDates(): Date[] {
   const today = normalizeDashboardDate(new Date());
   return [today, today];
 }
+
+export function isTodayDashboardDates(dates: Date[]): boolean {
+  const today = normalizeDashboardDate(new Date()).getTime();
+  const start = normalizeDashboardDate(dates[0] ?? new Date()).getTime();
+  const end = normalizeDashboardDate(
+    dates[dates.length - 1] ?? dates[0] ?? new Date(),
+  ).getTime();
+  return start === today && end === today;
+}

@@ -188,6 +188,20 @@ export function MovimentPalletsPageView(vm: MovimentPalletsPageViewModel) {
               ]}
             />
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 shrink-0 whitespace-nowrap"
+            disabled={
+              !apiReady || (sectorFilter === '' && typeFilter === 'all')
+            }
+            onClick={() => {
+              setSectorFilter('');
+              setTypeFilter('all');
+            }}
+          >
+            Limpar filtros
+          </Button>
         </div>
 
         {listQuery.isError ? (

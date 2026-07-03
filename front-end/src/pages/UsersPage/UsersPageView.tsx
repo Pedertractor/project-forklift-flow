@@ -269,7 +269,87 @@ export function UsersPageView(vm: UsersPageViewModel) {
         ) : null}
 
         {canListUsers ? (
-          <DataTableCard className="mt-6">
+          <div className="mt-6 flex flex-col gap-3 md:hidden">
+            {usersQuery.isLoading ? (
+              <div className="flex items-center justify-center rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
+                <AccordionLoader />
+              </div>
+            ) : usersQuery.data?.length === 0 ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500 shadow-sm">
+                {isLeader
+                  ? 'Nenhum usuário vinculado ao seu setor.'
+                  : 'Nenhum usuário retornado.'}
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500 shadow-sm">
+                Nenhum usuário corresponde aos filtros selecionados.
+              </div>
+            ) : (
+              filteredUsers.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={
+                    canManageRow && !busyAdmin
+                      ? () => openUserDetail(row)
+                      : undefined
+                  }
+                  disabled={!canManageRow || busyAdmin}
+                  className="w-full rounded-2xl border border-zinc-200 bg-white p-4 text-left shadow-sm transition-colors enabled:hover:bg-zinc-50/90 disabled:cursor-default"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-zinc-900">
+                      {row.name}
+                    </h3>
+                    <span className="shrink-0 rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
+                      {roleLabel(row.role)}
+                    </span>
+                  </div>
+
+                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                    <div>
+                      <dt className="text-[0.7rem] font-medium uppercase tracking-wide text-zinc-400">
+                        Cartão
+                      </dt>
+                      <dd className="mt-0.5 font-mono text-xs text-zinc-700">
+                        {row.card}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[0.7rem] font-medium uppercase tracking-wide text-zinc-400">
+                        Unidade
+                      </dt>
+                      <dd className="mt-0.5 text-zinc-700">
+                        {unitLabelApi(row.unit)}
+                      </dd>
+                    </div>
+                    {isAdmin ? (
+                      <div>
+                        <dt className="text-[0.7rem] font-medium uppercase tracking-wide text-zinc-400">
+                          Setor
+                        </dt>
+                        <dd className="mt-0.5 text-zinc-700">
+                          {row.sector?.typeSector ?? '—'}
+                        </dd>
+                      </div>
+                    ) : null}
+                    <div>
+                      <dt className="text-[0.7rem] font-medium uppercase tracking-wide text-zinc-400">
+                        Acesso
+                      </dt>
+                      <dd className="mt-0.5 text-zinc-600">
+                        {row.isLogged ? 'Senha já definida' : 'Primeiro acesso'}
+                      </dd>
+                    </div>
+                  </dl>
+                </button>
+              ))
+            )}
+          </div>
+        ) : null}
+
+        {canListUsers ? (
+          <DataTableCard className="mt-6 hidden md:block">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/90">

@@ -156,6 +156,20 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ]}
             />
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 shrink-0 whitespace-nowrap"
+            disabled={
+              !apiReady || (sectorFilter === '' && plantUnitFilter === '')
+            }
+            onClick={() => {
+              setSectorFilter('');
+              setPlantUnitFilter('');
+            }}
+          >
+            Limpar filtros
+          </Button>
         </div>
 
         {machinesQuery.isError ? (

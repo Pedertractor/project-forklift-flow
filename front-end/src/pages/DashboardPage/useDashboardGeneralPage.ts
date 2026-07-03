@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   dashboardIncludesToday,
   formatDashboardPeriodLabel,
+  isTodayDashboardDates,
   resolveDashboardQueryDates,
   todayDashboardDates,
 } from './dashboard-date-utils';
@@ -33,6 +34,8 @@ export interface DashboardGeneralPageViewModel {
   machines: Awaited<ReturnType<typeof fetchMachines>>;
   isMachinesLoading: boolean;
   formattedDate: string;
+  hasActiveFilters: boolean;
+  clearFilters: () => void;
 }
 
 export function useDashboardGeneralPage(): DashboardGeneralPageViewModel {
@@ -95,6 +98,17 @@ export function useDashboardGeneralPage(): DashboardGeneralPageViewModel {
         startDate === endDate ? null : endDate,
       );
 
+  const hasActiveFilters =
+    selectedMachineId !== '' ||
+    selectedSectorId !== '' ||
+    !isTodayDashboardDates(dates);
+
+  const clearFilters = () => {
+    setDates(todayDashboardDates());
+    setSelectedMachineId('');
+    setSelectedSectorId('');
+  };
+
   return {
     data,
     isLoading,
@@ -114,5 +128,7 @@ export function useDashboardGeneralPage(): DashboardGeneralPageViewModel {
     machines,
     isMachinesLoading,
     formattedDate,
+    hasActiveFilters,
+    clearFilters,
   };
 }

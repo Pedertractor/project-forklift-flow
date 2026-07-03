@@ -332,6 +332,8 @@ export function DashboardPorEmpilhadeiristaPage() {
     machines,
     isMachinesLoading,
     formattedDate,
+    hasActiveFilters,
+    clearFilters,
   } = useDashboardByOperatorPage();
 
   return (
@@ -375,6 +377,8 @@ export function DashboardPorEmpilhadeiristaPage() {
             sectorScopeLabel={sectorScopeLabel}
             typeMovimentPallet={typeMovimentPallet}
             onTypeMovimentPalletChange={setTypeMovimentPallet}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
           />
 
           {isLoading ? (
