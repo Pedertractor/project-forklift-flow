@@ -35,6 +35,9 @@ export const sectorRepository = {
         typeSector: true,
         createdAt: true,
         updatedAt: true,
+        _count: {
+          select: { machines: true, users: true, costCenters: true },
+        },
       },
       orderBy: { typeSector: 'asc' },
     })

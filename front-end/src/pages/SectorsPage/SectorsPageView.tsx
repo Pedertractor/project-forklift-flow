@@ -105,40 +105,48 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
                   </td>
                 </tr>
               ) : (
-                listQuery.data?.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-zinc-100 last:border-0"
-                  >
-                    <td className="px-4 py-3 font-medium text-zinc-900">
-                      {row.typeSector}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="default"
-                          className="h-9 min-w-0 px-3 text-xs"
-                          disabled={!apiReady || busy}
-                          onClick={() => openEdit(row)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="default"
-                          className="h-9 min-w-0 border-red-200 px-3 text-xs text-red-700 hover:bg-red-50"
-                          disabled={!apiReady || busy}
-                          onClick={() => setDeleteRow(row)}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                listQuery.data?.map((row) => {
+                  const hasLinks = (row.references ?? 0) > 0;
+                  return (
+                    <tr
+                      key={row.id}
+                      className="border-b border-zinc-100 last:border-0"
+                    >
+                      <td className="px-4 py-3 font-medium text-zinc-900">
+                        {row.typeSector}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="default"
+                            className="h-9 min-w-0 px-3 text-xs"
+                            disabled={!apiReady || busy}
+                            onClick={() => openEdit(row)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="default"
+                            className="h-9 min-w-0 border-red-200 px-3 text-xs text-red-700 hover:bg-red-50"
+                            disabled={!apiReady || busy || hasLinks}
+                            title={
+                              hasLinks
+                                ? 'Não é possível excluir: há máquinas, usuários ou equipamentos vinculados a este setor.'
+                                : undefined
+                            }
+                            onClick={() => setDeleteRow(row)}
+                          >
+                            Excluir
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -27,7 +27,11 @@ export async function createSector(input: CreateSectorInput) {
 }
 
 export async function listSectors() {
-  return sectorRepository.findManyForList()
+  const rows = await sectorRepository.findManyForList()
+  return rows.map(({ _count, ...rest }) => ({
+    ...rest,
+    references: _count.machines + _count.users + _count.costCenters,
+  }))
 }
 
 export async function getSectorById(id: string) {

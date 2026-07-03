@@ -72,6 +72,15 @@ export class SectorInUseError extends Error {
   }
 }
 
+export class MachineInUseError extends Error {
+  constructor(
+    message = "Existem registros vinculados a esta maquina; nao e possivel excluir.",
+  ) {
+    super(message);
+    this.name = "MachineInUseError";
+  }
+}
+
 export class AssignMachineUserError extends Error {
   constructor(message = "Usuario informado nao existe.") {
     super(message);

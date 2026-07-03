@@ -1,6 +1,7 @@
 import type { RouteHandlerMethod } from 'fastify'
 import {
   AssignMachineUserError,
+  MachineInUseError,
   MachineNotFoundError,
   SectorNotFoundError,
   TypeMachineNotFoundError,
@@ -190,6 +191,9 @@ export const deleteMachineHandler: RouteHandlerMethod = async (request, reply) =
   } catch (error) {
     if (error instanceof MachineNotFoundError) {
       return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MachineInUseError) {
+      return reply.status(409).send({ error: error.message })
     }
     throw error
   }

@@ -21,6 +21,21 @@ const machineListSelect = {
   },
 } as const
 
+// Lista administrativa: inclui contagem de vínculos que impedem exclusão
+// (tarefas e sugestões apontam para a máquina com FK obrigatória). Mantido
+// separado do machineListSelect para não onerar os caminhos quentes do operador.
+const machineAdminListSelect = {
+  ...machineListSelect,
+  _count: {
+    select: {
+      deliveryTasks: true,
+      pickupTasks: true,
+      operatorMachineSupplyRequests: true,
+      movimentPalletTripSuggestions: true,
+    },
+  },
+} as const
+
 const machineDetailInclude = {
   typeMachine: { select: { id: true, name: true, urlImage: true } },
   sector: { select: { id: true, typeSector: true } },
@@ -52,8 +67,19 @@ export const machineRepository = {
     }
     return prisma.machine.findMany({
       ...(Object.keys(where).length > 0 ? { where } : {}),
-      select: machineListSelect,
+      select: machineAdminListSelect,
       orderBy: { name: 'asc' },
+    })
+  },
+
+  countReferences(machineId: string) {
+    return Promise.all([
+      prisma.deliveryTask.count({ where: { machineId } }),
+      prisma.pickupTask.count({ where: { machineId } }),
+      prisma.operatorMachineSupplyRequest.count({ where: { machineId } }),
+      prisma.movimentPalletTripSuggestion.count({ where: { machineId } }),
+    ]).then(([deliveries, pickups, supplyRequests, tripSuggestions]) => {
+      return deliveries + pickups + supplyRequests + tripSuggestions
     })
   },
 
