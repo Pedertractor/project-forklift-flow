@@ -13,6 +13,7 @@ import {
   canRequestPickupWithReplenishment,
   canRequestSupply,
   PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
+  PICKUP_WITH_REPLENISHMENT_BLOCKED_MESSAGE,
 } from './operator-machine-flow';
 import type { DeliveryTaskListItem } from '@/types/machine-task.types';
 import {
@@ -92,8 +93,10 @@ export function OperatorMachineOpenRequestDialog({
 
   const supplyAvailable = canRequestSupply(openSupply, deliveryTasks);
   const supplyAlreadyOpen = openSupply?.status === 'OPEN';
-  const pickupWithReplenishmentAvailable =
-    canRequestPickupWithReplenishment(deliveryTasks);
+  const pickupWithReplenishmentAvailable = canRequestPickupWithReplenishment(
+    openSupply,
+    deliveryTasks,
+  );
   const palletAtReceivingBlockedMessage =
     PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE;
 
@@ -116,7 +119,7 @@ export function OperatorMachineOpenRequestDialog({
   const combinedBlockedHint = !canPickup
     ? pickupBlockedMessage
     : !pickupWithReplenishmentAvailable
-      ? palletAtReceivingBlockedMessage
+      ? PICKUP_WITH_REPLENISHMENT_BLOCKED_MESSAGE
       : !supplyAvailable && !supplyAlreadyOpen
         ? 'Abastecimento indisponível no momento.'
         : null;
@@ -359,10 +362,10 @@ export function OperatorMachineOpenRequestDialog({
               title="Solicitar abastecimento de pallet"
               description="Avisa o abastecimento para registrar a próxima entrega."
               hint={
-                !pickupWithReplenishmentAvailable
-                  ? palletAtReceivingBlockedMessage
-                  : supplyAlreadyOpen
-                    ? 'Já existe uma solicitação em aberto.'
+                supplyAlreadyOpen
+                  ? 'Já existe uma solicitação em aberto.'
+                  : !supplyAvailable
+                    ? palletAtReceivingBlockedMessage
                     : undefined
               }
             />

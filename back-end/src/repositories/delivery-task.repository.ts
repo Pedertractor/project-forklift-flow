@@ -118,6 +118,17 @@ export const deliveryTaskRepository = {
     })
   },
 
+  /** Qualquer entrega em aberto (pallet a caminho): registrada, em preparo ou em rota. */
+  findFirstOpenForMachine(machineId: string) {
+    return prisma.deliveryTask.findFirst({
+      where: {
+        machineId,
+        status: { in: openMachineTaskStatuses },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+
   findManyOpenDeliverForSectorAndOperatingMode(
     sectorId: string,
     operatingMode: IsOperating,

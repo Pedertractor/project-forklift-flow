@@ -13,6 +13,7 @@ import {
   deliveryTaskDrivingMachineUi,
   findOpenReplenishmentDelivery,
   findOpenSupplyForMachine,
+  findReplenishmentDeliveryForPickup,
   hasOpenPickupWithReplenishment,
   isCombinedTripSuggestion,
   nextPalletFlowHeadline,
@@ -205,7 +206,11 @@ export function buildOperatorMachineTaskRows(
       ? findOpenSupplyForMachine(supplyRequests, t.machineId)
       : null;
     const replenishmentDelivery = t.triggersReplenishment
-      ? findOpenReplenishmentDelivery(deliveryTasks, t.machineId)
+      ? findReplenishmentDeliveryForPickup(
+          deliveryTasks,
+          supplyRequests,
+          t.machineId,
+        )
       : null;
 
     let statusLabel = machinePickupStatusLabel(t);

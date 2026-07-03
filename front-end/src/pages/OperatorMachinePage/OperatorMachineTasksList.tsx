@@ -208,8 +208,8 @@ function RequestFlowCard({
     row.kind === 'PICKUP' && row.triggersReplenishment && pickupTask
       ? findReplenishmentDeliveryForPickup(
           deliveryTasks,
+          supplyRequests,
           pickupTask.machineId,
-          pickupTask.createdAt,
         )
       : row.kind === 'SUPPLY'
         ? findOpenReplenishmentDelivery(deliveryTasks, row.machineId)

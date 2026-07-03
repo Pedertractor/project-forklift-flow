@@ -270,9 +270,19 @@ export async function requestPickupWithReplenishment(
         machine.id,
       )
 
+    // Abastecimento é geral por máquina: se já há aviso aberto ou um pallet a
+    // caminho, esta solicitação vira retirada simples (não cria novo aviso nem
+    // marca triggersReplenishment). Só a solicitação que cria o aviso "puxa" o
+    // abastecimento — evita duas "entrega + retirada" para o mesmo pallet.
+    const incomingDelivery = await deliveryTaskRepository.findFirstOpenForMachine(
+      machine.id,
+    )
+    const replenishmentAlreadyPending =
+      Boolean(existingOpenSupply) || Boolean(incomingDelivery)
+
     let operatorSupplyRequest = existingOpenSupply
     let createdSupplyRequest = false
-    if (!operatorSupplyRequest) {
+    if (!replenishmentAlreadyPending) {
       operatorSupplyRequest = await tx.operatorMachineSupplyRequest.create({
         data: {
           machine: { connect: { id: machine.id } },
@@ -289,7 +299,7 @@ export async function requestPickupWithReplenishment(
         machine: { connect: { id: machine.id } },
         requestedBy: { connect: { id: operatorUserId } },
         typeMovimentPallet,
-        triggersReplenishment: true,
+        triggersReplenishment: createdSupplyRequest,
         isCritical: options?.isCritical === true,
         status: MachineTaskStatus.CREATED,
       },
