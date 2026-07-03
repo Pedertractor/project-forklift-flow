@@ -1,6 +1,6 @@
 export function LoginBrandingPanel() {
   return (
-    <aside className="relative flex h-full min-h-0 min-w-0 shrink-0 flex-col overflow-hidden bg-[linear-gradient(155deg,#003d7a_0%,#005fb8_52%,#1a6fc4_100%)] px-7 pb-7 pt-8 text-white max-[767px]:h-auto max-[767px]:min-h-0 max-[767px]:px-4 max-[767px]:pb-4 max-[767px]:pt-5 min-[768px]:px-4 min-[768px]:pb-5 min-[768px]:pt-6 lg:px-7 lg:pb-7 lg:pt-8">
+    <aside className="relative flex h-full min-h-0 min-w-0 shrink-0 flex-col overflow-hidden bg-[linear-gradient(155deg,#003d7a_0%,#005fb8_52%,#1a6fc4_100%)] px-7 pb-7 pt-8 text-white max-[767px]:h-auto max-[767px]:min-h-0 max-[767px]:px-4 max-[767px]:pb-4 max-[767px]:pt-5 [@media(orientation:landscape)_and_(max-height:600px)]:h-full! min-[768px]:px-4 min-[768px]:pb-5 min-[768px]:pt-6 lg:px-7 lg:pb-7 lg:pt-8">
       <div
         className="pointer-events-none absolute inset-0 flex items-center justify-center max-[767px]:hidden"
         aria-hidden

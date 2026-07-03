@@ -20,7 +20,7 @@ export function LoginPageView({
           <AccordionLoader />
         </div>
       ) : null}
-      <Card className="relative grid w-full min-w-0 max-w-[920px] grid-cols-2 items-stretch gap-0 overflow-hidden rounded-xl border border-zinc-200 p-0 shadow-lg max-[767px]:h-[calc(100svh-1.5rem)] max-[767px]:max-h-[calc(100svh-1.5rem)] max-[767px]:min-h-0 max-[767px]:max-w-none max-[767px]:grid-cols-1 max-[767px]:grid-rows-[auto_minmax(0,1fr)] min-[768px]:min-h-[clamp(22rem,calc(100svh-2rem),40rem)] min-[768px]:max-w-none lg:min-h-[clamp(28rem,calc(100svh-3rem),40rem)] lg:max-w-[920px]">
+      <Card className="relative grid w-full min-w-0 max-w-[920px] grid-cols-2 items-stretch gap-0 overflow-hidden rounded-xl border border-zinc-200 p-0 shadow-lg max-[767px]:h-[calc(100svh-1.5rem)] max-[767px]:max-h-[calc(100svh-1.5rem)] max-[767px]:min-h-0 max-[767px]:max-w-none max-[767px]:grid-cols-1 max-[767px]:grid-rows-[auto_minmax(0,1fr)] [@media(orientation:landscape)_and_(max-height:600px)]:h-[calc(100svh-1rem)]! [@media(orientation:landscape)_and_(max-height:600px)]:max-h-[calc(100svh-1rem)]! [@media(orientation:landscape)_and_(max-height:600px)]:max-w-none! [@media(orientation:landscape)_and_(max-height:600px)]:grid-cols-2! [@media(orientation:landscape)_and_(max-height:600px)]:grid-rows-1! min-[768px]:min-h-[clamp(22rem,calc(100svh-2rem),40rem)] min-[768px]:max-w-none lg:min-h-[clamp(28rem,calc(100svh-3rem),40rem)] lg:max-w-[920px]">
         <LoginBrandingPanel />
         <LoginFormPanel />
       </Card>
