@@ -727,6 +727,7 @@ export async function acceptTripRouteSuggestion(
         status: MachineTaskStatus.ASSIGNED,
         assignedOperatorId: operatorUserId,
         assignedAt: acceptedAt,
+        operatedWith: operatingMode,
       },
     });
     await tx.pickupTask.updateMany({
@@ -735,6 +736,7 @@ export async function acceptTripRouteSuggestion(
         status: MachineTaskStatus.ASSIGNED,
         assignedOperatorId: operatorUserId,
         assignedAt: acceptedAt,
+        operatedWith: operatingMode,
       },
     });
   });
@@ -795,6 +797,7 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
     status: MachineTaskStatus.ASSIGNED,
     assignedOperator: { connect: { id: operatorUserId } },
     assignedAt: new Date(),
+    operatedWith: operatingMode,
   });
 
   if (updated.machine) {
@@ -837,6 +840,7 @@ export async function acceptOpenPickupTaskForMovimentOperator(
     status: MachineTaskStatus.ASSIGNED,
     assignedOperator: { connect: { id: operatorUserId } },
     assignedAt: new Date(),
+    operatedWith: operatingMode,
   });
 
   if (updated.machine) {
@@ -895,7 +899,8 @@ export async function completePickupTaskToExpedition(
   taskId: string,
 ) {
   assertPalletTransporterRole(role);
-  await requireOperatorWithOperatingMode(operatorUserId);
+  const { operatingMode } =
+    await requireOperatorWithOperatingMode(operatorUserId);
 
   const task = await pickupTaskRepository.findById(taskId);
   if (!task) throw new MovimentPalletTaskNotFoundError();
@@ -910,11 +915,14 @@ export async function completePickupTaskToExpedition(
   }
 
   const completedAt = new Date();
+  const wasAssignedBefore = Boolean(task.assignedAt);
   const updated = await pickupTaskRepository.update(taskId, {
     status: MachineTaskStatus.COMPLETED,
     completedAt,
     assignedOperator: { connect: { id: operatorUserId } },
-    ...(task.assignedAt ? {} : { assignedAt: completedAt }),
+    ...(wasAssignedBefore
+      ? {}
+      : { assignedAt: completedAt, operatedWith: operatingMode }),
   });
 
   const acceptedSuggestion =
