@@ -255,6 +255,8 @@ function AssistedRouteActivityMeta({
 }: {
   activeTask: OperatorMovimentTaskItem;
 }) {
+  const acceptedIso = activeTask.assignedAt ?? activeTask.statusSince;
+
   return (
     <div className="grid grid-cols-1 gap-2 border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 text-xs sm:grid-cols-3 sm:px-8">
       <span className="flex items-center gap-1.5 text-zinc-600">
@@ -271,14 +273,14 @@ function AssistedRouteActivityMeta({
         <span>
           Aceito:{' '}
           <span className="font-medium text-zinc-900">
-            {formatTaskDate(activeTask.statusSince)}
+            {formatTaskDate(acceptedIso)}
           </span>
         </span>
       </span>
       <span className="flex items-center gap-1.5 text-zinc-600">
         <Timer className="size-3.5 shrink-0 text-brand" aria-hidden />
         <span>
-          Em execução: <LiveActivityTimer startIso={activeTask.statusSince} />
+          Em execução: <LiveActivityTimer startIso={acceptedIso} />
         </span>
       </span>
     </div>
