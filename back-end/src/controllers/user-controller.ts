@@ -115,7 +115,7 @@ export const getEmployeeInfo: RouteHandlerMethod = async (request, reply) => {
   if (!employee) {
     return reply
       .status(404)
-      .send({ error: 'Colaborador nao encontrado na API de verificacao.' })
+      .send({ error: 'Colaborador nao encontrado.' })
   }
   return reply.send(employee)
 }

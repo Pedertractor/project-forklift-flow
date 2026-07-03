@@ -27,7 +27,7 @@ async function upsertUserFromEmployeeApi(input: {
   const employee = await infoByCardAndUnit(input.unit, card);
   if (!employee) {
     throw new Error(
-      `Seed: colaborador nao encontrado na API de verificacao (card=${card}, unit=${input.unit}). Confira URL_VERIFY_EMPLOYEES, APPKEY e se o servico esta acessivel.`,
+      `Seed: colaborador nao encontrado (card=${card}, unit=${input.unit}). Confira URL_VERIFY_EMPLOYEES, APPKEY e se o servico esta acessivel.`,
     );
   }
   if (employee.cardNumber.trim() !== card) {

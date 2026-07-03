@@ -530,8 +530,7 @@ export function UsersPageView(vm: UsersPageViewModel) {
 
             {verifyState === 'fail' ? (
               <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                Colaborador não encontrado. Ajuste cartão/unidade ou tente
-                novamente.
+                Colaborador não encontrado.
               </p>
             ) : null}
 

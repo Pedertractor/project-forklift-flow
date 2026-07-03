@@ -43,7 +43,9 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
               Setores
             </h1>
-            <p className="mt-1.5 text-sm text-zinc-600">Cadastre os setores que farão parte da plataforma.</p>
+            <p className="mt-1.5 text-sm text-zinc-600">
+              Cadastre os setores que farão parte da plataforma.
+            </p>
           </div>
           <Button
             type="button"
@@ -56,8 +58,8 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login
-            para gerenciar setores.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login para gerenciar setores.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -86,10 +88,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
             <tbody>
               {listQuery.isLoading ? (
                 <tr>
-                  <td
-                    colSpan={2}
-                    className="px-4 py-8 text-zinc-500"
-                  >
+                  <td colSpan={2} className="px-4 py-8 text-zinc-500">
                     <div className="flex items-center justify-center">
                       <AccordionLoader />
                     </div>
@@ -156,7 +155,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
       <SimpleModal
         open={createOpen}
         title="Novo setor"
-        description="Informe o nome ou identificação do setor (campo typeSector na API)."
+        description="Informe o nome ou identificação do setor."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions
@@ -173,7 +172,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
           </p>
         ) : null}
         <div className="space-y-2">
-          <Label htmlFor="sector-type">Nome do setor (typeSector)</Label>
+          <Label htmlFor="sector-type">Nome do setor</Label>
           <Input
             id="sector-type"
             value={formTypeSector}
