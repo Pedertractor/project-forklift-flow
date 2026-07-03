@@ -23,6 +23,8 @@ export function DashboardPorMaquinaPage() {
     machines,
     isMachinesLoading,
     formattedDate,
+    hasActiveFilters,
+    clearFilters,
   } = useDashboardGeneralPage();
 
   return (
@@ -67,6 +69,8 @@ export function DashboardPorMaquinaPage() {
             sectors={sectors}
             isSectorsLoading={isSectorsLoading}
             sectorScopeLabel={sectorScopeLabel}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
           />
 
           {isLoading ? (

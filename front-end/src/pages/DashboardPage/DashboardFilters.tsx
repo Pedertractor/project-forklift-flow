@@ -1,5 +1,6 @@
 import { type Dispatch, type SetStateAction } from 'react';
 
+import { Button } from '@/components/ui/brand-button';
 import { SelectCombobox } from '@/components/ui/select-combobox';
 import { DashboardDateRangePicker } from './DashboardDateRangePicker';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
@@ -21,6 +22,8 @@ type DashboardFiltersProps = {
   sectorScopeLabel?: string | null;
   typeMovimentPallet?: ReplenishmentMovimentType | '';
   onTypeMovimentPalletChange?: (value: ReplenishmentMovimentType | '') => void;
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 };
 
 export function DashboardFilters({
@@ -38,6 +41,8 @@ export function DashboardFilters({
   sectorScopeLabel,
   typeMovimentPallet,
   onTypeMovimentPalletChange,
+  hasActiveFilters,
+  onClearFilters,
 }: DashboardFiltersProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -113,6 +118,18 @@ export function DashboardFilters({
             ]}
           />
         </label>
+
+        {onClearFilters ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 w-full shrink-0 whitespace-nowrap sm:w-auto"
+            disabled={!hasActiveFilters}
+            onClick={onClearFilters}
+          >
+            Limpar filtros
+          </Button>
+        ) : null}
       </div>
     </div>
   );

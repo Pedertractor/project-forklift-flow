@@ -82,6 +82,8 @@ export interface OperatorPickupTaskQueueItem {
   createdAt: string;
   /** Quando a tarefa entrou no status atual (ex.: momento do aceite quando ASSIGNED). */
   statusSince: string;
+  /** Momento em que o operador aceitou a atividade (ASSIGNED). */
+  assignedAt: string | null;
   updatedAt: string;
   completedAt: string | null;
   request: OperatorReplenishmentRequestItem;

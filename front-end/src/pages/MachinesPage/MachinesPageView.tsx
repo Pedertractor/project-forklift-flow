@@ -63,6 +63,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
               Máquinas de produção
             </h1>
+            <p className="m-0 text-sm text-zinc-600">Máquinas de linha de produção.</p>
           </div>
           <div className="flex gap-3">
             <Button onClick={() => navigate('/cadastro/tipos-maquina')}>
@@ -156,6 +157,20 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ]}
             />
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 shrink-0 whitespace-nowrap"
+            disabled={
+              !apiReady || (sectorFilter === '' && plantUnitFilter === '')
+            }
+            onClick={() => {
+              setSectorFilter('');
+              setPlantUnitFilter('');
+            }}
+          >
+            Limpar filtros
+          </Button>
         </div>
 
         {machinesQuery.isError ? (

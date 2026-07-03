@@ -47,6 +47,10 @@ export interface OperationalDashboardSnapshot {
   machine_id: string | null;
   pickup_wait: OperationalDashboardWaitMetrics;
   delivery_wait: OperationalDashboardWaitMetrics;
+  /** Tempo médio do operador (aceite -> conclusão) nas retiradas atribuídas. */
+  operator_pickup_wait: OperationalDashboardWaitMetrics;
+  /** Tempo médio do operador (aceite -> conclusão) nas entregas atribuídas. */
+  operator_delivery_wait: OperationalDashboardWaitMetrics;
   counts: OperationalDashboardCounts;
   peak_slots: OperationalDashboardPeakSlot[];
   machines: OperationalDashboardMachineRow[];
@@ -86,12 +90,16 @@ type TaskDurationRow = {
 type PickupRow = TaskDurationRow & {
   id: string;
   machineId: string;
+  assignedAt: Date | null;
+  assignedOperatorId: string | null;
   machine: { id: string; name: string };
 };
 
 type DeliveryRow = TaskDurationRow & {
   id: string;
   machineId: string;
+  assignedAt: Date | null;
+  assignedOperatorId: string | null;
   preparedAt: Date | null;
   machine: { id: string; name: string };
 };
@@ -150,6 +158,24 @@ function taskCycleDurationMs(
   referenceNow: Date,
 ): number {
   const start = task.createdAt.getTime();
+  if (task.status === MachineTaskStatus.COMPLETED) {
+    const end = task.completedAt?.getTime() ?? referenceNow.getTime();
+    return Math.max(0, end - start);
+  }
+  return Math.max(0, referenceNow.getTime() - start);
+}
+
+/**
+ * Duração da tarefa sob a ótica do operador: do momento em que ele aceitou a
+ * atividade (`assignedAt`) até a conclusão; em aberto, até o instante da
+ * consulta. Tarefas anteriores ao registro de `assignedAt` usam a criação como
+ * início (mesmo comportamento do painel por máquina).
+ */
+function operatorTaskDurationMs(
+  task: TaskDurationRow & { assignedAt: Date | null },
+  referenceNow: Date,
+): number {
+  const start = (task.assignedAt ?? task.createdAt).getTime();
   if (task.status === MachineTaskStatus.COMPLETED) {
     const end = task.completedAt?.getTime() ?? referenceNow.getTime();
     return Math.max(0, end - start);
@@ -274,12 +300,22 @@ function buildSnapshot(
     taskCycleDurationMs(task, referenceNow),
   );
 
+  const operatorPickupWaits = pickups
+    .filter((task) => task.assignedOperatorId)
+    .map((task) => operatorTaskDurationMs(task, referenceNow));
+
+  const operatorDeliveryWaits = deliveries
+    .filter((task) => task.assignedOperatorId)
+    .map((task) => operatorTaskDurationMs(task, referenceNow));
+
   const pickupTotal = pickups.length;
   const deliveryTotal = deliveries.length;
 
   return {
     pickup_wait: buildWaitMetrics(pickupWaits),
     delivery_wait: buildWaitMetrics(deliveryWaits),
+    operator_pickup_wait: buildWaitMetrics(operatorPickupWaits),
+    operator_delivery_wait: buildWaitMetrics(operatorDeliveryWaits),
     counts: {
       pickups: pickupTotal,
       deliveries: deliveryTotal,
@@ -323,6 +359,8 @@ export async function getOperationalDashboardSnapshot(options?: {
         machineId: true,
         status: true,
         createdAt: true,
+        assignedAt: true,
+        assignedOperatorId: true,
         completedAt: true,
         machine: { select: { id: true, name: true } },
       },
@@ -341,6 +379,8 @@ export async function getOperationalDashboardSnapshot(options?: {
         machineId: true,
         status: true,
         createdAt: true,
+        assignedAt: true,
+        assignedOperatorId: true,
         completedAt: true,
         preparedAt: true,
         machine: { select: { id: true, name: true } },
@@ -383,6 +423,7 @@ function parseTypeMovimentPalletFilter(
 }
 
 type OperatorTaskRow = TaskDurationRow & {
+  assignedAt: Date | null;
   typeMovimentPallet: TypeMovimentPallet;
   assignedOperatorId: string | null;
   assignedOperator: {
@@ -467,7 +508,7 @@ function buildOperatorRows(
       bucket.pickups_open += 1;
     }
     addEquipmentCount(bucket, task);
-    bucket.pickupDurations.push(taskCycleDurationMs(task, referenceNow));
+    bucket.pickupDurations.push(operatorTaskDurationMs(task, referenceNow));
   }
 
   for (const task of deliveries) {
@@ -481,7 +522,7 @@ function buildOperatorRows(
       bucket.deliveries_open += 1;
     }
     addEquipmentCount(bucket, task);
-    bucket.deliveryDurations.push(taskCycleDurationMs(task, referenceNow));
+    bucket.deliveryDurations.push(operatorTaskDurationMs(task, referenceNow));
   }
 
   return [...byOperator.entries()]
@@ -532,6 +573,7 @@ export async function getOperationalDashboardByOperator(options?: {
     typeMovimentPallet: true,
     status: true,
     createdAt: true,
+    assignedAt: true,
     completedAt: true,
   } as const;
 

@@ -22,6 +22,7 @@ export interface DeliveryTaskListItem {
   assignedMovimentPalletId: string | null;
   createdAt: string;
   updatedAt: string;
+  assignedAt: string | null;
   completedAt: string | null;
   requestedBy?: {
     id: string;
@@ -53,6 +54,7 @@ export interface PickupTaskListItem {
   assignedMovimentPalletId: string | null;
   createdAt: string;
   updatedAt: string;
+  assignedAt: string | null;
   completedAt: string | null;
   machine?: {
     id: string;

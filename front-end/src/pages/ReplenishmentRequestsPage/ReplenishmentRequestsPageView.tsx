@@ -173,6 +173,22 @@ export function ReplenishmentRequestsPageView(
                 Mostrar apenas pedidos do meu setor
               </label>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 w-full shrink-0 whitespace-nowrap sm:h-9 sm:w-auto"
+              disabled={
+                !apiReady ||
+                (statusFilter === '' &&
+                  (!hasAdminPrivileges(user?.role) || onlyMySector))
+              }
+              onClick={() => {
+                setStatusFilter('');
+                setOnlyMySector(true);
+              }}
+            >
+              Limpar filtros
+            </Button>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Button

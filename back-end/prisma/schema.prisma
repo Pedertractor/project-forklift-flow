@@ -77,6 +77,7 @@ model DeliveryTask {
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  assignedAt  DateTime?
   completedAt DateTime?
 
   @@index([machineId, status])
@@ -108,6 +109,7 @@ model PickupTask {
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  assignedAt  DateTime?
   completedAt DateTime?
 
   @@index([machineId, status])
