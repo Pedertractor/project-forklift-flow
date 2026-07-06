@@ -125,13 +125,13 @@ export async function createUser(
   const employee = await infoByCardAndUnit(input.unit, card)
   if (!employee) {
     throw new CreateUserError(
-      'Nao foi possivel obter o colaborador na API de verificacao.',
+      'Nao foi possivel obter o colaborador.',
     )
   }
 
   if (employee.cardNumber.trim() !== card) {
     throw new CreateUserError(
-      'O cartao retornado pela API nao confere com o cartao informado.',
+      'O cartao retornado nao confere com o cartao informado.',
     )
   }
 

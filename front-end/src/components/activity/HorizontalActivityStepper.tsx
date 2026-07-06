@@ -138,7 +138,7 @@ function StepCircle({
           ? 'border-emerald-500 bg-emerald-500 text-white'
           : active
             ? 'border-brand bg-brand/10 text-brand'
-            : 'border-zinc-200 bg-zinc-50 text-zinc-400',
+            : 'border-zinc-200  text-zinc-400',
       )}
       aria-hidden
     >
@@ -182,7 +182,8 @@ export function HorizontalActivityStepper({
       <div
         className={cn(
           'mt-4 w-full min-w-0',
-          wideTracks && 'overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]',
+          wideTracks &&
+            'overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]',
         )}
       >
         <ol

@@ -1,6 +1,7 @@
 import type { PlantMapUnit, Prisma } from '../generated/prisma/client.js'
 import {
   AssignMachineUserError,
+  MachineInUseError,
   MachineNotFoundError,
   SectorNotFoundError,
   TypeMachineNotFoundError,
@@ -115,7 +116,15 @@ export async function listMachines(options?: {
   sectorId?: string
   plantUnit?: PlantMapUnit
 }) {
-  return machineRepository.findManyForList(options)
+  const rows = await machineRepository.findManyForList(options)
+  return rows.map(({ _count, ...rest }) => ({
+    ...rest,
+    references:
+      _count.deliveryTasks +
+      _count.pickupTasks +
+      _count.operatorMachineSupplyRequests +
+      _count.movimentPalletTripSuggestions,
+  }))
 }
 
 export async function getMachineById(id: string) {
@@ -160,5 +169,9 @@ export async function updateMachine(id: string, input: UpdateMachineInput) {
 
 export async function deleteMachine(id: string) {
   await requireMachineById(id)
+  const linked = await machineRepository.countReferences(id)
+  if (linked > 0) {
+    throw new MachineInUseError()
+  }
   await machineRepository.delete(id)
 }

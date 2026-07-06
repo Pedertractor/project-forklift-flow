@@ -11,7 +11,7 @@ export function ForkliftCircleLoader({ className }: ForkliftCircleLoaderProps) {
   return (
     <span
       className={cn(
-        'relative flex size-full items-center justify-center overflow-hidden rounded-full',
+        'relative flex size-full bg-white items-center justify-center overflow-hidden rounded-full',
         className,
       )}
       role="status"

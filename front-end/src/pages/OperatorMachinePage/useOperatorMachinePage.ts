@@ -171,6 +171,7 @@ export function useOperatorMachinePage() {
   const pickupBlockedMessage = pickupBlockedReason(deliveryTasks, pickupTasks);
   const canRequestSupplyNow = canRequestSupply(openOperatorSupply, deliveryTasks);
   const canPickupWithReplenishment = canRequestPickupWithReplenishment(
+    openOperatorSupply,
     deliveryTasks,
   );
   const canOpenRequestDialog = canOpenServiceRequestDialog(
