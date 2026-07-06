@@ -180,13 +180,13 @@ export function DashboardGeralView({
                 />
                 <KpiCard
                   icon={Clock3}
-                  label="Tempo médio — retirada de paletes (operador de transporte)"
+                  label="Tempo médio — retirada de paletes (empilhadeirista e follow up)"
                   value={formatDuration(data.operator_pickup_wait.avg_wait_ms)}
                 />
 
                 <KpiCard
                   icon={Timer}
-                  label="Tempo médio — entrega de paletes (operador de transporte)"
+                  label="Tempo médio — entrega de paletes (empilhadeirista e follow up)"
                   value={formatDuration(
                     data.operator_delivery_wait.avg_wait_ms,
                   )}

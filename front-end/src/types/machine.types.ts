@@ -22,6 +22,8 @@ export interface MachineListItem {
   typeMachine: { id: string; name: string; urlImage: string }
   sector: { id: string; typeSector: string }
   user: { id: string; name: string; card: string } | null
+  /** Quantidade de registros vinculados (tarefas/sugestões) que impedem a exclusão. */
+  references?: number
 }
 
 /** Corpo JSON de POST /machines (operador opcional). */
@@ -51,4 +53,6 @@ export interface SectorListItem {
   typeSector: string
   createdAt?: string
   updatedAt?: string
+  /** Quantidade de registros vinculados (máquinas/usuários/centros de custo) que impedem a exclusão. */
+  references?: number
 }
