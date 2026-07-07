@@ -23,6 +23,7 @@ import {
   derivePickupFlowPhaseFromTask,
   findOpenReplenishmentDelivery,
   findReplenishmentDeliveryForPickup,
+  findReplenishmentSupplyForMachine,
   PICKUP_FLOW_STEPS,
   PICKUP_WITH_REPLENISHMENT_FLOW_STEPS,
   pickupFlowHeadline,
@@ -71,7 +72,7 @@ function flowCardTitle(row: OperatorMachineTaskListRow): string {
     case 'DELIVERY':
       return 'Entrega de pallet';
     case 'PICKUP':
-      return row.triggersReplenishment
+      return row.linkedToReplenishmentFlow
         ? 'Entrega de pallet + Retirada de pallet'
         : 'Retirada de pallet';
     default:
@@ -201,11 +202,14 @@ function RequestFlowCard({
   const supplyRequest =
     row.kind === 'SUPPLY'
       ? findSupplyRequest(supplyRequests, row.id)
-      : row.kind === 'PICKUP' && row.linkedSupplyRequestId
-        ? findSupplyRequest(supplyRequests, row.linkedSupplyRequestId)
+      : row.kind === 'PICKUP' && row.linkedToReplenishmentFlow && pickupTask
+        ? findReplenishmentSupplyForMachine(
+            supplyRequests,
+            pickupTask.machineId,
+          )
         : null;
   const replenishmentDelivery =
-    row.kind === 'PICKUP' && row.triggersReplenishment && pickupTask
+    row.kind === 'PICKUP' && row.linkedToReplenishmentFlow && pickupTask
       ? findReplenishmentDeliveryForPickup(
           deliveryTasks,
           supplyRequests,
@@ -279,7 +283,7 @@ function RequestFlowCard({
         ) : null}
 
         {row.kind === 'PICKUP' && pickupTask ? (
-          row.triggersReplenishment ? (
+          row.linkedToReplenishmentFlow ? (
             <HorizontalActivityStepper
               steps={[...PICKUP_WITH_REPLENISHMENT_FLOW_STEPS]}
               statuses={pickupWithReplenishmentFlowStepStatuses(

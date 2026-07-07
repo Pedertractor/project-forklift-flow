@@ -40,7 +40,10 @@ import {
   movimentPalletTripSuggestionRepository,
   type MovimentPalletTripSuggestionWithTasks,
 } from "../repositories/moviment-pallet-trip-suggestion.repository.js";
-import { syncOpenTripSuggestionsForSector } from "./trip-suggestion-sync.service.js";
+import {
+  syncOpenTripSuggestionsForSector,
+  isPickupLinkedToReplenishmentFlow,
+} from "./trip-suggestion-sync.service.js";
 import type { DeliveryTaskListRow } from "../repositories/delivery-task.repository.js";
 import type { PickupTaskListRow } from "../repositories/pickup-task.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
@@ -198,11 +201,11 @@ function mapStandaloneDeliverRow(
   };
 }
 
-/** Retirada + abastecimento so entra na fila do empilhadeirista via par combinado (entrega preparada). */
-function isPickupEligibleForStandaloneQueue(pickup: {
-  triggersReplenishment: boolean;
-}): boolean {
-  return !pickup.triggersReplenishment;
+/** Retirada vinculada a reposição so entra na fila do empilhadeirista via par combinado. */
+async function isPickupEligibleForStandaloneQueue(
+  pickup: PickupTaskListRow,
+): Promise<boolean> {
+  return !(await isPickupLinkedToReplenishmentFlow(pickup));
 }
 
 async function listStandaloneTripTasksForSector(
@@ -231,7 +234,7 @@ async function listStandaloneTripTasksForSector(
       if (pickup.status !== MachineTaskStatus.CREATED) continue;
       if (pickup.assignedOperatorId) continue;
       if (linked.pickupIds.has(pickup.id)) continue;
-      if (!isPickupEligibleForStandaloneQueue(pickup)) continue;
+      if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
       if (!pickup.isCritical) continue;
       if (!pickup.machine) continue;
       standalonePickupTasks.push(mapStandalonePickupRow(pickup));
@@ -323,7 +326,7 @@ async function listOneNonCriticalStandaloneFallback(
       if (pickup.status !== MachineTaskStatus.CREATED) continue;
       if (pickup.assignedOperatorId) continue;
       if (linked.pickupIds.has(pickup.id)) continue;
-      if (!isPickupEligibleForStandaloneQueue(pickup)) continue;
+      if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
       if (pickup.isCritical) continue;
       if (!pickup.machine) continue;
       candidates.push({
@@ -457,14 +460,15 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
   const openDeliveryTasks = deliveryTasks.filter(
     (t) => !linked.deliverIds.has(t.id) && !t.isCritical,
   );
-  const openPickupTasks = pickupTasks.filter(
-    (t) =>
-      t.status === MachineTaskStatus.CREATED &&
-      !t.assignedOperatorId &&
-      !linked.pickupIds.has(t.id) &&
-      !t.isCritical &&
-      isPickupEligibleForStandaloneQueue(t),
-  );
+  const openPickupTasks: PickupTaskListRow[] = [];
+  for (const task of pickupTasks) {
+    if (task.status !== MachineTaskStatus.CREATED) continue;
+    if (task.assignedOperatorId) continue;
+    if (linked.pickupIds.has(task.id)) continue;
+    if (task.isCritical) continue;
+    if (!(await isPickupEligibleForStandaloneQueue(task))) continue;
+    openPickupTasks.push(task);
+  }
 
   return {
     deliveryTasks: sortByCritical(openDeliveryTasks),

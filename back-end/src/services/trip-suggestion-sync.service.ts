@@ -1,10 +1,57 @@
 import { IsOperating, TypeMovimentPallet } from '../generated/prisma/enums.js'
 import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
+import { operatorMachineSupplyRequestRepository } from '../repositories/operator-machine-supply-request.repository.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
+import type { PickupTaskListRow } from '../repositories/pickup-task.repository.js'
 import {
   isOpenTripTaskPairValid,
   movimentPalletTripSuggestionRepository,
 } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
+
+type PickupForReplenishmentLink = Pick<
+  PickupTaskListRow,
+  'id' | 'machineId' | 'triggersReplenishment' | 'requestedBy'
+>
+
+/**
+ * Retirada vinculada ao fluxo de reposição:
+ * - retirada + abastecimento na mesma solicitação, ou
+ * - abastecimento solicitado antes e retirada depois pelo mesmo operador.
+ */
+export async function isPickupLinkedToReplenishmentFlow(
+  pickup: PickupForReplenishmentLink,
+): Promise<boolean> {
+  if (pickup.triggersReplenishment) return true
+
+  const operatorId = pickup.requestedBy?.id
+  if (!operatorId) return false
+
+  const openSupply =
+    await operatorMachineSupplyRequestRepository.findFirstOpenByMachineId(
+      pickup.machineId,
+    )
+  if (openSupply?.requestedBy?.id === operatorId) return true
+
+  const fulfilledSupply =
+    await operatorMachineSupplyRequestRepository.findLatestFulfilledWithOpenDeliveryForMachineAndOperator(
+      pickup.machineId,
+      operatorId,
+    )
+  return Boolean(fulfilledSupply)
+}
+
+/** Retirada elegível para sugestão de viagem combinada na máquina. */
+export async function findPickupForTripPairOnMachine(machineId: string) {
+  const withReplenishment =
+    await pickupTaskRepository.findFirstOpenWithReplenishmentForMachine(machineId)
+  if (withReplenishment) return withReplenishment
+
+  const openPickup = await pickupTaskRepository.findOpenForMachine(machineId)
+  if (!openPickup) return null
+
+  const linked = await isPickupLinkedToReplenishmentFlow(openPickup)
+  return linked ? openPickup : null
+}
 
 export async function expireOpenTripSuggestionsUnpreparedForSector(
   sectorId: string,
@@ -19,14 +66,13 @@ export async function expireOpenTripSuggestionsUnpreparedForSector(
   )
 }
 
-/** Cria/atualiza sugestao de viagem na maquina quando entrega preparada + retirada com abastecimento. */
+/** Cria/atualiza sugestao de viagem na maquina quando entrega preparada + retirada vinculada. */
 export async function syncTripSuggestionPairForMachine(machineId: string): Promise<{
   synced: boolean
   sectorId: string | null
   typeMovimentPallet: TypeMovimentPallet | null
 }> {
-  const pickup =
-    await pickupTaskRepository.findFirstOpenWithReplenishmentForMachine(machineId)
+  const pickup = await findPickupForTripPairOnMachine(machineId)
   if (!pickup) {
     return { synced: false, sectorId: null, typeMovimentPallet: null }
   }
@@ -78,12 +124,21 @@ export async function syncOpenTripSuggestionsForSector(
     )
   }
 
+  const syncedMachineIds = new Set<string>()
+
   for (const operatingMode of operatingModes) {
-    const pickups = await pickupTaskRepository.findManyOpenWithReplenishmentForSector(
-      sectorId,
-      operatingMode,
-    )
+    const pickups =
+      await pickupTaskRepository.findManyOpenPickupForSectorAndOperatingMode(
+        sectorId,
+        operatingMode,
+      )
+
     for (const pickup of pickups) {
+      if (syncedMachineIds.has(pickup.machineId)) continue
+
+      const linked = await isPickupLinkedToReplenishmentFlow(pickup)
+      if (!linked) continue
+
       const deliver = await deliveryTaskRepository.findOpenPreparedForMachine(
         pickup.machineId,
       )
@@ -103,6 +158,7 @@ export async function syncOpenTripSuggestionsForSector(
           machineId: pickup.machineId,
           typeMovimentPallet: deliver.typeMovimentPallet,
         })
+        syncedMachineIds.add(pickup.machineId)
       }
     }
   }

@@ -53,7 +53,7 @@ Par **entrega + retirada** na mesma máquina. O empilhadeirista só vê a sugest
 
 | Método | Rota | Efeito |
 |--------|------|--------|
-| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) a qualquer momento; body opcional `{ isCritical?: boolean }`; se houver `DeliveryTask` preparada no recebimento, sincroniza sugestão de viagem (entrega + retirada) |
+| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) a qualquer momento; body opcional `{ isCritical?: boolean }`; se houver `DeliveryTask` preparada no recebimento, sincroniza sugestão de viagem (entrega + retirada). Se o **mesmo operador** já tiver aviso de abastecimento OPEN (ou entrega em andamento vinculada a esse aviso), a retirada entra no fluxo de reposição e forma sugestão combinada quando o pallet ficar pronto no recebimento |
 | `POST` | `/pickup-with-replenishment` | Cria `PickupTask` + `OperatorMachineSupplyRequest` OPEN (se ainda não houver); body opcional `{ isCritical?: boolean }`; sincroniza sugestão de viagem se houver `DeliveryTask` pronta. **Bloqueado** enquanto houver pallet no recebimento |
 | `POST` | `/supply-only` | Aviso ao abastecimento. **Bloqueado** enquanto houver pallet no recebimento (neste caso o operador só pode `/pickup-only`) |
 | `GET` | `/machine-tasks` | Lista `deliveryTasks` e `pickupTasks` da máquina vinculada |

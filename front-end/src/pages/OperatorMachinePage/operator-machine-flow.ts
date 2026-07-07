@@ -89,8 +89,11 @@ export function deliveryTaskDrivingMachineUi(
 export function isCombinedTripSuggestion(
   deliveryTasks: DeliveryTaskListItem[],
   pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): boolean {
-  if (hasOpenPickupWithReplenishment(pickupTasks)) return false;
+  if (hasPickupLinkedToReplenishmentFlow(pickupTasks, supplyRequests)) {
+    return false;
+  }
   const delivery = deliveryTaskDrivingMachineUi(deliveryTasks);
   const pickup = pickupTaskDrivingMachineUi(pickupTasks);
   return Boolean(
@@ -106,8 +109,9 @@ export function isCombinedTripSuggestion(
 export function resolveOperationTimelineMode(
   deliveryTasks: DeliveryTaskListItem[],
   pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): OperationTimelineMode {
-  if (isCombinedTripSuggestion(deliveryTasks, pickupTasks)) {
+  if (isCombinedTripSuggestion(deliveryTasks, pickupTasks, supplyRequests)) {
     return 'combined';
   }
   if (deliveryTaskDrivingMachineUi(deliveryTasks)) {
@@ -764,5 +768,45 @@ export function hasOpenPickupWithReplenishment(
 ): boolean {
   return pickupTasks.some(
     (p) => p.triggersReplenishment && OPEN_STATUSES.has(p.status),
+  );
+}
+
+/**
+ * Retirada vinculada ao fluxo de reposição:
+ * - retirada + abastecimento na mesma solicitação, ou
+ * - abastecimento solicitado antes e retirada depois pelo mesmo operador.
+ */
+export function isPickupLinkedToReplenishmentFlow(
+  pickup: PickupTaskListItem,
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+): boolean {
+  if (pickup.triggersReplenishment && OPEN_STATUSES.has(pickup.status)) {
+    return true;
+  }
+  if (!OPEN_STATUSES.has(pickup.status)) return false;
+
+  const openSupply = findOpenSupplyForMachine(supplyRequests, pickup.machineId);
+  if (openSupply?.requestedById === pickup.requestedById) return true;
+
+  const supply = findReplenishmentSupplyForMachine(
+    supplyRequests,
+    pickup.machineId,
+  );
+  if (
+    supply?.requestedById === pickup.requestedById &&
+    supply.deliveryTaskId != null
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function hasPickupLinkedToReplenishmentFlow(
+  pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+): boolean {
+  return pickupTasks.some((pickup) =>
+    isPickupLinkedToReplenishmentFlow(pickup, supplyRequests),
   );
 }

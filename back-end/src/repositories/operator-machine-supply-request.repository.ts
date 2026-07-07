@@ -2,6 +2,7 @@ import type { Prisma } from '../generated/prisma/client.js'
 import {
   OperatorMachineSupplyRequestStatus,
 } from '../generated/prisma/enums.js'
+import { openMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
 
 export const operatorMachineSupplyRequestListInclude = {
@@ -51,6 +52,26 @@ export const operatorMachineSupplyRequestRepository = {
   findFirstOpenByMachineId(machineId: string) {
     return prisma.operatorMachineSupplyRequest.findFirst({
       where: { machineId, status: OperatorMachineSupplyRequestStatus.OPEN },
+      include: operatorMachineSupplyRequestListInclude,
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  /** Aviso atendido com entrega ainda em aberto, do mesmo operador que solicitou. */
+  findLatestFulfilledWithOpenDeliveryForMachineAndOperator(
+    machineId: string,
+    requestedById: string,
+  ) {
+    return prisma.operatorMachineSupplyRequest.findFirst({
+      where: {
+        machineId,
+        requestedById,
+        status: OperatorMachineSupplyRequestStatus.FULFILLED,
+        deliveryTaskId: { not: null },
+        deliveryTask: {
+          status: { in: openMachineTaskStatuses },
+        },
+      },
       include: operatorMachineSupplyRequestListInclude,
       orderBy: { createdAt: 'desc' },
     })

@@ -10,10 +10,11 @@ import {
   combinedFlowHeadline,
   deliveryTaskDrivingMachineUi,
   findOpenReplenishmentDelivery,
-  findOpenSupplyForMachine,
   findReplenishmentDeliveryForPickup,
-  hasOpenPickupWithReplenishment,
+  findReplenishmentSupplyForMachine,
+  hasPickupLinkedToReplenishmentFlow,
   isCombinedTripSuggestion,
+  isPickupLinkedToReplenishmentFlow,
   nextPalletFlowHeadline,
   pickupTaskDrivingMachineUi,
   supplyFlowHeadline,
@@ -106,6 +107,7 @@ export type OperatorMachineTaskListRow =
       statusLabel: string;
       isCritical: boolean;
       triggersReplenishment: boolean;
+      linkedToReplenishmentFlow: boolean;
       canCancel: boolean;
       linkedSupplyRequestId: string | null;
     }
@@ -129,14 +131,13 @@ const TERMINAL_MACHINE_TASK_STATUSES = new Set<MachineTaskStatusValue>([
 function shouldHideReplenishmentDeliveryRow(
   delivery: DeliveryTaskListItem,
   pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
 ): boolean {
-  if (!hasOpenPickupWithReplenishment(pickupTasks)) return false;
-  return pickupTasks.some(
-    (p) =>
-      p.triggersReplenishment &&
-      !TERMINAL_MACHINE_TASK_STATUSES.has(p.status) &&
-      p.machineId === delivery.machineId,
-  );
+  return pickupTasks.some((pickup) => {
+    if (!isPickupLinkedToReplenishmentFlow(pickup, supplyRequests)) return false;
+    if (TERMINAL_MACHINE_TASK_STATUSES.has(pickup.status)) return false;
+    return pickup.machineId === delivery.machineId;
+  });
 }
 
 export function buildOperatorMachineTaskRows(
@@ -145,13 +146,15 @@ export function buildOperatorMachineTaskRows(
   supplyRequests: OperatorMachineSupplyRequestListItem[],
 ): OperatorMachineTaskListRow[] {
   const rows: OperatorMachineTaskListRow[] = [];
-  const hideSupplyForReplenishmentPickup =
-    hasOpenPickupWithReplenishment(pickupTasks);
+  const hideSupplyForReplenishmentPickup = hasPickupLinkedToReplenishmentFlow(
+    pickupTasks,
+    supplyRequests,
+  );
 
   let combinedDeliveryId: string | null = null;
   let combinedPickupId: string | null = null;
 
-  if (isCombinedTripSuggestion(deliveryTasks, pickupTasks)) {
+  if (isCombinedTripSuggestion(deliveryTasks, pickupTasks, supplyRequests)) {
     const delivery = deliveryTaskDrivingMachineUi(deliveryTasks);
     const pickup = pickupTaskDrivingMachineUi(pickupTasks);
     if (
@@ -184,7 +187,7 @@ export function buildOperatorMachineTaskRows(
   for (const t of deliveryTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
     if (t.id === combinedDeliveryId) continue;
-    if (shouldHideReplenishmentDeliveryRow(t, pickupTasks)) continue;
+    if (shouldHideReplenishmentDeliveryRow(t, pickupTasks, supplyRequests)) continue;
     rows.push({
       kind: 'DELIVERY',
       id: t.id,
@@ -199,10 +202,14 @@ export function buildOperatorMachineTaskRows(
   for (const t of pickupTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
     if (t.id === combinedPickupId) continue;
-    const linkedSupply = t.triggersReplenishment
-      ? findOpenSupplyForMachine(supplyRequests, t.machineId)
+    const linkedToReplenishmentFlow = isPickupLinkedToReplenishmentFlow(
+      t,
+      supplyRequests,
+    );
+    const linkedSupply = linkedToReplenishmentFlow
+      ? findReplenishmentSupplyForMachine(supplyRequests, t.machineId)
       : null;
-    const replenishmentDelivery = t.triggersReplenishment
+    const replenishmentDelivery = linkedToReplenishmentFlow
       ? findReplenishmentDeliveryForPickup(
           deliveryTasks,
           supplyRequests,
@@ -211,7 +218,7 @@ export function buildOperatorMachineTaskRows(
       : null;
 
     let statusLabel = machinePickupStatusLabel(t);
-    if (t.triggersReplenishment) {
+    if (linkedToReplenishmentFlow) {
       statusLabel = `${statusLabel} · ${nextPalletFlowHeadline(linkedSupply, replenishmentDelivery)}`;
     }
 
@@ -220,15 +227,16 @@ export function buildOperatorMachineTaskRows(
       id: t.id,
       machineId: t.machineId,
       createdAt: t.createdAt,
-      title: t.triggersReplenishment
+      title: linkedToReplenishmentFlow
         ? 'Retirada + aviso de abastecimento'
         : 'Retirada para expedição',
-      subtitle: t.triggersReplenishment
+      subtitle: linkedToReplenishmentFlow
         ? 'Aviso ao abastecimento para próxima entrega'
         : '',
       statusLabel,
       isCritical: t.isCritical,
       triggersReplenishment: t.triggersReplenishment,
+      linkedToReplenishmentFlow,
       canCancel: canCancelPickupRequest(t, deliveryTasks),
       linkedSupplyRequestId: linkedSupply?.id ?? null,
     });
