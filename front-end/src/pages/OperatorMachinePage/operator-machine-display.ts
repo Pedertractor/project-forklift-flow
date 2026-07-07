@@ -1,6 +1,4 @@
-import type {
-  ForkliftTaskStatusApi,
-} from '@/types/operator-moviment-pallet.types';
+import type { ForkliftTaskStatusApi } from '@/types/operator-moviment-pallet.types';
 import type {
   DeliveryTaskListItem,
   MachineTaskStatusValue,
@@ -147,9 +145,8 @@ export function buildOperatorMachineTaskRows(
   supplyRequests: OperatorMachineSupplyRequestListItem[],
 ): OperatorMachineTaskListRow[] {
   const rows: OperatorMachineTaskListRow[] = [];
-  const hideSupplyForReplenishmentPickup = hasOpenPickupWithReplenishment(
-    pickupTasks,
-  );
+  const hideSupplyForReplenishmentPickup =
+    hasOpenPickupWithReplenishment(pickupTasks);
 
   let combinedDeliveryId: string | null = null;
   let combinedPickupId: string | null = null;
@@ -241,8 +238,7 @@ export function buildOperatorMachineTaskRows(
     if (s.status !== 'OPEN') continue;
     if (hideSupplyForReplenishmentPickup) continue;
     const delivery = findOpenReplenishmentDelivery(deliveryTasks, s.machineId);
-    const cube =
-      delivery?.movementCube ?? s.deliveryTask?.movementCube ?? null;
+    const cube = delivery?.movementCube ?? s.deliveryTask?.movementCube ?? null;
     rows.push({
       kind: 'SUPPLY',
       id: s.id,
