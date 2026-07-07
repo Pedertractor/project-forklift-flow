@@ -39,6 +39,17 @@ test('frontend: detecta retirada vinculada quando abastecimento foi solicitado a
   const src = readFileSync(flowPath, 'utf8')
   assert.match(src, /export function isPickupLinkedToReplenishmentFlow/)
   assert.match(src, /openSupply\?\.requestedById === pickup\.requestedById/)
+  assert.match(src, /OPEN_STATUSES\.has\(replenishmentDelivery\.status\)/)
+  assert.match(src, /openSupply\.createdAt\)\.getTime\(\) <= pickupCreatedAt/)
+})
+
+test('frontend: retirada simples apos fluxo concluido nao reutiliza abastecimento antigo', () => {
+  const src = readFileSync(flowPath, 'utf8')
+  const fnBlock = src.slice(
+    src.indexOf('export function isPickupLinkedToReplenishmentFlow'),
+    src.indexOf('export function hasPickupLinkedToReplenishmentFlow'),
+  )
+  assert.equal(fnBlock.includes('supply.deliveryTaskId != null'), false)
 })
 
 test('frontend: lista unifica abastecimento e retirada vinculados', () => {

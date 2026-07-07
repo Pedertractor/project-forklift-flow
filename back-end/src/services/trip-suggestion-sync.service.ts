@@ -10,13 +10,14 @@ import {
 
 type PickupForReplenishmentLink = Pick<
   PickupTaskListRow,
-  'id' | 'machineId' | 'triggersReplenishment' | 'requestedBy'
+  'id' | 'machineId' | 'triggersReplenishment' | 'requestedBy' | 'createdAt'
 >
 
 /**
  * Retirada vinculada ao fluxo de reposição:
  * - retirada + abastecimento na mesma solicitação, ou
- * - abastecimento solicitado antes e retirada depois pelo mesmo operador.
+ * - abastecimento solicitado antes e retirada depois pelo mesmo operador,
+ *   enquanto o aviso ou a entrega vinculada ainda estiver em aberto.
  */
 export async function isPickupLinkedToReplenishmentFlow(
   pickup: PickupForReplenishmentLink,
@@ -30,14 +31,26 @@ export async function isPickupLinkedToReplenishmentFlow(
     await operatorMachineSupplyRequestRepository.findFirstOpenByMachineId(
       pickup.machineId,
     )
-  if (openSupply?.requestedBy?.id === operatorId) return true
+  if (
+    openSupply?.requestedBy?.id === operatorId &&
+    pickup.createdAt >= openSupply.createdAt
+  ) {
+    return true
+  }
 
   const fulfilledSupply =
     await operatorMachineSupplyRequestRepository.findLatestFulfilledWithOpenDeliveryForMachineAndOperator(
       pickup.machineId,
       operatorId,
     )
-  return Boolean(fulfilledSupply)
+  if (
+    fulfilledSupply &&
+    pickup.createdAt >= fulfilledSupply.createdAt
+  ) {
+    return true
+  }
+
+  return false
 }
 
 /** Retirada elegível para sugestão de viagem combinada na máquina. */

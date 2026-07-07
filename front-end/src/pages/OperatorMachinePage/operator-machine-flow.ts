@@ -91,7 +91,7 @@ export function isCombinedTripSuggestion(
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): boolean {
-  if (hasPickupLinkedToReplenishmentFlow(pickupTasks, supplyRequests)) {
+  if (hasPickupLinkedToReplenishmentFlow(pickupTasks, supplyRequests, deliveryTasks)) {
     return false;
   }
   const delivery = deliveryTaskDrivingMachineUi(deliveryTasks);
@@ -774,29 +774,49 @@ export function hasOpenPickupWithReplenishment(
 /**
  * Retirada vinculada ao fluxo de reposição:
  * - retirada + abastecimento na mesma solicitação, ou
- * - abastecimento solicitado antes e retirada depois pelo mesmo operador.
+ * - abastecimento solicitado antes e retirada depois pelo mesmo operador,
+ *   enquanto o aviso ou a entrega vinculada ainda estiver em aberto.
  */
 export function isPickupLinkedToReplenishmentFlow(
   pickup: PickupTaskListItem,
   supplyRequests: OperatorMachineSupplyRequestListItem[],
+  deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
   if (pickup.triggersReplenishment && OPEN_STATUSES.has(pickup.status)) {
     return true;
   }
   if (!OPEN_STATUSES.has(pickup.status)) return false;
 
-  const openSupply = findOpenSupplyForMachine(supplyRequests, pickup.machineId);
-  if (openSupply?.requestedById === pickup.requestedById) return true;
+  const pickupCreatedAt = new Date(pickup.createdAt).getTime();
 
-  const supply = findReplenishmentSupplyForMachine(
+  const openSupply = findOpenSupplyForMachine(supplyRequests, pickup.machineId);
+  if (
+    openSupply?.requestedById === pickup.requestedById &&
+    new Date(openSupply.createdAt).getTime() <= pickupCreatedAt
+  ) {
+    return true;
+  }
+
+  const replenishmentDelivery = findReplenishmentDeliveryForPickup(
+    deliveryTasks,
     supplyRequests,
     pickup.machineId,
   );
   if (
-    supply?.requestedById === pickup.requestedById &&
-    supply.deliveryTaskId != null
+    replenishmentDelivery &&
+    OPEN_STATUSES.has(replenishmentDelivery.status) &&
+    new Date(replenishmentDelivery.createdAt).getTime() <= pickupCreatedAt
   ) {
-    return true;
+    const supply = findReplenishmentSupplyForMachine(
+      supplyRequests,
+      pickup.machineId,
+    );
+    if (
+      supply?.requestedById === pickup.requestedById &&
+      new Date(supply.createdAt).getTime() <= pickupCreatedAt
+    ) {
+      return true;
+    }
   }
 
   return false;
@@ -805,8 +825,9 @@ export function isPickupLinkedToReplenishmentFlow(
 export function hasPickupLinkedToReplenishmentFlow(
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[],
+  deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
   return pickupTasks.some((pickup) =>
-    isPickupLinkedToReplenishmentFlow(pickup, supplyRequests),
+    isPickupLinkedToReplenishmentFlow(pickup, supplyRequests, deliveryTasks),
   );
 }

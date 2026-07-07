@@ -132,9 +132,14 @@ function shouldHideReplenishmentDeliveryRow(
   delivery: DeliveryTaskListItem,
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[],
+  deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
   return pickupTasks.some((pickup) => {
-    if (!isPickupLinkedToReplenishmentFlow(pickup, supplyRequests)) return false;
+    if (
+      !isPickupLinkedToReplenishmentFlow(pickup, supplyRequests, deliveryTasks)
+    ) {
+      return false;
+    }
     if (TERMINAL_MACHINE_TASK_STATUSES.has(pickup.status)) return false;
     return pickup.machineId === delivery.machineId;
   });
@@ -149,6 +154,7 @@ export function buildOperatorMachineTaskRows(
   const hideSupplyForReplenishmentPickup = hasPickupLinkedToReplenishmentFlow(
     pickupTasks,
     supplyRequests,
+    deliveryTasks,
   );
 
   let combinedDeliveryId: string | null = null;
@@ -187,7 +193,16 @@ export function buildOperatorMachineTaskRows(
   for (const t of deliveryTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
     if (t.id === combinedDeliveryId) continue;
-    if (shouldHideReplenishmentDeliveryRow(t, pickupTasks, supplyRequests)) continue;
+    if (
+      shouldHideReplenishmentDeliveryRow(
+        t,
+        pickupTasks,
+        supplyRequests,
+        deliveryTasks,
+      )
+    ) {
+      continue;
+    }
     rows.push({
       kind: 'DELIVERY',
       id: t.id,
@@ -205,6 +220,7 @@ export function buildOperatorMachineTaskRows(
     const linkedToReplenishmentFlow = isPickupLinkedToReplenishmentFlow(
       t,
       supplyRequests,
+      deliveryTasks,
     );
     const linkedSupply = linkedToReplenishmentFlow
       ? findReplenishmentSupplyForMachine(supplyRequests, t.machineId)
