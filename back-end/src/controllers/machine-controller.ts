@@ -11,6 +11,7 @@ import {
   deleteMachine,
   getMachineById,
   listMachines,
+  parseMachineProductionStatus,
   parsePlantMapUnit,
   updateMachine,
 } from '../services/machine.service.js'
@@ -107,6 +108,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    productionStatus?: string
   }
   if (!machineId) {
     return reply.status(400).send({ error: 'machineId invalido.' })
@@ -118,6 +120,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    productionStatus?: 'TRABALHANDO' | 'ABASTECER'
   } = {}
   if (typeof body.name === 'string') {
     if (body.name.trim() === '') {
@@ -150,13 +153,22 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
   if (body.userId !== undefined) {
     patch.userId = body.userId
   }
+  if (body.productionStatus !== undefined) {
+    const productionStatus = parseMachineProductionStatus(body.productionStatus)
+    if (!productionStatus) {
+      return reply.status(400).send({
+        error: 'productionStatus invalido. Use TRABALHANDO ou ABASTECER.',
+      })
+    }
+    patch.productionStatus = productionStatus
+  }
 
   if (Object.keys(patch).length === 0) {
     return reply
       .status(400)
       .send({
         error:
-          'Envie ao menos um campo: name, plantUnit, typeMachineId, sectorId ou userId.',
+          'Envie ao menos um campo: name, plantUnit, typeMachineId, sectorId, userId ou productionStatus.',
       })
   }
 

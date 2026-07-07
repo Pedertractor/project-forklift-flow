@@ -20,6 +20,7 @@ import { ENV } from '@/constants/env';
 import {
   parseOperatorMovimentWsMessage,
   resolveOperatorMovimentWsUrl,
+  wsEventMatchesMachineOperator,
   wsEventMatchesMovimentOperator,
   wsEventMatchesSubscriber,
 } from '@/lib/operator-moviment-ws';
@@ -29,6 +30,7 @@ import {
   SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
   SUPPLY_PENDING_PREPARATION_QUERY_KEY,
   SUPPLY_REPLENISHMENT_REQUESTS_QUERY_KEY,
+  SUPPLY_MACHINE_STATUS_QUERY_KEY,
   shouldInvalidateMyMovimentTasks,
   shouldInvalidateReplenishmentQueue,
   shouldInvalidateSupplyReplenishmentPage,
@@ -44,6 +46,8 @@ import { fetchOperatorMyMachine } from '@/services/operator-machine-api';
 import {
   applyMachineOperatorWsEvent,
   OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY,
+  patchMachineProductionStatusInCache,
+  refetchOperatorMyMachine,
   refetchOperatorMachineTasks,
   resolveBoundMachineIdFromCache,
 } from '@/lib/operator-machine-realtime-cache';
@@ -232,6 +236,9 @@ export function OperatorMovimentWorkProvider({
       queryKey: [...SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY],
     });
     void queryClient.invalidateQueries({
+      queryKey: [...SUPPLY_MACHINE_STATUS_QUERY_KEY],
+    });
+    void queryClient.invalidateQueries({
       queryKey: ['sector-transport-operators'],
     });
   }, [queryClient]);
@@ -276,6 +283,25 @@ export function OperatorMovimentWorkProvider({
         })
       ) {
         return;
+      }
+
+      if (
+        event.type === 'machine_production_status_updated' &&
+        isMachineOperator &&
+        'machineId' in event &&
+        'productionStatus' in event &&
+        wsEventMatchesMachineOperator(
+          event,
+          user?.id,
+          boundMachineId,
+          user?.sectorId,
+        )
+      ) {
+        patchMachineProductionStatusInCache(queryClient, event);
+        void queryClient.invalidateQueries({
+          queryKey: [...OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY],
+        });
+        refetchOperatorMyMachine(queryClient);
       }
 
       if (

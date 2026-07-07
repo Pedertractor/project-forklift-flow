@@ -85,6 +85,11 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
         label: 'Solicitações de reposição',
         allowedRoles: MACHINE_DOMAIN_ROLES,
       },
+      {
+        to: '/abastecimento/maquinas-dobra',
+        label: 'Status das máquinas',
+        allowedRoles: MACHINE_DOMAIN_ROLES,
+      },
     ],
   },
   {

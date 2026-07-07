@@ -67,6 +67,10 @@ export function useOperatorMachinePage() {
     queryKey: queryKeyMyMachine,
     queryFn: fetchOperatorMyMachine,
     enabled: apiReady,
+    staleTime: 0,
+    refetchInterval: (query) =>
+      query.state.data != null ? machinePollInterval : false,
+    refetchOnWindowFocus: true,
   });
 
   const current = myMachineQuery.data ?? null;

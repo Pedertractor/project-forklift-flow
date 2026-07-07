@@ -34,12 +34,14 @@ const SECTOR_QUEUE_EVENT_TYPES = new Set([
   'trip_suggestions_updated',
   'replenishment_request_created',
   'replenishment_queue_updated',
+  'machine_production_status_updated',
 ])
 
 const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
   'operator_supply_request_created',
   'delivery_task_created',
   'delivery_task_updated',
+  'machine_production_status_updated',
 ])
 
 const MACHINE_OPERATOR_EVENT_TYPES = new Set([
@@ -47,9 +49,10 @@ const MACHINE_OPERATOR_EVENT_TYPES = new Set([
   'pickup_task_updated',
   'replenishment_status_updated',
   'machine_operator_updated',
+  'machine_production_status_updated',
 ])
 
-const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated'])
+const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated', 'machine_production_status_updated'])
 
 /** Eventos de mudança de status de tarefa acompanhados no painel de supervisão. */
 const SUPERVISION_TASK_EVENT_TYPES = new Set([
@@ -139,6 +142,11 @@ function matchesMachineOperator(client: WsClient, payload: WsPayload): boolean {
   }
   if (payload.type === 'machine_operator_updated') {
     return payload.affectedUserId === client.userId
+  }
+  if (payload.type === 'machine_production_status_updated') {
+    if (payload.operatorUserId && payload.operatorUserId === client.userId) {
+      return true
+    }
   }
   if (payload.destinationUserId === client.userId) {
     return true
@@ -276,6 +284,23 @@ export function operatorMovimentPalletWsBroadcastMachineOperatorUpdated(
 ): void {
   broadcast({
     type: 'machine_operator_updated' as const,
+    ...payload,
+  })
+}
+
+export type MachineProductionStatusWsPayload = {
+  machineId: string
+  sectorId: string
+  productionStatus: string
+  operatorUserId: string | null
+}
+
+export function operatorMovimentPalletWsBroadcastMachineProductionStatusUpdated(
+  payload: MachineProductionStatusWsPayload,
+): void {
+  broadcast({
+    type: 'machine_production_status_updated' as const,
+    destinationUserId: payload.operatorUserId,
     ...payload,
   })
 }

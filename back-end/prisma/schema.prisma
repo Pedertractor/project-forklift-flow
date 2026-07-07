@@ -188,6 +188,9 @@ model Machine {
 
   movimentPalletTripSuggestions MovimentPalletTripSuggestion[]
 
+  /// Status operacional definido pelo abastecedor (dobra): máquina em produção ou aguardando abastecimento.
+  productionStatus MachineProductionStatus @default(TRABALHANDO)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -262,4 +265,9 @@ enum OperatorMachineSupplyRequestStatus {
   OPEN
   FULFILLED
   CANCELLED
+}
+
+enum MachineProductionStatus {
+  TRABALHANDO
+  ABASTECER
 }

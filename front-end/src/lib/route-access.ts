@@ -16,6 +16,7 @@ const PATH_RULES: { path: string; roles: readonly AppRole[] }[] = [
   { path: '/abastecimento/equipamentos', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/abastecimento/solicitacoes', roles: MACHINE_DOMAIN_ROLES },
   { path: '/abastecimento/preparo-pendente', roles: MACHINE_DOMAIN_ROLES },
+  { path: '/abastecimento/maquinas-dobra', roles: MACHINE_DOMAIN_ROLES },
   { path: '/administracao/setores', roles: ['ADMIN', 'SUPERADMIN'] },
   { path: '/administracao/usuarios', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/operacao/equipamento', roles: MOVIMENT_OPERATOR_ROLES },

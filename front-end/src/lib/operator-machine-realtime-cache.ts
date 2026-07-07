@@ -6,8 +6,10 @@ import type {
 } from '@/types/machine-task.types';
 import type {
   OperatorMovimentWsDeliveryTaskUpdated,
+  OperatorMovimentWsMachineProductionStatusUpdated,
   OperatorMovimentWsPickupTaskUpdated,
 } from '@/types/operator-moviment-ws.types';
+import type { MachineListItem, MachineProductionStatus } from '@/types/machine.types';
 
 export const OPERATOR_MACHINE_TASKS_QUERY_KEY = [
   'operator-machine',
@@ -125,6 +127,39 @@ export function resolveBoundMachineIdFromCache(
     (d) => d.status === 'CREATED' || d.status === 'ASSIGNED' || d.status === 'IN_PROGRESS',
   );
   return openDelivery?.machineId ?? null;
+}
+
+export function patchMachineProductionStatusInCache(
+  queryClient: QueryClient,
+  event: Pick<
+    OperatorMovimentWsMachineProductionStatusUpdated,
+    'machineId' | 'productionStatus'
+  >,
+): boolean {
+  let patched = false;
+  queryClient.setQueryData<MachineListItem | null>(
+    [...OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY],
+    (prev) => {
+      if (!prev || prev.id !== event.machineId) {
+        return prev;
+      }
+      const nextStatus = event.productionStatus as MachineProductionStatus;
+      if (prev.productionStatus === nextStatus) {
+        return prev;
+      }
+      patched = true;
+      return { ...prev, productionStatus: nextStatus };
+    },
+    { updatedAt: Date.now() },
+  );
+  return patched;
+}
+
+export function refetchOperatorMyMachine(queryClient: QueryClient): void {
+  void queryClient.refetchQueries({
+    queryKey: [...OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY],
+    type: 'active',
+  });
 }
 
 export function applyMachineOperatorWsEvent(

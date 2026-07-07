@@ -9,6 +9,8 @@ export interface TypeMachine {
 
 import type { PlantMapUnit } from '@/constants/plant-map'
 
+export type MachineProductionStatus = 'TRABALHANDO' | 'ABASTECER'
+
 /** Item de GET /machines */
 export interface MachineListItem {
   id: string
@@ -17,6 +19,7 @@ export interface MachineListItem {
   typeMachineId: string
   sectorId: string
   userId: string | null
+  productionStatus: MachineProductionStatus
   createdAt: string
   updatedAt: string
   typeMachine: { id: string; name: string; urlImage: string }

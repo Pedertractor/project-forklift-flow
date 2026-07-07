@@ -5,6 +5,7 @@ import type {
   CreateMachinePostBody,
   MachineDetail,
   MachineListItem,
+  MachineProductionStatus,
 } from '@/types/machine.types';
 
 export type FetchMachinesOptions = {
@@ -74,6 +75,7 @@ export async function updateMachine(
     typeMachineId?: string;
     sectorId?: string;
     userId?: string | null;
+    productionStatus?: MachineProductionStatus;
   },
 ): Promise<MachineDetail> {
   const res = await apiAuthFetch<MachineDetail>(API_ENDPOINTS.MACHINES.BY_ID(id), {

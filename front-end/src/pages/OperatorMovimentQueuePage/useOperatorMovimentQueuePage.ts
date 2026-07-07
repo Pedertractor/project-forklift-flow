@@ -105,11 +105,15 @@ export function useOperatorMovimentQueuePage() {
     onError: toastApiError,
   });
 
-  const busy =
-    isEnteringTaskFlow ||
+  const isAcceptingTask =
     acceptPickupMut.isPending ||
     acceptTripMut.isPending ||
     acceptDeliverMut.isPending;
+
+  const busy = isEnteringTaskFlow || isAcceptingTask;
+
+  /** Cobre desde o clique de aceitar até a navegação concluir (evita flash da lista). */
+  const showAcceptTransitionOverlay = busy;
 
   const currentPallet = myPalletQuery.data ?? null;
 
@@ -145,6 +149,7 @@ export function useOperatorMovimentQueuePage() {
     pendingStandalonePickupTaskId,
     pendingStandaloneDeliverKey,
     busy,
+    showAcceptTransitionOverlay,
     onAcceptTrip: (tripSuggestionId: string) =>
       acceptTripMut.mutate(tripSuggestionId),
     onAcceptStandalonePickup: (taskId: string) =>

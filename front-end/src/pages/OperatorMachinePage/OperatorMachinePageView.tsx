@@ -6,6 +6,7 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
+import { MachineProductionStatusIndicator } from './MachineProductionStatusIndicator';
 import { LogOut } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { captalizeString } from '@/utils/captalizeString';
@@ -82,13 +83,18 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                 />
               ) : null}
               <div className="flex w-full items-center justify-between h-full">
-                <div>
+                <div className="min-w-0">
                   <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Máquina em operação
                   </p>
-                  <p className="m-0 truncate text-lg font-bold text-zinc-900">
-                    {current.name}
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <p className="m-0 truncate text-lg font-bold text-zinc-900">
+                      {current.name}
+                    </p>
+                    <MachineProductionStatusIndicator
+                      status={current.productionStatus ?? 'TRABALHANDO'}
+                    />
+                  </div>
                 </div>
               </div>
               <Button
