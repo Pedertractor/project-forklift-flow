@@ -1,5 +1,6 @@
 import {
   IsOperating,
+  MachineProductionStatus,
   MachineTaskStatus,
   MovimentPalletTripSuggestionStatus,
   RoleUser,
@@ -24,6 +25,7 @@ import {
 } from "../errors/domain-errors.js";
 import { prisma } from "../lib/prisma.js";
 import {
+  operatorMovimentPalletWsBroadcastMachineProductionStatusUpdated,
   operatorMovimentPalletWsBroadcastQueueUpdated,
   operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
   operatorMovimentPalletWsNotifyDeliveryTaskChange,
@@ -34,6 +36,7 @@ import {
   incompleteAssignedMachineTaskStatuses,
 } from "../constants/machine-task-status.js";
 import { deliveryTaskRepository } from "../repositories/delivery-task.repository.js";
+import { machineRepository } from "../repositories/machine.repository.js";
 import { pickupTaskRepository } from "../repositories/pickup-task.repository.js";
 import {
   isOpenTripTaskPairValid,
@@ -927,6 +930,21 @@ export async function completeDeliverTaskToMachine(
       preparedAt: updated.preparedAt,
       machine: updated.machine,
     });
+
+    // Entrega concluída: a máquina volta a produzir, então retorna para TRABALHANDO.
+    if (
+      updated.machine.productionStatus !== MachineProductionStatus.TRABALHANDO
+    ) {
+      const machineAfter = await machineRepository.update(updated.machine.id, {
+        productionStatus: MachineProductionStatus.TRABALHANDO,
+      });
+      operatorMovimentPalletWsBroadcastMachineProductionStatusUpdated({
+        machineId: machineAfter.id,
+        sectorId: machineAfter.sectorId,
+        productionStatus: machineAfter.productionStatus,
+        operatorUserId: machineAfter.userId ?? null,
+      });
+    }
   }
 
   return { task: updated, deliveryTask: updated, request: updated };
