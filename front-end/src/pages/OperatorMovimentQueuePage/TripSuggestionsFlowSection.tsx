@@ -184,14 +184,14 @@ function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
   return accepting ? (
     <>
       <Loader2
-        className="size-5 shrink-0 animate-spin phone-landscape:size-4"
+        className="size-5 shrink-0 animate-spin phone-landscape:size-4 lg:size-6 xl:size-7"
         aria-hidden
       />
       Aceitando…
     </>
   ) : (
     <>
-      <Check className="size-5 shrink-0 phone-landscape:size-4" aria-hidden />
+      <Check className="size-5 shrink-0 phone-landscape:size-4 lg:size-6 xl:size-7" aria-hidden />
       Aceitar
     </>
   );
@@ -269,12 +269,12 @@ function SuggestionFlowCardBody({
               ) : null
             }
           >
-            <span className="inline-flex items-center gap-1 font-semibold normal-case text-zinc-700 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-sm sm:text-sm">
+            <span className="inline-flex items-center gap-1 font-semibold normal-case text-zinc-700 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-sm sm:text-sm lg:text-base xl:text-lg">
               {activityLabel === 'Entrega' ? (
                 <>
                   Entrega de pallet
                   <ArrowUpRight
-                    className="size-4 rounded-full bg-green-200 phone-landscape:size-3"
+                    className="size-4 rounded-full bg-green-200 phone-landscape:size-3 lg:size-5 xl:size-6"
                     aria-hidden
                   />
                 </>
@@ -282,7 +282,7 @@ function SuggestionFlowCardBody({
                 <>
                   Retirada de pallet
                   <ArrowDownLeft
-                    className="size-4 rounded-full bg-red-200 phone-landscape:size-3"
+                    className="size-4 rounded-full bg-red-200 phone-landscape:size-3 lg:size-5 xl:size-6"
                     aria-hidden
                   />
                 </>
@@ -294,7 +294,7 @@ function SuggestionFlowCardBody({
         </div>
       ) : null}
       {title ? (
-        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-zinc-700 phone-landscape:mb-2 phone-landscape:text-base phone-landscape:shrink-0">
+        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-zinc-700 phone-landscape:mb-2 phone-landscape:text-base phone-landscape:shrink-0 lg:text-sm xl:text-base">
           {title}
         </p>
       ) : null}

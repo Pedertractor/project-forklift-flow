@@ -6,7 +6,7 @@ import { ENV } from '@/constants/env';
 import { cn } from '@/lib/utils';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import type { MachineListItem, MachineProductionStatus } from '@/types/machine.types';
-import { ArrowLeftIcon, Factory, Loader2, Package } from 'lucide-react';
+import { ArrowLeftIcon, Factory, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { SupplyMachineStatusPageViewModel } from './useSupplyMachineStatusPage';
 
@@ -40,7 +40,6 @@ function MachineStatusButton({
   icon: Icon,
   status,
   active,
-  loading,
   disabled,
   onClick,
 }: {
@@ -48,7 +47,6 @@ function MachineStatusButton({
   icon: typeof Factory;
   status: MachineProductionStatus;
   active: boolean;
-  loading: boolean;
   disabled: boolean;
   onClick: () => void;
 }) {
@@ -57,15 +55,10 @@ function MachineStatusButton({
       type="button"
       variant="outline"
       className={statusButtonClass(active, status)}
-      disabled={disabled || loading}
+      disabled={disabled}
       onClick={onClick}
-      aria-busy={loading}
     >
-      {loading ? (
-        <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-      ) : (
-        <Icon className="size-4 shrink-0" aria-hidden />
-      )}
+      <Icon className="size-4 shrink-0" aria-hidden />
       {label}
     </Button>
   );
@@ -74,18 +67,12 @@ function MachineStatusButton({
 function MachineStatusCard({
   machine,
   disabled,
-  pendingUpdate,
   onSetStatus,
 }: {
   machine: MachineListItem;
   disabled: boolean;
-  pendingUpdate: {
-    machineId: string;
-    productionStatus: MachineProductionStatus;
-  } | null;
   onSetStatus: (status: MachineProductionStatus) => void;
 }) {
-  const isUpdatingThisMachine = pendingUpdate?.machineId === machine.id;
   return (
     <li className="min-w-0">
       <Card className="flex h-full flex-col gap-4 border border-zinc-200 p-4 shadow-sm">
@@ -131,11 +118,7 @@ function MachineStatusCard({
             icon={Factory}
             status="TRABALHANDO"
             active={machine.productionStatus === 'TRABALHANDO'}
-            loading={
-              isUpdatingThisMachine &&
-              pendingUpdate?.productionStatus === 'TRABALHANDO'
-            }
-            disabled={disabled || isUpdatingThisMachine}
+            disabled={disabled}
             onClick={() => onSetStatus('TRABALHANDO')}
           />
           <MachineStatusButton
@@ -143,11 +126,7 @@ function MachineStatusCard({
             icon={Package}
             status="ABASTECER"
             active={machine.productionStatus === 'ABASTECER'}
-            loading={
-              isUpdatingThisMachine &&
-              pendingUpdate?.productionStatus === 'ABASTECER'
-            }
-            disabled={disabled || isUpdatingThisMachine}
+            disabled={disabled}
             onClick={() => onSetStatus('ABASTECER')}
           />
         </div>
@@ -166,9 +145,7 @@ export function SupplyMachineStatusPageView(
     machinesQuery,
     machines,
     machinesEmpty,
-    pendingStatusUpdate,
     setMachineStatus,
-    busy,
   } = vm;
 
   const navigate = useNavigate();
@@ -190,7 +167,6 @@ export function SupplyMachineStatusPageView(
             type="button"
             variant="outline"
             className="h-10 w-full gap-2 px-3 text-xs sm:h-9 sm:w-auto"
-            disabled={busy}
             onClick={() => navigate('/abastecimento/solicitacoes')}
           >
             <ArrowLeftIcon className="size-4 shrink-0" />
@@ -252,8 +228,7 @@ export function SupplyMachineStatusPageView(
               <MachineStatusCard
                 key={machine.id}
                 machine={machine}
-                disabled={!apiReady || busy || machinesEmpty}
-                pendingUpdate={pendingStatusUpdate}
+                disabled={!apiReady || machinesEmpty}
                 onSetStatus={(status) => setMachineStatus(machine, status)}
               />
             ))}

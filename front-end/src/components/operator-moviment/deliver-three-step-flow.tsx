@@ -53,8 +53,8 @@ export function DeliverFlowActivitySubtitle({
         className={cn(
           'mb-4 grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 font-normal uppercase leading-tight tracking-wide phone-landscape:mb-1.5 phone-landscape:shrink-0 phone-landscape:gap-x-1 sm:leading-normal sm:tracking-wider',
           large
-            ? 'text-xs phone-landscape:text-base'
-            : 'text-[11px] phone-landscape:text-sm sm:text-xs',
+            ? 'text-xs phone-landscape:text-base lg:text-base xl:text-lg'
+            : 'text-[11px] phone-landscape:text-sm sm:text-xs lg:text-sm xl:text-base',
         )}
       >
         <div className="min-w-0 justify-self-start">{start}</div>
@@ -91,8 +91,8 @@ export function DeliverFlowMachineCubeHighlight({
       className={cn(
         'inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5',
         large
-          ? 'text-sm phone-landscape:text-base md:text-xl'
-          : 'text-sm phone-landscape:text-base md:text-xl',
+          ? 'text-sm phone-landscape:text-base md:text-xl lg:text-2xl xl:text-3xl'
+          : 'text-sm phone-landscape:text-base md:text-xl lg:text-2xl xl:text-3xl',
       )}
     >
       {machineName ? (
@@ -113,8 +113,8 @@ export function DeliverFlowMachineCubeHighlight({
               className={cn(
                 'shrink-0 text-brand',
                 large
-                  ? 'size-3.5 phone-landscape:size-4 md:size-5'
-                  : 'size-3.5 phone-landscape:size-4 md:size-5',
+                  ? 'size-3.5 phone-landscape:size-4 md:size-5 lg:size-6 xl:size-7'
+                  : 'size-3.5 phone-landscape:size-4 md:size-5 lg:size-6 xl:size-7',
               )}
               aria-hidden
             />
@@ -189,6 +189,7 @@ export function DeliverFlowAcceptButton({
         deliverFlowButtonIntentClass[intent],
         'phone-landscape:h-9 phone-landscape:gap-1.5 phone-landscape:px-5 phone-landscape:text-sm',
         'md:h-12 md:w-auto md:min-w-[17rem] md:max-w-none md:gap-2.5 md:px-10 md:text-base',
+        'lg:h-14 lg:min-w-80 lg:gap-3 lg:px-12 lg:text-lg xl:h-16 xl:text-xl',
         className,
       )}
       disabled={disabled}
@@ -507,7 +508,7 @@ function FlowStepIconRing({
         'relative flex shrink-0 items-center justify-center rounded-full bg-white',
         !landscape && size === 'compact' && 'size-12 phone-landscape:size-14',
         !landscape && micro && !fillHeight && 'size-9 phone-landscape:size-11',
-        !landscape && size === 'default' && 'size-14 sm:size-16',
+        !landscape && size === 'default' && 'size-14 sm:size-16 lg:size-20 xl:size-24',
       )}
       style={landscape ? landscapeRingStyle(stepCount, activityTypography) : undefined}
     >
@@ -527,7 +528,7 @@ function FlowStepIconRing({
           'relative z-10 text-zinc-800',
           !landscape && size === 'compact' && 'size-6 phone-landscape:size-7',
           !landscape && micro && !fillHeight && 'size-4 phone-landscape:size-5',
-          !landscape && size === 'default' && 'size-7 sm:size-8',
+          !landscape && size === 'default' && 'size-7 sm:size-8 lg:size-10 xl:size-12',
         )}
         style={landscape ? landscapeIconStyle(stepCount, activityTypography) : undefined}
         strokeWidth={1.5}
@@ -578,7 +579,7 @@ function FlowStepColumn({
             !landscape && 'flex shrink-0 items-center justify-center rounded-full',
             !landscape && micro && !fillHeight && 'flex size-4 text-[10px] phone-landscape:size-5 phone-landscape:text-xs',
             !landscape && size === 'compact' && !fillHeight && 'flex size-6 text-xs phone-landscape:size-7 phone-landscape:text-sm',
-            !landscape && size === 'default' && 'flex size-6 text-xs',
+            !landscape && size === 'default' && 'flex size-6 text-xs lg:size-8 lg:text-base xl:size-9 xl:text-lg',
           )}
           style={landscape ? landscapeBadgeStyle(stepCount, activityTypography) : undefined}
         >
@@ -599,7 +600,7 @@ function FlowStepColumn({
             landscape && 'line-clamp-4',
             micro && !fillHeight && 'line-clamp-4 text-xs leading-snug phone-landscape:text-base',
             size === 'compact' && !fillHeight && 'text-xs leading-snug phone-landscape:text-base phone-landscape:leading-snug',
-            size === 'default' && 'px-1 text-xs leading-snug sm:text-sm',
+            size === 'default' && 'px-1 text-xs leading-snug sm:text-sm lg:text-lg xl:text-xl',
           )}
           style={landscape ? landscapeLabelStyle(stepCount, activityTypography) : undefined}
         >
@@ -611,7 +612,7 @@ function FlowStepColumn({
               className={cn(
                 'text-brand',
                 !landscape && micro && !fillHeight && 'size-3',
-                !landscape && !micro && 'size-4',
+                !landscape && !micro && 'size-4 lg:size-5 xl:size-6',
               )}
               style={landscape ? landscapeCubeIconStyle(stepCount, activityTypography) : undefined}
               aria-hidden
@@ -620,7 +621,7 @@ function FlowStepColumn({
               className={cn(
                 'font-bold tracking-widest text-brand',
                 !landscape && micro && !fillHeight && 'text-xs phone-landscape:text-sm',
-                !landscape && !micro && 'text-xl',
+                !landscape && !micro && 'text-xl lg:text-2xl xl:text-3xl',
               )}
               style={landscape ? landscapeCubeTextStyle(stepCount, activityTypography) : undefined}
             >

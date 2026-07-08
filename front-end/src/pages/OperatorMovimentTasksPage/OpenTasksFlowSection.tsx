@@ -250,14 +250,14 @@ function buildOpenTaskSteps(
 
 function OpenActivityHeading() {
   return (
-    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-lg md:text-base">
+    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-lg md:text-base lg:text-lg xl:text-xl">
       {/* <span
         className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand phone-landscape:size-9"
         aria-hidden
       >
       </span> */}
       <Layers2
-        className="text-brand size-4 phone-landscape:size-[1.125rem]"
+        className="text-brand size-4 phone-landscape:size-[1.125rem] lg:size-5 xl:size-6"
         strokeWidth={2.25}
       />
       <span className="flex flex-wrap items-center gap-1.5">
@@ -330,7 +330,7 @@ function OpenTaskRouteCard({
             start={<span aria-hidden />}
             end={
               <span
-                className="truncate font-bold uppercase tracking-wide text-brand phone-landscape:text-base md:text-lg"
+                className="truncate font-bold uppercase tracking-wide text-brand phone-landscape:text-base md:text-lg lg:text-xl xl:text-2xl"
                 title={group.machineName}
               >
                 {group.machineName}
@@ -368,14 +368,14 @@ function OpenTaskRouteCard({
                     {completing ? (
                       <>
                         <Loader2
-                          className="size-5 shrink-0 animate-spin"
+                          className="size-5 shrink-0 animate-spin lg:size-6 xl:size-7"
                           aria-hidden
                         />
                         Concluindo…
                       </>
                     ) : (
                       <>
-                        <Check className="size-5 shrink-0" aria-hidden />
+                        <Check className="size-5 shrink-0 lg:size-6 xl:size-7" aria-hidden />
                         Concluir entrega
                       </>
                     )}
@@ -397,14 +397,14 @@ function OpenTaskRouteCard({
                       {completing ? (
                         <>
                           <Loader2
-                            className="size-5 shrink-0 animate-spin"
+                            className="size-5 shrink-0 animate-spin lg:size-6 xl:size-7"
                             aria-hidden
                           />
                           Confirmando…
                         </>
                       ) : (
                         <>
-                          <Check className="size-5 shrink-0" aria-hidden />
+                          <Check className="size-5 shrink-0 lg:size-6 xl:size-7" aria-hidden />
                           Confirmar entrega na expedição
                         </>
                       )}

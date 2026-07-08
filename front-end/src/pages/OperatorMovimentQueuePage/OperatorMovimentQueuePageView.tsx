@@ -45,7 +45,7 @@ export function OperatorMovimentQueuePageView(
           aria-label="Abrindo atividade"
         >
           <AccordionLoader  />
-          <p className="m-0 text-sm font-medium text-zinc-700">Abrindo atividade…</p>
+          <p className="m-0 text-sm font-medium text-zinc-700"></p>
         </div>
       ) : null}
 

@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo, useRef } from 'react';
 import { toast } from '@/lib/toast';
 import { toastApiError } from '@/lib/toast-helpers';
 import { ENV } from '@/constants/env';
@@ -13,19 +13,29 @@ function useApiReady(): boolean {
   return Boolean(ENV.API_URL && token);
 }
 
+type StatusQueueItem = {
+  machineId: string;
+  productionStatus: MachineProductionStatus;
+  snapshotStatus: MachineProductionStatus;
+  machineName: string;
+};
+
 export function useSupplyMachineStatusPage() {
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const hasSector = Boolean(user?.sectorId);
-  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
-    machineId: string;
-    productionStatus: MachineProductionStatus;
-  } | null>(null);
+  const queueRef = useRef<StatusQueueItem[]>([]);
+  const processingRef = useRef(false);
+
+  const machinesQueryKey = useMemo(
+    () => [...SUPPLY_MACHINE_STATUS_QUERY_KEY, user?.sectorId ?? ''] as const,
+    [user?.sectorId],
+  );
 
   const machinesQuery = useQuery({
-    queryKey: [...SUPPLY_MACHINE_STATUS_QUERY_KEY, user?.sectorId ?? ''],
+    queryKey: machinesQueryKey,
     queryFn: () =>
       fetchMachines({
         sectorId: user?.sectorId ?? undefined,
@@ -40,49 +50,99 @@ export function useSupplyMachineStatusPage() {
   const machinesEmpty =
     apiReady && machinesQuery.isSuccess && machines.length === 0;
 
-  const statusMut = useMutation({
-    mutationFn: async ({
-      machineId,
-      productionStatus,
-    }: {
-      machineId: string;
-      productionStatus: MachineProductionStatus;
-    }) => updateMachine(machineId, { productionStatus }),
-    onMutate: ({ machineId, productionStatus }) => {
-      setPendingStatusUpdate({ machineId, productionStatus });
-    },
-    onSuccess: (updated) => {
-      void queryClient.invalidateQueries({
-        queryKey: SUPPLY_MACHINE_STATUS_QUERY_KEY,
+  const patchMachineInCache = useCallback(
+    (machineId: string, productionStatus: MachineProductionStatus) => {
+      queryClient.setQueryData<MachineListItem[]>(machinesQueryKey, (prev) => {
+        if (!prev) {
+          return prev;
+        }
+        return prev.map((machine) =>
+          machine.id === machineId
+            ? { ...machine, productionStatus }
+            : machine,
+        );
       });
-      void queryClient.invalidateQueries({
-        queryKey: ['machines'],
-      });
-      const label =
-        updated.productionStatus === 'ABASTECER'
-          ? 'ABASTECER'
-          : 'TRABALHANDO';
-      toast.success(`${updated.name}: status atualizado para ${label}.`);
     },
-    onError: (error) => {
-      toastApiError(error, 'Não foi possível atualizar o status da máquina.');
-    },
-    onSettled: () => {
-      setPendingStatusUpdate(null);
-    },
-  });
+    [queryClient, machinesQueryKey],
+  );
+
+  const processQueue = useCallback(async () => {
+    if (processingRef.current) {
+      return;
+    }
+    processingRef.current = true;
+
+    while (queueRef.current.length > 0) {
+      const item = queueRef.current.shift();
+      if (!item) {
+        break;
+      }
+
+      try {
+        const updated = await updateMachine(item.machineId, {
+          productionStatus: item.productionStatus,
+        });
+        const label =
+          updated.productionStatus === 'ABASTECER'
+            ? 'ABASTECER'
+            : 'TRABALHANDO';
+        toast.success(`${updated.name}: status atualizado para ${label}.`);
+      } catch (error) {
+        patchMachineInCache(item.machineId, item.snapshotStatus);
+        queueRef.current = queueRef.current.filter(
+          (queued) => queued.machineId !== item.machineId,
+        );
+        toastApiError(error, 'Não foi possível atualizar o status da máquina.');
+      }
+    }
+
+    processingRef.current = false;
+
+    if (queueRef.current.length > 0) {
+      void processQueue();
+      return;
+    }
+
+    void queryClient.invalidateQueries({
+      queryKey: SUPPLY_MACHINE_STATUS_QUERY_KEY,
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ['machines'],
+    });
+  }, [patchMachineInCache, queryClient]);
 
   const setMachineStatus = useCallback(
     (machine: MachineListItem, productionStatus: MachineProductionStatus) => {
-      if (machine.productionStatus === productionStatus) {
+      const currentStatus =
+        queryClient
+          .getQueryData<MachineListItem[]>(machinesQueryKey)
+          ?.find((item) => item.id === machine.id)?.productionStatus ??
+        machine.productionStatus;
+
+      if (currentStatus === productionStatus) {
         return;
       }
-      statusMut.mutate({ machineId: machine.id, productionStatus });
-    },
-    [statusMut],
-  );
 
-  const busy = statusMut.isPending;
+      const existingItem = queueRef.current.find(
+        (queued) => queued.machineId === machine.id,
+      );
+      const snapshotStatus = existingItem?.snapshotStatus ?? currentStatus;
+
+      queueRef.current = queueRef.current.filter(
+        (queued) => queued.machineId !== machine.id,
+      );
+      queueRef.current.push({
+        machineId: machine.id,
+        productionStatus,
+        snapshotStatus,
+        machineName: machine.name,
+      });
+
+      patchMachineInCache(machine.id, productionStatus);
+      void processQueue();
+    },
+    [machinesQueryKey, patchMachineInCache, processQueue, queryClient],
+  );
 
   return {
     apiReady,
@@ -91,9 +151,7 @@ export function useSupplyMachineStatusPage() {
     machinesQuery,
     machines,
     machinesEmpty,
-    pendingStatusUpdate,
     setMachineStatus,
-    busy,
   };
 }
 
