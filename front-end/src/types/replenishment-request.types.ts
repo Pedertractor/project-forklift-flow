@@ -37,6 +37,8 @@ export interface ReplenishmentRequestListItem {
     id: string;
     name: string;
     userId: string | null;
+    assetNumber?: string | null;
+    pillar?: string | null;
     typeMachine: { id: string; name: string };
     sector: { id: string; typeSector: string };
   };

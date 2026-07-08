@@ -10,6 +10,7 @@ import { ArrowLeftIcon } from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 import { useNavigate } from 'react-router-dom';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 function OperatorSupplyRequestCard({
@@ -54,9 +55,11 @@ function OperatorSupplyRequestCard({
             <p className="m-0 text-sm font-bold text-zinc-900 sm:text-base">
               {row.machine.name}
             </p>
-            <p className="mt-0.5 text-sm text-zinc-600">
-              Máquina: {row.machine.name}
-            </p>
+            <MachineMetaText
+              assetNumber={row.machine.assetNumber}
+              pillar={row.machine.pillar}
+              className="mt-0.5"
+            />
             <p className="mt-2 text-xs text-zinc-500">
               Operador:{' '}
               <span className="font-medium text-zinc-700">

@@ -14,7 +14,7 @@ import { pickupTaskListInclude } from './pickup-task.repository.js'
 const suggestionListInclude = {
   deliverTask: { include: deliveryTaskListInclude },
   pickupTask: { include: pickupTaskListInclude },
-  machine: { select: { id: true, name: true, sectorId: true, productionStatus: true } },
+  machine: { select: { id: true, name: true, sectorId: true, productionStatus: true, assetNumber: true, pillar: true } },
 } as const
 
 export type MovimentPalletTripSuggestionWithTasks = Prisma.MovimentPalletTripSuggestionGetPayload<{

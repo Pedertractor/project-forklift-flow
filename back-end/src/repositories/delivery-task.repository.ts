@@ -14,6 +14,8 @@ const machineBriefInclude = {
   userId: true,
   sectorId: true,
   productionStatus: true,
+  assetNumber: true,
+  pillar: true,
   typeMachine: { select: { id: true, name: true } },
   sector: { select: { id: true, typeSector: true } },
 } as const

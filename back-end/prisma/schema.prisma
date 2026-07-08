@@ -191,6 +191,12 @@ model Machine {
   /// Status operacional definido pelo abastecedor (dobra): máquina em produção ou aguardando abastecimento.
   productionStatus MachineProductionStatus @default(TRABALHANDO)
 
+  /// Asset / patrimony number of the equipment.
+  assetNumber String?
+
+  /// Physical pillar / bay location of the machine on the plant floor.
+  pillar String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -7,6 +7,7 @@ import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
 import { MachineProductionStatusIndicator } from './MachineProductionStatusIndicator';
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { LogOut } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { captalizeString } from '@/utils/captalizeString';
@@ -95,6 +96,10 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                       status={current.productionStatus ?? 'TRABALHANDO'}
                     />
                   </div>
+                  <MachineMetaText
+                    assetNumber={current.assetNumber}
+                    pillar={current.pillar}
+                  />
                 </div>
               </div>
               <Button

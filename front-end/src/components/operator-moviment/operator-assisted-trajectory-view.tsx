@@ -7,11 +7,11 @@ import {
 import {
   expeditionAreaDetail,
   goToReceivingDetail,
-  machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { machineLocationDetailItems } from '@/utils/machine-display';
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import {
   formatTaskDate,
@@ -33,6 +33,8 @@ import { CheckCircle2, ClipboardList, Route, Timer } from 'lucide-react';
 interface TaskRouteGroup {
   machineId: string;
   machineName: string;
+  machineAssetNumber: string | null;
+  machinePillar: string | null;
   priority: OperatorMovimentTaskItem['request']['priorityLevel'];
   deliverTask: OperatorMovimentTaskItem | null;
   pickupTask: OperatorMovimentTaskItem | null;
@@ -53,6 +55,8 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
       group = {
         machineId: dest.id,
         machineName: dest.name,
+        machineAssetNumber: dest.assetNumber ?? null,
+        machinePillar: dest.pillar ?? null,
         priority: task.request.priorityLevel,
         deliverTask: null,
         pickupTask: null,
@@ -159,7 +163,11 @@ function buildOpenTaskSteps(
     group.pickupTask !== null &&
     canCompleteMovimentPickup(group.pickupTask, operatorUserId);
   const deliverCube = group.deliverTask?.request.movementCube;
-  const machineDetails = [machineLocationDetail(group.machineName)];
+  const machineDetails = machineLocationDetailItems({
+    name: group.machineName,
+    assetNumber: group.machineAssetNumber,
+    pillar: group.machinePillar,
+  });
   const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
 
   if (deliverOpen && pickupOpen && isCombinedRoute) {

@@ -1,3 +1,4 @@
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { DataTableCard } from '@/components/ui/table';
 import {
   formatTaskDate,
@@ -134,6 +135,10 @@ function ReplenishmentRequestMobileCard({
             <p className="m-0 truncate text-sm font-semibold text-zinc-900">
               {row.destination.name}
             </p>
+            <MachineMetaText
+              assetNumber={row.destination.assetNumber}
+              pillar={row.destination.pillar}
+            />
             <p className="m-0 truncate text-xs text-zinc-500">
               {row.destination.sector.typeSector}
             </p>
@@ -312,6 +317,10 @@ export function ReplenishmentRequestsTable({
                   <div className="font-medium text-zinc-900">
                     {row.destination.name}
                   </div>
+                  <MachineMetaText
+                    assetNumber={row.destination.assetNumber}
+                    pillar={row.destination.pillar}
+                  />
                   <div className="text-xs text-zinc-500">
                     {row.destination.sector.typeSector}
                   </div>

@@ -37,6 +37,10 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setDeleteRow,
     name,
     setName,
+    assetNumber,
+    setAssetNumber,
+    pillar,
+    setPillar,
     typeMachineId,
     setTypeMachineId,
     sectorId,
@@ -182,11 +186,15 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         ) : null}
 
         <DataTableCard className="mt-6">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[920px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
                 <th className="px-4 py-3 font-semibold text-zinc-700"></th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Nome</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">
+                  Patrimônio
+                </th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">Pilar</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Tipo da máquina
                 </th>
@@ -202,7 +210,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <tbody>
               {machinesQuery.isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-zinc-500">
+                  <td colSpan={8} className="px-4 py-8 text-zinc-500">
                     <div className="flex items-center justify-center">
                       <AccordionLoader />
                     </div>
@@ -211,7 +219,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ) : machinesQuery.data?.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="px-4 py-8 text-center text-zinc-500"
                   >
                     Nenhuma máquina de produção neste filtro.
@@ -235,6 +243,12 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                       </td>
                       <td className="px-4 py-3 font-medium text-zinc-900">
                         {row.name}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {row.assetNumber ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {row.pillar ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
                         <span className="text-zinc-900">
@@ -338,6 +352,24 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="m-asset-number">Patrimônio</Label>
+            <Input
+              id="m-asset-number"
+              value={assetNumber}
+              onChange={(e) => setAssetNumber(e.target.value)}
+              placeholder="Ex.: 123456"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-pillar">Pilar da máquina</Label>
+            <Input
+              id="m-pillar"
+              value={pillar}
+              onChange={(e) => setPillar(e.target.value)}
+              placeholder="Ex.: Pilar 12"
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="m-plant-unit">Unidade</Label>
             <SelectCombobox
               id="m-plant-unit"
@@ -417,6 +449,22 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               id="m-edit-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-edit-asset-number">Patrimônio</Label>
+            <Input
+              id="m-edit-asset-number"
+              value={assetNumber}
+              onChange={(e) => setAssetNumber(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-edit-pillar">Pilar da máquina</Label>
+            <Input
+              id="m-edit-pillar"
+              value={pillar}
+              onChange={(e) => setPillar(e.target.value)}
             />
           </div>
           <div className="space-y-2">

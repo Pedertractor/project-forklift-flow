@@ -28,6 +28,8 @@ export type CreateMachineInput = {
   typeMachineId: string
   sectorId: string
   userId?: string | null | undefined
+  assetNumber: string
+  pillar: string
 }
 
 export type UpdateMachineInput = {
@@ -37,6 +39,8 @@ export type UpdateMachineInput = {
   sectorId?: string
   userId?: string | null
   productionStatus?: MachineProductionStatus
+  assetNumber?: string | null
+  pillar?: string | null
 }
 
 const MACHINE_PRODUCTION_STATUSES = new Set<MachineProductionStatus>([
@@ -117,6 +121,12 @@ function buildMachineUpdateData(
   if (input.productionStatus !== undefined) {
     data.productionStatus = input.productionStatus
   }
+  if (input.assetNumber !== undefined) {
+    data.assetNumber = input.assetNumber
+  }
+  if (input.pillar !== undefined) {
+    data.pillar = input.pillar
+  }
   return data
 }
 
@@ -130,6 +140,8 @@ export async function createMachine(input: CreateMachineInput) {
   const data: Prisma.MachineCreateInput = {
     name: input.name.trim(),
     plantUnit: input.plantUnit,
+    assetNumber: input.assetNumber.trim(),
+    pillar: input.pillar.trim(),
     typeMachine: { connect: { id: input.typeMachineId } },
     sector: { connect: { id: input.sectorId } },
   }

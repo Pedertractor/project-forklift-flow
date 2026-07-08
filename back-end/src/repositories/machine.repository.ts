@@ -10,6 +10,8 @@ const machineListSelect = {
   sectorId: true,
   userId: true,
   productionStatus: true,
+  assetNumber: true,
+  pillar: true,
   createdAt: true,
   updatedAt: true,
   typeMachine: {

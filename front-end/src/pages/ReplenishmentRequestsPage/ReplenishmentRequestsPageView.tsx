@@ -1,3 +1,4 @@
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { ReplenishmentCreateWizardModal } from './ReplenishmentCreateWizardModal';
@@ -598,8 +599,13 @@ export function ReplenishmentRequestsPageView(
             <div>
               <dt className="text-xs font-medium text-zinc-500">Destino</dt>
               <dd className="mt-0.5 text-zinc-900">
-                {detailRow.destination.name}—{' '}
+                {detailRow.destination.name} —{' '}
                 {detailRow.destination.sector.typeSector}
+                <MachineMetaText
+                  assetNumber={detailRow.destination.assetNumber}
+                  pillar={detailRow.destination.pillar}
+                  className="mt-1"
+                />
               </dd>
             </div>
             <div>

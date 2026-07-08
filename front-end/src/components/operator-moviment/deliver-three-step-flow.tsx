@@ -3,6 +3,7 @@ import { routeFlowStepLucideIcon } from '@/components/operator-moviment/route-fl
 import type { RouteFlowStepId } from '@/components/operator-moviment/route-flow-icons';
 import { type RouteFlowDetailItem } from '@/components/operator-moviment/route-flow-step-details';
 import { cn } from '@/lib/utils';
+import { formatMachineMetaLine } from '@/utils/machine-display';
 import { AlertTriangle, Box, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 
@@ -73,28 +74,35 @@ export function DeliverFlowActivitySubtitle({
 
 export function DeliverFlowMachineCubeHighlight({
   machineName,
+  assetNumber,
+  pillar,
   cube,
   typography = 'default',
 }: {
   machineName?: string;
+  assetNumber?: string | null;
+  pillar?: string | null;
   cube?: string;
   typography?: ActivityTypography;
 }) {
   const large = typography === 'large';
 
-  if (!machineName && !cube) {
+  if (!machineName && !cube && !formatMachineMetaLine({ assetNumber, pillar })) {
     return null;
   }
+
+  const machineMeta = formatMachineMetaLine({ assetNumber, pillar });
 
   return (
     <div
       className={cn(
-        'inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5',
+        'inline-flex min-w-0 max-w-full flex-col items-start gap-0.5',
         large
           ? 'text-sm phone-landscape:text-base md:text-xl lg:text-2xl xl:text-3xl'
           : 'text-sm phone-landscape:text-base md:text-xl lg:text-2xl xl:text-3xl',
       )}
     >
+      <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5">
       {machineName ? (
         <span className="truncate font-bold uppercase tracking-wide text-brand">
           {machineName}
@@ -121,6 +129,19 @@ export function DeliverFlowMachineCubeHighlight({
             <span className="tracking-widest">{cube}</span>
           </div>
         </>
+      ) : null}
+      </div>
+      {machineMeta ? (
+        <span
+          className={cn(
+            'max-w-full truncate font-medium normal-case tracking-normal text-zinc-500',
+            large
+              ? 'text-[0.65rem] phone-landscape:text-xs md:text-sm'
+              : 'text-[0.65rem] phone-landscape:text-xs md:text-sm',
+          )}
+        >
+          {machineMeta}
+        </span>
       ) : null}
     </div>
   );

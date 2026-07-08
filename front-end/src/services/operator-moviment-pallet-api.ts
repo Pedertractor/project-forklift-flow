@@ -36,6 +36,8 @@ function mapMachineToDestination(
     id: machine?.id ?? machineId,
     name: machine?.name ?? '—',
     userId: machine?.userId ?? null,
+    assetNumber: machine?.assetNumber ?? null,
+    pillar: machine?.pillar ?? null,
     typeMachine: machine?.typeMachine ?? { id: '', name: '' },
     sector: machine?.sector ?? {
       id: machine?.sectorId ?? '',

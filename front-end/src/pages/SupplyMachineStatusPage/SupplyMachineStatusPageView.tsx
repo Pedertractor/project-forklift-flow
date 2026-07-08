@@ -5,6 +5,7 @@ import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { ENV } from '@/constants/env';
 import { cn } from '@/lib/utils';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import type { MachineListItem, MachineProductionStatus } from '@/types/machine.types';
 import { ArrowLeftIcon, Factory, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -99,6 +100,11 @@ function MachineStatusCard({
             <p className="mt-1 text-sm text-zinc-600">
               {machine.typeMachine.name}
             </p>
+            <MachineMetaText
+              assetNumber={machine.assetNumber}
+              pillar={machine.pillar}
+              className="mt-1"
+            />
             {machine.user ? (
               <p className="mt-2 text-xs text-zinc-500">
                 Operador:{' '}

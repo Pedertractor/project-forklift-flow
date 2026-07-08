@@ -3,6 +3,7 @@ import { type Dispatch, type SetStateAction } from 'react';
 import { Button } from '@/components/ui/brand-button';
 import { SelectCombobox } from '@/components/ui/select-combobox';
 import { DashboardDateRangePicker } from './DashboardDateRangePicker';
+import { formatMachineSelectLabel } from '@/utils/machine-display';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
 export { selectComboboxClassName as dashboardSelectClassName } from '@/components/ui/select-combobox';
@@ -12,7 +13,12 @@ type DashboardFiltersProps = {
   setDates: Dispatch<SetStateAction<Date[]>>;
   selectedMachineId: string;
   onMachineChange: (machineId: string) => void;
-  machines: { id: string; name: string }[];
+  machines: {
+    id: string;
+    name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
+  }[];
   isMachinesLoading: boolean;
   canFilterBySector?: boolean;
   selectedSectorId?: string;
@@ -113,7 +119,7 @@ export function DashboardFilters({
               { value: '', label: 'Todas as máquinas' },
               ...machines.map((machine) => ({
                 value: machine.id,
-                label: machine.name,
+                label: formatMachineSelectLabel(machine),
               })),
             ]}
           />

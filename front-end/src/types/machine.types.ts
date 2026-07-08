@@ -20,6 +20,8 @@ export interface MachineListItem {
   sectorId: string
   userId: string | null
   productionStatus: MachineProductionStatus
+  assetNumber: string | null
+  pillar: string | null
   createdAt: string
   updatedAt: string
   typeMachine: { id: string; name: string; urlImage: string }
@@ -35,6 +37,8 @@ export interface CreateMachinePostBody {
   plantUnit: PlantMapUnit
   typeMachineId: string
   sectorId: string
+  assetNumber: string
+  pillar: string
   userId?: string
 }
 

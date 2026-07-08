@@ -14,10 +14,10 @@ import {
 import {
   expeditionAreaDetail,
   goToReceivingDetail,
-  machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { machineLocationDetailItems } from '@/utils/machine-display';
 
 import type {
   OperatorPickupTaskQueueItem,
@@ -77,7 +77,7 @@ function buildCombinedSteps(
       label: 'Entregue na máquina',
 
       details: [
-        machineLocationDetail(machine.name),
+        ...machineLocationDetailItems(machine),
 
         prismaDetail(d1, 'deliver-to-machine'),
       ],
@@ -90,7 +90,7 @@ function buildCombinedSteps(
 
       label: 'Retire o pallet da máquina',
 
-      details: [machineLocationDetail(machine.name)],
+      details: machineLocationDetailItems(machine),
     },
 
     {
@@ -144,7 +144,7 @@ function buildStandaloneDeliverSteps(
       label: 'Entregue o pallet na máquina',
 
       details: [
-        machineLocationDetail(machine.name),
+        ...machineLocationDetailItems(machine),
 
         prismaDetail(cube, 'deliver-to-machine'),
       ],
@@ -165,7 +165,7 @@ function buildStandalonePickupSteps(
 
       label: 'Retire na máquina',
 
-      details: [machineLocationDetail(machine.name)],
+      details: machineLocationDetailItems(machine),
     },
 
     {
@@ -226,6 +226,8 @@ function SuggestionFlowCardBody({
   title,
   steps,
   machineName,
+  assetNumber,
+  pillar,
   hint,
   cube,
   requestedAt,
@@ -236,6 +238,8 @@ function SuggestionFlowCardBody({
   isCritical?: boolean;
   steps: DeliverFlowStepConfig[];
   machineName?: string;
+  assetNumber?: string | null;
+  pillar?: string | null;
   hint?: string;
   cube?: string;
   /** ISO da solicitação (ex.: `request.createdAt` da tarefa). */
@@ -254,6 +258,8 @@ function SuggestionFlowCardBody({
             start={
               <DeliverFlowMachineCubeHighlight
                 machineName={machineName}
+                assetNumber={assetNumber}
+                pillar={pillar}
                 cube={cube}
                 typography="large"
               />
@@ -353,6 +359,8 @@ function CombinedRouteCard({
         activityLabel="Rota combinada"
         steps={steps}
         machineName={row.machine.name}
+        assetNumber={row.machine.assetNumber}
+        pillar={row.machine.pillar}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
         requestedAt={resolveSuggestionRequestedAtIso(
           row.deliverTask,
@@ -415,6 +423,8 @@ function StandaloneDeliverRouteCard({
         activityLabel="Entrega"
         steps={steps}
         machineName={row.machine.name}
+        assetNumber={row.machine.assetNumber}
+        pillar={row.machine.pillar}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
         requestedAt={resolveSuggestionRequestedAtIso(row.deliverTask)}
       />
@@ -478,6 +488,8 @@ function StandalonePickupRouteCard({
         activityLabel="Retirada"
         steps={steps}
         machineName={row.machine.name}
+        assetNumber={row.machine.assetNumber}
+        pillar={row.machine.pillar}
         requestedAt={resolveSuggestionRequestedAtIso(undefined, row.pickupTask)}
       />
 
