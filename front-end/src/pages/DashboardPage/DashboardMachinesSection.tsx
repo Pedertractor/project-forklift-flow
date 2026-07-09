@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { DataTableCard } from '@/components/ui/table';
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
 import type { OperationalDashboardMachineRow } from '@/services/operational-dashboard-api';
 import { formatDurationMs } from '@/utils/formatDurationMs';
@@ -58,6 +59,11 @@ function MachineMobileCard({
           {machine.machine_name}
         </h3>
       </div>
+      <MachineMetaText
+        assetNumber={machine.machine_asset_number}
+        pillar={machine.machine_pillar}
+        className="mb-3"
+      />
       <div className="grid grid-cols-2 gap-2">
         <MachineMobileStat
           icon={ArrowDownLeft}
@@ -171,7 +177,11 @@ export function DashboardMachinesSection({
                   className="border-b border-zinc-100 last:border-0"
                 >
                   <td className="px-3 py-3 font-medium text-zinc-900">
-                    {machine.machine_name}
+                    <div>{machine.machine_name}</div>
+                    <MachineMetaText
+                      assetNumber={machine.machine_asset_number}
+                      pillar={machine.machine_pillar}
+                    />
                   </td>
                   <td className="px-3 py-3 tabular-nums text-zinc-700">
                     {machine.pickups_total}

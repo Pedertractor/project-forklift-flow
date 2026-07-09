@@ -1,3 +1,4 @@
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { ReplenishmentCreateWizardModal } from './ReplenishmentCreateWizardModal';
@@ -12,6 +13,7 @@ import { ReplenishmentRequestsTable } from './ReplenishmentRequestsTable';
 import { DashboardDateRangePicker } from '@/pages/DashboardPage/DashboardDateRangePicker';
 import {
   AlertTriangle,
+  BarChart3,
   HistoryIcon,
   ListIcon,
   PanelRightOpen,
@@ -43,7 +45,12 @@ function OpenRequestsStatusFilters({
   setOnlyMySector: (value: boolean) => void;
 }) {
   return (
-    <div className={cn('flex w-full flex-col gap-4 sm:flex-row sm:items-end', className)}>
+    <div
+      className={cn(
+        'flex w-full flex-col gap-4 sm:flex-row sm:items-end',
+        className,
+      )}
+    >
       <div className="min-w-0 flex-1 space-y-2 sm:min-w-48 sm:flex-none">
         <Label htmlFor={`${idPrefix}-status-filter`}>Status</Label>
         <SelectCombobox
@@ -201,7 +208,8 @@ export function ReplenishmentRequestsPageView(
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -228,38 +236,69 @@ export function ReplenishmentRequestsPageView(
             onlyMySector={onlyMySector}
             setOnlyMySector={setOnlyMySector}
           />
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-row sm:items-center sm:gap-2">
             <Button
               type="button"
-              className="h-10 w-full justify-center gap-2 px-3 text-xs sm:h-9 sm:w-auto"
+              variant="outline"
+              className={cn(
+                'relative flex h-auto min-h-[4.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-zinc-200 bg-white px-2 py-3 text-[0.6875rem] font-semibold leading-tight text-zinc-800 shadow-sm',
+                'sm:h-9 sm:min-h-0 sm:w-auto sm:flex-row sm:gap-2 sm:rounded-lg sm:border-0 sm:bg-brand sm:px-3 sm:py-2 sm:text-xs sm:text-white sm:shadow-none',
+              )}
               onClick={openCreate}
               disabled={!apiReady || busy}
             >
-              <PlusIcon className="size-4 shrink-0" />
-              <span className="sm:hidden">Novo pallet</span>
+              <PlusIcon
+                className="size-5 shrink-0 text-brand sm:size-4 sm:text-white"
+                aria-hidden
+              />
+              <span className="text-center sm:hidden">Novo pallet</span>
               <span className="hidden sm:inline">
                 Novo pallet para reposição
               </span>
             </Button>
             <Button
-              size="default"
-              className="h-10 w-full justify-center gap-2 px-3 text-xs sm:h-9 sm:w-auto"
+              type="button"
+              variant="outline"
+              className={cn(
+                'relative flex h-auto min-h-[4.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-zinc-200 bg-white px-2 py-3 text-[0.6875rem] font-semibold leading-tight text-zinc-800 shadow-sm',
+                'sm:h-9 sm:min-h-0 sm:w-auto sm:flex-row sm:gap-2 sm:rounded-lg sm:border-0 sm:bg-brand sm:px-3 sm:py-2 sm:text-xs sm:text-white sm:shadow-none',
+              )}
               disabled={!apiReady}
               onClick={() => navigate('/abastecimento/preparo-pendente')}
             >
               {pendingPreparationCount > 0 ? (
                 <span
-                  className="min-w-[1.25rem] rounded-2xl bg-red-500 px-1.5 py-0.5 text-center text-[0.6875rem] font-bold leading-none text-white"
+                  className="absolute right-1.5 top-1.5 min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[0.625rem] font-bold leading-none text-white sm:static sm:min-w-[1.25rem] sm:rounded-2xl sm:text-[0.6875rem]"
                   aria-label={`${pendingPreparationCount} solicitações aguardando preparo`}
                 >
                   {pendingPreparationCount}
                 </span>
               ) : null}
-              <ListIcon className="size-4 shrink-0" />
-              <span className="sm:hidden">Ver solicitações</span>
+              <ListIcon
+                className="size-5 shrink-0 text-brand sm:size-4 sm:text-white"
+                aria-hidden
+              />
+              <span className="text-center sm:hidden">Solicitações</span>
               <span className="hidden sm:inline">
                 Ver solicitações de reposição
               </span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                'relative flex h-auto min-h-[4.5rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-zinc-200 bg-white px-2 py-3 text-[0.6875rem] font-semibold leading-tight text-zinc-800 shadow-sm',
+                'sm:h-9 sm:min-h-0 sm:w-auto sm:flex-row sm:gap-2 sm:rounded-lg sm:border-0 sm:bg-brand sm:px-3 sm:py-2 sm:text-xs sm:text-white sm:shadow-none',
+              )}
+              disabled={!apiReady}
+              onClick={() => navigate('/abastecimento/maquinas-dobra')}
+            >
+              <BarChart3
+                className="size-5 shrink-0 text-brand sm:size-4 sm:text-white"
+                aria-hidden
+              />
+              <span className="text-center sm:hidden">Status máquina</span>
+              <span className="hidden sm:inline">Ver status da máquina</span>
             </Button>
           </div>
         </div>
@@ -560,8 +599,13 @@ export function ReplenishmentRequestsPageView(
             <div>
               <dt className="text-xs font-medium text-zinc-500">Destino</dt>
               <dd className="mt-0.5 text-zinc-900">
-                {detailRow.destination.name}—{' '}
+                {detailRow.destination.name} —{' '}
                 {detailRow.destination.sector.typeSector}
+                <MachineMetaText
+                  assetNumber={detailRow.destination.assetNumber}
+                  pillar={detailRow.destination.pillar}
+                  className="mt-1"
+                />
               </dd>
             </div>
             <div>

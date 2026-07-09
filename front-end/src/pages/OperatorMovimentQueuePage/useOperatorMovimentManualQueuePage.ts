@@ -1,19 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ENV } from '@/constants/env';
-import {
-  completeOperatorTaskAccept,
-} from '@/lib/operator-moviment-after-accept';
-import { toastApiError } from '@/lib/toast-helpers';
-import { toast } from '@/lib/toast';
+import { createOperatorTaskAcceptMutationCallbacks } from '@/lib/operator-moviment-accept-mutation';
 import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorReplenishmentQueue,
   postAcceptOpenPickupTask,
   postAcceptOpenDeliverTask,
 } from '@/services/operator-moviment-pallet-api';
-import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
 import { useAuthStore } from '@/store/auth.store';
 
 function useApiReady(): boolean {
@@ -29,12 +24,13 @@ export function useOperatorMovimentManualQueuePage() {
 
   const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
 
-  const afterAcceptSuccess = useCallback(
-    (successMessage: string, acceptedTasks?: OperatorMovimentTaskItem[]) => {
-      setIsEnteringTaskFlow(true);
-      completeOperatorTaskAccept(queryClient, navigate, acceptedTasks);
-      toast.success(successMessage);
-    },
+  const acceptCallbacks = useMemo(
+    () =>
+      createOperatorTaskAcceptMutationCallbacks(
+        queryClient,
+        navigate,
+        setIsEnteringTaskFlow,
+      ),
     [navigate, queryClient],
   );
 
@@ -54,14 +50,15 @@ export function useOperatorMovimentManualQueuePage() {
     mutationFn: (deliveryTaskId: string) =>
       postAcceptOpenDeliverTask(deliveryTaskId),
     onSuccess: (data) =>
-      afterAcceptSuccess('Tarefa de entrega aceita.', [data.task]),
-    onError: toastApiError,
+      acceptCallbacks.onSuccess('Tarefa de entrega aceita.', [data.task]),
+    onError: acceptCallbacks.onError,
   });
 
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
-    onSuccess: (data) => afterAcceptSuccess('Tarefa de retirada aceita.', [data.task]),
-    onError: toastApiError,
+    onSuccess: (data) =>
+      acceptCallbacks.onSuccess('Tarefa de retirada aceita.', [data.task]),
+    onError: acceptCallbacks.onError,
   });
 
   const busy =

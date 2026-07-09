@@ -17,9 +17,11 @@ import {
   OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
 } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
+import { resyncRealtimeOperatorQueries } from '@/lib/network-resync';
 import {
   parseOperatorMovimentWsMessage,
   resolveOperatorMovimentWsUrl,
+  wsEventMatchesMachineOperator,
   wsEventMatchesMovimentOperator,
   wsEventMatchesSubscriber,
 } from '@/lib/operator-moviment-ws';
@@ -29,6 +31,7 @@ import {
   SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
   SUPPLY_PENDING_PREPARATION_QUERY_KEY,
   SUPPLY_REPLENISHMENT_REQUESTS_QUERY_KEY,
+  SUPPLY_MACHINE_STATUS_QUERY_KEY,
   shouldInvalidateMyMovimentTasks,
   shouldInvalidateReplenishmentQueue,
   shouldInvalidateSupplyReplenishmentPage,
@@ -44,6 +47,8 @@ import { fetchOperatorMyMachine } from '@/services/operator-machine-api';
 import {
   applyMachineOperatorWsEvent,
   OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY,
+  patchMachineProductionStatusInCache,
+  refetchOperatorMyMachine,
   refetchOperatorMachineTasks,
   resolveBoundMachineIdFromCache,
 } from '@/lib/operator-machine-realtime-cache';
@@ -56,6 +61,7 @@ import {
   SUPERVISION_ROLES,
   type AppRole,
 } from '@/types/role.types';
+import type { IsOperatingMode } from '@/types/operator-moviment-pallet.types';
 import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types';
 import { countOpenMovimentTasksForOperator } from '@/utils/operator-moviment-work';
 import { replenishmentMovimentTypesForOperatingMode } from '@/utils/operator-moviment-role';
@@ -127,9 +133,12 @@ export function OperatorMovimentWorkProvider({
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
+  const syncSessionFromProfile = useAuthStore((s) => s.syncSessionFromProfile);
   const location = useLocation();
   const navigate = useNavigate();
   const wsRef = useRef<WebSocket | null>(null);
+  const forceWsReconnectRef = useRef<(() => void) | null>(null);
+  const shouldResyncAfterWsOpenRef = useRef(false);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tripSuggestionsInvalidateTimerRef = useRef<ReturnType<
     typeof setTimeout
@@ -152,16 +161,33 @@ export function OperatorMovimentWorkProvider({
         isMachineCadastro ||
         isSupplyReplenishment),
   );
-  const allowedMovimentTypes = useMemo(
-    () => replenishmentMovimentTypesForOperatingMode(user?.isOperating),
-    [user?.isOperating],
-  );
-
   const myPalletQuery = useQuery({
     queryKey: ['operator-moviment', 'my-pallet'],
     queryFn: fetchOperatorMyMovimentPallet,
     enabled: realtimeEnabled && isMovimentOperator,
+    staleTime: 0,
   });
+
+  const operatingMode =
+    user?.isOperating ??
+    (myPalletQuery.data?.type as IsOperatingMode | undefined) ??
+    null;
+
+  const allowedMovimentTypes = useMemo(
+    () => replenishmentMovimentTypesForOperatingMode(operatingMode),
+    [operatingMode],
+  );
+
+  useEffect(() => {
+    const palletType = myPalletQuery.data?.type as IsOperatingMode | undefined;
+    if (!palletType || !user || user.isOperating != null) {
+      return;
+    }
+    syncSessionFromProfile(
+      { ...user, isOperating: palletType },
+      useAuthStore.getState().requiresPasswordChange,
+    );
+  }, [myPalletQuery.data?.type, syncSessionFromProfile, user]);
 
   const myMachineQuery = useQuery({
     queryKey: [...OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY],
@@ -175,9 +201,8 @@ export function OperatorMovimentWorkProvider({
     queryKey: ['operator-moviment', 'my-tasks'],
     queryFn: fetchOperatorMyTasks,
     enabled:
-      realtimeEnabled &&
-      isMovimentOperator &&
-      Boolean(user?.isOperating ?? myPalletQuery.data),
+      realtimeEnabled && isMovimentOperator && Boolean(operatingMode),
+    staleTime: 0,
     refetchInterval: realtimeEnabled && isMovimentOperator ? 45_000 : false,
     refetchOnWindowFocus: true,
   });
@@ -189,18 +214,7 @@ export function OperatorMovimentWorkProvider({
   );
 
   const refreshRealtimeData = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ['operator-moviment'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['operator-machine'],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['machines'],
-      }),
-    ]);
-    await queryClient.refetchQueries({ type: 'active' });
+    await resyncRealtimeOperatorQueries(queryClient);
   }, [queryClient]);
 
   const invalidateOperatorQueues = refreshRealtimeData;
@@ -230,6 +244,9 @@ export function OperatorMovimentWorkProvider({
     });
     void queryClient.invalidateQueries({
       queryKey: [...SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: [...SUPPLY_MACHINE_STATUS_QUERY_KEY],
     });
     void queryClient.invalidateQueries({
       queryKey: ['sector-transport-operators'],
@@ -276,6 +293,25 @@ export function OperatorMovimentWorkProvider({
         })
       ) {
         return;
+      }
+
+      if (
+        event.type === 'machine_production_status_updated' &&
+        isMachineOperator &&
+        'machineId' in event &&
+        'productionStatus' in event &&
+        wsEventMatchesMachineOperator(
+          event,
+          user?.id,
+          boundMachineId,
+          user?.sectorId,
+        )
+      ) {
+        patchMachineProductionStatusInCache(queryClient, event);
+        void queryClient.invalidateQueries({
+          queryKey: [...OPERATOR_MACHINE_MY_MACHINE_QUERY_KEY],
+        });
+        refetchOperatorMyMachine(queryClient);
       }
 
       if (
@@ -409,6 +445,10 @@ export function OperatorMovimentWorkProvider({
       socket.onopen = () => {
         if (!cancelled) {
           setWsConnected(true);
+          if (shouldResyncAfterWsOpenRef.current) {
+            shouldResyncAfterWsOpenRef.current = false;
+            void resyncRealtimeOperatorQueries(queryClient);
+          }
         }
       };
 
@@ -423,6 +463,7 @@ export function OperatorMovimentWorkProvider({
 
       socket.onclose = () => {
         setWsConnected(false);
+        shouldResyncAfterWsOpenRef.current = true;
         wsRef.current = null;
         if (!cancelled) {
           scheduleReconnect();
@@ -434,10 +475,31 @@ export function OperatorMovimentWorkProvider({
       };
     }
 
+    function forceReconnect() {
+      if (cancelled) {
+        return;
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      const current = wsRef.current;
+      if (current) {
+        current.onclose = null;
+        current.onerror = null;
+        current.close();
+        wsRef.current = null;
+      }
+      shouldResyncAfterWsOpenRef.current = true;
+      connect();
+    }
+
+    forceWsReconnectRef.current = forceReconnect;
     connect();
 
     return () => {
       cancelled = true;
+      forceWsReconnectRef.current = null;
       setWsConnected(false);
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
@@ -458,7 +520,22 @@ export function OperatorMovimentWorkProvider({
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [realtimeEnabled, token, handleWsEvent]);
+  }, [realtimeEnabled, token, handleWsEvent, queryClient]);
+
+  useEffect(() => {
+    if (!realtimeEnabled) {
+      return;
+    }
+
+    const onOnline = () => {
+      shouldResyncAfterWsOpenRef.current = true;
+      void resyncRealtimeOperatorQueries(queryClient);
+      forceWsReconnectRef.current?.();
+    };
+
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [realtimeEnabled, queryClient]);
 
   useEffect(() => {
     if (!realtimeEnabled || !isMovimentOperator || !myTasksQuery.isSuccess) {

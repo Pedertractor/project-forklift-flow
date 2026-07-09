@@ -79,6 +79,71 @@ export function deliveryTaskDrivingMachineUi(
 }
 
 /**
+ * Par entrega + retirada na mesma máquina (sugestão de viagem ou rota já aceita).
+ * Inclui a fase pós-entrega: entrega COMPLETED e retirada ainda em aberto.
+ */
+export type CombinedTripPair = {
+  delivery: DeliveryTaskListItem;
+  pickup: PickupTaskListItem;
+};
+
+export function findCombinedTripPair(
+  deliveryTasks: DeliveryTaskListItem[],
+  pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
+): CombinedTripPair | null {
+  if (
+    hasPickupLinkedToReplenishmentFlow(
+      pickupTasks,
+      supplyRequests,
+      deliveryTasks,
+    )
+  ) {
+    return null;
+  }
+
+  const pickup = pickupTaskDrivingMachineUi(pickupTasks);
+  if (!pickup || pickup.triggersReplenishment) {
+    return null;
+  }
+  if (
+    isPickupLinkedToReplenishmentFlow(pickup, supplyRequests, deliveryTasks)
+  ) {
+    return null;
+  }
+
+  const openDelivery = deliveryTaskDrivingMachineUi(deliveryTasks);
+  if (
+    openDelivery &&
+    openDelivery.machineId === pickup.machineId &&
+    openDelivery.preparedAt != null &&
+    OPEN_STATUSES.has(openDelivery.status) &&
+    OPEN_STATUSES.has(pickup.status)
+  ) {
+    return { delivery: openDelivery, pickup };
+  }
+
+  const pickupCreatedAt = new Date(pickup.createdAt).getTime();
+  const completedDelivery = deliveryTasks
+    .filter((delivery) => {
+      if (delivery.machineId !== pickup.machineId) return false;
+      if (delivery.status !== 'COMPLETED') return false;
+      if (!delivery.preparedAt || !delivery.completedAt) return false;
+      return new Date(delivery.completedAt).getTime() >= pickupCreatedAt;
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime(),
+    )[0];
+
+  if (completedDelivery && OPEN_STATUSES.has(pickup.status)) {
+    return { delivery: completedDelivery, pickup };
+  }
+
+  return null;
+}
+
+/**
  * Sugestão de viagem: entrega preparada na fila + retirada aberta na mesma máquina.
  *
  * Não forma sugestão combinada quando há uma retirada + abastecimento em aberto:
@@ -91,18 +156,8 @@ export function isCombinedTripSuggestion(
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): boolean {
-  if (hasPickupLinkedToReplenishmentFlow(pickupTasks, supplyRequests, deliveryTasks)) {
-    return false;
-  }
-  const delivery = deliveryTaskDrivingMachineUi(deliveryTasks);
-  const pickup = pickupTaskDrivingMachineUi(pickupTasks);
-  return Boolean(
-    delivery &&
-    pickup &&
-    !pickup.triggersReplenishment &&
-    delivery.preparedAt != null &&
-    OPEN_STATUSES.has(delivery.status) &&
-    OPEN_STATUSES.has(pickup.status),
+  return (
+    findCombinedTripPair(deliveryTasks, pickupTasks, supplyRequests) != null
   );
 }
 
@@ -111,7 +166,7 @@ export function resolveOperationTimelineMode(
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): OperationTimelineMode {
-  if (isCombinedTripSuggestion(deliveryTasks, pickupTasks, supplyRequests)) {
+  if (findCombinedTripPair(deliveryTasks, pickupTasks, supplyRequests)) {
     return 'combined';
   }
   if (deliveryTaskDrivingMachineUi(deliveryTasks)) {
@@ -345,7 +400,10 @@ export function combinedFlowStepStatusesFromTasks(
   const deliveryEnRoute =
     delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS';
   const awaitingTransportAccept =
-    prepared && delivery.status === 'CREATED' && !deliveryEnRoute && !deliveryDone;
+    prepared &&
+    delivery.status === 'CREATED' &&
+    !deliveryEnRoute &&
+    !deliveryDone;
 
   const pickupDone = pickup.status === 'COMPLETED';
   const pickupInProgress =
@@ -654,7 +712,8 @@ export function findReplenishmentSupplyForMachine(
   const fulfilled = forMachine
     .filter((s) => s.status === 'FULFILLED' && s.deliveryTaskId)
     .sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   return fulfilled[0] ?? null;
 }

@@ -4,17 +4,18 @@ import {
   DeliverFlowActionFooter,
   DeliverFlowActivitySubtitle,
   DeliverFlowCard,
+  DeliverFlowMachineCubeHighlight,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
 import {
   expeditionAreaDetail,
   goToReceivingDetail,
-  machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { machineLocationDetailItems } from '@/utils/machine-display';
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
 import type {
@@ -28,6 +29,8 @@ import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 interface TaskRouteGroup {
   machineId: string;
   machineName: string;
+  machineAssetNumber: string | null;
+  machinePillar: string | null;
   priority: OperatorMovimentTaskItem['request']['priorityLevel'];
   deliverTask: OperatorMovimentTaskItem | null;
   pickupTask: OperatorMovimentTaskItem | null;
@@ -89,6 +92,8 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
       group = {
         machineId: dest.id,
         machineName: dest.name,
+        machineAssetNumber: dest.assetNumber ?? null,
+        machinePillar: dest.pillar ?? null,
         priority: task.request.priorityLevel,
         deliverTask: null,
         pickupTask: null,
@@ -192,7 +197,11 @@ function buildOpenTaskSteps(
     group.pickupTask !== null &&
     canCompletePickup(group.pickupTask, myOperatorUserId);
   const deliverCube = group.deliverTask?.request.movementCube;
-  const machineDetails = [machineLocationDetail(group.machineName)];
+  const machineDetails = machineLocationDetailItems({
+    name: group.machineName,
+    assetNumber: group.machineAssetNumber,
+    pillar: group.machinePillar,
+  });
   const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
 
   if (deliverOpen && pickupOpen && isCombinedRoute) {
@@ -250,14 +259,14 @@ function buildOpenTaskSteps(
 
 function OpenActivityHeading() {
   return (
-    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-lg md:text-base">
+    <p className="m-0 flex items-center gap-2 px-0.5 text-sm font-semibold text-zinc-900 phone-landscape:text-lg md:text-base lg:text-lg xl:text-xl">
       {/* <span
         className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand phone-landscape:size-9"
         aria-hidden
       >
       </span> */}
       <Layers2
-        className="text-brand size-4 phone-landscape:size-[1.125rem]"
+        className="text-brand size-4 phone-landscape:size-[1.125rem] lg:size-5 xl:size-6"
         strokeWidth={2.25}
       />
       <span className="flex flex-wrap items-center gap-1.5">
@@ -327,14 +336,14 @@ function OpenTaskRouteCard({
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
             typography="large"
-            start={<span aria-hidden />}
-            end={
-              <span
-                className="truncate font-bold uppercase tracking-wide text-brand phone-landscape:text-base md:text-lg"
-                title={group.machineName}
-              >
-                {group.machineName}
-              </span>
+            start={
+              <DeliverFlowMachineCubeHighlight
+                machineName={group.machineName}
+                assetNumber={group.machineAssetNumber}
+                pillar={group.machinePillar}
+                cube={deliverOpen ? deliverCubeDisplay : undefined}
+                typography="large"
+              />
             }
           >
             <span className="font-semibold normal-case text-zinc-700">
@@ -368,14 +377,14 @@ function OpenTaskRouteCard({
                     {completing ? (
                       <>
                         <Loader2
-                          className="size-5 shrink-0 animate-spin"
+                          className="size-5 shrink-0 animate-spin lg:size-6 xl:size-7"
                           aria-hidden
                         />
                         Concluindo…
                       </>
                     ) : (
                       <>
-                        <Check className="size-5 shrink-0" aria-hidden />
+                        <Check className="size-5 shrink-0 lg:size-6 xl:size-7" aria-hidden />
                         Concluir entrega
                       </>
                     )}
@@ -397,14 +406,14 @@ function OpenTaskRouteCard({
                       {completing ? (
                         <>
                           <Loader2
-                            className="size-5 shrink-0 animate-spin"
+                            className="size-5 shrink-0 animate-spin lg:size-6 xl:size-7"
                             aria-hidden
                           />
                           Confirmando…
                         </>
                       ) : (
                         <>
-                          <Check className="size-5 shrink-0" aria-hidden />
+                          <Check className="size-5 shrink-0 lg:size-6 xl:size-7" aria-hidden />
                           Confirmar entrega na expedição
                         </>
                       )}

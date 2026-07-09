@@ -1,17 +1,18 @@
 import {
   DeliverFlowActivitySubtitle,
   DeliverFlowCard,
+  DeliverFlowMachineCubeHighlight,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
 import {
   expeditionAreaDetail,
   goToReceivingDetail,
-  machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
   type RouteFlowDetailItem,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { machineLocationDetailItems } from '@/utils/machine-display';
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import {
   formatTaskDate,
@@ -33,6 +34,8 @@ import { CheckCircle2, ClipboardList, Route, Timer } from 'lucide-react';
 interface TaskRouteGroup {
   machineId: string;
   machineName: string;
+  machineAssetNumber: string | null;
+  machinePillar: string | null;
   priority: OperatorMovimentTaskItem['request']['priorityLevel'];
   deliverTask: OperatorMovimentTaskItem | null;
   pickupTask: OperatorMovimentTaskItem | null;
@@ -53,6 +56,8 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
       group = {
         machineId: dest.id,
         machineName: dest.name,
+        machineAssetNumber: dest.assetNumber ?? null,
+        machinePillar: dest.pillar ?? null,
         priority: task.request.priorityLevel,
         deliverTask: null,
         pickupTask: null,
@@ -159,7 +164,11 @@ function buildOpenTaskSteps(
     group.pickupTask !== null &&
     canCompleteMovimentPickup(group.pickupTask, operatorUserId);
   const deliverCube = group.deliverTask?.request.movementCube;
-  const machineDetails = [machineLocationDetail(group.machineName)];
+  const machineDetails = machineLocationDetailItems({
+    name: group.machineName,
+    assetNumber: group.machineAssetNumber,
+    pillar: group.machinePillar,
+  });
   const isCombinedRoute = isCombinedRouteGroup(group, allTasks);
 
   if (deliverOpen && pickupOpen && isCombinedRoute) {
@@ -317,7 +326,6 @@ function AssistedRouteCard({
     pickupOpen,
     isCombinedRoute,
   );
-  const isPickupActivity = pickupOpen && !deliverOpen;
   const isCritical = isCriticalPriority(group.priority);
   const activeTask = deliverOpen
     ? group.deliverTask
@@ -330,10 +338,15 @@ function AssistedRouteCard({
       <div className="px-5 py-4 sm:px-8">
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
+            typography="large"
             start={
-              isPickupActivity ? (
-                <span className="truncate text-brand">{group.machineName}</span>
-              ) : undefined
+              <DeliverFlowMachineCubeHighlight
+                machineName={group.machineName}
+                assetNumber={group.machineAssetNumber}
+                pillar={group.machinePillar}
+                cube={deliverOpen ? deliverCubeDisplay : undefined}
+                typography="large"
+              />
             }
           >
             {activitySubtitle}

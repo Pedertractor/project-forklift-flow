@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import type { MachineListItem } from '@/types/machine.types';
 import { captalizeString } from '@/utils/captalizeString';
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { User } from 'lucide-react';
 
 const selectCardBase =
@@ -77,6 +78,11 @@ export function MachineOperationSelectGrid({
                 <p className="mt-1 text-sm text-zinc-600">
                   {m.typeMachine.name}
                 </p>
+                <MachineMetaText
+                  assetNumber={m.assetNumber}
+                  pillar={m.pillar}
+                  className="mt-0.5"
+                />
                 <p className="mt-0.5 text-xs text-zinc-500">
                   {m.sector.typeSector}
                 </p>

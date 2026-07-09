@@ -27,6 +27,8 @@ export interface OperationalDashboardPeakSlot {
 export interface OperationalDashboardMachineRow {
   machine_id: string;
   machine_name: string;
+  machine_asset_number: string | null;
+  machine_pillar: string | null;
   pickups_total: number;
   deliveries_total: number;
   avg_pickup_wait_ms: number | null;

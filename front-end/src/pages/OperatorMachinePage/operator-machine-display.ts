@@ -8,7 +8,7 @@ import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-mach
 import {
   canCancelPickupRequest,
   combinedFlowHeadline,
-  deliveryTaskDrivingMachineUi,
+  findCombinedTripPair,
   findOpenReplenishmentDelivery,
   findReplenishmentDeliveryForPickup,
   findReplenishmentSupplyForMachine,
@@ -16,7 +16,6 @@ import {
   isCombinedTripSuggestion,
   isPickupLinkedToReplenishmentFlow,
   nextPalletFlowHeadline,
-  pickupTaskDrivingMachineUi,
   supplyFlowHeadline,
 } from './operator-machine-flow';
 import { taskStatusLabelPt } from '@/utils/operator-moviment-labels';
@@ -161,15 +160,17 @@ export function buildOperatorMachineTaskRows(
   let combinedPickupId: string | null = null;
 
   if (isCombinedTripSuggestion(deliveryTasks, pickupTasks, supplyRequests)) {
-    const delivery = deliveryTaskDrivingMachineUi(deliveryTasks);
-    const pickup = pickupTaskDrivingMachineUi(pickupTasks);
+    const pair = findCombinedTripPair(
+      deliveryTasks,
+      pickupTasks,
+      supplyRequests,
+    );
     if (
-      delivery &&
-      pickup &&
-      delivery.machineId === pickup.machineId &&
-      !TERMINAL_MACHINE_TASK_STATUSES.has(delivery.status) &&
-      !TERMINAL_MACHINE_TASK_STATUSES.has(pickup.status)
+      pair &&
+      pair.delivery.machineId === pair.pickup.machineId &&
+      !TERMINAL_MACHINE_TASK_STATUSES.has(pair.pickup.status)
     ) {
+      const { delivery, pickup } = pair;
       combinedDeliveryId = delivery.id;
       combinedPickupId = pickup.id;
       rows.push({

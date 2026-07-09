@@ -11,9 +11,26 @@ import {
   deleteMachine,
   getMachineById,
   listMachines,
+  parseMachineProductionStatus,
   parsePlantMapUnit,
   updateMachine,
 } from '../services/machine.service.js'
+
+function parseOptionalTrimmedString(
+  value: unknown,
+): string | null | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+  if (value === null) {
+    return null
+  }
+  if (typeof value !== 'string') {
+    return undefined
+  }
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed
+}
 
 export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   const body = (request.body ?? {}) as {
@@ -22,6 +39,8 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    assetNumber?: string
+    pillar?: string
   }
   if (typeof body.name !== 'string' || body.name.trim() === '') {
     return reply.status(400).send({ error: 'Informe name (texto nao vazio).' })
@@ -39,6 +58,12 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   if (!plantUnit) {
     return reply.status(400).send({ error: 'plantUnit invalido. Use PEDERTRACTOR ou TRACTOR.' })
   }
+  if (typeof body.assetNumber !== 'string' || body.assetNumber.trim() === '') {
+    return reply.status(400).send({ error: 'Informe assetNumber (texto nao vazio).' })
+  }
+  if (typeof body.pillar !== 'string' || body.pillar.trim() === '') {
+    return reply.status(400).send({ error: 'Informe pillar (texto nao vazio).' })
+  }
 
   try {
     const row = await createMachine({
@@ -47,6 +72,8 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
       typeMachineId: body.typeMachineId.trim(),
       sectorId: body.sectorId.trim(),
       userId: body.userId,
+      assetNumber: body.assetNumber,
+      pillar: body.pillar,
     })
     return reply.status(201).send(row)
   } catch (error) {
@@ -107,6 +134,9 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    productionStatus?: string
+    assetNumber?: string | null
+    pillar?: string | null
   }
   if (!machineId) {
     return reply.status(400).send({ error: 'machineId invalido.' })
@@ -118,6 +148,9 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    productionStatus?: 'TRABALHANDO' | 'ABASTECER'
+    assetNumber?: string | null
+    pillar?: string | null
   } = {}
   if (typeof body.name === 'string') {
     if (body.name.trim() === '') {
@@ -150,13 +183,36 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
   if (body.userId !== undefined) {
     patch.userId = body.userId
   }
+  if (body.productionStatus !== undefined) {
+    const productionStatus = parseMachineProductionStatus(body.productionStatus)
+    if (!productionStatus) {
+      return reply.status(400).send({
+        error: 'productionStatus invalido. Use TRABALHANDO ou ABASTECER.',
+      })
+    }
+    patch.productionStatus = productionStatus
+  }
+  if (body.assetNumber !== undefined) {
+    const assetNumber = parseOptionalTrimmedString(body.assetNumber)
+    if (assetNumber === undefined) {
+      return reply.status(400).send({ error: 'assetNumber invalido.' })
+    }
+    patch.assetNumber = assetNumber
+  }
+  if (body.pillar !== undefined) {
+    const pillar = parseOptionalTrimmedString(body.pillar)
+    if (pillar === undefined) {
+      return reply.status(400).send({ error: 'pillar invalido.' })
+    }
+    patch.pillar = pillar
+  }
 
   if (Object.keys(patch).length === 0) {
     return reply
       .status(400)
       .send({
         error:
-          'Envie ao menos um campo: name, plantUnit, typeMachineId, sectorId ou userId.',
+          'Envie ao menos um campo: name, plantUnit, typeMachineId, sectorId, userId, productionStatus, assetNumber ou pillar.',
       })
   }
 

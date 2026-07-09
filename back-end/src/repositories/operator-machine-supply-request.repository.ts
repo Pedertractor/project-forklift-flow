@@ -11,6 +11,8 @@ export const operatorMachineSupplyRequestListInclude = {
       id: true,
       name: true,
       sectorId: true,
+      assetNumber: true,
+      pillar: true,
       typeMachine: { select: { id: true, name: true, urlImage: true } },
     },
   },

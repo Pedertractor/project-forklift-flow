@@ -15,6 +15,7 @@ import type {
   OperatorRequestDestinationBrief,
   OperatorRequestUserBrief,
   PriorityLevelApi,
+  TripStandalonePickupApi,
   TripSuggestionsResponse,
   TypeMovimentPalletApi,
 } from '@/types/operator-moviment-pallet.types';
@@ -36,6 +37,8 @@ function mapMachineToDestination(
     id: machine?.id ?? machineId,
     name: machine?.name ?? '—',
     userId: machine?.userId ?? null,
+    assetNumber: machine?.assetNumber ?? null,
+    pillar: machine?.pillar ?? null,
     typeMachine: machine?.typeMachine ?? { id: '', name: '' },
     sector: machine?.sector ?? {
       id: machine?.sectorId ?? '',
@@ -311,12 +314,24 @@ type TripSuggestionApiRow = {
   tripSuggestion: TripSuggestionsResponse['suggestions'][0]['tripSuggestion'];
 };
 
+function enrichTripSuggestionMachine(
+  machine: { id: string; name: string; assetNumber?: string | null; pillar?: string | null },
+  destination?: OperatorRequestDestinationBrief,
+): TripStandalonePickupApi['machine'] {
+  return {
+    id: machine.id,
+    name: machine.name,
+    assetNumber: machine.assetNumber ?? destination?.assetNumber ?? null,
+    pillar: machine.pillar ?? destination?.pillar ?? null,
+  };
+}
+
 type TripStandalonePickupApiRow = {
   kind: string;
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
   deferRecommended?: boolean;
-  machine: { id: string; name: string };
+  machine: { id: string; name: string; assetNumber?: string | null; pillar?: string | null };
   message: string;
   pickupTask: PickupTaskApiRow;
 };
@@ -362,27 +377,39 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
       pickupTask: mapPickupTaskToQueueItem(s.pickupTask),
       tripSuggestion: s.tripSuggestion,
     })),
-    standalonePickupTasks: (res.standalonePickupTasks ?? []).map((row) => ({
-      kind: 'PICKUP_ONLY_AT_MACHINE' as const,
-      typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
-      effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
-      deferRecommended: row.deferRecommended ?? false,
-      machine: row.machine,
-      message: row.message,
-      suggestedOrder: [],
-      pickupTask: mapPickupTaskToQueueItem(row.pickupTask),
-    })),
-    standaloneDeliverTasks: (res.standaloneDeliverTasks ?? []).map((row) => ({
-      kind: 'DELIVER_ONLY_TO_MACHINE' as const,
-      typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
-      effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
-      deferRecommended: row.deferRecommended ?? false,
-      machine: row.machine,
-      message: row.message,
-      suggestedOrder: [],
-      requestId: row.requestId,
-      deliverTask: mapDeliveryToTaskItem(row.deliverTask),
-    })),
+    standalonePickupTasks: (res.standalonePickupTasks ?? []).map((row) => {
+      const pickupTask = mapPickupTaskToQueueItem(row.pickupTask);
+      return {
+        kind: 'PICKUP_ONLY_AT_MACHINE' as const,
+        typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
+        effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+        deferRecommended: row.deferRecommended ?? false,
+        machine: enrichTripSuggestionMachine(
+          row.machine,
+          pickupTask.request.destination,
+        ),
+        message: row.message,
+        suggestedOrder: [],
+        pickupTask,
+      };
+    }),
+    standaloneDeliverTasks: (res.standaloneDeliverTasks ?? []).map((row) => {
+      const deliverTask = mapDeliveryToTaskItem(row.deliverTask);
+      return {
+        kind: 'DELIVER_ONLY_TO_MACHINE' as const,
+        typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
+        effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+        deferRecommended: row.deferRecommended ?? false,
+        machine: enrichTripSuggestionMachine(
+          row.machine,
+          deliverTask.request.destination,
+        ),
+        message: row.message,
+        suggestedOrder: [],
+        requestId: row.requestId,
+        deliverTask,
+      };
+    }),
     priorityContext: {
       mostUrgentOpenInSector: res.priorityContext?.hasCritical ? 'VERY_HIGH' : null,
       hint: res.priorityContext?.hint,

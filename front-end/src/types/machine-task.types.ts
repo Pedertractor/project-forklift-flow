@@ -37,6 +37,8 @@ export interface DeliveryTaskListItem {
     name: string;
     userId?: string | null;
     sectorId?: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
     typeMachine?: { id: string; name: string };
     sector?: { id: string; typeSector: string };
   };
@@ -59,5 +61,7 @@ export interface PickupTaskListItem {
   machine?: {
     id: string;
     name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
   };
 }

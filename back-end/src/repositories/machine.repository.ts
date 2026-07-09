@@ -1,4 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js'
+import { MachineProductionStatus } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
 
 const machineListSelect = {
@@ -8,6 +9,9 @@ const machineListSelect = {
   typeMachineId: true,
   sectorId: true,
   userId: true,
+  productionStatus: true,
+  assetNumber: true,
+  pillar: true,
   createdAt: true,
   updatedAt: true,
   typeMachine: {
@@ -128,5 +132,15 @@ export const machineRepository = {
 
   delete(id: string) {
     return prisma.machine.delete({ where: { id } })
+  },
+
+  findManyTrabalhandoIdsInSector(sectorId: string) {
+    return prisma.machine
+      .findMany({
+        where: { sectorId, productionStatus: MachineProductionStatus.TRABALHANDO },
+        select: { id: true },
+        orderBy: { name: 'asc' },
+      })
+      .then((rows) => rows.map((r) => r.id))
   },
 }

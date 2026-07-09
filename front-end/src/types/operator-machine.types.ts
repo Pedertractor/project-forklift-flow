@@ -24,6 +24,8 @@ export interface OperatorMachineSupplyRequestListItem {
     id: string;
     name: string;
     sectorId: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
     typeMachine: { id: string; name: string; urlImage: string };
   };
   requestedBy: {

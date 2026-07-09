@@ -104,6 +104,8 @@ export function useMachinesPage() {
   const [deleteRow, setDeleteRow] = useState<MachineListItem | null>(null);
 
   const [name, setName] = useState('');
+  const [assetNumber, setAssetNumber] = useState('');
+  const [pillar, setPillar] = useState('');
   const [typeMachineId, setTypeMachineId] = useState('');
   const [sectorId, setSectorId] = useState('');
   const [userId, setUserId] = useState('');
@@ -111,6 +113,8 @@ export function useMachinesPage() {
 
   const resetForm = useCallback(() => {
     setName('');
+    setAssetNumber('');
+    setPillar('');
     setTypeMachineId('');
     setSectorId('');
     setUserId('');
@@ -134,6 +138,8 @@ export function useMachinesPage() {
 
   const openEdit = (row: MachineListItem) => {
     setName(row.name);
+    setAssetNumber(row.assetNumber ?? '');
+    setPillar(row.pillar ?? '');
     setPlantUnit(row.plantUnit);
     setTypeMachineId(row.typeMachineId);
     setSectorId(row.sectorId);
@@ -156,6 +162,14 @@ export function useMachinesPage() {
       if (!n) {
         throw new Error('Informe o nome da máquina.');
       }
+      const asset = assetNumber.trim();
+      if (!asset) {
+        throw new Error('Informe o patrimônio da máquina.');
+      }
+      const pillarValue = pillar.trim();
+      if (!pillarValue) {
+        throw new Error('Informe o pilar da máquina.');
+      }
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
@@ -164,6 +178,8 @@ export function useMachinesPage() {
         plantUnit,
         typeMachineId,
         sectorId,
+        assetNumber: asset,
+        pillar: pillarValue,
         userId: userId.trim() === '' ? undefined : userId.trim(),
       });
     },
@@ -185,6 +201,14 @@ export function useMachinesPage() {
       if (!n) {
         throw new Error('Informe o nome da máquina.');
       }
+      const asset = assetNumber.trim();
+      if (!asset) {
+        throw new Error('Informe o patrimônio da máquina.');
+      }
+      const pillarValue = pillar.trim();
+      if (!pillarValue) {
+        throw new Error('Informe o pilar da máquina.');
+      }
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
@@ -193,6 +217,8 @@ export function useMachinesPage() {
         plantUnit,
         typeMachineId,
         sectorId,
+        assetNumber: asset,
+        pillar: pillarValue,
       });
     },
     onSuccess: () => {
@@ -268,6 +294,10 @@ export function useMachinesPage() {
     setDeleteRow,
     name,
     setName,
+    assetNumber,
+    setAssetNumber,
+    pillar,
+    setPillar,
     typeMachineId,
     setTypeMachineId,
     sectorId,

@@ -6,6 +6,8 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
+import { MachineProductionStatusIndicator } from './MachineProductionStatusIndicator';
+import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { LogOut } from 'lucide-react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { captalizeString } from '@/utils/captalizeString';
@@ -82,13 +84,22 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                 />
               ) : null}
               <div className="flex w-full items-center justify-between h-full">
-                <div>
+                <div className="min-w-0">
                   <p className="m-0 text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Máquina em operação
                   </p>
-                  <p className="m-0 truncate text-lg font-bold text-zinc-900">
-                    {current.name}
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <p className="m-0 truncate text-lg font-bold text-zinc-900">
+                      {current.name}
+                    </p>
+                    <MachineProductionStatusIndicator
+                      status={current.productionStatus ?? 'TRABALHANDO'}
+                    />
+                  </div>
+                  <MachineMetaText
+                    assetNumber={current.assetNumber}
+                    pillar={current.pillar}
+                  />
                 </div>
               </div>
               <Button
@@ -104,7 +115,8 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login.
           </p>
         ) : null}
 

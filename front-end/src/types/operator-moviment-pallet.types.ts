@@ -41,6 +41,8 @@ export interface OperatorRequestDestinationBrief {
   id: string;
   name: string;
   userId: string | null;
+  assetNumber?: string | null;
+  pillar?: string | null;
   typeMachine: { id: string; name: string };
   sector: { id: string; typeSector: string };
 }
@@ -150,7 +152,12 @@ export interface TripCombinedSuggestionApi {
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
   deferRecommended: boolean;
-  machine: { id: string; name: string };
+  machine: {
+    id: string;
+    name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
+  };
   message: string;
   suggestedOrder: TripFlowStepApi[];
   deliverTask: OperatorPickupTaskQueueItem;
@@ -164,7 +171,12 @@ export interface TripStandalonePickupApi {
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
   deferRecommended: boolean;
-  machine: { id: string; name: string };
+  machine: {
+    id: string;
+    name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
+  };
   message: string;
   suggestedOrder: TripFlowStepApi[];
   pickupTask: OperatorPickupTaskQueueItem;
@@ -176,7 +188,12 @@ export interface TripStandaloneDeliverApi {
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
   deferRecommended: boolean;
-  machine: { id: string; name: string };
+  machine: {
+    id: string;
+    name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
+  };
   message: string;
   suggestedOrder: TripFlowStepApi[];
   requestId: string;

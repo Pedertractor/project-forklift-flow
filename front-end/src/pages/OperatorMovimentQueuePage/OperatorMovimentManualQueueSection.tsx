@@ -10,10 +10,10 @@ import {
 import {
   expeditionAreaDetail,
   goToReceivingDetail,
-  machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { machineLocationDetailItems, toMachineDisplayInfo } from '@/utils/machine-display';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-machine-replenishment';
 import type {
@@ -53,12 +53,16 @@ function SuggestionFlowCardBody({
   activityLabel,
   steps,
   machineName,
+  assetNumber,
+  pillar,
   cube,
   requestedAt,
 }: {
   activityLabel: 'Entrega' | 'Retirada';
   steps: DeliverFlowStepConfig[];
   machineName?: string;
+  assetNumber?: string | null;
+  pillar?: string | null;
   cube?: string;
   requestedAt?: string;
 }) {
@@ -73,6 +77,8 @@ function SuggestionFlowCardBody({
           start={
             <DeliverFlowMachineCubeHighlight
               machineName={machineName}
+              assetNumber={assetNumber}
+              pillar={pillar}
               cube={cube}
             />
           }
@@ -117,7 +123,7 @@ function SuggestionFlowCardBody({
 function buildManualDeliverSteps(
   row: OperatorReplenishmentRequestItem,
 ): DeliverFlowStepConfig[] {
-  const machine = row.destination?.name ?? '—';
+  const machine = toMachineDisplayInfo(row.destination);
 
   return [
     {
@@ -140,7 +146,7 @@ function buildManualDeliverSteps(
       stepId: 'machine',
       label: 'Entregue o pallet na máquina',
       details: [
-        machineLocationDetail(machine),
+        ...machineLocationDetailItems(machine),
         prismaDetail(row.movementCube, 'deliver-to-machine'),
       ],
     },
@@ -150,14 +156,14 @@ function buildManualDeliverSteps(
 function buildManualPickupSteps(
   task: OperatorPickupTaskQueueItem,
 ): DeliverFlowStepConfig[] {
-  const machine = task.request.destination?.name ?? '—';
+  const machine = toMachineDisplayInfo(task.request.destination);
 
   return [
     {
       stepNumber: 1,
       stepId: 'machine',
       label: 'Retire na máquina',
-      details: [machineLocationDetail(machine)],
+      details: machineLocationDetailItems(machine),
     },
     {
       stepNumber: 2,
@@ -188,6 +194,8 @@ function ManualDeliverCard({
         activityLabel="Entrega"
         steps={buildManualDeliverSteps(row)}
         machineName={row.destination?.name}
+        assetNumber={row.destination?.assetNumber}
+        pillar={row.destination?.pillar}
         cube={cube}
         requestedAt={row.createdAt}
       />
@@ -224,6 +232,8 @@ function ManualPickupCard({
         activityLabel="Retirada"
         steps={buildManualPickupSteps(task)}
         machineName={req.destination?.name}
+        assetNumber={req.destination?.assetNumber}
+        pillar={req.destination?.pillar}
         requestedAt={task.createdAt}
       />
       <DeliverFlowActionFooter isCritical={isCritical}>

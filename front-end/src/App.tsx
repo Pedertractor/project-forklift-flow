@@ -80,6 +80,11 @@ const SupplyPendingPreparationPage = lazy(() =>
     default: m.SupplyPendingPreparationPage,
   })),
 );
+const SupplyMachineStatusPage = lazy(() =>
+  import('@/pages/SupplyMachineStatusPage/index').then((m) => ({
+    default: m.SupplyMachineStatusPage,
+  })),
+);
 const OperatorMachinePickupProgressPage = lazy(() =>
   import('@/pages/OperatorMachinePickupProgressPage/index').then((m) => ({
     default: m.OperatorMachinePickupProgressPage,
@@ -150,6 +155,10 @@ export function App() {
                   <Route
                     path="abastecimento/preparo-pendente"
                     element={<SupplyPendingPreparationPage />}
+                  />
+                  <Route
+                    path="abastecimento/maquinas-dobra"
+                    element={<SupplyMachineStatusPage />}
                   />
                 </Route>
                 <Route

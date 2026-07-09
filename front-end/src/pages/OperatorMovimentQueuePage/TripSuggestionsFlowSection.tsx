@@ -14,10 +14,10 @@ import {
 import {
   expeditionAreaDetail,
   goToReceivingDetail,
-  machineLocationDetail,
   prismaDetail,
   receivingAreaDetail,
 } from '@/components/operator-moviment/route-flow-step-details';
+import { machineLocationDetailItems } from '@/utils/machine-display';
 
 import type {
   OperatorPickupTaskQueueItem,
@@ -77,7 +77,7 @@ function buildCombinedSteps(
       label: 'Entregue na máquina',
 
       details: [
-        machineLocationDetail(machine.name),
+        ...machineLocationDetailItems(machine),
 
         prismaDetail(d1, 'deliver-to-machine'),
       ],
@@ -90,7 +90,7 @@ function buildCombinedSteps(
 
       label: 'Retire o pallet da máquina',
 
-      details: [machineLocationDetail(machine.name)],
+      details: machineLocationDetailItems(machine),
     },
 
     {
@@ -144,7 +144,7 @@ function buildStandaloneDeliverSteps(
       label: 'Entregue o pallet na máquina',
 
       details: [
-        machineLocationDetail(machine.name),
+        ...machineLocationDetailItems(machine),
 
         prismaDetail(cube, 'deliver-to-machine'),
       ],
@@ -165,7 +165,7 @@ function buildStandalonePickupSteps(
 
       label: 'Retire na máquina',
 
-      details: [machineLocationDetail(machine.name)],
+      details: machineLocationDetailItems(machine),
     },
 
     {
@@ -184,14 +184,14 @@ function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
   return accepting ? (
     <>
       <Loader2
-        className="size-5 shrink-0 animate-spin phone-landscape:size-4"
+        className="size-5 shrink-0 animate-spin phone-landscape:size-4 lg:size-6 xl:size-7"
         aria-hidden
       />
       Aceitando…
     </>
   ) : (
     <>
-      <Check className="size-5 shrink-0 phone-landscape:size-4" aria-hidden />
+      <Check className="size-5 shrink-0 phone-landscape:size-4 lg:size-6 xl:size-7" aria-hidden />
       Aceitar
     </>
   );
@@ -226,6 +226,8 @@ function SuggestionFlowCardBody({
   title,
   steps,
   machineName,
+  assetNumber,
+  pillar,
   hint,
   cube,
   requestedAt,
@@ -236,6 +238,8 @@ function SuggestionFlowCardBody({
   isCritical?: boolean;
   steps: DeliverFlowStepConfig[];
   machineName?: string;
+  assetNumber?: string | null;
+  pillar?: string | null;
   hint?: string;
   cube?: string;
   /** ISO da solicitação (ex.: `request.createdAt` da tarefa). */
@@ -254,6 +258,8 @@ function SuggestionFlowCardBody({
             start={
               <DeliverFlowMachineCubeHighlight
                 machineName={machineName}
+                assetNumber={assetNumber}
+                pillar={pillar}
                 cube={cube}
                 typography="large"
               />
@@ -269,12 +275,12 @@ function SuggestionFlowCardBody({
               ) : null
             }
           >
-            <span className="inline-flex items-center gap-1 font-semibold normal-case text-zinc-700 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-sm sm:text-sm">
+            <span className="inline-flex items-center gap-1 font-semibold normal-case text-zinc-700 text-xs leading-tight phone-landscape:gap-1 phone-landscape:text-sm sm:text-sm lg:text-base xl:text-lg">
               {activityLabel === 'Entrega' ? (
                 <>
                   Entrega de pallet
                   <ArrowUpRight
-                    className="size-4 rounded-full bg-green-200 phone-landscape:size-3"
+                    className="size-4 rounded-full bg-green-200 phone-landscape:size-3 lg:size-5 xl:size-6"
                     aria-hidden
                   />
                 </>
@@ -282,7 +288,7 @@ function SuggestionFlowCardBody({
                 <>
                   Retirada de pallet
                   <ArrowDownLeft
-                    className="size-4 rounded-full bg-red-200 phone-landscape:size-3"
+                    className="size-4 rounded-full bg-red-200 phone-landscape:size-3 lg:size-5 xl:size-6"
                     aria-hidden
                   />
                 </>
@@ -294,7 +300,7 @@ function SuggestionFlowCardBody({
         </div>
       ) : null}
       {title ? (
-        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-zinc-700 phone-landscape:mb-2 phone-landscape:text-base phone-landscape:shrink-0">
+        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-zinc-700 phone-landscape:mb-2 phone-landscape:text-base phone-landscape:shrink-0 lg:text-sm xl:text-base">
           {title}
         </p>
       ) : null}
@@ -353,6 +359,8 @@ function CombinedRouteCard({
         activityLabel="Rota combinada"
         steps={steps}
         machineName={row.machine.name}
+        assetNumber={row.machine.assetNumber}
+        pillar={row.machine.pillar}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
         requestedAt={resolveSuggestionRequestedAtIso(
           row.deliverTask,
@@ -415,6 +423,8 @@ function StandaloneDeliverRouteCard({
         activityLabel="Entrega"
         steps={steps}
         machineName={row.machine.name}
+        assetNumber={row.machine.assetNumber}
+        pillar={row.machine.pillar}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
         requestedAt={resolveSuggestionRequestedAtIso(row.deliverTask)}
       />
@@ -478,6 +488,8 @@ function StandalonePickupRouteCard({
         activityLabel="Retirada"
         steps={steps}
         machineName={row.machine.name}
+        assetNumber={row.machine.assetNumber}
+        pillar={row.machine.pillar}
         requestedAt={resolveSuggestionRequestedAtIso(undefined, row.pickupTask)}
       />
 

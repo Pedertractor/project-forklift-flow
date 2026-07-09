@@ -33,6 +33,8 @@ export interface OperationalDashboardPeakSlot {
 export interface OperationalDashboardMachineRow {
   machine_id: string;
   machine_name: string;
+  machine_asset_number: string | null;
+  machine_pillar: string | null;
   pickups_total: number;
   deliveries_total: number;
   avg_pickup_wait_ms: number | null;
@@ -92,7 +94,7 @@ type PickupRow = TaskDurationRow & {
   machineId: string;
   assignedAt: Date | null;
   assignedOperatorId: string | null;
-  machine: { id: string; name: string };
+  machine: { id: string; name: string; assetNumber: string | null; pillar: string | null };
 };
 
 type DeliveryRow = TaskDurationRow & {
@@ -101,7 +103,7 @@ type DeliveryRow = TaskDurationRow & {
   assignedAt: Date | null;
   assignedOperatorId: string | null;
   preparedAt: Date | null;
-  machine: { id: string; name: string };
+  machine: { id: string; name: string; assetNumber: string | null; pillar: string | null };
 };
 
 function parseDashboardIsoDate(value?: string): Date | null {
@@ -239,6 +241,8 @@ function buildMachineRows(
     string,
     {
       machine_name: string;
+      machine_asset_number: string | null;
+      machine_pillar: string | null;
       pickupWaits: number[];
       deliveryWaits: number[];
       pickups_total: number;
@@ -246,11 +250,16 @@ function buildMachineRows(
     }
   >();
 
-  const ensureMachine = (machineId: string, machineName: string) => {
+  const ensureMachine = (
+    machineId: string,
+    machine: PickupRow['machine'],
+  ) => {
     const existing = byMachine.get(machineId);
     if (existing) return existing;
     const created = {
-      machine_name: machineName,
+      machine_name: machine.name,
+      machine_asset_number: machine.assetNumber,
+      machine_pillar: machine.pillar,
       pickupWaits: [] as number[],
       deliveryWaits: [] as number[],
       pickups_total: 0,
@@ -261,13 +270,13 @@ function buildMachineRows(
   };
 
   for (const task of pickups) {
-    const bucket = ensureMachine(task.machineId, task.machine.name);
+    const bucket = ensureMachine(task.machineId, task.machine);
     bucket.pickups_total += 1;
     bucket.pickupWaits.push(taskCycleDurationMs(task, referenceNow));
   }
 
   for (const task of deliveries) {
-    const bucket = ensureMachine(task.machineId, task.machine.name);
+    const bucket = ensureMachine(task.machineId, task.machine);
     bucket.deliveries_total += 1;
     bucket.deliveryWaits.push(taskCycleDurationMs(task, referenceNow));
   }
@@ -276,6 +285,8 @@ function buildMachineRows(
     .map(([machine_id, row]) => ({
       machine_id,
       machine_name: row.machine_name,
+      machine_asset_number: row.machine_asset_number,
+      machine_pillar: row.machine_pillar,
       pickups_total: row.pickups_total,
       deliveries_total: row.deliveries_total,
       avg_pickup_wait_ms: average(row.pickupWaits),
@@ -362,7 +373,7 @@ export async function getOperationalDashboardSnapshot(options?: {
         assignedAt: true,
         assignedOperatorId: true,
         completedAt: true,
-        machine: { select: { id: true, name: true } },
+        machine: { select: { id: true, name: true, assetNumber: true, pillar: true } },
       },
     }),
     prisma.deliveryTask.findMany({
@@ -383,7 +394,7 @@ export async function getOperationalDashboardSnapshot(options?: {
         assignedOperatorId: true,
         completedAt: true,
         preparedAt: true,
-        machine: { select: { id: true, name: true } },
+        machine: { select: { id: true, name: true, assetNumber: true, pillar: true } },
       },
     }),
   ]);

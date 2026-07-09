@@ -10,6 +10,7 @@ import {
 } from '@/utils/operator-moviment-display';
 import { TripSuggestionsFlowSection } from './TripSuggestionsFlowSection';
 import type { OperatorMovimentQueuePageViewModel } from './useOperatorMovimentQueuePage';
+import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
 const linkOutlineClass =
   'inline-flex h-[var(--control-height,2.5rem)] w-full min-w-0 items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 md:w-auto md:shrink-0';
@@ -27,6 +28,7 @@ export function OperatorMovimentQueuePageView(
     pendingStandalonePickupTaskId,
     pendingStandaloneDeliverKey,
     busy,
+    showAcceptTransitionOverlay,
     onAcceptTrip,
     onAcceptStandalonePickup,
     onAcceptStandaloneDeliver,
@@ -35,6 +37,18 @@ export function OperatorMovimentQueuePageView(
 
   return (
     <main className="relative min-w-0 px-3 py-4 pb-6 md:px-4 md:py-8 phone-landscape:flex phone-landscape:min-h-svh phone-landscape:flex-col phone-landscape:overflow-hidden phone-landscape:py-2 phone-landscape:pr-3">
+      {showAcceptTransitionOverlay ? (
+        <div
+          className="fixed inset-0 z-100 flex flex-col items-center justify-center gap-3 bg-white/85 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+          aria-label="Abrindo atividade"
+        >
+          <AccordionLoader  />
+          <p className="m-0 text-sm font-medium text-zinc-700"></p>
+        </div>
+      ) : null}
+
       {currentPallet && token ? (
         <button
           type="button"

@@ -1,9 +1,18 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { NavigateFunction } from 'react-router-dom';
 import { OPERATOR_MOVIMENT_MY_TASKS_PATH } from '@/constants/operator-moviment-routes';
+import { fetchOperatorMyTasks } from '@/services/operator-moviment-pallet-api';
+import { useAuthStore } from '@/store/auth.store';
 import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
+import {
+  filterTasksForMyOperator,
+  hasCompletableMovimentWorkForOperator,
+} from '@/utils/operator-moviment-work';
 
-const MY_TASKS_QUERY_KEY = ['operator-moviment', 'my-tasks'] as const;
+export const OPERATOR_MY_TASKS_QUERY_KEY = [
+  'operator-moviment',
+  'my-tasks',
+] as const;
 
 /** Atualiza o cache com tarefas já retornadas no POST de aceite (evita esperar refetch). */
 export function upsertOperatorMyTasksCache(
@@ -14,7 +23,7 @@ export function upsertOperatorMyTasksCache(
     return;
   }
   queryClient.setQueryData<OperatorMovimentTaskItem[]>(
-    [...MY_TASKS_QUERY_KEY],
+    [...OPERATOR_MY_TASKS_QUERY_KEY],
     (prev) => {
       const byId = new Map((prev ?? []).map((task) => [task.id, task]));
       for (const task of incoming) {
@@ -44,10 +53,43 @@ export function completeOperatorTaskAccept(
     queryKey: ['operator-moviment', 'replenishment-queue'],
   });
   void queryClient.invalidateQueries({
-    queryKey: ['operator-moviment', 'my-tasks'],
+    queryKey: [...OPERATOR_MY_TASKS_QUERY_KEY],
   });
   void queryClient.invalidateQueries({
     queryKey: ['operator-moviment', 'my-pallet'],
   });
   void queryClient.invalidateQueries({ queryKey: ['operator-machine'] });
+}
+
+/**
+ * Após falha no POST de aceite, confere se o servidor já atribuiu a tarefa
+ * (ex.: timeout de rede com 201 no back-end) e abre «Minhas tarefas».
+ */
+export async function tryRecoverOperatorTaskAcceptAfterFailure(
+  queryClient: QueryClient,
+  navigate: NavigateFunction,
+): Promise<boolean> {
+  const operatorId = useAuthStore.getState().user?.id ?? null;
+  if (!operatorId) {
+    return false;
+  }
+
+  try {
+    const tasks = await queryClient.fetchQuery({
+      queryKey: [...OPERATOR_MY_TASKS_QUERY_KEY],
+      queryFn: fetchOperatorMyTasks,
+      staleTime: 0,
+    });
+    const mine = filterTasksForMyOperator(tasks, operatorId);
+    if (!hasCompletableMovimentWorkForOperator(mine, operatorId)) {
+      return false;
+    }
+    completeOperatorTaskAccept(queryClient, navigate, mine);
+    return true;
+  } catch {
+    void queryClient.invalidateQueries({
+      queryKey: [...OPERATOR_MY_TASKS_QUERY_KEY],
+    });
+    return false;
+  }
 }

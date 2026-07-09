@@ -1,4 +1,5 @@
 import type { PlantMapUnit, Prisma } from '../generated/prisma/client.js'
+import { MachineProductionStatus } from '../generated/prisma/enums.js'
 import {
   AssignMachineUserError,
   MachineInUseError,
@@ -7,7 +8,7 @@ import {
   TypeMachineNotFoundError,
 } from '../errors/domain-errors.js'
 import { machineRepository } from '../repositories/machine.repository.js'
-import { operatorMovimentPalletWsBroadcastMachineOperatorUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
+import { operatorMovimentPalletWsBroadcastMachineOperatorUpdated, operatorMovimentPalletWsBroadcastMachineProductionStatusUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
 import { sectorRepository } from '../repositories/sector.repository.js'
 import { typeMachineRepository } from '../repositories/type-machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
@@ -27,6 +28,8 @@ export type CreateMachineInput = {
   typeMachineId: string
   sectorId: string
   userId?: string | null | undefined
+  assetNumber: string
+  pillar: string
 }
 
 export type UpdateMachineInput = {
@@ -35,6 +38,32 @@ export type UpdateMachineInput = {
   typeMachineId?: string
   sectorId?: string
   userId?: string | null
+  productionStatus?: MachineProductionStatus
+  assetNumber?: string | null
+  pillar?: string | null
+}
+
+const MACHINE_PRODUCTION_STATUSES = new Set<MachineProductionStatus>([
+  MachineProductionStatus.TRABALHANDO,
+  MachineProductionStatus.ABASTECER,
+])
+
+export function parseMachineProductionStatus(
+  value: unknown,
+): MachineProductionStatus | null {
+  if (
+    value === MachineProductionStatus.TRABALHANDO ||
+    value === MachineProductionStatus.ABASTECER
+  ) {
+    return value
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toUpperCase()
+    if (MACHINE_PRODUCTION_STATUSES.has(normalized as MachineProductionStatus)) {
+      return normalized as MachineProductionStatus
+    }
+  }
+  return null
 }
 
 async function requireMachineById(id: string) {
@@ -89,6 +118,15 @@ function buildMachineUpdateData(
       data.user = { connect: { id: input.userId } }
     }
   }
+  if (input.productionStatus !== undefined) {
+    data.productionStatus = input.productionStatus
+  }
+  if (input.assetNumber !== undefined) {
+    data.assetNumber = input.assetNumber
+  }
+  if (input.pillar !== undefined) {
+    data.pillar = input.pillar
+  }
   return data
 }
 
@@ -102,6 +140,8 @@ export async function createMachine(input: CreateMachineInput) {
   const data: Prisma.MachineCreateInput = {
     name: input.name.trim(),
     plantUnit: input.plantUnit,
+    assetNumber: input.assetNumber.trim(),
+    pillar: input.pillar.trim(),
     typeMachine: { connect: { id: input.typeMachineId } },
     sector: { connect: { id: input.sectorId } },
   }
@@ -163,6 +203,17 @@ export async function updateMachine(id: string, input: UpdateMachineInput) {
         affectedUserId: nextOperatorId ?? prevOperatorId,
       })
     }
+  }
+  if (
+    input.productionStatus !== undefined &&
+    before.productionStatus !== updated.productionStatus
+  ) {
+    operatorMovimentPalletWsBroadcastMachineProductionStatusUpdated({
+      machineId: updated.id,
+      sectorId: updated.sectorId,
+      productionStatus: updated.productionStatus,
+      operatorUserId: updated.userId ?? before.userId ?? null,
+    })
   }
   return updated
 }

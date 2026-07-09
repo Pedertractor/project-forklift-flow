@@ -13,6 +13,9 @@ const machineBriefInclude = {
   name: true,
   userId: true,
   sectorId: true,
+  productionStatus: true,
+  assetNumber: true,
+  pillar: true,
   typeMachine: { select: { id: true, name: true } },
   sector: { select: { id: true, typeSector: true } },
 } as const
@@ -106,6 +109,25 @@ export const deliveryTaskRepository = {
       include: deliveryTaskListInclude,
       orderBy: { createdAt: 'asc' },
     })
+  },
+
+  findMachineIdsWithOpenPreparedDelivery(machineIds: string[]) {
+    if (machineIds.length === 0) {
+      return Promise.resolve([] as string[])
+    }
+    return prisma.deliveryTask
+      .findMany({
+        where: {
+          machineId: { in: machineIds },
+          status: MachineTaskStatus.CREATED,
+          acceptedBySupply: true,
+          preparedAt: { not: null },
+          assignedOperatorId: null,
+        },
+        select: { machineId: true },
+        distinct: ['machineId'],
+      })
+      .then((rows) => rows.map((r) => r.machineId))
   },
 
   findLatestCompletedForMachine(machineId: string) {

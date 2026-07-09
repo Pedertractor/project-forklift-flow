@@ -9,6 +9,7 @@ const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
   'operator_supply_request_created',
   'delivery_task_created',
   'delivery_task_updated',
+  'machine_production_status_updated',
 ]);
 
 const SECTOR_QUEUE_EVENT_TYPES = new Set([
@@ -17,6 +18,7 @@ const SECTOR_QUEUE_EVENT_TYPES = new Set([
   'trip_suggestions_updated',
   'replenishment_request_created',
   'replenishment_queue_updated',
+  'machine_production_status_updated',
 ]);
 
 const MACHINE_OPERATOR_EVENT_TYPES = new Set([
@@ -24,9 +26,13 @@ const MACHINE_OPERATOR_EVENT_TYPES = new Set([
   'pickup_task_updated',
   'replenishment_status_updated',
   'machine_operator_updated',
+  'machine_production_status_updated',
 ]);
 
-const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated']);
+const MACHINE_CADASTRO_EVENT_TYPES = new Set([
+  'machine_operator_updated',
+  'machine_production_status_updated',
+]);
 
 export function resolveOperatorMovimentWsUrl(token: string): string | null {
   const explicit = (import.meta.env.VITE_WS_URL as string | undefined)?.trim();
@@ -142,6 +148,33 @@ export function wsEventMatchesMachineOperator(
   if (event.type === 'machine_operator_updated' && 'affectedUserId' in event) {
     return event.affectedUserId === operatorUserId;
   }
+  if (event.type === 'machine_production_status_updated') {
+    if (
+      'operatorUserId' in event &&
+      event.operatorUserId &&
+      event.operatorUserId === operatorUserId
+    ) {
+      return true;
+    }
+    const destinationUserId = destinationUserIdFromEvent(event);
+    if (destinationUserId === operatorUserId) {
+      return true;
+    }
+    const eventMachineId = machineIdFromEvent(event);
+    if (
+      operatorSectorId &&
+      'sectorId' in event &&
+      event.sectorId === operatorSectorId &&
+      eventMachineId &&
+      boundMachineId &&
+      eventMachineId === boundMachineId
+    ) {
+      return true;
+    }
+    return Boolean(
+      boundMachineId && eventMachineId && eventMachineId === boundMachineId,
+    );
+  }
   const destinationUserId = destinationUserIdFromEvent(event);
   if (destinationUserId === operatorUserId) {
     return true;
@@ -171,7 +204,10 @@ export function wsEventMatchesMachineCadastro(
   if (!MACHINE_CADASTRO_EVENT_TYPES.has(event.type)) {
     return false;
   }
-  if (event.type !== 'machine_operator_updated') {
+  if (
+    event.type !== 'machine_operator_updated' &&
+    event.type !== 'machine_production_status_updated'
+  ) {
     return false;
   }
   if (!sectorId) {
