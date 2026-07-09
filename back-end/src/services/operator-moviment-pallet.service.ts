@@ -143,12 +143,30 @@ async function linkedOpenTripTaskIdsForSector(
   return linkedOpenTripTaskIdsFromRows(rows);
 }
 
+type TripSuggestionMachineBrief = {
+  id: string;
+  name: string;
+  assetNumber: string | null;
+  pillar: string | null;
+};
+
+function mapMachineForTripSuggestion(
+  machine: PickupTaskListRow["machine"] | DeliveryTaskListRow["machine"],
+): TripSuggestionMachineBrief {
+  return {
+    id: machine.id,
+    name: machine.name,
+    assetNumber: machine.assetNumber ?? null,
+    pillar: machine.pillar ?? null,
+  };
+}
+
 type StandalonePickupSuggestionRow = {
   kind: "PICKUP_ONLY_AT_MACHINE";
   typeMovimentPallet: TypeMovimentPallet;
   effectiveCritical: boolean;
   deferRecommended: boolean;
-  machine: { id: string; name: string };
+  machine: TripSuggestionMachineBrief;
   message: string;
   suggestedOrder: [];
   pickupTask: PickupTaskListRow;
@@ -159,7 +177,7 @@ type StandaloneDeliverSuggestionRow = {
   typeMovimentPallet: TypeMovimentPallet;
   effectiveCritical: boolean;
   deferRecommended: boolean;
-  machine: { id: string; name: string };
+  machine: TripSuggestionMachineBrief;
   message: string;
   suggestedOrder: [];
   requestId: string;
@@ -175,10 +193,7 @@ function mapStandalonePickupRow(
     typeMovimentPallet: task.typeMovimentPallet,
     effectiveCritical: task.isCritical,
     deferRecommended: false,
-    machine: {
-      id: machine.id,
-      name: machine.name,
-    },
+    machine: mapMachineForTripSuggestion(machine),
     message: `Na maquina ${machine.name}: retirada solicitada — aceite para levar o pallet a expedicao.`,
     suggestedOrder: [],
     pickupTask: task,
@@ -194,10 +209,7 @@ function mapStandaloneDeliverRow(
     typeMovimentPallet: task.typeMovimentPallet,
     effectiveCritical: task.isCritical,
     deferRecommended: false,
-    machine: {
-      id: machine.id,
-      name: machine.name,
-    },
+    machine: mapMachineForTripSuggestion(machine),
     suggestedOrder: [],
     message: `Na maquina ${machine.name}: entrega preparada no recebimento — aceite para levar o pallet.`,
     requestId: task.id,

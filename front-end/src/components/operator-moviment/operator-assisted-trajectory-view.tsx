@@ -1,6 +1,7 @@
 import {
   DeliverFlowActivitySubtitle,
   DeliverFlowCard,
+  DeliverFlowMachineCubeHighlight,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
@@ -325,7 +326,6 @@ function AssistedRouteCard({
     pickupOpen,
     isCombinedRoute,
   );
-  const isPickupActivity = pickupOpen && !deliverOpen;
   const isCritical = isCriticalPriority(group.priority);
   const activeTask = deliverOpen
     ? group.deliverTask
@@ -338,10 +338,15 @@ function AssistedRouteCard({
       <div className="px-5 py-4 sm:px-8">
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
+            typography="large"
             start={
-              isPickupActivity ? (
-                <span className="truncate text-brand">{group.machineName}</span>
-              ) : undefined
+              <DeliverFlowMachineCubeHighlight
+                machineName={group.machineName}
+                assetNumber={group.machineAssetNumber}
+                pillar={group.machinePillar}
+                cube={deliverOpen ? deliverCubeDisplay : undefined}
+                typography="large"
+              />
             }
           >
             {activitySubtitle}

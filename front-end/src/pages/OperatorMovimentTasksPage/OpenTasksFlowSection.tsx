@@ -4,6 +4,7 @@ import {
   DeliverFlowActionFooter,
   DeliverFlowActivitySubtitle,
   DeliverFlowCard,
+  DeliverFlowMachineCubeHighlight,
   DeliverThreeStepFlow,
   type DeliverFlowStepConfig,
 } from '@/components/operator-moviment/deliver-three-step-flow';
@@ -335,14 +336,14 @@ function OpenTaskRouteCard({
         {activitySubtitle ? (
           <DeliverFlowActivitySubtitle
             typography="large"
-            start={<span aria-hidden />}
-            end={
-              <span
-                className="truncate font-bold uppercase tracking-wide text-brand phone-landscape:text-base md:text-lg lg:text-xl xl:text-2xl"
-                title={group.machineName}
-              >
-                {group.machineName}
-              </span>
+            start={
+              <DeliverFlowMachineCubeHighlight
+                machineName={group.machineName}
+                assetNumber={group.machineAssetNumber}
+                pillar={group.machinePillar}
+                cube={deliverOpen ? deliverCubeDisplay : undefined}
+                typography="large"
+              />
             }
           >
             <span className="font-semibold normal-case text-zinc-700">
