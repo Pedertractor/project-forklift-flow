@@ -1,4 +1,4 @@
-import { ChevronDown, List, Loader2, Repeat, RouteOff } from 'lucide-react';
+import { ChevronDown, List, Repeat, RouteOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/brand-button';
 import { cn } from '@/lib/utils';

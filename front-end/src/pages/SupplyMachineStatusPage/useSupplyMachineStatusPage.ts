@@ -92,7 +92,11 @@ export function useSupplyMachineStatusPage() {
         queueRef.current = queueRef.current.filter(
           (queued) => queued.machineId !== item.machineId,
         );
-        toastApiError(error, 'Não foi possível atualizar o status da máquina.');
+        toastApiError(
+          error instanceof Error
+            ? error
+            : new Error('Não foi possível atualizar o status da máquina.'),
+        );
       }
     }
 
