@@ -1,63 +1,62 @@
-import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import test from 'node:test'
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import test from "node:test";
 
 const syncServicePath = join(
   dirname(fileURLToPath(import.meta.url)),
-  'trip-suggestion-sync.service.ts',
-)
+  "trip-suggestion-sync.service.ts",
+);
 
 const flowPath = join(
   dirname(fileURLToPath(import.meta.url)),
-  '../../../front-end/src/pages/OperatorMachinePage/operator-machine-flow.ts',
-)
+  "../../../front-end/src/pages/OperatorMachinePage/operator-machine-flow.ts",
+);
 
-test('trip sync: pareia retirada vinculada a abastecimento anterior do mesmo operador', () => {
-  const src = readFileSync(syncServicePath, 'utf8')
-  assert.match(src, /isPickupLinkedToReplenishmentFlow/)
-  assert.match(src, /findPickupForTripPairOnMachine/)
-  assert.match(src, /findFirstOpenByMachineId/)
-  assert.match(
-    src,
-    /findLatestFulfilledWithOpenDeliveryForMachineAndOperator/,
-  )
-})
+test("trip sync: pareia retirada vinculada a abastecimento anterior do mesmo operador", () => {
+  const src = readFileSync(syncServicePath, "utf8");
+  assert.match(src, /isPickupLinkedToReplenishmentFlow/);
+  assert.match(src, /findPickupForTripPairOnMachine/);
+  assert.match(src, /findFirstOpenByMachineId/);
+  assert.match(src, /findLatestFulfilledWithOpenDeliveryForMachineAndOperator/);
+});
 
-test('trip sync: nao depende apenas de triggersReplenishment para formar par', () => {
-  const src = readFileSync(syncServicePath, 'utf8')
+test("trip sync: nao depende apenas de triggersReplenishment para formar par", () => {
+  const src = readFileSync(syncServicePath, "utf8");
   const fnBlock = src.slice(
-    src.indexOf('export async function findPickupForTripPairOnMachine'),
-    src.indexOf('export async function expireOpenTripSuggestionsUnpreparedForSector'),
-  )
-  assert.match(fnBlock, /findFirstOpenWithReplenishmentForMachine/)
-  assert.match(fnBlock, /isPickupLinkedToReplenishmentFlow/)
-})
+    src.indexOf("export async function findPickupForTripPairOnMachine"),
+    src.indexOf(
+      "export async function expireOpenTripSuggestionsUnpreparedForSector",
+    ),
+  );
+  assert.match(fnBlock, /findFirstOpenWithReplenishmentForMachine/);
+  assert.match(fnBlock, /isPickupLinkedToReplenishmentFlow/);
+});
 
-test('frontend: detecta retirada vinculada quando abastecimento foi solicitado antes', () => {
-  const src = readFileSync(flowPath, 'utf8')
-  assert.match(src, /export function isPickupLinkedToReplenishmentFlow/)
-  assert.match(src, /openSupply\?\.requestedById === pickup\.requestedById/)
-  assert.match(src, /OPEN_STATUSES\.has\(replenishmentDelivery\.status\)/)
-  assert.match(src, /openSupply\.createdAt\)\.getTime\(\) <= pickupCreatedAt/)
-})
+test("frontend: detecta retirada vinculada quando abastecimento foi solicitado antes", () => {
+  const src = readFileSync(flowPath, "utf8");
+  assert.match(src, /export function isPickupLinkedToReplenishmentFlow/);
+  assert.match(src, /openSupply\?\.requestedById === pickup\.requestedById/);
+  assert.match(src, /OPEN_STATUSES\.has\(replenishmentDelivery\.status\)/);
+  assert.match(src, /openSupply\.createdAt\)\.getTime\(\) <= pickupCreatedAt/);
+});
 
-test('frontend: retirada simples apos fluxo concluido nao reutiliza abastecimento antigo', () => {
-  const src = readFileSync(flowPath, 'utf8')
+test("frontend: retirada simples apos fluxo concluido nao reutiliza abastecimento antigo", () => {
+  const src = readFileSync(flowPath, "utf8");
   const fnBlock = src.slice(
-    src.indexOf('export function isPickupLinkedToReplenishmentFlow'),
-    src.indexOf('export function hasPickupLinkedToReplenishmentFlow'),
-  )
-  assert.equal(fnBlock.includes('supply.deliveryTaskId != null'), false)
-})
+    src.indexOf("export function isPickupLinkedToReplenishmentFlow"),
+    src.indexOf("export function hasPickupLinkedToReplenishmentFlow"),
+  );
+  assert.equal(fnBlock.includes("supply.deliveryTaskId != null"), false);
+});
 
-test('frontend: lista unifica abastecimento e retirada vinculados', () => {
+test("frontend: lista unifica abastecimento e retirada vinculados", () => {
   const displayPath = join(
     dirname(fileURLToPath(import.meta.url)),
-    '../../../front-end/src/pages/OperatorMachinePage/operator-machine-display.ts',
-  )
-  const src = readFileSync(displayPath, 'utf8')
-  assert.match(src, /linkedToReplenishmentFlow/)
-  assert.match(src, /hasPickupLinkedToReplenishmentFlow/)
-})
+    "../../../front-end/src/pages/OperatorMachinePage/operator-machine-display.ts",
+  );
+  const src = readFileSync(displayPath, "utf8");
+  assert.match(src, /linkedToReplenishmentFlow/);
+  assert.match(src, /hasPickupLinkedToReplenishmentFlow/);
+});

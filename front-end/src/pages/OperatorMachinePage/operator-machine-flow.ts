@@ -92,7 +92,13 @@ export function findCombinedTripPair(
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): CombinedTripPair | null {
-  if (hasPickupLinkedToReplenishmentFlow(pickupTasks, supplyRequests, deliveryTasks)) {
+  if (
+    hasPickupLinkedToReplenishmentFlow(
+      pickupTasks,
+      supplyRequests,
+      deliveryTasks,
+    )
+  ) {
     return null;
   }
 
@@ -100,7 +106,9 @@ export function findCombinedTripPair(
   if (!pickup || pickup.triggersReplenishment) {
     return null;
   }
-  if (isPickupLinkedToReplenishmentFlow(pickup, supplyRequests, deliveryTasks)) {
+  if (
+    isPickupLinkedToReplenishmentFlow(pickup, supplyRequests, deliveryTasks)
+  ) {
     return null;
   }
 
@@ -148,7 +156,9 @@ export function isCombinedTripSuggestion(
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): boolean {
-  return findCombinedTripPair(deliveryTasks, pickupTasks, supplyRequests) != null;
+  return (
+    findCombinedTripPair(deliveryTasks, pickupTasks, supplyRequests) != null
+  );
 }
 
 export function resolveOperationTimelineMode(
@@ -390,7 +400,10 @@ export function combinedFlowStepStatusesFromTasks(
   const deliveryEnRoute =
     delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS';
   const awaitingTransportAccept =
-    prepared && delivery.status === 'CREATED' && !deliveryEnRoute && !deliveryDone;
+    prepared &&
+    delivery.status === 'CREATED' &&
+    !deliveryEnRoute &&
+    !deliveryDone;
 
   const pickupDone = pickup.status === 'COMPLETED';
   const pickupInProgress =
@@ -699,7 +712,8 @@ export function findReplenishmentSupplyForMachine(
   const fulfilled = forMachine
     .filter((s) => s.status === 'FULFILLED' && s.deliveryTaskId)
     .sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   return fulfilled[0] ?? null;
 }

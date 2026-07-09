@@ -56,13 +56,13 @@ import {
   requestTypeMatchesOperatingMode,
 } from "../utils/replenishment-moviment-type.js";
 import { isAdminOrSuperAdmin } from "../utils/role-user.js";
-import { findBlockedMachineIdsForTransportInSector, isMachineDeliveryBlockedFromTransportQueue } from "../utils/machine-transport-queue-block.js";
+import {
+  findBlockedMachineIdsForTransportInSector,
+  isMachineDeliveryBlockedFromTransportQueue,
+} from "../utils/machine-transport-queue-block.js";
 
 function assertPalletTransporterRole(role: RoleUser) {
-  if (
-    role !== RoleUser.PALLET_TRANSPORTER &&
-    !isAdminOrSuperAdmin(role)
-  ) {
+  if (role !== RoleUser.PALLET_TRANSPORTER && !isAdminOrSuperAdmin(role)) {
     throw new InvalidOperatingModeError(
       "Sem permissao para operar movimentacao de pallets.",
     );
@@ -236,22 +236,22 @@ async function listStandaloneTripTasksForSector(
   ]);
 
   for (const pickup of pickups) {
-      if (pickup.status !== MachineTaskStatus.CREATED) continue;
-      if (pickup.assignedOperatorId) continue;
-      if (linked.pickupIds.has(pickup.id)) continue;
-      if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
-      if (!pickup.isCritical) continue;
-      if (!pickup.machine) continue;
-      standalonePickupTasks.push(mapStandalonePickupRow(pickup));
-    }
+    if (pickup.status !== MachineTaskStatus.CREATED) continue;
+    if (pickup.assignedOperatorId) continue;
+    if (linked.pickupIds.has(pickup.id)) continue;
+    if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
+    if (!pickup.isCritical) continue;
+    if (!pickup.machine) continue;
+    standalonePickupTasks.push(mapStandalonePickupRow(pickup));
+  }
 
-    for (const deliver of deliveries) {
-      if (linked.deliverIds.has(deliver.id)) continue;
-      if (!deliver.isCritical) continue;
-      if (!deliver.machine) continue;
-      if (blockedMachineIds.has(deliver.machineId)) continue;
-      standaloneDeliverTasks.push(mapStandaloneDeliverRow(deliver));
-    }
+  for (const deliver of deliveries) {
+    if (linked.deliverIds.has(deliver.id)) continue;
+    if (!deliver.isCritical) continue;
+    if (!deliver.machine) continue;
+    if (blockedMachineIds.has(deliver.machineId)) continue;
+    standaloneDeliverTasks.push(mapStandaloneDeliverRow(deliver));
+  }
 
   const byTaskUrgency = (
     a: { effectiveCritical: boolean; createdAt: Date },
@@ -330,30 +330,30 @@ async function listOneNonCriticalStandaloneFallback(
   ]);
 
   for (const pickup of pickups) {
-      if (pickup.status !== MachineTaskStatus.CREATED) continue;
-      if (pickup.assignedOperatorId) continue;
-      if (linked.pickupIds.has(pickup.id)) continue;
-      if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
-      if (pickup.isCritical) continue;
-      if (!pickup.machine) continue;
-      candidates.push({
-        kind: "pickup",
-        createdAt: pickup.createdAt,
-        row: mapStandalonePickupRow(pickup),
-      });
-    }
+    if (pickup.status !== MachineTaskStatus.CREATED) continue;
+    if (pickup.assignedOperatorId) continue;
+    if (linked.pickupIds.has(pickup.id)) continue;
+    if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
+    if (pickup.isCritical) continue;
+    if (!pickup.machine) continue;
+    candidates.push({
+      kind: "pickup",
+      createdAt: pickup.createdAt,
+      row: mapStandalonePickupRow(pickup),
+    });
+  }
 
-    for (const deliver of deliveries) {
-      if (linked.deliverIds.has(deliver.id)) continue;
-      if (deliver.isCritical) continue;
-      if (!deliver.machine) continue;
-      if (blockedMachineIds.has(deliver.machineId)) continue;
-      candidates.push({
-        kind: "deliver",
-        createdAt: deliver.createdAt,
-        row: mapStandaloneDeliverRow(deliver),
-      });
-    }
+  for (const deliver of deliveries) {
+    if (linked.deliverIds.has(deliver.id)) continue;
+    if (deliver.isCritical) continue;
+    if (!deliver.machine) continue;
+    if (blockedMachineIds.has(deliver.machineId)) continue;
+    candidates.push({
+      kind: "deliver",
+      createdAt: deliver.createdAt,
+      row: mapStandaloneDeliverRow(deliver),
+    });
+  }
 
   if (candidates.length === 0) return empty;
 
@@ -419,7 +419,8 @@ export async function getOperatorCurrentMovimentPallet(operatorUserId: string) {
   if (!isOperating) return null;
   return {
     id: operatorUserId,
-    code: isOperating === IsOperating.FORKLIFT ? 'EMPILHADEIRA' : 'TRANSPALETEIRA',
+    code:
+      isOperating === IsOperating.FORKLIFT ? "EMPILHADEIRA" : "TRANSPALETEIRA",
     type: isOperating,
     operatorId: operatorUserId,
     sectorId: null,
@@ -437,7 +438,9 @@ export async function bindOperatorToMovimentPallet(
   return setOperatorOperatingMode(operatorUserId, role, isOperatingRaw);
 }
 
-export async function unbindOperatorFromMovimentPallets(operatorUserId: string) {
+export async function unbindOperatorFromMovimentPallets(
+  operatorUserId: string,
+) {
   return clearOperatorOperatingMode(operatorUserId);
 }
 
@@ -580,7 +583,9 @@ export async function listTripRouteSuggestionsForOperator(
       priorityContext: { hasCritical: false },
     };
   }
-  const types = poolTypesForOperatingMode(assertOperatingMode(user.isOperating));
+  const types = poolTypesForOperatingMode(
+    assertOperatingMode(user.isOperating),
+  );
   if (types.length === 0) {
     return {
       suggestions: [],
@@ -819,7 +824,10 @@ export async function acceptOpenDeliverTaskForMovimentOperator(
       "Pallet ainda nao esta pronto.",
     );
   }
-  if (task.machine && (await isMachineDeliveryBlockedFromTransportQueue(task.machine))) {
+  if (
+    task.machine &&
+    (await isMachineDeliveryBlockedFromTransportQueue(task.machine))
+  ) {
     throw new MovimentPalletDeliverTaskAcceptError(
       "Maquina em producao — aguardando liberacao do abastecimento.",
     );

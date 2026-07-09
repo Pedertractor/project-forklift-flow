@@ -57,9 +57,9 @@ export function useOperatorMachinePage() {
 
   const [endShiftOpen, setEndShiftOpen] = useState(false);
   const [cancelPickupId, setCancelPickupId] = useState<string | null>(null);
-  const [bindConfirmMachineId, setBindConfirmMachineId] = useState<string | null>(
-    null,
-  );
+  const [bindConfirmMachineId, setBindConfirmMachineId] = useState<
+    string | null
+  >(null);
   const [showMachinePicker, setShowMachinePicker] = useState(false);
   const [selectedMachineId, setSelectedMachineId] = useState('');
 
@@ -173,7 +173,10 @@ export function useOperatorMachinePage() {
   const palletAtReceiving = hasPalletAtReceiving(deliveryTasks);
   const canPickup = canRequestPickup(deliveryTasks, pickupTasks);
   const pickupBlockedMessage = pickupBlockedReason(deliveryTasks, pickupTasks);
-  const canRequestSupplyNow = canRequestSupply(openOperatorSupply, deliveryTasks);
+  const canRequestSupplyNow = canRequestSupply(
+    openOperatorSupply,
+    deliveryTasks,
+  );
   const canPickupWithReplenishment = canRequestPickupWithReplenishment(
     openOperatorSupply,
     deliveryTasks,

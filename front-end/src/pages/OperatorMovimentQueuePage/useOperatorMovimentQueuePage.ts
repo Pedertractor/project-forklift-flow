@@ -3,15 +3,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OPERATOR_MOVIMENT_EQUIPMENT_PATH } from '@/constants/operator-moviment-routes';
 import { ENV } from '@/constants/env';
-import {
-  completeOperatorTaskAccept,
-} from '@/lib/operator-moviment-after-accept';
-import { toastApiError } from '@/lib/toast-helpers';
-import { toast } from '@/lib/toast';
-import type {
-  OperatorMovimentTaskItem,
-  TripStandaloneDeliverApi,
-} from '@/types/operator-moviment-pallet.types';
+import { createOperatorTaskAcceptMutationCallbacks } from '@/lib/operator-moviment-accept-mutation';
+import type { TripStandaloneDeliverApi } from '@/types/operator-moviment-pallet.types';
 import {
   fetchOperatorMyMovimentPallet,
   fetchOperatorReplenishmentQueue,
@@ -35,15 +28,13 @@ export function useOperatorMovimentQueuePage() {
 
   const [isEnteringTaskFlow, setIsEnteringTaskFlow] = useState(false);
 
-  const afterAcceptSuccess = useCallback(
-    (
-      successMessage: string,
-      acceptedTasks?: OperatorMovimentTaskItem[],
-    ) => {
-      setIsEnteringTaskFlow(true);
-      completeOperatorTaskAccept(queryClient, navigate, acceptedTasks);
-      toast.success(successMessage);
-    },
+  const acceptCallbacks = useMemo(
+    () =>
+      createOperatorTaskAcceptMutationCallbacks(
+        queryClient,
+        navigate,
+        setIsEnteringTaskFlow,
+      ),
     [navigate, queryClient],
   );
 
@@ -79,18 +70,20 @@ export function useOperatorMovimentQueuePage() {
 
   const acceptPickupMut = useMutation({
     mutationFn: (taskId: string) => postAcceptOpenPickupTask(taskId),
-    onSuccess: (data) => afterAcceptSuccess('Tarefa de retirada aceita.', [data.task]),
-    onError: toastApiError,
+    onSuccess: (data) =>
+      acceptCallbacks.onSuccess('Tarefa de retirada aceita.', [data.task]),
+    onError: acceptCallbacks.onError,
   });
 
   const acceptTripMut = useMutation({
-    mutationFn: (tripSuggestionId: string) => postAcceptTripRouteSuggestion(tripSuggestionId),
+    mutationFn: (tripSuggestionId: string) =>
+      postAcceptTripRouteSuggestion(tripSuggestionId),
     onSuccess: (data) =>
-      afterAcceptSuccess('Rota sugerida aceita. Execute na ordem indicada.', [
+      acceptCallbacks.onSuccess('Rota sugerida aceita. Execute na ordem indicada.', [
         data.deliverTask,
         data.pickupTask,
       ]),
-    onError: toastApiError,
+    onError: acceptCallbacks.onError,
   });
 
   const acceptDeliverMut = useMutation({
@@ -101,8 +94,8 @@ export function useOperatorMovimentQueuePage() {
       return postAcceptOpenDeliverTask(row.requestId);
     },
     onSuccess: (data) =>
-      afterAcceptSuccess('Tarefa de entrega aceita.', [data.task]),
-    onError: toastApiError,
+      acceptCallbacks.onSuccess('Tarefa de entrega aceita.', [data.task]),
+    onError: acceptCallbacks.onError,
   });
 
   const isAcceptingTask =

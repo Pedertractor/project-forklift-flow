@@ -44,6 +44,8 @@ export function useOperatorMovimentTasksPage() {
     queryKey: ['operator-moviment', 'my-tasks'],
     queryFn: fetchOperatorMyTasks,
     enabled: apiReady,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const afterTaskComplete = useCallback(async () => {
