@@ -49,6 +49,7 @@ export async function createMachine(input: {
   assetNumber: string;
   pillar: string;
   userId?: string | null;
+  machineStreetId?: string | null;
 }): Promise<MachineDetail> {
   const body: CreateMachinePostBody = {
     name: input.name.trim(),
@@ -60,6 +61,12 @@ export async function createMachine(input: {
   };
   if (input.userId !== undefined && input.userId !== null && input.userId.trim() !== '') {
     body.userId = input.userId.trim();
+  }
+  if (input.machineStreetId !== undefined) {
+    body.machineStreetId =
+      input.machineStreetId === null || input.machineStreetId.trim() === ''
+        ? null
+        : input.machineStreetId.trim();
   }
   const res = await apiAuthFetch<MachineDetail>(API_ENDPOINTS.MACHINES.LIST, {
     method: 'POST',
@@ -79,6 +86,7 @@ export async function updateMachine(
     typeMachineId?: string;
     sectorId?: string;
     userId?: string | null;
+    machineStreetId?: string | null;
     productionStatus?: MachineProductionStatus;
     assetNumber?: string | null;
     pillar?: string | null;

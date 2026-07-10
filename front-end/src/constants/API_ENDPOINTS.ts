@@ -21,6 +21,10 @@ export const API_ENDPOINTS = {
     LIST: '/type-machines',
     BY_ID: (id: string) => `/type-machines/${id}`,
   },
+  MACHINE_STREETS: {
+    LIST: '/machine-streets',
+    BY_ID: (id: string) => `/machine-streets/${id}`,
+  },
   MACHINES: {
     LIST: '/machines',
     BY_ID: (id: string) => `/machines/${id}`,

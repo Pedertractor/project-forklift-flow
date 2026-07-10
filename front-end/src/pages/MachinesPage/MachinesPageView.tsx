@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { UserRound, UserRoundX } from 'lucide-react';
+import { Road, UserRound, UserRoundX } from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { DataTableCard } from '@/components/ui/table';
@@ -16,8 +16,13 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
   const {
     apiReady,
     token,
+    isAdmin,
+    user,
     sectorsForSelect,
     typesQuery,
+    streetsForMachineSector,
+    streetsForDialogSector,
+    dialogStreetsQuery,
     sectorFilter,
     setSectorFilter,
     plantUnitFilter,
@@ -35,6 +40,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setEditRow,
     deleteRow,
     setDeleteRow,
+    streetCreateOpen,
+    setStreetCreateOpen,
     name,
     setName,
     assetNumber,
@@ -45,16 +52,27 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setTypeMachineId,
     sectorId,
     setSectorId,
+    machineStreetId,
+    setMachineStreetId,
+    streetName,
+    setStreetName,
+    streetColor,
+    setStreetColor,
+    streetSectorId,
+    setStreetSectorId,
     editOperator,
     unlinkOperatorMut,
     openCreate,
     openEdit,
+    openStreetCreate,
     createMut,
     updateMut,
     deleteMut,
+    createStreetMut,
     busy,
     createError,
     updateError,
+    createStreetError,
   } = vm;
 
   const navigate = useNavigate();
@@ -69,9 +87,16 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             </h1>
             <p className="m-0 text-sm text-zinc-600">Máquinas de linha de produção.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button onClick={() => navigate('/cadastro/tipos-maquina')}>
               Tipos de máquina
+            </Button>
+            <Button
+              type="button"
+              onClick={openStreetCreate}
+              disabled={!apiReady || busy || sectorsEmpty}
+            >
+              Nova rua
             </Button>
             <Button
               type="button"
@@ -420,6 +445,26 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ]}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-street">Rua (opcional)</Label>
+            <SelectCombobox
+              id="m-street"
+              value={machineStreetId}
+              onValueChange={setMachineStreetId}
+              placeholder={
+                sectorId ? 'Sem rua…' : 'Selecione o setor primeiro…'
+              }
+              disabled={!sectorId}
+              options={[
+                { value: '', label: 'Sem rua' },
+                ...streetsForMachineSector.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  color: s.machineStreetColor,
+                })),
+              ]}
+            />
+          </div>
         </div>
       </SimpleModal>
 
@@ -515,6 +560,26 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="m-edit-street">Rua (opcional)</Label>
+            <SelectCombobox
+              id="m-edit-street"
+              value={machineStreetId}
+              onValueChange={setMachineStreetId}
+              placeholder={
+                sectorId ? 'Sem rua…' : 'Selecione o setor primeiro…'
+              }
+              disabled={!sectorId}
+              options={[
+                { value: '', label: 'Sem rua' },
+                ...streetsForMachineSector.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  color: s.machineStreetColor,
+                })),
+              ]}
+            />
+          </div>
+          <div className="space-y-2">
             <Label>Operador na máquina</Label>
             {editOperator ? (
               <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/90 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -575,6 +640,146 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             {deleteMut.error.message}
           </p>
         ) : null}
+      </SimpleModal>
+
+      <SimpleModal
+        open={streetCreateOpen}
+        title="Nova rua"
+        description="Cadastre uma rua do chão de fábrica vinculada a um setor. Só máquinas desse setor poderão usá-la."
+        onClose={() => (!busy ? setStreetCreateOpen(false) : undefined)}
+        footer={
+          <ModalActions
+            onCancel={() => !busy && setStreetCreateOpen(false)}
+            submitLabel={busy ? 'Salvando…' : 'Criar rua'}
+            disabled={busy || sectorsEmpty}
+            onSubmit={() => createStreetMut.mutate()}
+          />
+        }
+      >
+        {createStreetError ? (
+          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {createStreetError}
+          </p>
+        ) : null}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="street-name">Nome da rua</Label>
+            <Input
+              id="street-name"
+              value={streetName}
+              onChange={(e) => setStreetName(e.target.value)}
+              placeholder="Ex.: Rua A"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="street-color">Cor</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                id="street-color"
+                type="color"
+                value={streetColor}
+                onChange={(e) => setStreetColor(e.target.value)}
+                className="h-10 w-14 cursor-pointer p-1"
+              />
+              <Input
+                value={streetColor}
+                onChange={(e) => setStreetColor(e.target.value)}
+                placeholder="#2563eb"
+                className="font-mono"
+              />
+            </div>
+          </div>
+          {isAdmin ? (
+            <div className="space-y-2">
+              <Label htmlFor="street-sector">Setor</Label>
+              <SelectCombobox
+                id="street-sector"
+                value={streetSectorId}
+                onValueChange={setStreetSectorId}
+                placeholder="Selecione…"
+                options={[
+                  { value: '', label: 'Selecione…' },
+                  ...sectorsForSelect.map((s) => ({
+                    value: s.id,
+                    label: `${s.typeSector}${
+                      typeof s.sectorIdAPI === 'number'
+                        ? ` (#${s.sectorIdAPI})`
+                        : ''
+                    }`,
+                  })),
+                ]}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Setor</Label>
+              <p className="m-0 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+                {user?.sector?.typeSector ?? 'Seu setor'}
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-3 border-t border-zinc-200 pt-4">
+            <div>
+              <p className="m-0 text-sm font-semibold text-zinc-900">
+                Ruas do setor
+              </p>
+              <p className="m-0 mt-0.5 text-xs text-zinc-500">
+                {isAdmin && !streetSectorId
+                  ? 'Selecione um setor para ver as ruas cadastradas.'
+                  : 'Todas as ruas vinculadas a este setor.'}
+              </p>
+            </div>
+            {dialogStreetsQuery.isLoading &&
+            (streetSectorId || (!isAdmin && user?.sectorId)) ? (
+              <div className="flex justify-center py-4">
+                <AccordionLoader />
+              </div>
+            ) : streetsForDialogSector.length === 0 ? (
+              <p className="m-0 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-6 text-center text-sm text-zinc-500">
+                {isAdmin && !streetSectorId
+                  ? 'Nenhuma rua para exibir.'
+                  : 'Nenhuma rua cadastrada neste setor.'}
+              </p>
+            ) : (
+              <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+                {streetsForDialogSector.map((street) => (
+                  <div
+                    key={street.id}
+                    className="flex min-w-0 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5"
+                  >
+                    <span
+                      className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50"
+                      style={{ color: street.machineStreetColor }}
+                      aria-hidden
+                    >
+                      <Road className="size-4" strokeWidth={2.5} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="m-0 truncate text-sm font-semibold"
+                        style={{ color: street.machineStreetColor }}
+                      >
+                        {street.name}
+                      </p>
+                      <p className="m-0 mt-0.5 text-xs text-zinc-500">
+                        {(street.references ?? 0) === 1
+                          ? '1 máquina'
+                          : `${street.references ?? 0} máquinas`}
+                      </p>
+                    </div>
+                    <span
+                      className="size-3.5 shrink-0 rounded-full border border-zinc-200"
+                      style={{ backgroundColor: street.machineStreetColor }}
+                      title={street.machineStreetColor}
+                      aria-hidden
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </SimpleModal>
     </main>
   );

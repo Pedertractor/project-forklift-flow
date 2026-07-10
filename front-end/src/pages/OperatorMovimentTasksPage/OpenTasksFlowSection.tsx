@@ -31,6 +31,7 @@ interface TaskRouteGroup {
   machineName: string;
   machineAssetNumber: string | null;
   machinePillar: string | null;
+  machineStreet: OperatorMovimentTaskItem['request']['destination']['machineStreet'];
   priority: OperatorMovimentTaskItem['request']['priorityLevel'];
   deliverTask: OperatorMovimentTaskItem | null;
   pickupTask: OperatorMovimentTaskItem | null;
@@ -94,6 +95,7 @@ function groupOpenTasks(tasks: OperatorMovimentTaskItem[]): TaskRouteGroup[] {
         machineName: dest.name,
         machineAssetNumber: dest.assetNumber ?? null,
         machinePillar: dest.pillar ?? null,
+        machineStreet: dest.machineStreet ?? null,
         priority: task.request.priorityLevel,
         deliverTask: null,
         pickupTask: null,
@@ -341,6 +343,7 @@ function OpenTaskRouteCard({
                 machineName={group.machineName}
                 assetNumber={group.machineAssetNumber}
                 pillar={group.machinePillar}
+                machineStreet={group.machineStreet}
                 cube={deliverOpen ? deliverCubeDisplay : undefined}
                 typography="large"
               />

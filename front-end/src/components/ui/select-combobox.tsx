@@ -9,11 +9,14 @@ import {
   ComboboxList,
   useComboboxAnchor,
 } from '@/components/ui/combobox';
+import { InputGroupAddon } from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
 
 export type SelectComboboxOption = {
   value: string;
   label: string;
+  /** Cor opcional exibida como círculo à esquerda (ex.: rua). */
+  color?: string;
 };
 
 export const selectComboboxClassName =
@@ -53,6 +56,16 @@ export function SelectCombobox({
     [options],
   );
 
+  const colorByValue = useMemo(
+    () =>
+      new Map(
+        options
+          .filter((option) => option.color)
+          .map((option) => [option.value, option.color!]),
+      ),
+    [options],
+  );
+
   const items = useMemo(() => options.map((option) => option.value), [options]);
 
   const itemToStringLabel = (item: string) =>
@@ -68,6 +81,7 @@ export function SelectCombobox({
   }, [canSearch, items, itemToStringLabel, search]);
 
   const selectedValue = items.includes(value) ? value : (items[0] ?? '');
+  const selectedColor = colorByValue.get(selectedValue);
 
   return (
     <Combobox
@@ -98,7 +112,17 @@ export function SelectCombobox({
           readOnly={!canSearch}
           className="h-full w-full border-0 bg-transparent shadow-none ring-0 focus-within:border-transparent focus-within:ring-0 [&]:h-full [&]:border-0 [&]:bg-transparent [&]:shadow-none [&]:ring-0"
           onChange={(event) => setSearch(event.target.value)}
-        />
+        >
+          {selectedColor ? (
+            <InputGroupAddon align="inline-start" className="pl-3">
+              <span
+                className="size-3 shrink-0 rounded-full border border-zinc-200"
+                style={{ backgroundColor: selectedColor }}
+                aria-hidden
+              />
+            </InputGroupAddon>
+          ) : null}
+        </ComboboxInput>
       </div>
       <ComboboxContent
         anchor={anchorRef}
@@ -107,11 +131,23 @@ export function SelectCombobox({
         className="w-(--anchor-width)"
       >
         <ComboboxList>
-          {filteredItems.map((item) => (
-            <ComboboxItem key={item} value={item}>
-              {itemToStringLabel(item)}
-            </ComboboxItem>
-          ))}
+          {filteredItems.map((item) => {
+            const color = colorByValue.get(item);
+            return (
+              <ComboboxItem key={item} value={item}>
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  {color ? (
+                    <span
+                      className="size-3 shrink-0 rounded-full border border-zinc-200"
+                      style={{ backgroundColor: color }}
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span className="truncate">{itemToStringLabel(item)}</span>
+                </span>
+              </ComboboxItem>
+            );
+          })}
           <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
         </ComboboxList>
       </ComboboxContent>

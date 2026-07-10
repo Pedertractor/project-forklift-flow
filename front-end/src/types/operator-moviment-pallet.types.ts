@@ -1,5 +1,6 @@
 /** Valores alinhados ao Prisma / API. */
 
+import type { MachineStreetBrief } from '@/types/machine.types';
 import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
@@ -43,6 +44,7 @@ export interface OperatorRequestDestinationBrief {
   userId: string | null;
   assetNumber?: string | null;
   pillar?: string | null;
+  machineStreet?: MachineStreetBrief | null;
   typeMachine: { id: string; name: string };
   sector: { id: string; typeSector: string };
 }
@@ -157,6 +159,7 @@ export interface TripCombinedSuggestionApi {
     name: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
   };
   message: string;
   suggestedOrder: TripFlowStepApi[];
@@ -176,6 +179,7 @@ export interface TripStandalonePickupApi {
     name: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
   };
   message: string;
   suggestedOrder: TripFlowStepApi[];
@@ -193,6 +197,7 @@ export interface TripStandaloneDeliverApi {
     name: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
   };
   message: string;
   suggestedOrder: TripFlowStepApi[];

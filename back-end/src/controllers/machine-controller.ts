@@ -3,6 +3,8 @@ import {
   AssignMachineUserError,
   MachineInUseError,
   MachineNotFoundError,
+  MachineStreetNotFoundError,
+  MachineStreetSectorMismatchError,
   SectorNotFoundError,
   TypeMachineNotFoundError,
 } from '../errors/domain-errors.js'
@@ -39,6 +41,7 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    machineStreetId?: string | null
     assetNumber?: string
     pillar?: string
   }
@@ -72,6 +75,7 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
       typeMachineId: body.typeMachineId.trim(),
       sectorId: body.sectorId.trim(),
       userId: body.userId,
+      machineStreetId: parseOptionalTrimmedString(body.machineStreetId),
       assetNumber: body.assetNumber,
       pillar: body.pillar,
     })
@@ -82,6 +86,12 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
     }
     if (error instanceof SectorNotFoundError) {
       return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MachineStreetNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MachineStreetSectorMismatchError) {
+      return reply.status(400).send({ error: error.message })
     }
     if (error instanceof AssignMachineUserError) {
       return reply.status(400).send({ error: error.message })
@@ -134,6 +144,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    machineStreetId?: string | null
     productionStatus?: string
     assetNumber?: string | null
     pillar?: string | null
@@ -148,6 +159,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     typeMachineId?: string
     sectorId?: string
     userId?: string | null
+    machineStreetId?: string | null
     productionStatus?: 'TRABALHANDO' | 'ABASTECER'
     assetNumber?: string | null
     pillar?: string | null
@@ -183,6 +195,13 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
   if (body.userId !== undefined) {
     patch.userId = body.userId
   }
+  if (body.machineStreetId !== undefined) {
+    const machineStreetId = parseOptionalTrimmedString(body.machineStreetId)
+    if (machineStreetId === undefined && body.machineStreetId !== null) {
+      return reply.status(400).send({ error: 'machineStreetId invalido.' })
+    }
+    patch.machineStreetId = machineStreetId ?? null
+  }
   if (body.productionStatus !== undefined) {
     const productionStatus = parseMachineProductionStatus(body.productionStatus)
     if (!productionStatus) {
@@ -212,7 +231,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
       .status(400)
       .send({
         error:
-          'Envie ao menos um campo: name, plantUnit, typeMachineId, sectorId, userId, productionStatus, assetNumber ou pillar.',
+          'Envie ao menos um campo: name, plantUnit, typeMachineId, sectorId, userId, machineStreetId, productionStatus, assetNumber ou pillar.',
       })
   }
 
@@ -228,6 +247,12 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     }
     if (error instanceof SectorNotFoundError) {
       return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MachineStreetNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MachineStreetSectorMismatchError) {
+      return reply.status(400).send({ error: error.message })
     }
     if (error instanceof AssignMachineUserError) {
       return reply.status(400).send({ error: error.message })

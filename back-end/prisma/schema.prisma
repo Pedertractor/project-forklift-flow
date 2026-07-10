@@ -167,6 +167,23 @@ model MovimentPalletTripSuggestion {
   updatedAt DateTime @updatedAt
 }
 
+/// Rua / corredor do chão de fábrica — várias máquinas podem compartilhar a mesma rua (opcional).
+/// Sempre pertence a um setor; só máquinas desse setor podem ser vinculadas.
+model MachineStreet {
+  id                 String    @id @default(uuid())
+  name               String
+  machineStreetColor String
+
+  sector   Sector @relation(fields: [sectorId], references: [id])
+  sectorId String
+
+  machines  Machine[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([sectorId])
+}
+
 model Machine {
   id        String       @id @default(uuid())
   name      String
@@ -180,6 +197,10 @@ model Machine {
 
   user   User?   @relation("MachineOperator", fields: [userId], references: [id])
   userId String?
+
+  /// Rua opcional no mapa da planta (várias máquinas por rua).
+  machineStreet   MachineStreet? @relation(fields: [machineStreetId], references: [id])
+  machineStreetId String?
 
   deliveryTasks DeliveryTask[] @relation("MachineDeliveryTasks")
   pickupTasks   PickupTask[]   @relation("MachinePickupTasks")
@@ -224,9 +245,10 @@ model Sector {
   id         String @id @default(uuid())
   typeSector String
 
-  costCenters CostCenter[]
-  machines    Machine[]
-  users       User[]
+  costCenters    CostCenter[]
+  machines       Machine[]
+  machineStreets MachineStreet[]
+  users          User[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -151,6 +151,11 @@ type TripSuggestionMachineBrief = {
   name: string;
   assetNumber: string | null;
   pillar: string | null;
+  machineStreet: {
+    id: string;
+    name: string;
+    machineStreetColor: string;
+  } | null;
 };
 
 function mapMachineForTripSuggestion(
@@ -161,6 +166,13 @@ function mapMachineForTripSuggestion(
     name: machine.name,
     assetNumber: machine.assetNumber ?? null,
     pillar: machine.pillar ?? null,
+    machineStreet: machine.machineStreet
+      ? {
+          id: machine.machineStreet.id,
+          name: machine.machineStreet.name,
+          machineStreetColor: machine.machineStreet.machineStreetColor,
+        }
+      : null,
   };
 }
 

@@ -4,10 +4,13 @@ import {
   AssignMachineUserError,
   MachineInUseError,
   MachineNotFoundError,
+  MachineStreetNotFoundError,
+  MachineStreetSectorMismatchError,
   SectorNotFoundError,
   TypeMachineNotFoundError,
 } from '../errors/domain-errors.js'
 import { machineRepository } from '../repositories/machine.repository.js'
+import { machineStreetRepository } from '../repositories/machine-street.repository.js'
 import { operatorMovimentPalletWsBroadcastMachineOperatorUpdated, operatorMovimentPalletWsBroadcastMachineProductionStatusUpdated } from '../ws/operator-moviment-pallet-ws.hub.js'
 import { sectorRepository } from '../repositories/sector.repository.js'
 import { typeMachineRepository } from '../repositories/type-machine.repository.js'
@@ -28,6 +31,7 @@ export type CreateMachineInput = {
   typeMachineId: string
   sectorId: string
   userId?: string | null | undefined
+  machineStreetId?: string | null | undefined
   assetNumber: string
   pillar: string
 }
@@ -38,6 +42,7 @@ export type UpdateMachineInput = {
   typeMachineId?: string
   sectorId?: string
   userId?: string | null
+  machineStreetId?: string | null
   productionStatus?: MachineProductionStatus
   assetNumber?: string | null
   pillar?: string | null
@@ -95,6 +100,20 @@ async function requireUserExistsIfSet(userId: string) {
   }
 }
 
+async function requireMachineStreetForSector(
+  machineStreetId: string,
+  sectorId: string,
+) {
+  const row = await machineStreetRepository.findUniqueById(machineStreetId)
+  if (!row) {
+    throw new MachineStreetNotFoundError()
+  }
+  if (row.sectorId !== sectorId) {
+    throw new MachineStreetSectorMismatchError()
+  }
+  return row
+}
+
 function buildMachineUpdateData(
   input: UpdateMachineInput,
 ): Prisma.MachineUpdateInput {
@@ -118,6 +137,13 @@ function buildMachineUpdateData(
       data.user = { connect: { id: input.userId } }
     }
   }
+  if (input.machineStreetId !== undefined) {
+    if (input.machineStreetId === null || input.machineStreetId === '') {
+      data.machineStreet = { disconnect: true }
+    } else {
+      data.machineStreet = { connect: { id: input.machineStreetId } }
+    }
+  }
   if (input.productionStatus !== undefined) {
     data.productionStatus = input.productionStatus
   }
@@ -136,6 +162,13 @@ export async function createMachine(input: CreateMachineInput) {
   if (input.userId !== undefined && input.userId !== null && input.userId !== '') {
     await requireUserExistsIfSet(input.userId)
   }
+  if (
+    input.machineStreetId !== undefined &&
+    input.machineStreetId !== null &&
+    input.machineStreetId !== ''
+  ) {
+    await requireMachineStreetForSector(input.machineStreetId, input.sectorId)
+  }
 
   const data: Prisma.MachineCreateInput = {
     name: input.name.trim(),
@@ -147,6 +180,13 @@ export async function createMachine(input: CreateMachineInput) {
   }
   if (input.userId !== undefined && input.userId !== null && input.userId !== '') {
     data.user = { connect: { id: input.userId } }
+  }
+  if (
+    input.machineStreetId !== undefined &&
+    input.machineStreetId !== null &&
+    input.machineStreetId !== ''
+  ) {
+    data.machineStreet = { connect: { id: input.machineStreetId } }
   }
 
   return machineRepository.create(data)
@@ -187,7 +227,33 @@ export async function updateMachine(id: string, input: UpdateMachineInput) {
     await requireUserExistsIfSet(input.userId)
   }
 
+  const effectiveSectorId = input.sectorId ?? before.sectorId
+  const nextStreetId =
+    input.machineStreetId !== undefined
+      ? input.machineStreetId === null || input.machineStreetId === ''
+        ? null
+        : input.machineStreetId
+      : before.machineStreetId
+
+  if (nextStreetId) {
+    await requireMachineStreetForSector(nextStreetId, effectiveSectorId)
+  }
+
   const data = buildMachineUpdateData(input)
+  // Troca de setor com rua de outro setor: desvincula automaticamente.
+  if (
+    input.sectorId !== undefined &&
+    input.machineStreetId === undefined &&
+    before.machineStreetId
+  ) {
+    const street = await machineStreetRepository.findUniqueById(
+      before.machineStreetId,
+    )
+    if (street && street.sectorId !== effectiveSectorId) {
+      data.machineStreet = { disconnect: true }
+    }
+  }
+
   if (Object.keys(data).length === 0) {
     return before
   }

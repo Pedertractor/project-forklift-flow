@@ -1,6 +1,7 @@
 import type { Prisma } from '../generated/prisma/client.js'
 import { MachineProductionStatus } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
+import { machineStreetBriefSelect } from './machine-street.repository.js'
 
 const machineListSelect = {
   id: true,
@@ -9,6 +10,7 @@ const machineListSelect = {
   typeMachineId: true,
   sectorId: true,
   userId: true,
+  machineStreetId: true,
   productionStatus: true,
   assetNumber: true,
   pillar: true,
@@ -23,6 +25,7 @@ const machineListSelect = {
   user: {
     select: { id: true, name: true, card: true },
   },
+  machineStreet: { select: machineStreetBriefSelect },
 } as const
 
 // Lista administrativa: inclui contagem de vínculos que impedem exclusão
@@ -51,6 +54,7 @@ const machineDetailInclude = {
       unit: true,
     },
   },
+  machineStreet: { select: machineStreetBriefSelect },
 } as const
 
 export const machineRepository = {

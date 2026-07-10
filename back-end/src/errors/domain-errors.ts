@@ -88,6 +88,31 @@ export class AssignMachineUserError extends Error {
   }
 }
 
+export class MachineStreetNotFoundError extends Error {
+  constructor(message = "Rua da maquina nao encontrada.") {
+    super(message);
+    this.name = "MachineStreetNotFoundError";
+  }
+}
+
+export class MachineStreetInUseError extends Error {
+  constructor(
+    message = "Existem maquinas vinculadas a esta rua; nao e possivel excluir.",
+  ) {
+    super(message);
+    this.name = "MachineStreetInUseError";
+  }
+}
+
+export class MachineStreetSectorMismatchError extends Error {
+  constructor(
+    message = "A rua informada nao pertence ao setor da maquina.",
+  ) {
+    super(message);
+    this.name = "MachineStreetSectorMismatchError";
+  }
+}
+
 export class MachineReplenishmentRequestNotFoundError extends Error {
   constructor(message = "Solicitacao de reposicao nao encontrada.") {
     super(message);

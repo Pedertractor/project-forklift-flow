@@ -39,6 +39,7 @@ function mapMachineToDestination(
     userId: machine?.userId ?? null,
     assetNumber: machine?.assetNumber ?? null,
     pillar: machine?.pillar ?? null,
+    machineStreet: machine?.machineStreet ?? null,
     typeMachine: machine?.typeMachine ?? { id: '', name: '' },
     sector: machine?.sector ?? {
       id: machine?.sectorId ?? '',
@@ -306,7 +307,13 @@ export async function fetchOperatorMyTasks(): Promise<OperatorMovimentTaskItem[]
 
 type TripSuggestionApiRow = {
   kind: string;
-  machine: { id: string; name: string };
+  machine: {
+    id: string;
+    name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
+    machineStreet?: OperatorRequestDestinationBrief['machineStreet'];
+  };
   effectiveCritical?: boolean;
   message: string;
   deliverTask: DeliveryTaskApiRow;
@@ -315,7 +322,13 @@ type TripSuggestionApiRow = {
 };
 
 function enrichTripSuggestionMachine(
-  machine: { id: string; name: string; assetNumber?: string | null; pillar?: string | null },
+  machine: {
+    id: string;
+    name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
+    machineStreet?: OperatorRequestDestinationBrief['machineStreet'];
+  },
   destination?: OperatorRequestDestinationBrief,
 ): TripStandalonePickupApi['machine'] {
   return {
@@ -323,6 +336,8 @@ function enrichTripSuggestionMachine(
     name: machine.name,
     assetNumber: machine.assetNumber ?? destination?.assetNumber ?? null,
     pillar: machine.pillar ?? destination?.pillar ?? null,
+    machineStreet:
+      machine.machineStreet ?? destination?.machineStreet ?? null,
   };
 }
 
@@ -331,7 +346,13 @@ type TripStandalonePickupApiRow = {
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
   deferRecommended?: boolean;
-  machine: { id: string; name: string; assetNumber?: string | null; pillar?: string | null };
+  machine: {
+    id: string;
+    name: string;
+    assetNumber?: string | null;
+    pillar?: string | null;
+    machineStreet?: OperatorRequestDestinationBrief['machineStreet'];
+  };
   message: string;
   pickupTask: PickupTaskApiRow;
 };
@@ -365,18 +386,25 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
   }
 
   return {
-    suggestions: (res.suggestions ?? []).map((s) => ({
-      kind: 'COMBINE_DELIVER_AND_PICKUP_AT_MACHINE' as const,
-      typeMovimentPallet: 'FORKLIFT' as const,
-      effectivePriority: (s.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
-      deferRecommended: false,
-      machine: s.machine,
-      message: s.message,
-      suggestedOrder: [],
-      deliverTask: mapDeliveryToTaskItem(s.deliverTask),
-      pickupTask: mapPickupTaskToQueueItem(s.pickupTask),
-      tripSuggestion: s.tripSuggestion,
-    })),
+    suggestions: (res.suggestions ?? []).map((s) => {
+      const deliverTask = mapDeliveryToTaskItem(s.deliverTask);
+      const pickupTask = mapPickupTaskToQueueItem(s.pickupTask);
+      return {
+        kind: 'COMBINE_DELIVER_AND_PICKUP_AT_MACHINE' as const,
+        typeMovimentPallet: 'FORKLIFT' as const,
+        effectivePriority: (s.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+        deferRecommended: false,
+        machine: enrichTripSuggestionMachine(
+          s.machine,
+          deliverTask.request.destination ?? pickupTask.request.destination,
+        ),
+        message: s.message,
+        suggestedOrder: [],
+        deliverTask,
+        pickupTask,
+        tripSuggestion: s.tripSuggestion,
+      };
+    }),
     standalonePickupTasks: (res.standalonePickupTasks ?? []).map((row) => {
       const pickupTask = mapPickupTaskToQueueItem(row.pickupTask);
       return {
