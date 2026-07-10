@@ -59,6 +59,7 @@ import {
   MOVIMENT_OPERATOR_ROLES,
   OPERATOR_MACHINE_ROLES,
   SUPERVISION_ROLES,
+  hasAdminPrivileges,
   type AppRole,
 } from '@/types/role.types';
 import type { IsOperatingMode } from '@/types/operator-moviment-pallet.types';
@@ -153,6 +154,10 @@ export function OperatorMovimentWorkProvider({
   const isMachineOperator = isMachineOperatorRole(user?.role);
   const isMachineCadastro = isMachineCadastroRole(user?.role);
   const isSupplyReplenishment = isSupplyReplenishmentRole(user?.role);
+  /** ADMIN/SUPERADMIN recebem eventos de todos os setores. */
+  const wsSectorId = hasAdminPrivileges(user?.role)
+    ? undefined
+    : user?.sectorId;
   const realtimeEnabled = Boolean(
     ENV.API_URL &&
       token &&
@@ -281,10 +286,10 @@ export function OperatorMovimentWorkProvider({
       const boundMachineId = resolveBoundMachineId();
       if (
         !wsEventMatchesSubscriber(event, {
-          sectorId: user?.sectorId,
+          sectorId: wsSectorId,
           userId: user?.id,
           boundMachineId,
-          operatorSectorId: user?.sectorId,
+          operatorSectorId: wsSectorId,
           allowedMovimentTypes,
           isMovimentOperator,
           isMachineOperator,
@@ -304,7 +309,7 @@ export function OperatorMovimentWorkProvider({
           event,
           user?.id,
           boundMachineId,
-          user?.sectorId,
+          wsSectorId,
         )
       ) {
         patchMachineProductionStatusInCache(queryClient, event);
@@ -331,7 +336,7 @@ export function OperatorMovimentWorkProvider({
         isMovimentOperator &&
         wsEventMatchesMovimentOperator(
           event,
-          user?.sectorId,
+          wsSectorId,
           allowedMovimentTypes,
         );
 
@@ -406,7 +411,8 @@ export function OperatorMovimentWorkProvider({
       scheduleSupplyReplenishmentInvalidate,
       resolveBoundMachineId,
       user?.id,
-      user?.sectorId,
+      user?.role,
+      wsSectorId,
     ],
   );
 

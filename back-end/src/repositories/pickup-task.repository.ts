@@ -95,12 +95,12 @@ export const pickupTaskRepository = {
   },
 
   findManyOpenPickupForSectorAndOperatingMode(
-    sectorId: string,
+    sectorId: string | null | undefined,
     operatingMode: IsOperating,
   ) {
     return prisma.pickupTask.findMany({
       where: {
-        machine: { sectorId },
+        ...(sectorId ? { machine: { sectorId } } : {}),
         status: { in: openMachineTaskStatuses },
         typeMovimentPallet: { in: openPoolTypesForOperatingMode(operatingMode) },
       },

@@ -11,6 +11,7 @@ import {
 } from '@/services/moviment-pallets-api';
 import { fetchSectors } from '@/services/sectors-api';
 import { useAuthStore } from '@/store/auth.store';
+import { hasAdminPrivileges } from '@/types/role.types';
 import type { SectorListItem } from '@/types/machine.types';
 import type { MovimentPalletEquipmentType, MovimentPalletListItem } from '@/types/moviment-pallet.types';
 
@@ -177,6 +178,7 @@ export function useMovimentPalletsPage() {
 
   const missingUserSector =
     Boolean(apiReady && token) &&
+    !hasAdminPrivileges(user?.role) &&
     !user?.sectorId &&
     sectorOptions.length === 0 &&
     !sectorsQuery.isLoading;

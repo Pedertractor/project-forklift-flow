@@ -78,7 +78,10 @@ function parseOperatingMode(value: unknown): IsOperating {
 
 async function requireOperatorWithOperatingMode(operatorUserId: string) {
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId) throw new OperatorWithoutSectorError();
+  if (!user) throw new OperatorWithoutSectorError();
+  if (!isAdminOrSuperAdmin(user.role) && !user.sectorId) {
+    throw new OperatorWithoutSectorError();
+  }
   if (!user.isOperating) throw new OperatorWithoutBoundMovimentPalletError();
   return {
     user,
@@ -132,7 +135,7 @@ function linkedOpenTripTaskIdsFromRows(
 }
 
 async function linkedOpenTripTaskIdsForSector(
-  sectorId: string,
+  sectorId: string | null | undefined,
   types: TypeMovimentPallet[],
 ): Promise<LinkedOpenTripTaskIds> {
   const rows =
@@ -225,7 +228,7 @@ async function isPickupEligibleForStandaloneQueue(
 }
 
 async function listStandaloneTripTasksForSector(
-  sectorId: string,
+  sectorId: string | null | undefined,
   operatingMode: IsOperating,
   linked: LinkedOpenTripTaskIds,
   blockedMachineIds: Set<string>,
@@ -305,7 +308,7 @@ async function listStandaloneTripTasksForSector(
 
 /** Quando a tela principal estaria vazia, promove uma avulsa nao critica (fila manual). */
 async function listOneNonCriticalStandaloneFallback(
-  sectorId: string,
+  sectorId: string | null | undefined,
   operatingMode: IsOperating,
   linked: LinkedOpenTripTaskIds,
   blockedMachineIds: Set<string>,
@@ -415,7 +418,10 @@ export async function setOperatorOperatingMode(
   assertPalletTransporterRole(role);
   const isOperating = parseOperatingMode(isOperatingRaw);
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId) throw new OperatorWithoutSectorError();
+  if (!user) throw new OperatorWithoutSectorError();
+  if (!isAdminOrSuperAdmin(role) && !user.sectorId) {
+    throw new OperatorWithoutSectorError();
+  }
   await userRepository.updateOperatingMode(operatorUserId, isOperating);
   return getOperatorCurrentMovimentPallet(operatorUserId);
 }
@@ -460,25 +466,32 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
   operatorUserId: string,
 ) {
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId);
-  if (!user?.sectorId || !user.isOperating) {
+  if (!user?.isOperating) {
+    return { deliveryTasks: [], pickupTasks: [] };
+  }
+  const crossSector = isAdminOrSuperAdmin(user.role);
+  if (!crossSector && !user.sectorId) {
     return { deliveryTasks: [], pickupTasks: [] };
   }
 
+  const sectorScope = crossSector ? (user.sectorId ?? null) : user.sectorId!;
   const operatingMode = assertOperatingMode(user.isOperating);
   const poolTypes = poolTypesForOperatingMode(operatingMode);
-  await syncTripSuggestions(user.sectorId, poolTypes);
-  const linked = await linkedOpenTripTaskIdsForSector(user.sectorId, poolTypes);
+  if (sectorScope) {
+    await syncTripSuggestions(sectorScope, poolTypes);
+  }
+  const linked = await linkedOpenTripTaskIdsForSector(sectorScope, poolTypes);
   const blockedMachineIds = await findBlockedMachineIdsForTransportInSector(
-    user.sectorId,
+    sectorScope,
   );
 
   const [deliveryTasks, pickupTasks] = await Promise.all([
     deliveryTaskRepository.findManyOpenPoolForSectorAndOperatingMode(
-      user.sectorId,
+      sectorScope,
       operatingMode,
     ),
     pickupTaskRepository.findManyOpenPickupForSectorAndOperatingMode(
-      user.sectorId,
+      sectorScope,
       operatingMode,
     ),
   ]);
@@ -607,7 +620,7 @@ export async function listTripRouteSuggestionsForOperator(
     };
   }
 
-  if (!user.sectorId) {
+  if (!user.sectorId && !isAdminOrSuperAdmin(role)) {
     return {
       suggestions: [],
       standalonePickupTasks: [],
@@ -616,20 +629,26 @@ export async function listTripRouteSuggestionsForOperator(
     };
   }
 
-  await syncTripSuggestions(user.sectorId, types);
-  await movimentPalletTripSuggestionRepository.reconcileCompletedAcceptedInSector(
-    user.sectorId,
-    types,
-  );
+  const sectorScope = isAdminOrSuperAdmin(role)
+    ? (user.sectorId ?? null)
+    : user.sectorId!;
+
+  if (sectorScope) {
+    await syncTripSuggestions(sectorScope, types);
+    await movimentPalletTripSuggestionRepository.reconcileCompletedAcceptedInSector(
+      sectorScope,
+      types,
+    );
+  }
 
   const rows =
     await movimentPalletTripSuggestionRepository.findManyOpenListableForOperator(
-      user.sectorId,
+      sectorScope,
       types,
     );
 
   const blockedMachineIds = await findBlockedMachineIdsForTransportInSector(
-    user.sectorId,
+    sectorScope,
   );
 
   const suggestions = rows
@@ -683,7 +702,7 @@ export async function listTripRouteSuggestionsForOperator(
   const linked = linkedOpenTripTaskIdsFromRows(rows);
   let { standalonePickupTasks, standaloneDeliverTasks } =
     await listStandaloneTripTasksForSector(
-      user.sectorId,
+      sectorScope,
       operatingMode,
       linked,
       blockedMachineIds,
@@ -695,7 +714,7 @@ export async function listTripRouteSuggestionsForOperator(
     standaloneDeliverTasks.length === 0
   ) {
     const fallback = await listOneNonCriticalStandaloneFallback(
-      user.sectorId,
+      sectorScope,
       operatingMode,
       linked,
       blockedMachineIds,
@@ -739,7 +758,10 @@ export async function acceptTripRouteSuggestion(
   if (full.status !== MovimentPalletTripSuggestionStatus.OPEN) {
     throw new TripRouteSuggestionNotOpenError();
   }
-  if (full.machine.sectorId !== user.sectorId) {
+  if (
+    !isAdminOrSuperAdmin(role) &&
+    full.machine.sectorId !== user.sectorId
+  ) {
     throw new TripRouteSuggestionAcceptForbiddenError();
   }
 

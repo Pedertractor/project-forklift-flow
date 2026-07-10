@@ -154,8 +154,8 @@ export function SupplyPendingPreparationPageView(
 
         {machinesEmpty ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            Não há máquinas no seu setor para registrar retiradas. Cadastre
-            máquinas em «Máquinas de produção» ou verifique o setor do usuário.
+            Não há máquinas cadastradas para registrar retiradas. Cadastre
+            máquinas em «Máquinas de produção».
           </p>
         ) : null}
 

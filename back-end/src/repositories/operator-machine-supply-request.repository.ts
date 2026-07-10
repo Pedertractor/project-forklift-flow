@@ -107,6 +107,16 @@ export const operatorMachineSupplyRequestRepository = {
     })
   },
 
+  findManyOpenAll() {
+    return prisma.operatorMachineSupplyRequest.findMany({
+      where: {
+        status: OperatorMachineSupplyRequestStatus.OPEN,
+      },
+      include: operatorMachineSupplyRequestListInclude,
+      orderBy: [{ machine: { name: 'asc' } }, { createdAt: 'asc' }],
+    })
+  },
+
   fulfillOpenForMachine(
     machineId: string,
     deliveryTaskId: string,

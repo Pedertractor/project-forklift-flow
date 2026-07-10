@@ -31,13 +31,18 @@ import {
 } from '../ws/operator-moviment-pallet-ws.hub.js'
 import type { Prisma } from '../generated/prisma/client.js'
 import { deliveryTaskListInclude } from '../repositories/delivery-task.repository.js'
+import { isAdminOrSuperAdmin } from '../utils/role-user.js'
 
 export async function bindOperatorToMachine(
   operatorUserId: string,
   machineId: string,
 ) {
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId)
-  if (!user?.sectorId) {
+  if (!user) {
+    throw new OperatorWithoutSectorError()
+  }
+  const crossSector = isAdminOrSuperAdmin(user.role)
+  if (!crossSector && !user.sectorId) {
     throw new OperatorWithoutSectorError()
   }
 
@@ -45,7 +50,7 @@ export async function bindOperatorToMachine(
   if (!targetMachine) {
     throw new MachineNotFoundError()
   }
-  if (targetMachine.sectorId !== user.sectorId) {
+  if (!crossSector && targetMachine.sectorId !== user.sectorId) {
     throw new MachineNotInOperatorSectorError()
   }
 
@@ -103,7 +108,13 @@ export async function getOperatorCurrentMachine(operatorUserId: string) {
 
 export async function listMachinesForOperatorPicker(operatorUserId: string) {
   const user = await userRepository.findUniqueByIdWithSector(operatorUserId)
-  if (!user?.sectorId) {
+  if (!user) {
+    return []
+  }
+  if (isAdminOrSuperAdmin(user.role)) {
+    return machineRepository.findManyForList()
+  }
+  if (!user.sectorId) {
     return []
   }
   return machineRepository.findManyForList({ sectorId: user.sectorId })

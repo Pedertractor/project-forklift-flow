@@ -14,6 +14,7 @@ import {
 import { fetchMachines } from '@/services/machines-api';
 import { fetchMovimentPallets } from '@/services/moviment-pallets-api';
 import { useAuthStore } from '@/store/auth.store';
+import { hasAdminPrivileges } from '@/types/role.types';
 import { buildEquipmentColumnStats } from './replenishment-equipment-status';
 import type { MachineListItem } from '@/types/machine.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
@@ -64,11 +65,14 @@ export function useReplenishmentRequestsPage() {
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
 
+  const isAdmin = hasAdminPrivileges(user?.role);
+  const machinesScopeKey = isAdmin ? 'all' : (user?.sectorId ?? '');
+
   const machinesQuery = useQuery({
-    queryKey: ['machines', user?.sectorId ?? ''],
+    queryKey: ['machines', machinesScopeKey],
     queryFn: () =>
       fetchMachines({
-        sectorId: user?.sectorId ?? undefined,
+        ...(isAdmin ? {} : { sectorId: user?.sectorId ?? undefined }),
       }),
     enabled: apiReady,
   });
@@ -76,7 +80,7 @@ export function useReplenishmentRequestsPage() {
   const machinesForSelect: MachineListItem[] = machinesQuery.data ?? [];
 
   const [statusFilter, setStatusFilter] = useState('');
-  const [onlyMySector, setOnlyMySector] = useState(true);
+  const [onlyMySector, setOnlyMySector] = useState(!isAdmin);
 
   const listQuery = useQuery({
     queryKey: ['machine-replenishment-requests', statusFilter],
@@ -87,7 +91,7 @@ export function useReplenishmentRequestsPage() {
     enabled: apiReady,
   });
 
-  const hasSector = Boolean(user?.sectorId);
+  const hasSector = isAdmin || Boolean(user?.sectorId);
 
   const pendingPreparationQuery = useQuery({
     queryKey: ['replenishment', 'pending-preparation'],
@@ -152,7 +156,7 @@ export function useReplenishmentRequestsPage() {
         ...(equipmentSectorId ? { sectorId: equipmentSectorId } : {}),
         includeTaskAvailability: true,
       }),
-    enabled: apiReady && Boolean(equipmentSectorId),
+    enabled: apiReady && (isAdmin || Boolean(equipmentSectorId)),
     refetchInterval: 15_000,
   });
 
