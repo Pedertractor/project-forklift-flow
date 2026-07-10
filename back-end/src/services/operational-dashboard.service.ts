@@ -1,4 +1,4 @@
-import { endOfDay, format, startOfDay, min, max } from "date-fns";
+import { max, min } from "date-fns";
 import {
   IsOperating,
   MachineTaskStatus,
@@ -8,6 +8,13 @@ import {
 import { AuthError, UserNotFoundError } from "../errors/domain-errors.js";
 import { prisma } from "../lib/prisma.js";
 import { userRepository } from "../repositories/user.repository.js";
+import {
+  endOfOperationalDay,
+  formatOperationalDateLabel,
+  operationalPeakSlotIndex,
+  parseOperationalIsoDate,
+  startOfOperationalDay,
+} from "../utils/operational-timezone.js";
 import { getOperatorMovimentPalletActiveFlow } from "./operator-moviment-pallet.service.js";
 import { buildMachineScopeFilter } from "./operational-dashboard-sector.js";
 import type { AppJwtPayload } from "../types/auth.types.js";
@@ -106,35 +113,25 @@ type DeliveryRow = TaskDurationRow & {
   machine: { id: string; name: string; assetNumber: string | null; pillar: string | null };
 };
 
-function parseDashboardIsoDate(value?: string): Date | null {
-  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const parsed = new Date(`${value}T12:00:00`);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
-  }
-  return null;
-}
-
 function resolveDashboardRange(options?: {
   date?: string;
   startDate?: string;
   endDate?: string;
 }): { rangeStart: Date; rangeEnd: Date; labelStart: string; labelEnd: string } {
   const parsedStart =
-    parseDashboardIsoDate(options?.startDate) ??
-    parseDashboardIsoDate(options?.date) ??
+    parseOperationalIsoDate(options?.startDate) ??
+    parseOperationalIsoDate(options?.date) ??
     new Date();
-  const parsedEnd = parseDashboardIsoDate(options?.endDate) ?? parsedStart;
+  const parsedEnd = parseOperationalIsoDate(options?.endDate) ?? parsedStart;
 
-  const startDay = startOfDay(min([parsedStart, parsedEnd]));
-  const endDay = endOfDay(max([parsedStart, parsedEnd]));
+  const rangeStartAnchor = min([parsedStart, parsedEnd]);
+  const rangeEndAnchor = max([parsedStart, parsedEnd]);
 
   return {
-    rangeStart: startDay,
-    rangeEnd: endDay,
-    labelStart: format(startDay, "yyyy-MM-dd"),
-    labelEnd: format(endOfDay(max([parsedStart, parsedEnd])), "yyyy-MM-dd"),
+    rangeStart: startOfOperationalDay(rangeStartAnchor),
+    rangeEnd: endOfOperationalDay(rangeEndAnchor),
+    labelStart: formatOperationalDateLabel(rangeStartAnchor),
+    labelEnd: formatOperationalDateLabel(rangeEndAnchor),
   };
 }
 
@@ -188,14 +185,6 @@ function operatorTaskDurationMs(
 const PEAK_SLOT_MINUTES = 30;
 const PEAK_SLOTS_PER_DAY = (24 * 60) / PEAK_SLOT_MINUTES;
 
-function peakSlotIndex(date: Date): number {
-  const minutes = date.getHours() * 60 + date.getMinutes();
-  return Math.min(
-    PEAK_SLOTS_PER_DAY - 1,
-    Math.floor(minutes / PEAK_SLOT_MINUTES),
-  );
-}
-
 function buildPeakSlots(
   pickups: PickupRow[],
   deliveries: DeliveryRow[],
@@ -210,13 +199,13 @@ function buildPeakSlots(
   }
 
   for (const task of pickups) {
-    const slot = slots[peakSlotIndex(task.createdAt)];
+    const slot = slots[operationalPeakSlotIndex(task.createdAt)];
     if (slot) slot.pickups += 1;
   }
 
   for (const task of deliveries) {
     const at = task.preparedAt ?? task.createdAt;
-    const slot = slots[peakSlotIndex(at)];
+    const slot = slots[operationalPeakSlotIndex(at)];
     if (slot) slot.deliveries += 1;
   }
 

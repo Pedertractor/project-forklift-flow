@@ -6,6 +6,7 @@ import { ENV } from '@/constants/env';
 import { fetchMachines, updateMachine } from '@/services/machines-api';
 import { SUPPLY_MACHINE_STATUS_QUERY_KEY } from '@/lib/operator-moviment-ws-invalidation';
 import { useAuthStore } from '@/store/auth.store';
+import { hasAdminPrivileges } from '@/types/role.types';
 import type { MachineListItem, MachineProductionStatus } from '@/types/machine.types';
 
 function useApiReady(): boolean {
@@ -25,20 +26,23 @@ export function useSupplyMachineStatusPage() {
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
-  const hasSector = Boolean(user?.sectorId);
+  const isAdmin = hasAdminPrivileges(user?.role);
+  /** ADMIN/SUPERADMIN veem todas as máquinas; demais papéis precisam de setor. */
+  const hasSector = isAdmin || Boolean(user?.sectorId);
   const queueRef = useRef<StatusQueueItem[]>([]);
   const processingRef = useRef(false);
 
+  const machinesScopeKey = isAdmin ? 'all' : (user?.sectorId ?? '');
   const machinesQueryKey = useMemo(
-    () => [...SUPPLY_MACHINE_STATUS_QUERY_KEY, user?.sectorId ?? ''] as const,
-    [user?.sectorId],
+    () => [...SUPPLY_MACHINE_STATUS_QUERY_KEY, machinesScopeKey] as const,
+    [machinesScopeKey],
   );
 
   const machinesQuery = useQuery({
     queryKey: machinesQueryKey,
     queryFn: () =>
       fetchMachines({
-        sectorId: user?.sectorId ?? undefined,
+        ...(isAdmin ? {} : { sectorId: user?.sectorId ?? undefined }),
       }),
     enabled: apiReady && hasSector,
   });

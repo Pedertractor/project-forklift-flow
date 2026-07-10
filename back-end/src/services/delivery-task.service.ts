@@ -17,6 +17,7 @@ import { operatorMachineSupplyRequestRepository } from '../repositories/operator
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
+import { isAdminOrSuperAdmin } from '../utils/role-user.js'
 import { syncTripSuggestionPairForMachine } from './trip-suggestion-sync.service.js'
 import {
   operatorMovimentPalletWsBroadcastDeliveryTaskCreated,
@@ -112,7 +113,20 @@ export async function createDeliveryTask(input: CreateDeliveryTaskInput) {
 
 export async function listPendingSupplyRequestsForUser(userId: string) {
   const user = await userRepository.findUniqueByIdWithSector(userId)
-  if (!user?.sectorId) {
+  if (!user) {
+    throw new OperatorWithoutSectorError(
+      'Usuario sem setor vinculado; necessario para listar solicitacoes.',
+    )
+  }
+
+  const crossSector = isAdminOrSuperAdmin(user.role)
+  if (crossSector) {
+    const operatorSupplyRequests =
+      await operatorMachineSupplyRequestRepository.findManyOpenAll()
+    return { operatorSupplyRequests }
+  }
+
+  if (!user.sectorId) {
     throw new OperatorWithoutSectorError(
       'Usuario sem setor vinculado; necessario para listar solicitacoes.',
     )

@@ -80,12 +80,12 @@ export const deliveryTaskRepository = {
   },
 
   findManyOpenPoolForSectorAndOperatingMode(
-    sectorId: string,
+    sectorId: string | null | undefined,
     operatingMode: IsOperating,
   ) {
     return prisma.deliveryTask.findMany({
       where: {
-        machine: { sectorId },
+        ...(sectorId ? { machine: { sectorId } } : {}),
         status: MachineTaskStatus.CREATED,
         acceptedBySupply: true,
         preparedAt: { not: null },
@@ -152,12 +152,12 @@ export const deliveryTaskRepository = {
   },
 
   findManyOpenDeliverForSectorAndOperatingMode(
-    sectorId: string,
+    sectorId: string | null | undefined,
     operatingMode: IsOperating,
   ) {
     return prisma.deliveryTask.findMany({
       where: {
-        machine: { sectorId },
+        ...(sectorId ? { machine: { sectorId } } : {}),
         status: { in: openMachineTaskStatuses },
         typeMovimentPallet: { in: openPoolTypesForOperatingMode(operatingMode) },
       },

@@ -198,14 +198,14 @@ export const movimentPalletTripSuggestionRepository = {
   },
 
   findManyOpenListableForOperator(
-    sectorId: string,
+    sectorId: string | null | undefined,
     types: TypeMovimentPallet[],
   ) {
     return prisma.movimentPalletTripSuggestion.findMany({
       where: {
         status: MovimentPalletTripSuggestionStatus.OPEN,
         typeMovimentPallet: { in: types },
-        machine: { sectorId },
+        ...(sectorId ? { machine: { sectorId } } : {}),
       },
       include: suggestionListInclude,
       orderBy: { createdAt: 'asc' },

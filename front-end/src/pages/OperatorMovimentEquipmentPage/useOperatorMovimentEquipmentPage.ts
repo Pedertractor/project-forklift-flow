@@ -15,6 +15,7 @@ import {
 } from '@/services/operator-moviment-pallet-api';
 import type { IsOperatingMode } from '@/types/operator-moviment-pallet.types';
 import { useAuthStore } from '@/store/auth.store';
+import { hasAdminPrivileges } from '@/types/role.types';
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -35,7 +36,8 @@ export function useOperatorMovimentEquipmentPage() {
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const syncSessionFromProfile = useAuthStore((s) => s.syncSessionFromProfile);
-  const sectorMissing = Boolean(user && !user.sectorId);
+  const sectorMissing =
+    Boolean(user && !user.sectorId) && !hasAdminPrivileges(user?.role);
   const changeOperatingMode = readChangeOperatingModeFlag(
     location.state as OperatorMovimentEquipmentNavigateState | null,
   );

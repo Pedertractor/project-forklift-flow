@@ -11,6 +11,7 @@ import {
 } from '@/services/delivery-tasks-api';
 import { fetchMachines } from '@/services/machines-api';
 import { useAuthStore } from '@/store/auth.store';
+import { hasAdminPrivileges } from '@/types/role.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
@@ -24,8 +25,8 @@ export function useSupplyPendingPreparationPage() {
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
-
-  const hasSector = Boolean(user?.sectorId);
+  const isAdmin = hasAdminPrivileges(user?.role);
+  const hasSector = isAdmin || Boolean(user?.sectorId);
 
   const pendingQuery = useQuery({
     queryKey: SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
@@ -33,11 +34,12 @@ export function useSupplyPendingPreparationPage() {
     enabled: apiReady && hasSector,
   });
 
+  const machinesScopeKey = isAdmin ? 'all' : (user?.sectorId ?? '');
   const machinesQuery = useQuery({
-    queryKey: ['machines', user?.sectorId ?? ''],
+    queryKey: ['machines', machinesScopeKey],
     queryFn: () =>
       fetchMachines({
-        sectorId: user?.sectorId ?? undefined,
+        ...(isAdmin ? {} : { sectorId: user?.sectorId ?? undefined }),
       }),
     enabled: apiReady,
   });

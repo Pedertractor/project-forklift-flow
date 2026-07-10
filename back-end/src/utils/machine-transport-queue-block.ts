@@ -16,9 +16,9 @@ export async function isMachineDeliveryBlockedFromTransportQueue(
   return prepared != null
 }
 
-/** IDs de máquinas do setor cuja entrega preparada está bloqueada para transporte. */
+/** IDs de máquinas do setor (ou de todos, se sectorId omitido) bloqueadas para transporte. */
 export async function findBlockedMachineIdsForTransportInSector(
-  sectorId: string,
+  sectorId: string | null | undefined,
 ): Promise<Set<string>> {
   const machineIds =
     await machineRepository.findManyTrabalhandoIdsInSector(sectorId)

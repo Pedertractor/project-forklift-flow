@@ -27,6 +27,7 @@ import {
 } from './operator-machine-flow';
 import { useOperatorMovimentWork } from '@/components/layout/OperatorMovimentWorkProvider';
 import { useAuthStore } from '@/store/auth.store';
+import { hasAdminPrivileges } from '@/types/role.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 
 const queryKeyMyMachine = ['operator-machine', 'my-machine'] as const;
@@ -49,7 +50,8 @@ export function useOperatorMachinePage() {
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const user = useAuthStore((s) => s.user);
-  const hasSector = Boolean(user?.sectorId);
+  const isAdmin = hasAdminPrivileges(user?.role);
+  const hasSector = isAdmin || Boolean(user?.sectorId);
   const { wsConnected } = useOperatorMovimentWork();
   const machinePollInterval = wsConnected
     ? MACHINE_POLL_MS_WS_UP

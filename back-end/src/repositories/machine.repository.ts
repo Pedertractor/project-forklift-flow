@@ -134,10 +134,13 @@ export const machineRepository = {
     return prisma.machine.delete({ where: { id } })
   },
 
-  findManyTrabalhandoIdsInSector(sectorId: string) {
+  findManyTrabalhandoIdsInSector(sectorId: string | null | undefined) {
     return prisma.machine
       .findMany({
-        where: { sectorId, productionStatus: MachineProductionStatus.TRABALHANDO },
+        where: {
+          ...(sectorId ? { sectorId } : {}),
+          productionStatus: MachineProductionStatus.TRABALHANDO,
+        },
         select: { id: true },
         orderBy: { name: 'asc' },
       })

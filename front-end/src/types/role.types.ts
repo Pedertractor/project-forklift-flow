@@ -25,9 +25,9 @@ export function hasAdminPrivileges(role: string | undefined): boolean {
   return role === 'ADMIN' || role === 'SUPERADMIN';
 }
 
-/** Acesso total ao sistema (todas as telas e APIs). */
+/** Acesso total ao sistema (todas as telas e APIs) — ADMIN e SUPERADMIN. */
 export function hasFullSystemAccess(role: string | undefined): boolean {
-  return isSuperAdmin(role);
+  return hasAdminPrivileges(role);
 }
 
 /** Papéis que o ator pode atribuir ao criar/editar usuários. */
