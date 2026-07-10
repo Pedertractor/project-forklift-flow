@@ -15,7 +15,9 @@ import {
   markDeliveryTaskPrepared,
   updateDeliveryTask,
 } from '../services/delivery-task.service.js'
+import { userRepository } from '../repositories/user.repository.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
+import { isAdminOrSuperAdmin } from '../utils/role-user.js'
 
 function isTypeMovimentPallet(value: string): value is TypeMovimentPallet {
   return (Object.values(TypeMovimentPallet) as string[]).includes(value)
@@ -107,11 +109,23 @@ export const getSectorTransportOperators: RouteHandlerMethod = async (
   request,
   reply,
 ) => {
+  const actor = request.user as AppJwtPayload
   const q = (request.query ?? {}) as { sectorId?: string }
-  const sectorId =
+  let sectorId =
     typeof q.sectorId === 'string' && q.sectorId.trim() !== ''
       ? q.sectorId.trim()
       : undefined
+
+  // Abastecedor / líder: só operadores do próprio setor.
+  // ADMIN / SUPERADMIN: podem omitir sectorId (todos) ou filtrar.
+  if (!isAdminOrSuperAdmin(actor.role)) {
+    const user = await userRepository.findUniqueByIdWithSector(actor.sub)
+    if (!user?.sectorId) {
+      return reply.send({ movimentPallets: [] })
+    }
+    sectorId = user.sectorId
+  }
+
   const movimentPallets = sectorId
     ? await listSectorTransportOperators({ sectorId })
     : await listSectorTransportOperators()

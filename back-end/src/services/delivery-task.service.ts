@@ -288,17 +288,13 @@ async function countIncompleteAssignedTasksForOperator(
   return deliveryCount + pickupCount
 }
 
-/** Operadores com modo de operação ativo no setor (painel «Meios de locomoção»). */
+/** Operadores com modo de operação ativo (painel «Meios de locomoção»). */
 export async function listSectorTransportOperators(filters?: {
   sectorId?: string
 }) {
-  if (!filters?.sectorId) {
-    return [] as SectorTransportOperatorListItem[]
-  }
-
-  const operators = await userRepository.findManyOperatingTransportInSector(
-    filters.sectorId,
-  )
+  const operators = filters?.sectorId
+    ? await userRepository.findManyOperatingTransportInSector(filters.sectorId)
+    : await userRepository.findManyOperatingTransport()
 
   return Promise.all(
     operators.map(async (user) => {

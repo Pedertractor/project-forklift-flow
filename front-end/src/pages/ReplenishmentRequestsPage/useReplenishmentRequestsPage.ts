@@ -142,8 +142,13 @@ export function useReplenishmentRequestsPage() {
     setHistoryDates([]);
   }, []);
 
-  const equipmentSectorId =
-    onlyMySector && user?.sectorId ? user.sectorId : undefined;
+  // Abastecedor/líder: sempre o próprio setor.
+  // Admin: todos, ou só o setor se «apenas meu setor» estiver marcado.
+  const equipmentSectorId = isAdmin
+    ? onlyMySector && user?.sectorId
+      ? user.sectorId
+      : undefined
+    : user?.sectorId ?? undefined;
 
   const equipmentQuery = useQuery({
     queryKey: [
@@ -156,7 +161,7 @@ export function useReplenishmentRequestsPage() {
         ...(equipmentSectorId ? { sectorId: equipmentSectorId } : {}),
         includeTaskAvailability: true,
       }),
-    enabled: apiReady && (isAdmin || Boolean(equipmentSectorId)),
+    enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
     refetchInterval: 15_000,
   });
 
