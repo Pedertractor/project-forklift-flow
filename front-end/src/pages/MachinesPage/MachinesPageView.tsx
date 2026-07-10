@@ -1,5 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Road, UserRound, UserRoundX } from 'lucide-react';
+import {
+  PlusIcon,
+  Road,
+  UserRound,
+  UserRoundX,
+  WrenchIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { DataTableCard } from '@/components/ui/table';
@@ -85,10 +91,13 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
               Máquinas de produção
             </h1>
-            <p className="m-0 text-sm text-zinc-600">Máquinas de linha de produção.</p>
+            <p className="m-0 text-sm text-zinc-600">
+              Máquinas de linha de produção.
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Button onClick={() => navigate('/cadastro/tipos-maquina')}>
+              <WrenchIcon className="size-4" />
               Tipos de máquina
             </Button>
             <Button
@@ -96,6 +105,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               onClick={openStreetCreate}
               disabled={!apiReady || busy || sectorsEmpty}
             >
+              <Road className="size-4" />
               Nova rua
             </Button>
             <Button
@@ -103,6 +113,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               onClick={openCreate}
               disabled={!apiReady || busy}
             >
+              <PlusIcon className="size-4" />
               Nova máquina de produção
             </Button>
           </div>
@@ -110,8 +121,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login
-            para gerenciar máquinas de produção.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login para gerenciar máquinas de produção.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -145,7 +156,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         ) : null}
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="min-w-48 space-y-2">
+          <div className="flex min-w-48 flex-col gap-2">
             <Label htmlFor="machine-sector-filter">Filtrar por setor</Label>
             <SelectCombobox
               id="machine-sector-filter"
@@ -166,7 +177,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ]}
             />
           </div>
-          <div className="min-w-48 space-y-2">
+          <div className="flex min-w-48 flex-col gap-2">
             <Label htmlFor="machine-plant-unit-filter">
               Filtrar por unidade
             </Label>
@@ -189,7 +200,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           <Button
             type="button"
             variant="outline"
-            className="h-10 shrink-0 whitespace-nowrap"
+            className="h-[var(--control-height,2.5rem)] shrink-0 self-end whitespace-nowrap"
             disabled={
               !apiReady || (sectorFilter === '' && plantUnitFilter === '')
             }
@@ -327,7 +338,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
       <SimpleModal
         open={createOpen}
         title="Nova máquina de produção"
-        description="Máquina de linha de produção (não é empilhadeira). Preencha nome, unidade, tipo de máquina (modelo) e setor. O operador é opcional (UUID do usuário, se souber o identificador)."
+        description="Cadastre uma nova máquina de produção."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import type { SectorsPageViewModel } from './useSectorsPage';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { PlusIcon } from 'lucide-react';
 
 export function SectorsPageView(vm: SectorsPageViewModel) {
   const {
@@ -52,6 +53,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
             onClick={openCreate}
             disabled={!apiReady || busy}
           >
+            <PlusIcon className="size-4" />
             Novo setor
           </Button>
         </header>

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { typeMachineImageSrc, type TypeMachinesPageViewModel } from './useTypeMachinesPage';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { PlusIcon } from 'lucide-react';
 
 export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
   const {
@@ -49,6 +50,7 @@ export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
             onClick={openCreate}
             disabled={!apiReady || busy}
           >
+            <PlusIcon className="size-4" />
             Novo tipo
           </Button>
         </header>
@@ -158,7 +160,7 @@ export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
       <SimpleModal
         open={createOpen}
         title="Novo tipo de máquina"
-        description="Informe o nome e envie uma imagem ilustrativa. O servidor grava o arquivo e guarda apenas o caminho público (não é necessário informar URL manualmente)."
+        description="Cadastre um novo tipo de máquina."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions

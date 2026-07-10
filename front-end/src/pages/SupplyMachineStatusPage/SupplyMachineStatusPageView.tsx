@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import type { MachineListItem, MachineProductionStatus } from '@/types/machine.types';
-import { ArrowLeftIcon, Factory, Package } from 'lucide-react';
+import { ArrowLeftIcon, Factory, Package, Road } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { SupplyMachineStatusPageViewModel } from './useSupplyMachineStatusPage';
 
@@ -97,9 +97,21 @@ function MachineStatusCard({
             <p className="m-0 text-base font-bold text-zinc-900">
               {machine.name}
             </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              {machine.typeMachine.name}
-            </p>
+            {machine.machineStreet ? (
+              <p
+                className="mt-1 inline-flex max-w-full items-center gap-1.5 text-sm font-semibold"
+                style={{ color: machine.machineStreet.machineStreetColor }}
+              >
+                <Road
+                  className="size-4 shrink-0"
+                  strokeWidth={2.5}
+                  aria-hidden
+                />
+                <span className="truncate">{machine.machineStreet.name}</span>
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-zinc-400">Sem rua vinculada</p>
+            )}
             <MachineMetaText
               assetNumber={machine.assetNumber}
               pillar={machine.pillar}

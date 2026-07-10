@@ -8,7 +8,7 @@ import { LEADER_CREATABLE_ROLES } from '@/types/role.types';
 import type { UsersPageViewModel } from './useUsersPage';
 import { SelectCombobox } from '@/components/ui/select-combobox';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
-import { Building2, KeyRound, UserCog } from 'lucide-react';
+import { Building2, KeyRound, UserCog, UserPlusIcon } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
   SUPERADMIN: 'Superadministrador',
@@ -130,13 +130,15 @@ export function UsersPageView(vm: UsersPageViewModel) {
             onClick={openCreateModal}
             disabled={!apiReady || busyCreate || leaderMissingSector}
           >
+            <UserPlusIcon className="size-4" />
             Novo usuário
           </Button>
         </header>
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

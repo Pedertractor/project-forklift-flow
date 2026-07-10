@@ -95,22 +95,17 @@ export function SelectCombobox({
       itemToStringLabel={itemToStringLabel}
       disabled={disabled}
     >
-      <div
-        ref={anchorRef}
-        className={cn(
-          selectComboboxClassName,
-          'flex min-w-0 items-stretch overflow-hidden',
-          disabled && 'pointer-events-none opacity-50',
-          className,
-        )}
-      >
+      <div ref={anchorRef} className={cn('w-full min-w-0', className)}>
         <ComboboxInput
           id={id}
           placeholder={placeholder}
           aria-label={ariaLabel}
           disabled={disabled}
           readOnly={!canSearch}
-          className="h-full w-full border-0 bg-transparent shadow-none ring-0 focus-within:border-transparent focus-within:ring-0 [&]:h-full [&]:border-0 [&]:bg-transparent [&]:shadow-none [&]:ring-0"
+          className={cn(
+            selectComboboxClassName,
+            disabled && 'pointer-events-none opacity-50',
+          )}
           onChange={(event) => setSearch(event.target.value)}
         >
           {selectedColor ? (
