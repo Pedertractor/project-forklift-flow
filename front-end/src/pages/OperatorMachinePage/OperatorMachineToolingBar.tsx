@@ -57,7 +57,7 @@ export function OperatorMachineToolingBar({
       <div className="flex w-full items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm">
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
           <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            <Wrench className="size-3.5" aria-hidden />
+            <Wrench className="size-3.5 text-blue-500" aria-hidden />
             Ferramental
           </span>
           {loading ? (
