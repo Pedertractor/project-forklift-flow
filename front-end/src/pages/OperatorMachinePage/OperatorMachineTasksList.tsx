@@ -249,7 +249,6 @@ interface RequestFlowCardProps {
 }
 
 function resolveMachineLabel(
-  row: OperatorMachineTaskListRow,
   deliveryTask: DeliveryTaskListItem | null,
   pickupTask: PickupTaskListItem | null,
   supplyRequest: OperatorMachineSupplyRequestListItem | null,
@@ -314,7 +313,7 @@ function RequestFlowCard({
     row.kind === 'PICKUP' && row.canCancel && onRequestCancelPickup;
 
   const machineLabel = showMachineName
-    ? resolveMachineLabel(row, deliveryTask, pickupTask, supplyRequest)
+    ? resolveMachineLabel(deliveryTask, pickupTask, supplyRequest)
     : null;
 
   const metaBlock = (

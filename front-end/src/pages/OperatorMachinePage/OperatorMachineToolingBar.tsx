@@ -11,7 +11,7 @@ export interface OperatorMachineToolingBarProps {
   createPending?: boolean;
   deletePendingId?: string | null;
   disabled?: boolean;
-  onCreate: (name: string) => Promise<void> | void;
+  onCreate: (name: string) => Promise<MachineToolingListItem>;
   onDelete: (toolingId: string) => Promise<void> | void;
 }
 
