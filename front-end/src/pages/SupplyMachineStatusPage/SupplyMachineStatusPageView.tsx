@@ -97,6 +97,9 @@ function MachineStatusCard({
             <p className="m-0 text-base font-bold text-zinc-900">
               {machine.name}
             </p>
+            <p className="mt-1 text-sm font-medium text-zinc-600">
+              Setor: {machine.sector?.typeSector ?? 'Sem setor'}
+            </p>
             {machine.machineStreet ? (
               <p
                 className="mt-1 inline-flex max-w-full items-center gap-1.5 text-sm font-semibold"
