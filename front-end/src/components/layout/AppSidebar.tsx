@@ -25,8 +25,8 @@ function roleMenuLabel(role: string | undefined): string {
     PALLET_TRANSPORTER: 'Transportador de pallet',
     SUPPLY_OPERATOR: 'Abastecimento',
     LEADER: 'Líder',
-  ADMIN: 'Administrador',
-  SUPERADMIN: 'Superadministrador',
+    ADMIN: 'Administrador',
+    SUPERADMIN: 'Superadministrador',
   };
   return map[role] ?? role;
 }

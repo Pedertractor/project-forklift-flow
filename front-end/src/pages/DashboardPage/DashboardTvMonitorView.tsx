@@ -700,8 +700,7 @@ export function DashboardTvMonitorView({
           />
           <span
             className={cn(
-              'truncate text-sm font-bold uppercase tracking-wider',
-              dark ? 'text-white' : 'text-black',
+              'truncate text-sm font-bold uppercase tracking-wider text-brand',
             )}
           >
             Fork
