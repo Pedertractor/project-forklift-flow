@@ -138,13 +138,20 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
 
 export const getListMachines: RouteHandlerMethod = async (request, reply) => {
   const actor = request.user as AppJwtPayload
-  const { sectorId: sectorIdRaw, plantUnit: plantUnitRaw } = (request.query ??
-    {}) as {
+  const {
+    sectorId: sectorIdRaw,
+    plantUnit: plantUnitRaw,
+    machineStreetId: machineStreetIdRaw,
+  } = (request.query ?? {}) as {
     sectorId?: string
     plantUnit?: string
+    machineStreetId?: string
   }
-  const options: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' } =
-    {}
+  const options: {
+    sectorId?: string
+    plantUnit?: 'PEDERTRACTOR' | 'TRACTOR'
+    machineStreetId?: string | null
+  } = {}
 
   if (isAdminOrSuperAdmin(actor.role)) {
     if (typeof sectorIdRaw === 'string' && sectorIdRaw.trim() !== '') {
@@ -165,6 +172,13 @@ export const getListMachines: RouteHandlerMethod = async (request, reply) => {
     }
     options.plantUnit = plantUnit
   }
+
+  if (typeof machineStreetIdRaw === 'string' && machineStreetIdRaw.trim() !== '') {
+    const streetFilter = machineStreetIdRaw.trim()
+    options.machineStreetId =
+      streetFilter === 'none' || streetFilter === '__none__' ? null : streetFilter
+  }
+
   const machines = await listMachines(
     Object.keys(options).length > 0 ? options : undefined,
   )

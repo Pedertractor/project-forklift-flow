@@ -1,4 +1,5 @@
 import type { RouteHandlerMethod } from 'fastify'
+import { RoleUser } from '../generated/prisma/enums.js'
 import { AuthError, UserNotFoundError } from '../errors/domain-errors.js'
 import {
   getOperatorCurrentTrajectoryForDashboard,
@@ -117,6 +118,12 @@ export const getOperationalTvMonitorHandler: RouteHandlerMethod = async (
     actor,
     sectorId,
   )
+
+  if (actor.role === RoleUser.LEADER && !resolvedSectorId) {
+    return reply
+      .status(403)
+      .send({ error: 'Lider sem setor vinculado.' })
+  }
 
   const snapshot = await getOperationalTvMonitorSnapshot({
     sectorId: resolvedSectorId,

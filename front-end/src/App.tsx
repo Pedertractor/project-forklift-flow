@@ -74,6 +74,11 @@ const FirstPasswordPage = lazy(() =>
 const UsersPage = lazy(() =>
   import('@/pages/UsersPage/index').then((m) => ({ default: m.UsersPage })),
 );
+const MovimentOperatorPriorityPage = lazy(() =>
+  import('@/pages/MovimentOperatorPriorityPage/index').then((m) => ({
+    default: m.MovimentOperatorPriorityPage,
+  })),
+);
 
 const ReplenishmentRequestsPage = lazy(() =>
   import('@/pages/ReplenishmentRequestsPage/index').then((m) => ({
@@ -176,6 +181,10 @@ export function App() {
                   />
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
+                  <Route
+                    path="administracao/prioridade-operador"
+                    element={<MovimentOperatorPriorityPage />}
+                  />
                   <Route
                     path="administracao/usuarios"
                     element={<UsersPage />}

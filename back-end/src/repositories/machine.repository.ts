@@ -65,13 +65,25 @@ export const machineRepository = {
     })
   },
 
-  findManyForList(options?: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' }) {
-    const where: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' } = {}
+  findManyForList(options?: {
+    sectorId?: string
+    plantUnit?: 'PEDERTRACTOR' | 'TRACTOR'
+    /** UUID da rua, ou `null` para máquinas sem rua. */
+    machineStreetId?: string | null
+  }) {
+    const where: {
+      sectorId?: string
+      plantUnit?: 'PEDERTRACTOR' | 'TRACTOR'
+      machineStreetId?: string | null
+    } = {}
     if (options?.sectorId !== undefined) {
       where.sectorId = options.sectorId
     }
     if (options?.plantUnit !== undefined) {
       where.plantUnit = options.plantUnit
+    }
+    if (options?.machineStreetId !== undefined) {
+      where.machineStreetId = options.machineStreetId
     }
     return prisma.machine.findMany({
       ...(Object.keys(where).length > 0 ? { where } : {}),

@@ -67,6 +67,8 @@ function sectorsForForms(
 }
 
 const DEFAULT_STREET_COLOR = '#2563eb';
+/** Valor do filtro de rua para máquinas sem rua vinculada. */
+export const MACHINE_STREET_FILTER_NONE = '__none__';
 
 export function useMachinesPage() {
   const queryClient = useQueryClient();
@@ -110,20 +112,27 @@ export function useMachinesPage() {
     enabled: apiReady,
   });
 
-  const [sectorFilter, setSectorFilter] = useState('');
+  const [sectorFilter, setSectorFilterState] = useState('');
   const [plantUnitFilter, setPlantUnitFilter] = useState<'' | PlantMapUnit>('');
+  const [streetFilter, setStreetFilter] = useState('');
 
   useEffect(() => {
     if (!isAdmin && user?.sectorId) {
-      setSectorFilter(user.sectorId);
+      setSectorFilterState(user.sectorId);
     }
   }, [isAdmin, user?.sectorId]);
+
+  const setSectorFilter = useCallback((next: string) => {
+    setSectorFilterState(next);
+    setStreetFilter('');
+  }, []);
 
   const machinesQuery = useQuery({
     queryKey: [
       'machines',
       isAdmin ? sectorFilter : (user?.sectorId ?? ''),
       plantUnitFilter,
+      streetFilter,
     ],
     queryFn: () =>
       fetchMachines({
@@ -131,6 +140,7 @@ export function useMachinesPage() {
           ? sectorFilter || undefined
           : (user?.sectorId ?? undefined),
         plantUnit: plantUnitFilter || undefined,
+        machineStreetId: streetFilter || undefined,
       }),
     enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
   });
@@ -184,6 +194,14 @@ export function useMachinesPage() {
     sectorFilter,
   ]);
 
+  /** Setor do filtro de rua na listagem (independente do modal). */
+  const listFilterStreetsSectorId = useMemo(() => {
+    if (!isAdmin) {
+      return user?.sectorId ?? undefined;
+    }
+    return sectorFilter || undefined;
+  }, [isAdmin, user?.sectorId, sectorFilter]);
+
   /** Setor da lista dentro do dialog de ruas. */
   const dialogStreetsSectorId = useMemo(() => {
     if (!streetCreateOpen) {
@@ -206,6 +224,17 @@ export function useMachinesPage() {
     enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
   });
 
+  const listFilterStreetsQuery = useQuery({
+    queryKey: ['machine-streets', 'list-filter', listFilterStreetsSectorId ?? 'all'],
+    queryFn: () =>
+      fetchMachineStreets(
+        listFilterStreetsSectorId
+          ? { sectorId: listFilterStreetsSectorId }
+          : undefined,
+      ),
+    enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
+  });
+
   const dialogStreetsQuery = useQuery({
     queryKey: ['machine-streets', 'dialog', dialogStreetsSectorId ?? 'none'],
     queryFn: () =>
@@ -221,7 +250,32 @@ export function useMachinesPage() {
     return rows.filter((s) => s.sectorId === sectorId);
   }, [streetsQuery.data, sectorId]);
 
+  const streetsForListFilter = useMemo(() => {
+    const rows = listFilterStreetsQuery.data ?? [];
+    if (!listFilterStreetsSectorId) {
+      return rows;
+    }
+    return rows.filter((s) => s.sectorId === listFilterStreetsSectorId);
+  }, [listFilterStreetsQuery.data, listFilterStreetsSectorId]);
+
   const streetsForDialogSector = dialogStreetsQuery.data ?? [];
+
+  useEffect(() => {
+    if (
+      !streetFilter ||
+      streetFilter === MACHINE_STREET_FILTER_NONE
+    ) {
+      return;
+    }
+    const stillValid = streetsForListFilter.some((s) => s.id === streetFilter);
+    if (!stillValid && listFilterStreetsQuery.isSuccess) {
+      setStreetFilter('');
+    }
+  }, [
+    streetFilter,
+    streetsForListFilter,
+    listFilterStreetsQuery.isSuccess,
+  ]);
 
   const resetForm = useCallback(() => {
     setName('');
@@ -579,12 +633,15 @@ export function useMachinesPage() {
     typesQuery,
     streetsQuery,
     streetsForMachineSector,
+    streetsForListFilter,
     streetsForDialogSector,
     dialogStreetsQuery,
     sectorFilter,
     setSectorFilter,
     plantUnitFilter,
     setPlantUnitFilter,
+    streetFilter,
+    setStreetFilter,
     plantUnit,
     setPlantUnit,
     plantUnitLabel: PLANT_MAP_UNIT_SHORT_LABEL,

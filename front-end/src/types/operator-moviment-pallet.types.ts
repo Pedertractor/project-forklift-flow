@@ -153,6 +153,8 @@ export interface TripCombinedSuggestionApi {
   kind: 'COMBINE_DELIVER_AND_PICKUP_AT_MACHINE';
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
+  /** Máquina vinculada ao operador — corta a fila. */
+  preferredMachine?: boolean;
   deferRecommended: boolean;
   machine: {
     id: string;
@@ -173,6 +175,7 @@ export interface TripStandalonePickupApi {
   kind: 'PICKUP_ONLY_AT_MACHINE';
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
+  preferredMachine?: boolean;
   deferRecommended: boolean;
   machine: {
     id: string;
@@ -191,6 +194,7 @@ export interface TripStandaloneDeliverApi {
   kind: 'DELIVER_ONLY_TO_MACHINE';
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
+  preferredMachine?: boolean;
   deferRecommended: boolean;
   machine: {
     id: string;

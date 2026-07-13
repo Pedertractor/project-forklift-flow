@@ -14,7 +14,7 @@ import { DataTableCard } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
-import { type MachinesPageViewModel } from './useMachinesPage';
+import { type MachinesPageViewModel, MACHINE_STREET_FILTER_NONE } from './useMachinesPage';
 import { typeMachineImageSrc } from '../TypeMachinesPage/useTypeMachinesPage';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
@@ -35,6 +35,9 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setSectorFilter,
     plantUnitFilter,
     setPlantUnitFilter,
+    streetFilter,
+    setStreetFilter,
+    streetsForListFilter,
     plantUnit,
     setPlantUnit,
     plantUnitLabel,
@@ -218,6 +221,25 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ]}
             />
           </div>
+          <div className="flex min-w-48 flex-col gap-2">
+            <Label htmlFor="machine-street-filter">Filtrar por rua</Label>
+            <SelectCombobox
+              id="machine-street-filter"
+              value={streetFilter}
+              onValueChange={setStreetFilter}
+              disabled={!apiReady}
+              placeholder="Todas"
+              options={[
+                { value: '', label: 'Todas' },
+                { value: MACHINE_STREET_FILTER_NONE, label: 'Sem rua' },
+                ...streetsForListFilter.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  color: s.machineStreetColor,
+                })),
+              ]}
+            />
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -225,14 +247,17 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             disabled={
               !apiReady ||
               (isAdmin
-                ? sectorFilter === '' && plantUnitFilter === ''
-                : plantUnitFilter === '')
+                ? sectorFilter === '' &&
+                  plantUnitFilter === '' &&
+                  streetFilter === ''
+                : plantUnitFilter === '' && streetFilter === '')
             }
             onClick={() => {
               if (isAdmin) {
                 setSectorFilter('');
               }
               setPlantUnitFilter('');
+              setStreetFilter('');
             }}
           >
             Limpar filtros
@@ -248,7 +273,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         ) : null}
 
         <DataTableCard className="mt-6">
-          <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[1020px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
                 <th className="px-4 py-3 font-semibold text-zinc-700"></th>
@@ -261,6 +286,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                   Tipo da máquina
                 </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">Rua</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Unidade
                 </th>
@@ -272,7 +298,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <tbody>
               {machinesQuery.isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-zinc-500">
+                  <td colSpan={9} className="px-4 py-8 text-zinc-500">
                     <div className="flex items-center justify-center">
                       <AccordionLoader />
                     </div>
@@ -281,7 +307,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ) : machinesQuery.data?.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-8 text-center text-zinc-500"
                   >
                     Nenhuma máquina de produção neste filtro.
@@ -319,6 +345,27 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
                         {row.sector.typeSector}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {row.machineStreet ? (
+                          <span
+                            className="inline-flex max-w-[10rem] items-center gap-1.5 font-medium"
+                            style={{
+                              color: row.machineStreet.machineStreetColor,
+                            }}
+                          >
+                            <Road
+                              className="size-3.5 shrink-0"
+                              strokeWidth={2.5}
+                              aria-hidden
+                            />
+                            <span className="truncate">
+                              {row.machineStreet.name}
+                            </span>
+                          </span>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
                         {row.plantUnit}

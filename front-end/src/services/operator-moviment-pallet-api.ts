@@ -315,6 +315,7 @@ type TripSuggestionApiRow = {
     machineStreet?: OperatorRequestDestinationBrief['machineStreet'];
   };
   effectiveCritical?: boolean;
+  preferredMachine?: boolean;
   message: string;
   deliverTask: DeliveryTaskApiRow;
   pickupTask: PickupTaskApiRow;
@@ -345,6 +346,7 @@ type TripStandalonePickupApiRow = {
   kind: string;
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
+  preferredMachine?: boolean;
   deferRecommended?: boolean;
   machine: {
     id: string;
@@ -361,6 +363,7 @@ type TripStandaloneDeliverApiRow = {
   kind: string;
   typeMovimentPallet?: TypeMovimentPalletApi;
   effectiveCritical?: boolean;
+  preferredMachine?: boolean;
   deferRecommended?: boolean;
   machine: { id: string; name: string };
   message: string;
@@ -393,6 +396,7 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
         kind: 'COMBINE_DELIVER_AND_PICKUP_AT_MACHINE' as const,
         typeMovimentPallet: 'FORKLIFT' as const,
         effectivePriority: (s.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+        preferredMachine: Boolean(s.preferredMachine),
         deferRecommended: false,
         machine: enrichTripSuggestionMachine(
           s.machine,
@@ -411,6 +415,7 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
         kind: 'PICKUP_ONLY_AT_MACHINE' as const,
         typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
         effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+        preferredMachine: Boolean(row.preferredMachine),
         deferRecommended: row.deferRecommended ?? false,
         machine: enrichTripSuggestionMachine(
           row.machine,
@@ -427,6 +432,7 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
         kind: 'DELIVER_ONLY_TO_MACHINE' as const,
         typeMovimentPallet: (row.typeMovimentPallet ?? 'FORKLIFT') as TypeMovimentPalletApi,
         effectivePriority: (row.effectiveCritical ? 'VERY_HIGH' : 'NORMAL') as PriorityLevelApi,
+        preferredMachine: Boolean(row.preferredMachine),
         deferRecommended: row.deferRecommended ?? false,
         machine: enrichTripSuggestionMachine(
           row.machine,

@@ -84,4 +84,13 @@ export const API_ENDPOINTS = {
     OPERATOR_CURRENT_TRAJECTORY: (operatorId: string) =>
       `/operational-dashboard/operators/${encodeURIComponent(operatorId)}/current-trajectory`,
   },
+  MOVIMENT_OPERATOR_MACHINE_LINKS: {
+    BOARD: '/moviment-operator-machine-links/board',
+    LIST: '/moviment-operator-machine-links',
+    REPLACE_OPERATOR: (operatorId: string) =>
+      `/moviment-operator-machine-links/operators/${encodeURIComponent(operatorId)}`,
+    BY_PAIR: '/moviment-operator-machine-links/by-pair',
+    BY_ID: (linkId: string) =>
+      `/moviment-operator-machine-links/${encodeURIComponent(linkId)}`,
+  },
 } as const;

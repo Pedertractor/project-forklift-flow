@@ -301,6 +301,20 @@ export class MachineSectorAccessDeniedError extends Error {
   }
 }
 
+export class MovimentOperatorMachineLinkNotFoundError extends Error {
+  constructor(message = "Vinculo operador-maquina nao encontrado.") {
+    super(message);
+    this.name = "MovimentOperatorMachineLinkNotFoundError";
+  }
+}
+
+export class MovimentOperatorMachineLinkInvalidError extends Error {
+  constructor(message = "Vinculo operador-maquina invalido.") {
+    super(message);
+    this.name = "MovimentOperatorMachineLinkInvalidError";
+  }
+}
+
 export class MovimentPalletNotFoundError extends Error {
   constructor(message = "Equipamento de movimentacao nao encontrado.") {
     super(message);

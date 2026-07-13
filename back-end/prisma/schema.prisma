@@ -40,11 +40,31 @@ model User {
   assignedPickupTasks           PickupTask[]                   @relation("PickupTaskAssignedOperator")
   machines                      Machine[]                      @relation("MachineOperator")
   tripSuggestionsAccepted       MovimentPalletTripSuggestion[] @relation("TripSuggestionAcceptedBy")
+  /// Máquinas priorizadas na fila de sugestão deste transportador (corta fila).
+  preferredMachines             MovimentOperatorMachineLink[]  @relation("MovimentOperatorPreferredMachines")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([card, unit])
+}
+
+/// Vínculo: transportador de pallet ↔ máquinas que cortam a fila de sugestão para ele.
+model MovimentOperatorMachineLink {
+  id String @id @default(uuid())
+
+  operator   User   @relation("MovimentOperatorPreferredMachines", fields: [operatorId], references: [id], onDelete: Cascade)
+  operatorId String
+
+  machine   Machine @relation("MovimentOperatorPreferredMachines", fields: [machineId], references: [id], onDelete: Cascade)
+  machineId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([operatorId, machineId])
+  @@index([operatorId])
+  @@index([machineId])
 }
 
 /// Tarefa de levar prisma/pallet até a máquina (criada pelo abastecimento).
@@ -212,6 +232,8 @@ model Machine {
   operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
 
   movimentPalletTripSuggestions MovimentPalletTripSuggestion[]
+
+  preferredByMovimentOperators MovimentOperatorMachineLink[] @relation("MovimentOperatorPreferredMachines")
 
   /// Status operacional definido pelo abastecedor (dobra): máquina em produção ou aguardando abastecimento.
   productionStatus MachineProductionStatus @default(TRABALHANDO)

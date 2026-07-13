@@ -12,6 +12,8 @@ import type { MachineToolingListItem } from '@/types/operator-machine.types';
 export type FetchMachinesOptions = {
   sectorId?: string;
   plantUnit?: PlantMapUnit;
+  /** ID da rua, ou `__none__` para máquinas sem rua. */
+  machineStreetId?: string;
 };
 
 function machinesListQuery(options?: FetchMachinesOptions): string {
@@ -21,6 +23,9 @@ function machinesListQuery(options?: FetchMachinesOptions): string {
   }
   if (options?.plantUnit) {
     params.set('plantUnit', options.plantUnit);
+  }
+  if (options?.machineStreetId?.trim()) {
+    params.set('machineStreetId', options.machineStreetId.trim());
   }
   const q = params.toString();
   return q ? `?${q}` : '';

@@ -427,6 +427,7 @@ export function DashboardTvMonitorView({
   setSelectedSectorId,
   canFilterBySector,
   sectors,
+  sectorScopeLabel,
   leaderMissingSector,
 }: DashboardTvMonitorPageViewModel) {
   const navigate = useNavigate();
@@ -746,6 +747,18 @@ export function DashboardTvMonitorView({
                 ]}
               />
             </div>
+          ) : sectorScopeLabel ? (
+            <p
+              className={cn(
+                'm-0 max-w-[14rem] truncate rounded-xl border px-3 py-2 text-sm font-medium sm:max-w-[16rem]',
+                dark
+                  ? 'border-zinc-700 bg-zinc-800 text-zinc-100'
+                  : 'border-zinc-200 bg-white text-zinc-800',
+              )}
+              title={`Setor: ${sectorScopeLabel}`}
+            >
+              {sectorScopeLabel}
+            </p>
           ) : null}
 
           <button

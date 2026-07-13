@@ -47,6 +47,7 @@ import {
   syncOpenTripSuggestionsForSector,
   isPickupLinkedToReplenishmentFlow,
 } from "./trip-suggestion-sync.service.js";
+import { listPreferredMachineIdsForOperator } from "./moviment-operator-machine-link.service.js";
 import type { DeliveryTaskListRow } from "../repositories/delivery-task.repository.js";
 import type { PickupTaskListRow } from "../repositories/pickup-task.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
@@ -102,6 +103,25 @@ function sortByCritical<T extends { isCritical: boolean; createdAt: Date }>(
     }
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
+}
+
+/** Preferidas do operador cortam a fila; depois crítica; depois mais antiga. */
+function compareTripQueuePriority(a: {
+  preferredMachine: boolean;
+  effectiveCritical: boolean;
+  sortAt: number;
+}, b: {
+  preferredMachine: boolean;
+  effectiveCritical: boolean;
+  sortAt: number;
+}) {
+  if (a.preferredMachine !== b.preferredMachine) {
+    return a.preferredMachine ? -1 : 1;
+  }
+  if (a.effectiveCritical !== b.effectiveCritical) {
+    return a.effectiveCritical ? -1 : 1;
+  }
+  return a.sortAt - b.sortAt;
 }
 
 type LinkedOpenTripTaskIds = {
@@ -180,6 +200,7 @@ type StandalonePickupSuggestionRow = {
   kind: "PICKUP_ONLY_AT_MACHINE";
   typeMovimentPallet: TypeMovimentPallet;
   effectiveCritical: boolean;
+  preferredMachine: boolean;
   deferRecommended: boolean;
   machine: TripSuggestionMachineBrief;
   message: string;
@@ -191,6 +212,7 @@ type StandaloneDeliverSuggestionRow = {
   kind: "DELIVER_ONLY_TO_MACHINE";
   typeMovimentPallet: TypeMovimentPallet;
   effectiveCritical: boolean;
+  preferredMachine: boolean;
   deferRecommended: boolean;
   machine: TripSuggestionMachineBrief;
   message: string;
@@ -201,15 +223,19 @@ type StandaloneDeliverSuggestionRow = {
 
 function mapStandalonePickupRow(
   task: PickupTaskListRow,
+  preferredMachine = false,
 ): StandalonePickupSuggestionRow {
   const machine = task.machine!;
   return {
     kind: "PICKUP_ONLY_AT_MACHINE",
     typeMovimentPallet: task.typeMovimentPallet,
     effectiveCritical: task.isCritical,
+    preferredMachine,
     deferRecommended: false,
     machine: mapMachineForTripSuggestion(machine),
-    message: `Na maquina ${machine.name}: retirada solicitada — aceite para levar o pallet a expedicao.`,
+    message: preferredMachine
+      ? `Prioridade vinculada — maquina ${machine.name}: retirada solicitada.`
+      : `Na maquina ${machine.name}: retirada solicitada — aceite para levar o pallet a expedicao.`,
     suggestedOrder: [],
     pickupTask: task,
   };
@@ -217,16 +243,20 @@ function mapStandalonePickupRow(
 
 function mapStandaloneDeliverRow(
   task: DeliveryTaskListRow,
+  preferredMachine = false,
 ): StandaloneDeliverSuggestionRow {
   const machine = task.machine!;
   return {
     kind: "DELIVER_ONLY_TO_MACHINE",
     typeMovimentPallet: task.typeMovimentPallet,
     effectiveCritical: task.isCritical,
+    preferredMachine,
     deferRecommended: false,
     machine: mapMachineForTripSuggestion(machine),
     suggestedOrder: [],
-    message: `Na maquina ${machine.name}: entrega preparada no recebimento — aceite para levar o pallet.`,
+    message: preferredMachine
+      ? `Prioridade vinculada — maquina ${machine.name}: entrega preparada no recebimento.`
+      : `Na maquina ${machine.name}: entrega preparada no recebimento — aceite para levar o pallet.`,
     requestId: task.id,
     deliverTask: task,
   };
@@ -244,6 +274,7 @@ async function listStandaloneTripTasksForSector(
   operatingMode: IsOperating,
   linked: LinkedOpenTripTaskIds,
   blockedMachineIds: Set<string>,
+  preferredMachineIds: Set<string> = new Set(),
 ): Promise<{
   standalonePickupTasks: StandalonePickupSuggestionRow[];
   standaloneDeliverTasks: StandaloneDeliverSuggestionRow[];
@@ -267,50 +298,47 @@ async function listStandaloneTripTasksForSector(
     if (pickup.assignedOperatorId) continue;
     if (linked.pickupIds.has(pickup.id)) continue;
     if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
-    if (!pickup.isCritical) continue;
     if (!pickup.machine) continue;
-    standalonePickupTasks.push(mapStandalonePickupRow(pickup));
+    const preferred = preferredMachineIds.has(pickup.machineId);
+    // Criticas ou maquinas priorizadas do operador entram na sugestao principal.
+    if (!pickup.isCritical && !preferred) continue;
+    standalonePickupTasks.push(mapStandalonePickupRow(pickup, preferred));
   }
 
   for (const deliver of deliveries) {
     if (linked.deliverIds.has(deliver.id)) continue;
-    if (!deliver.isCritical) continue;
     if (!deliver.machine) continue;
     if (blockedMachineIds.has(deliver.machineId)) continue;
-    standaloneDeliverTasks.push(mapStandaloneDeliverRow(deliver));
+    const preferred = preferredMachineIds.has(deliver.machineId);
+    if (!deliver.isCritical && !preferred) continue;
+    standaloneDeliverTasks.push(mapStandaloneDeliverRow(deliver, preferred));
   }
 
-  const byTaskUrgency = (
-    a: { effectiveCritical: boolean; createdAt: Date },
-    b: { effectiveCritical: boolean; createdAt: Date },
-  ) => {
-    if (a.effectiveCritical !== b.effectiveCritical) {
-      return a.effectiveCritical ? -1 : 1;
-    }
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  };
-
   standalonePickupTasks.sort((a, b) =>
-    byTaskUrgency(
+    compareTripQueuePriority(
       {
+        preferredMachine: a.preferredMachine,
         effectiveCritical: a.effectiveCritical,
-        createdAt: a.pickupTask.createdAt,
+        sortAt: new Date(a.pickupTask.createdAt).getTime(),
       },
       {
+        preferredMachine: b.preferredMachine,
         effectiveCritical: b.effectiveCritical,
-        createdAt: b.pickupTask.createdAt,
+        sortAt: new Date(b.pickupTask.createdAt).getTime(),
       },
     ),
   );
   standaloneDeliverTasks.sort((a, b) =>
-    byTaskUrgency(
+    compareTripQueuePriority(
       {
+        preferredMachine: a.preferredMachine,
         effectiveCritical: a.effectiveCritical,
-        createdAt: a.deliverTask.createdAt,
+        sortAt: new Date(a.deliverTask.createdAt).getTime(),
       },
       {
+        preferredMachine: b.preferredMachine,
         effectiveCritical: b.effectiveCritical,
-        createdAt: b.deliverTask.createdAt,
+        sortAt: new Date(b.deliverTask.createdAt).getTime(),
       },
     ),
   );
@@ -496,6 +524,9 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
   const blockedMachineIds = await findBlockedMachineIdsForTransportInSector(
     sectorScope,
   );
+  const preferredMachineIds = new Set(
+    await listPreferredMachineIdsForOperator(operatorUserId),
+  );
 
   const [deliveryTasks, pickupTasks] = await Promise.all([
     deliveryTaskRepository.findManyOpenPoolForSectorAndOperatingMode(
@@ -512,6 +543,7 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
     (t) =>
       !linked.deliverIds.has(t.id) &&
       !t.isCritical &&
+      !preferredMachineIds.has(t.machineId) &&
       !blockedMachineIds.has(t.machineId),
   );
   const openPickupTasks: PickupTaskListRow[] = [];
@@ -520,6 +552,7 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
     if (task.assignedOperatorId) continue;
     if (linked.pickupIds.has(task.id)) continue;
     if (task.isCritical) continue;
+    if (preferredMachineIds.has(task.machineId)) continue;
     if (!(await isPickupEligibleForStandaloneQueue(task))) continue;
     openPickupTasks.push(task);
   }
@@ -663,6 +696,10 @@ export async function listTripRouteSuggestionsForOperator(
     sectorScope,
   );
 
+  const preferredMachineIdList =
+    await listPreferredMachineIdsForOperator(operatorUserId);
+  const preferredMachineIds = new Set(preferredMachineIdList);
+
   const suggestions = rows
     .filter((row) => {
       const d = row.deliverTask;
@@ -681,9 +718,12 @@ export async function listTripRouteSuggestionsForOperator(
     .map((row) => ({
       kind: "COMBINE_DELIVER_AND_PICKUP_AT_MACHINE" as const,
       machine: row.machine,
+      preferredMachine: preferredMachineIds.has(row.machineId),
       effectiveCritical:
         row.deliverTask.isCritical || row.pickupTask.isCritical,
-      message: `Entregar pallet na máquina ${row.machine.name} e retirar o pallet finalizado na mesma maquina.`,
+      message: preferredMachineIds.has(row.machineId)
+        ? `Prioridade vinculada — entregar e retirar na maquina ${row.machine.name}.`
+        : `Entregar pallet na máquina ${row.machine.name} e retirar o pallet finalizado na mesma maquina.`,
       deliverTask: row.deliverTask,
       pickupTask: row.pickupTask,
       tripSuggestion: {
@@ -695,20 +735,26 @@ export async function listTripRouteSuggestionsForOperator(
         updatedAt: row.updatedAt,
       },
     }))
-    .sort((a, b) => {
-      if (a.effectiveCritical !== b.effectiveCritical) {
-        return a.effectiveCritical ? -1 : 1;
-      }
-      const aAt = Math.min(
-        new Date(a.deliverTask.createdAt).getTime(),
-        new Date(a.pickupTask.createdAt).getTime(),
-      );
-      const bAt = Math.min(
-        new Date(b.deliverTask.createdAt).getTime(),
-        new Date(b.pickupTask.createdAt).getTime(),
-      );
-      return aAt - bAt;
-    });
+    .sort((a, b) =>
+      compareTripQueuePriority(
+        {
+          preferredMachine: a.preferredMachine,
+          effectiveCritical: a.effectiveCritical,
+          sortAt: Math.min(
+            new Date(a.deliverTask.createdAt).getTime(),
+            new Date(a.pickupTask.createdAt).getTime(),
+          ),
+        },
+        {
+          preferredMachine: b.preferredMachine,
+          effectiveCritical: b.effectiveCritical,
+          sortAt: Math.min(
+            new Date(b.deliverTask.createdAt).getTime(),
+            new Date(b.pickupTask.createdAt).getTime(),
+          ),
+        },
+      ),
+    );
 
   const operatingMode = assertOperatingMode(user.isOperating!);
   const linked = linkedOpenTripTaskIdsFromRows(rows);
@@ -718,6 +764,7 @@ export async function listTripRouteSuggestionsForOperator(
       operatingMode,
       linked,
       blockedMachineIds,
+      preferredMachineIds,
     );
 
   if (
@@ -735,6 +782,10 @@ export async function listTripRouteSuggestionsForOperator(
     standaloneDeliverTasks = fallback.standaloneDeliverTasks;
   }
 
+  const hasPreferred =
+    suggestions.some((s) => s.preferredMachine) ||
+    standalonePickupTasks.some((s) => s.preferredMachine) ||
+    standaloneDeliverTasks.some((s) => s.preferredMachine);
   const hasCritical =
     suggestions.some((s) => s.effectiveCritical) ||
     standalonePickupTasks.some((s) => s.effectiveCritical) ||
@@ -746,9 +797,12 @@ export async function listTripRouteSuggestionsForOperator(
     standaloneDeliverTasks,
     priorityContext: {
       hasCritical,
-      hint: hasCritical
-        ? "Existem tarefas criticas no setor — priorize-as."
-        : undefined,
+      hasPreferredMachine: hasPreferred,
+      hint: hasPreferred
+        ? "Existem maquinas vinculadas a voce — elas cortam a fila."
+        : hasCritical
+          ? "Existem tarefas criticas no setor — priorize-as."
+          : undefined,
     },
   };
 }

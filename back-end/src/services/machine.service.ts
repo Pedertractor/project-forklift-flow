@@ -195,6 +195,7 @@ export async function createMachine(input: CreateMachineInput) {
 export async function listMachines(options?: {
   sectorId?: string
   plantUnit?: PlantMapUnit
+  machineStreetId?: string | null
 }) {
   const rows = await machineRepository.findManyForList(options)
   return rows.map(({ _count, ...rest }) => ({
