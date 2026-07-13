@@ -10,7 +10,9 @@ import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
 import {
   createMachineStreet,
+  deleteMachineStreet,
   fetchMachineStreets,
+  updateMachineStreet,
 } from '@/services/machine-streets-api';
 import {
   createMachine,
@@ -24,7 +26,11 @@ import { useAuthStore } from '@/store/auth.store';
 import type { PlantMapUnit } from '@/constants/plant-map';
 import { PLANT_MAP_UNIT_SHORT_LABEL } from '@/constants/plant-map';
 import { hasAdminPrivileges } from '@/types/role.types';
-import type { MachineListItem, SectorListItem } from '@/types/machine.types';
+import type {
+  MachineListItem,
+  MachineStreetListItem,
+  SectorListItem,
+} from '@/types/machine.types';
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -142,6 +148,10 @@ export function useMachinesPage() {
   const [editRow, setEditRow] = useState<MachineListItem | null>(null);
   const [deleteRow, setDeleteRow] = useState<MachineListItem | null>(null);
   const [streetCreateOpen, setStreetCreateOpen] = useState(false);
+  const [streetEditRow, setStreetEditRow] =
+    useState<MachineStreetListItem | null>(null);
+  const [deleteStreetRow, setDeleteStreetRow] =
+    useState<MachineStreetListItem | null>(null);
 
   const [name, setName] = useState('');
   const [assetNumber, setAssetNumber] = useState('');
@@ -227,6 +237,7 @@ export function useMachinesPage() {
   const resetStreetForm = useCallback(() => {
     setStreetName('');
     setStreetColor(DEFAULT_STREET_COLOR);
+    setStreetEditRow(null);
   }, []);
 
   const openCreate = useCallback(() => {
@@ -287,6 +298,18 @@ export function useMachinesPage() {
     user?.sectorId,
     sectorsForSelect,
   ]);
+
+  const openStreetEdit = useCallback((street: MachineStreetListItem) => {
+    setStreetEditRow(street);
+    setStreetName(street.name);
+    setStreetColor(street.machineStreetColor || DEFAULT_STREET_COLOR);
+    setStreetSectorId(street.sectorId);
+  }, []);
+
+  const closeStreetDialog = useCallback(() => {
+    setStreetCreateOpen(false);
+    resetStreetForm();
+  }, [resetStreetForm]);
 
   const handleSectorIdChange = useCallback((nextSectorId: string) => {
     setSectorId(nextSectorId);
@@ -469,8 +492,7 @@ export function useMachinesPage() {
     },
     onSuccess: (created) => {
       invalidateStreetQueries(queryClient);
-      setStreetCreateOpen(false);
-      resetStreetForm();
+      closeStreetDialog();
       if (createOpen || editRow) {
         if (!sectorId || sectorId === created.sectorId) {
           if (!sectorId) {
@@ -484,12 +506,56 @@ export function useMachinesPage() {
     onError: toastApiError,
   });
 
+  const updateStreetMut = useMutation({
+    mutationFn: async () => {
+      if (!streetEditRow) {
+        throw new Error('Nenhuma rua selecionada para editar.');
+      }
+      const n = streetName.trim();
+      if (!n) {
+        throw new Error('Informe o nome da rua.');
+      }
+      const color = streetColor.trim();
+      if (!color) {
+        throw new Error('Informe a cor da rua.');
+      }
+      return updateMachineStreet(streetEditRow.id, {
+        name: n,
+        machineStreetColor: color,
+      });
+    },
+    onSuccess: () => {
+      invalidateStreetQueries(queryClient);
+      resetStreetForm();
+      toast.success('Rua atualizada.');
+    },
+    onError: toastApiError,
+  });
+
+  const deleteStreetMut = useMutation({
+    mutationFn: async (id: string) => deleteMachineStreet(id),
+    onSuccess: (_data, id) => {
+      invalidateStreetQueries(queryClient);
+      setDeleteStreetRow(null);
+      if (streetEditRow?.id === id) {
+        resetStreetForm();
+      }
+      if (machineStreetId === id) {
+        setMachineStreetId('');
+      }
+      toast.success('Rua excluída.');
+    },
+    onError: toastApiError,
+  });
+
   const busy =
     createMut.isPending ||
     updateMut.isPending ||
     deleteMut.isPending ||
     unlinkOperatorMut.isPending ||
-    createStreetMut.isPending;
+    createStreetMut.isPending ||
+    updateStreetMut.isPending ||
+    deleteStreetMut.isPending;
   const createError =
     createMut.error instanceof Error ? createMut.error.message : null;
   const updateError =
@@ -497,6 +563,10 @@ export function useMachinesPage() {
   const createStreetError =
     createStreetMut.error instanceof Error
       ? createStreetMut.error.message
+      : null;
+  const updateStreetError =
+    updateStreetMut.error instanceof Error
+      ? updateStreetMut.error.message
       : null;
 
   return {
@@ -531,6 +601,9 @@ export function useMachinesPage() {
     setDeleteRow,
     streetCreateOpen,
     setStreetCreateOpen,
+    streetEditRow,
+    deleteStreetRow,
+    setDeleteStreetRow,
     name,
     setName,
     assetNumber,
@@ -555,14 +628,19 @@ export function useMachinesPage() {
     openCreate,
     openEdit,
     openStreetCreate,
+    openStreetEdit,
+    closeStreetDialog,
     createMut,
     updateMut,
     deleteMut,
     createStreetMut,
+    updateStreetMut,
+    deleteStreetMut,
     busy,
     createError,
     updateError,
     createStreetError,
+    updateStreetError,
   };
 }
 

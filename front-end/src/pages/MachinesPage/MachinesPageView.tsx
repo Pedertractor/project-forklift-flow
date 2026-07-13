@@ -49,7 +49,9 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     deleteRow,
     setDeleteRow,
     streetCreateOpen,
-    setStreetCreateOpen,
+    streetEditRow,
+    deleteStreetRow,
+    setDeleteStreetRow,
     name,
     setName,
     assetNumber,
@@ -73,15 +75,23 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     openCreate,
     openEdit,
     openStreetCreate,
+    openStreetEdit,
+    closeStreetDialog,
     createMut,
     updateMut,
     deleteMut,
     createStreetMut,
+    updateStreetMut,
+    deleteStreetMut,
     busy,
     createError,
     updateError,
     createStreetError,
+    updateStreetError,
   } = vm;
+
+  const streetFormError = streetEditRow ? updateStreetError : createStreetError;
+  const isEditingStreet = Boolean(streetEditRow);
 
   const navigate = useNavigate();
 
@@ -686,22 +696,64 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
       </SimpleModal>
 
       <SimpleModal
-        open={streetCreateOpen}
-        title="Nova rua"
-        description="Cadastre uma rua do chão de fábrica vinculada a um setor. Só máquinas desse setor poderão usá-la."
-        onClose={() => (!busy ? setStreetCreateOpen(false) : undefined)}
+        open={Boolean(deleteStreetRow)}
+        title="Excluir rua"
+        description={
+          deleteStreetRow
+            ? `Confirma a exclusão de «${deleteStreetRow.name}»?`
+            : undefined
+        }
+        onClose={() => (!busy ? setDeleteStreetRow(null) : undefined)}
         footer={
           <ModalActions
-            onCancel={() => !busy && setStreetCreateOpen(false)}
-            submitLabel={busy ? 'Salvando…' : 'Criar rua'}
-            disabled={busy || sectorsEmpty}
-            onSubmit={() => createStreetMut.mutate()}
+            onCancel={() => !busy && setDeleteStreetRow(null)}
+            submitLabel={busy ? 'Excluindo…' : 'Excluir'}
+            disabled={busy}
+            danger
+            onSubmit={() =>
+              deleteStreetRow && deleteStreetMut.mutate(deleteStreetRow.id)
+            }
           />
         }
       >
-        {createStreetError ? (
+        {deleteStreetMut.error instanceof Error ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {deleteStreetMut.error.message}
+          </p>
+        ) : null}
+      </SimpleModal>
+
+      <SimpleModal
+        open={streetCreateOpen}
+        title={isEditingStreet ? 'Editar rua' : 'Nova rua'}
+        description={
+          isEditingStreet
+            ? 'Altere o nome ou a cor da rua. O setor não pode ser modificado.'
+            : 'Cadastre uma rua do chão de fábrica vinculada a um setor. Só máquinas desse setor poderão usá-la.'
+        }
+        onClose={() => (!busy ? closeStreetDialog() : undefined)}
+        footer={
+          <ModalActions
+            onCancel={() => !busy && closeStreetDialog()}
+            submitLabel={
+              busy
+                ? 'Salvando…'
+                : isEditingStreet
+                  ? 'Salvar alterações'
+                  : 'Criar rua'
+            }
+            disabled={busy || (!isEditingStreet && sectorsEmpty)}
+            onSubmit={() =>
+              isEditingStreet
+                ? updateStreetMut.mutate()
+                : createStreetMut.mutate()
+            }
+          />
+        }
+      >
+        {streetFormError ? (
           <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {createStreetError}
+            {streetFormError}
           </p>
         ) : null}
         <div className="space-y-4">
@@ -732,7 +784,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               />
             </div>
           </div>
-          {isAdmin ? (
+          {isAdmin && !isEditingStreet ? (
             <div className="space-y-2">
               <Label htmlFor="street-sector">Setor</Label>
               <SelectCombobox
@@ -757,7 +809,12 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <div className="space-y-2">
               <Label>Setor</Label>
               <p className="m-0 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
-                {user?.sector?.typeSector ?? 'Seu setor'}
+                {isEditingStreet
+                  ? (sectorsForSelect.find((s) => s.id === streetSectorId)
+                      ?.typeSector ??
+                    user?.sector?.typeSector ??
+                    'Setor da rua')
+                  : (user?.sector?.typeSector ?? 'Seu setor')}
               </p>
             </div>
           )}
@@ -770,7 +827,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               <p className="m-0 mt-0.5 text-xs text-zinc-500">
                 {isAdmin && !streetSectorId
                   ? 'Selecione um setor para ver as ruas cadastradas.'
-                  : 'Todas as ruas vinculadas a este setor.'}
+                  : 'Edite ou exclua ruas sem máquinas vinculadas.'}
               </p>
             </div>
             {dialogStreetsQuery.isLoading &&
@@ -786,39 +843,72 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               </p>
             ) : (
               <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
-                {streetsForDialogSector.map((street) => (
-                  <div
-                    key={street.id}
-                    className="flex min-w-0 items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5"
-                  >
-                    <span
-                      className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50"
-                      style={{ color: street.machineStreetColor }}
-                      aria-hidden
+                {streetsForDialogSector.map((street) => {
+                  const machineCount = street.references ?? 0;
+                  const canDeleteStreet = machineCount === 0;
+                  const isSelected = streetEditRow?.id === street.id;
+
+                  return (
+                    <div
+                      key={street.id}
+                      className={`flex min-w-0 items-center gap-2 rounded-xl border bg-white px-3 py-2.5 ${
+                        isSelected
+                          ? 'border-brand/40 ring-1 ring-brand/20'
+                          : 'border-zinc-200'
+                      }`}
                     >
-                      <Road className="size-4" strokeWidth={2.5} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className="m-0 truncate text-sm font-semibold"
+                      <span
+                        className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50"
                         style={{ color: street.machineStreetColor }}
+                        aria-hidden
                       >
-                        {street.name}
-                      </p>
-                      <p className="m-0 mt-0.5 text-xs text-zinc-500">
-                        {(street.references ?? 0) === 1
-                          ? '1 máquina'
-                          : `${street.references ?? 0} máquinas`}
-                      </p>
+                        <Road className="size-4" strokeWidth={2.5} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="m-0 truncate text-sm font-semibold"
+                          style={{ color: street.machineStreetColor }}
+                        >
+                          {street.name}
+                        </p>
+                        <p className="m-0 mt-0.5 text-xs text-zinc-500">
+                          {machineCount === 1
+                            ? '1 máquina'
+                            : `${machineCount} máquinas`}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          disabled={!apiReady || busy}
+                          title="Editar rua"
+                          aria-label={`Editar ${street.name}`}
+                          onClick={() => openStreetEdit(street)}
+                        >
+                          <Pencil aria-hidden />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          className="border-red-200 text-red-700 hover:bg-red-50"
+                          disabled={!apiReady || busy || !canDeleteStreet}
+                          title={
+                            canDeleteStreet
+                              ? 'Excluir rua'
+                              : 'Não é possível excluir: há máquinas vinculadas a esta rua.'
+                          }
+                          aria-label={`Excluir ${street.name}`}
+                          onClick={() => setDeleteStreetRow(street)}
+                        >
+                          <Trash2 aria-hidden />
+                        </Button>
+                      </div>
                     </div>
-                    <span
-                      className="size-3.5 shrink-0 rounded-full border border-zinc-200"
-                      style={{ backgroundColor: street.machineStreetColor }}
-                      title={street.machineStreetColor}
-                      aria-hidden
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
