@@ -37,8 +37,6 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     canPickup,
     canOpenRequestDialog,
     pickupBlockedMessage,
-    palletAtReceiving,
-    palletAtReceivingBlockedMessage,
     submitServiceRequest,
     serviceRequestSubmitPending,
     operatorSupplyRequests,
@@ -173,9 +171,6 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
               canPickup={canPickup}
               canOpenRequestDialog={canOpenRequestDialog}
               pickupBlockedMessage={pickupBlockedMessage}
-              palletAtReceivingBlockedMessage={
-                palletAtReceiving ? palletAtReceivingBlockedMessage : null
-              }
               serviceRequestSubmitPending={serviceRequestSubmitPending}
               createToolingPending={createToolingPending}
               deleteToolingPendingId={deleteToolingPendingId}

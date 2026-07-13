@@ -9,7 +9,7 @@ import {
   canCancelPickupRequest,
   combinedFlowHeadline,
   findCombinedTripPair,
-  findOpenReplenishmentDelivery,
+  findDeliveryForSupplyRequest,
   findReplenishmentDeliveryForPickup,
   findReplenishmentSupplyForMachine,
   hasPickupLinkedToReplenishmentFlow,
@@ -144,6 +144,48 @@ function shouldHideReplenishmentDeliveryRow(
   });
 }
 
+/**
+ * Mantém o continuum do aviso ao abastecimento após o fulfill:
+ * a entrega vinculada não vira card separado de «Entrega à máquina».
+ */
+function shouldHideSupplyOnlyDeliveryRow(
+  delivery: DeliveryTaskListItem,
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+  hideSupplyForReplenishmentPickup: boolean,
+): boolean {
+  if (hideSupplyForReplenishmentPickup) return false;
+  return supplyRequests.some((supply) => {
+    if (supply.status === 'CANCELLED') return false;
+    if (supply.deliveryTaskId === delivery.id) {
+      return supply.status === 'OPEN' || supply.status === 'FULFILLED';
+    }
+    return (
+      supply.status === 'OPEN' &&
+      !supply.deliveryTaskId &&
+      supply.machineId === delivery.machineId &&
+      !TERMINAL_MACHINE_TASK_STATUSES.has(delivery.status)
+    );
+  });
+}
+
+function isSupplyOnlyContinuumActive(
+  supply: OperatorMachineSupplyRequestListItem,
+  deliveryTasks: DeliveryTaskListItem[],
+  hideSupplyForReplenishmentPickup: boolean,
+): boolean {
+  if (hideSupplyForReplenishmentPickup) return false;
+  if (supply.status === 'CANCELLED') return false;
+  if (supply.status === 'OPEN') return true;
+  if (supply.status !== 'FULFILLED') return false;
+
+  const delivery = findDeliveryForSupplyRequest(deliveryTasks, supply);
+  if (!delivery) {
+    // Ainda não chegou na lista local, mas o aviso foi cumprido — mantém o card.
+    return Boolean(supply.deliveryTaskId);
+  }
+  return !TERMINAL_MACHINE_TASK_STATUSES.has(delivery.status);
+}
+
 export function buildOperatorMachineTaskRows(
   deliveryTasks: DeliveryTaskListItem[],
   pickupTasks: PickupTaskListItem[],
@@ -204,6 +246,15 @@ export function buildOperatorMachineTaskRows(
     ) {
       continue;
     }
+    if (
+      shouldHideSupplyOnlyDeliveryRow(
+        t,
+        supplyRequests,
+        hideSupplyForReplenishmentPickup,
+      )
+    ) {
+      continue;
+    }
     rows.push({
       kind: 'DELIVERY',
       id: t.id,
@@ -260,9 +311,16 @@ export function buildOperatorMachineTaskRows(
   }
 
   for (const s of supplyRequests) {
-    if (s.status !== 'OPEN') continue;
-    if (hideSupplyForReplenishmentPickup) continue;
-    const delivery = findOpenReplenishmentDelivery(deliveryTasks, s.machineId);
+    if (
+      !isSupplyOnlyContinuumActive(
+        s,
+        deliveryTasks,
+        hideSupplyForReplenishmentPickup,
+      )
+    ) {
+      continue;
+    }
+    const delivery = findDeliveryForSupplyRequest(deliveryTasks, s);
     const cube = delivery?.movementCube ?? s.deliveryTask?.movementCube ?? null;
     rows.push({
       kind: 'SUPPLY',

@@ -21,7 +21,7 @@ import {
   deliveryFlowStepStatusesFromTask,
   deriveDeliveryFlowPhaseFromTask,
   derivePickupFlowPhaseFromTask,
-  findOpenReplenishmentDelivery,
+  findDeliveryForSupplyRequest,
   findReplenishmentDeliveryForPickup,
   findReplenishmentSupplyForMachine,
   PICKUP_FLOW_STEPS,
@@ -215,8 +215,8 @@ function RequestFlowCard({
           supplyRequests,
           pickupTask.machineId,
         )
-      : row.kind === 'SUPPLY'
-        ? findOpenReplenishmentDelivery(deliveryTasks, row.machineId)
+      : row.kind === 'SUPPLY' && supplyRequest
+        ? findDeliveryForSupplyRequest(deliveryTasks, supplyRequest)
         : null;
 
   const showCancelButton =
