@@ -14,6 +14,13 @@ export const operatorMachineSupplyRequestListInclude = {
       assetNumber: true,
       pillar: true,
       typeMachine: { select: { id: true, name: true, urlImage: true } },
+      machineStreet: {
+        select: { id: true, name: true, machineStreetColor: true },
+      },
+      tooling: {
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' as const },
+      },
     },
   },
   requestedBy: {
@@ -35,6 +42,9 @@ export const operatorMachineSupplyRequestListInclude = {
       preparedAt: true,
       isCritical: true,
     },
+  },
+  tooling: {
+    select: { id: true, name: true },
   },
 } as const
 

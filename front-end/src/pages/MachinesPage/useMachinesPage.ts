@@ -4,10 +4,16 @@ import {
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from '@/lib/toast';
 import { ENV } from '@/constants/env';
 import { toastApiError } from '@/lib/toast-helpers';
+import {
+  createMachineStreet,
+  deleteMachineStreet,
+  fetchMachineStreets,
+  updateMachineStreet,
+} from '@/services/machine-streets-api';
 import {
   createMachine,
   deleteMachine,
@@ -19,7 +25,12 @@ import { fetchTypeMachines } from '@/services/type-machines-api';
 import { useAuthStore } from '@/store/auth.store';
 import type { PlantMapUnit } from '@/constants/plant-map';
 import { PLANT_MAP_UNIT_SHORT_LABEL } from '@/constants/plant-map';
-import type { MachineListItem, SectorListItem } from '@/types/machine.types';
+import { hasAdminPrivileges } from '@/types/role.types';
+import type {
+  MachineListItem,
+  MachineStreetListItem,
+  SectorListItem,
+} from '@/types/machine.types';
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -31,6 +42,10 @@ function invalidateMachineListQueries(queryClient: QueryClient) {
   void queryClient.invalidateQueries({
     queryKey: ['operator-machine', 'machines'],
   });
+}
+
+function invalidateStreetQueries(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ['machine-streets'] });
 }
 
 function sectorsForForms(
@@ -51,11 +66,16 @@ function sectorsForForms(
   return apiSectors ?? [];
 }
 
+const DEFAULT_STREET_COLOR = '#2563eb';
+/** Valor do filtro de rua para máquinas sem rua vinculada. */
+export const MACHINE_STREET_FILTER_NONE = '__none__';
+
 export function useMachinesPage() {
   const queryClient = useQueryClient();
   const apiReady = useApiReady();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
+  const isAdmin = hasAdminPrivileges(user?.role);
 
   const sectorsQuery = useQuery({
     queryKey: ['sectors'],
@@ -64,12 +84,27 @@ export function useMachinesPage() {
     retry: false,
   });
 
-  const sectorsForSelect = sectorsForForms(
-    user?.sectorId ?? undefined,
+  const sectorsForSelect = useMemo(() => {
+    const all = sectorsForForms(
+      user?.sectorId ?? undefined,
+      user?.sector?.typeSector,
+      sectorsQuery.data,
+      sectorsQuery.isError,
+    );
+    if (isAdmin) {
+      return all;
+    }
+    if (!user?.sectorId) {
+      return [];
+    }
+    return all.filter((s) => s.id === user.sectorId);
+  }, [
+    isAdmin,
+    user?.sectorId,
     user?.sector?.typeSector,
     sectorsQuery.data,
     sectorsQuery.isError,
-  );
+  ]);
 
   const typesQuery = useQuery({
     queryKey: ['type-machines'],
@@ -77,17 +112,37 @@ export function useMachinesPage() {
     enabled: apiReady,
   });
 
-  const [sectorFilter, setSectorFilter] = useState('');
+  const [sectorFilter, setSectorFilterState] = useState('');
   const [plantUnitFilter, setPlantUnitFilter] = useState<'' | PlantMapUnit>('');
+  const [streetFilter, setStreetFilter] = useState('');
+
+  useEffect(() => {
+    if (!isAdmin && user?.sectorId) {
+      setSectorFilterState(user.sectorId);
+    }
+  }, [isAdmin, user?.sectorId]);
+
+  const setSectorFilter = useCallback((next: string) => {
+    setSectorFilterState(next);
+    setStreetFilter('');
+  }, []);
 
   const machinesQuery = useQuery({
-    queryKey: ['machines', sectorFilter, plantUnitFilter],
+    queryKey: [
+      'machines',
+      isAdmin ? sectorFilter : (user?.sectorId ?? ''),
+      plantUnitFilter,
+      streetFilter,
+    ],
     queryFn: () =>
       fetchMachines({
-        sectorId: sectorFilter || undefined,
+        sectorId: isAdmin
+          ? sectorFilter || undefined
+          : (user?.sectorId ?? undefined),
         plantUnit: plantUnitFilter || undefined,
+        machineStreetId: streetFilter || undefined,
       }),
-    enabled: apiReady,
+    enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
   });
 
   const sectorsEmpty =
@@ -102,14 +157,125 @@ export function useMachinesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editRow, setEditRow] = useState<MachineListItem | null>(null);
   const [deleteRow, setDeleteRow] = useState<MachineListItem | null>(null);
+  const [streetCreateOpen, setStreetCreateOpen] = useState(false);
+  const [streetEditRow, setStreetEditRow] =
+    useState<MachineStreetListItem | null>(null);
+  const [deleteStreetRow, setDeleteStreetRow] =
+    useState<MachineStreetListItem | null>(null);
 
   const [name, setName] = useState('');
   const [assetNumber, setAssetNumber] = useState('');
   const [pillar, setPillar] = useState('');
   const [typeMachineId, setTypeMachineId] = useState('');
   const [sectorId, setSectorId] = useState('');
+  const [machineStreetId, setMachineStreetId] = useState('');
   const [userId, setUserId] = useState('');
   const [plantUnit, setPlantUnit] = useState<PlantMapUnit>('PEDERTRACTOR');
+
+  const [streetName, setStreetName] = useState('');
+  const [streetColor, setStreetColor] = useState(DEFAULT_STREET_COLOR);
+  const [streetSectorId, setStreetSectorId] = useState('');
+
+  /** Setor usado no select de rua do create/edit de máquina. */
+  const machineStreetsSectorId = useMemo(() => {
+    if (createOpen || editRow) {
+      return sectorId || undefined;
+    }
+    if (!isAdmin) {
+      return user?.sectorId ?? undefined;
+    }
+    return sectorFilter || undefined;
+  }, [
+    createOpen,
+    editRow,
+    sectorId,
+    isAdmin,
+    user?.sectorId,
+    sectorFilter,
+  ]);
+
+  /** Setor do filtro de rua na listagem (independente do modal). */
+  const listFilterStreetsSectorId = useMemo(() => {
+    if (!isAdmin) {
+      return user?.sectorId ?? undefined;
+    }
+    return sectorFilter || undefined;
+  }, [isAdmin, user?.sectorId, sectorFilter]);
+
+  /** Setor da lista dentro do dialog de ruas. */
+  const dialogStreetsSectorId = useMemo(() => {
+    if (!streetCreateOpen) {
+      return undefined;
+    }
+    if (isAdmin) {
+      return streetSectorId || undefined;
+    }
+    return user?.sectorId ?? undefined;
+  }, [streetCreateOpen, isAdmin, streetSectorId, user?.sectorId]);
+
+  const streetsQuery = useQuery({
+    queryKey: ['machine-streets', machineStreetsSectorId ?? 'all'],
+    queryFn: () =>
+      fetchMachineStreets(
+        machineStreetsSectorId
+          ? { sectorId: machineStreetsSectorId }
+          : undefined,
+      ),
+    enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
+  });
+
+  const listFilterStreetsQuery = useQuery({
+    queryKey: ['machine-streets', 'list-filter', listFilterStreetsSectorId ?? 'all'],
+    queryFn: () =>
+      fetchMachineStreets(
+        listFilterStreetsSectorId
+          ? { sectorId: listFilterStreetsSectorId }
+          : undefined,
+      ),
+    enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
+  });
+
+  const dialogStreetsQuery = useQuery({
+    queryKey: ['machine-streets', 'dialog', dialogStreetsSectorId ?? 'none'],
+    queryFn: () =>
+      fetchMachineStreets({ sectorId: dialogStreetsSectorId! }),
+    enabled: apiReady && streetCreateOpen && Boolean(dialogStreetsSectorId),
+  });
+
+  const streetsForMachineSector = useMemo(() => {
+    const rows = streetsQuery.data ?? [];
+    if (!sectorId) {
+      return rows;
+    }
+    return rows.filter((s) => s.sectorId === sectorId);
+  }, [streetsQuery.data, sectorId]);
+
+  const streetsForListFilter = useMemo(() => {
+    const rows = listFilterStreetsQuery.data ?? [];
+    if (!listFilterStreetsSectorId) {
+      return rows;
+    }
+    return rows.filter((s) => s.sectorId === listFilterStreetsSectorId);
+  }, [listFilterStreetsQuery.data, listFilterStreetsSectorId]);
+
+  const streetsForDialogSector = dialogStreetsQuery.data ?? [];
+
+  useEffect(() => {
+    if (
+      !streetFilter ||
+      streetFilter === MACHINE_STREET_FILTER_NONE
+    ) {
+      return;
+    }
+    const stillValid = streetsForListFilter.some((s) => s.id === streetFilter);
+    if (!stillValid && listFilterStreetsQuery.isSuccess) {
+      setStreetFilter('');
+    }
+  }, [
+    streetFilter,
+    streetsForListFilter,
+    listFilterStreetsQuery.isSuccess,
+  ]);
 
   const resetForm = useCallback(() => {
     setName('');
@@ -117,8 +283,15 @@ export function useMachinesPage() {
     setPillar('');
     setTypeMachineId('');
     setSectorId('');
+    setMachineStreetId('');
     setUserId('');
     setPlantUnit('PEDERTRACTOR');
+  }, []);
+
+  const resetStreetForm = useCallback(() => {
+    setStreetName('');
+    setStreetColor(DEFAULT_STREET_COLOR);
+    setStreetEditRow(null);
   }, []);
 
   const openCreate = useCallback(() => {
@@ -133,8 +306,20 @@ export function useMachinesPage() {
     if (plantUnitFilter !== '') {
       setPlantUnit(plantUnitFilter);
     }
+    if (!isAdmin && user?.sectorId) {
+      setSectorId(user.sectorId);
+    } else if (sectorFilter) {
+      setSectorId(sectorFilter);
+    }
     setCreateOpen(true);
-  }, [cannotCreateMachine, plantUnitFilter, resetForm]);
+  }, [
+    cannotCreateMachine,
+    plantUnitFilter,
+    resetForm,
+    isAdmin,
+    user?.sectorId,
+    sectorFilter,
+  ]);
 
   const openEdit = (row: MachineListItem) => {
     setName(row.name);
@@ -143,9 +328,64 @@ export function useMachinesPage() {
     setPlantUnit(row.plantUnit);
     setTypeMachineId(row.typeMachineId);
     setSectorId(row.sectorId);
+    setMachineStreetId(row.machineStreetId ?? '');
     setUserId(row.userId ?? '');
     setEditRow(row);
   };
+
+  const openStreetCreate = useCallback(() => {
+    resetStreetForm();
+    const defaultSectorId = isAdmin
+      ? sectorFilter ||
+        sectorId ||
+        user?.sectorId ||
+        sectorsForSelect[0]?.id ||
+        ''
+      : (user?.sectorId ?? '');
+    setStreetSectorId(defaultSectorId);
+    setStreetCreateOpen(true);
+  }, [
+    resetStreetForm,
+    isAdmin,
+    sectorFilter,
+    sectorId,
+    user?.sectorId,
+    sectorsForSelect,
+  ]);
+
+  const openStreetEdit = useCallback((street: MachineStreetListItem) => {
+    setStreetEditRow(street);
+    setStreetName(street.name);
+    setStreetColor(street.machineStreetColor || DEFAULT_STREET_COLOR);
+    setStreetSectorId(street.sectorId);
+  }, []);
+
+  const closeStreetDialog = useCallback(() => {
+    setStreetCreateOpen(false);
+    resetStreetForm();
+  }, [resetStreetForm]);
+
+  const handleSectorIdChange = useCallback((nextSectorId: string) => {
+    setSectorId(nextSectorId);
+    setMachineStreetId('');
+  }, []);
+
+  useEffect(() => {
+    if (!machineStreetId || !sectorId) {
+      return;
+    }
+    const stillValid = streetsForMachineSector.some(
+      (s) => s.id === machineStreetId,
+    );
+    if (!stillValid && streetsQuery.isSuccess) {
+      setMachineStreetId('');
+    }
+  }, [
+    machineStreetId,
+    sectorId,
+    streetsForMachineSector,
+    streetsQuery.isSuccess,
+  ]);
 
   const editMachineLive = useMemo(() => {
     if (!editRow) {
@@ -173,14 +413,24 @@ export function useMachinesPage() {
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
+      const resolvedSectorId = isAdmin ? sectorId : (user?.sectorId ?? '');
+      if (!resolvedSectorId) {
+        throw new Error(
+          isAdmin
+            ? 'Selecione o setor.'
+            : 'Usuário sem setor; não é possível criar máquina.',
+        );
+      }
       return createMachine({
         name: n,
         plantUnit,
         typeMachineId,
-        sectorId,
+        sectorId: resolvedSectorId,
         assetNumber: asset,
         pillar: pillarValue,
         userId: userId.trim() === '' ? undefined : userId.trim(),
+        machineStreetId:
+          machineStreetId.trim() === '' ? null : machineStreetId.trim(),
       });
     },
     onSuccess: () => {
@@ -212,13 +462,23 @@ export function useMachinesPage() {
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
+      const resolvedSectorId = isAdmin ? sectorId : (user?.sectorId ?? '');
+      if (!resolvedSectorId) {
+        throw new Error(
+          isAdmin
+            ? 'Selecione o setor.'
+            : 'Usuário sem setor; não é possível atualizar máquina.',
+        );
+      }
       return updateMachine(editRow.id, {
         name: n,
         plantUnit,
         typeMachineId,
-        sectorId,
+        ...(isAdmin ? { sectorId: resolvedSectorId } : {}),
         assetNumber: asset,
         pillar: pillarValue,
+        machineStreetId:
+          machineStreetId.trim() === '' ? null : machineStreetId.trim(),
       });
     },
     onSuccess: () => {
@@ -258,26 +518,130 @@ export function useMachinesPage() {
     onError: toastApiError,
   });
 
+  const createStreetMut = useMutation({
+    mutationFn: async () => {
+      const n = streetName.trim();
+      if (!n) {
+        throw new Error('Informe o nome da rua.');
+      }
+      const color = streetColor.trim();
+      if (!color) {
+        throw new Error('Informe a cor da rua.');
+      }
+      const resolvedSectorId = isAdmin
+        ? streetSectorId.trim()
+        : (user?.sectorId ?? '').trim();
+      if (!resolvedSectorId) {
+        throw new Error(
+          isAdmin
+            ? 'Selecione o setor da rua.'
+            : 'Usuário sem setor; não é possível criar rua.',
+        );
+      }
+      return createMachineStreet({
+        name: n,
+        machineStreetColor: color,
+        sectorId: isAdmin ? resolvedSectorId : undefined,
+      });
+    },
+    onSuccess: (created) => {
+      invalidateStreetQueries(queryClient);
+      closeStreetDialog();
+      if (createOpen || editRow) {
+        if (!sectorId || sectorId === created.sectorId) {
+          if (!sectorId) {
+            setSectorId(created.sectorId);
+          }
+          setMachineStreetId(created.id);
+        }
+      }
+      toast.success('Rua cadastrada.');
+    },
+    onError: toastApiError,
+  });
+
+  const updateStreetMut = useMutation({
+    mutationFn: async () => {
+      if (!streetEditRow) {
+        throw new Error('Nenhuma rua selecionada para editar.');
+      }
+      const n = streetName.trim();
+      if (!n) {
+        throw new Error('Informe o nome da rua.');
+      }
+      const color = streetColor.trim();
+      if (!color) {
+        throw new Error('Informe a cor da rua.');
+      }
+      return updateMachineStreet(streetEditRow.id, {
+        name: n,
+        machineStreetColor: color,
+      });
+    },
+    onSuccess: () => {
+      invalidateStreetQueries(queryClient);
+      resetStreetForm();
+      toast.success('Rua atualizada.');
+    },
+    onError: toastApiError,
+  });
+
+  const deleteStreetMut = useMutation({
+    mutationFn: async (id: string) => deleteMachineStreet(id),
+    onSuccess: (_data, id) => {
+      invalidateStreetQueries(queryClient);
+      setDeleteStreetRow(null);
+      if (streetEditRow?.id === id) {
+        resetStreetForm();
+      }
+      if (machineStreetId === id) {
+        setMachineStreetId('');
+      }
+      toast.success('Rua excluída.');
+    },
+    onError: toastApiError,
+  });
+
   const busy =
     createMut.isPending ||
     updateMut.isPending ||
     deleteMut.isPending ||
-    unlinkOperatorMut.isPending;
+    unlinkOperatorMut.isPending ||
+    createStreetMut.isPending ||
+    updateStreetMut.isPending ||
+    deleteStreetMut.isPending;
   const createError =
     createMut.error instanceof Error ? createMut.error.message : null;
   const updateError =
     updateMut.error instanceof Error ? updateMut.error.message : null;
+  const createStreetError =
+    createStreetMut.error instanceof Error
+      ? createStreetMut.error.message
+      : null;
+  const updateStreetError =
+    updateStreetMut.error instanceof Error
+      ? updateStreetMut.error.message
+      : null;
 
   return {
     apiReady,
     token,
+    isAdmin,
+    user,
     sectorsQuery,
     sectorsForSelect,
     typesQuery,
+    streetsQuery,
+    streetsForMachineSector,
+    streetsForListFilter,
+    streetsForDialogSector,
+    dialogStreetsQuery,
     sectorFilter,
     setSectorFilter,
     plantUnitFilter,
     setPlantUnitFilter,
+    streetFilter,
+    setStreetFilter,
     plantUnit,
     setPlantUnit,
     plantUnitLabel: PLANT_MAP_UNIT_SHORT_LABEL,
@@ -292,6 +656,11 @@ export function useMachinesPage() {
     editOperator,
     deleteRow,
     setDeleteRow,
+    streetCreateOpen,
+    setStreetCreateOpen,
+    streetEditRow,
+    deleteStreetRow,
+    setDeleteStreetRow,
     name,
     setName,
     assetNumber,
@@ -301,18 +670,34 @@ export function useMachinesPage() {
     typeMachineId,
     setTypeMachineId,
     sectorId,
-    setSectorId,
+    setSectorId: handleSectorIdChange,
+    machineStreetId,
+    setMachineStreetId,
     userId,
     setUserId,
+    streetName,
+    setStreetName,
+    streetColor,
+    setStreetColor,
+    streetSectorId,
+    setStreetSectorId,
     unlinkOperatorMut,
     openCreate,
     openEdit,
+    openStreetCreate,
+    openStreetEdit,
+    closeStreetDialog,
     createMut,
     updateMut,
     deleteMut,
+    createStreetMut,
+    updateStreetMut,
+    deleteStreetMut,
     busy,
     createError,
     updateError,
+    createStreetError,
+    updateStreetError,
   };
 }
 

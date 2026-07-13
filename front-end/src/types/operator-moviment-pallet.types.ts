@@ -1,5 +1,6 @@
 /** Valores alinhados ao Prisma / API. */
 
+import type { MachineStreetBrief } from '@/types/machine.types';
 import type { MovimentPalletEquipmentType } from '@/types/moviment-pallet.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 
@@ -43,6 +44,7 @@ export interface OperatorRequestDestinationBrief {
   userId: string | null;
   assetNumber?: string | null;
   pillar?: string | null;
+  machineStreet?: MachineStreetBrief | null;
   typeMachine: { id: string; name: string };
   sector: { id: string; typeSector: string };
 }
@@ -151,12 +153,15 @@ export interface TripCombinedSuggestionApi {
   kind: 'COMBINE_DELIVER_AND_PICKUP_AT_MACHINE';
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
+  /** Máquina vinculada ao operador — corta a fila. */
+  preferredMachine?: boolean;
   deferRecommended: boolean;
   machine: {
     id: string;
     name: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
   };
   message: string;
   suggestedOrder: TripFlowStepApi[];
@@ -170,12 +175,14 @@ export interface TripStandalonePickupApi {
   kind: 'PICKUP_ONLY_AT_MACHINE';
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
+  preferredMachine?: boolean;
   deferRecommended: boolean;
   machine: {
     id: string;
     name: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
   };
   message: string;
   suggestedOrder: TripFlowStepApi[];
@@ -187,12 +194,14 @@ export interface TripStandaloneDeliverApi {
   kind: 'DELIVER_ONLY_TO_MACHINE';
   typeMovimentPallet: TypeMovimentPalletApi;
   effectivePriority: PriorityLevelApi;
+  preferredMachine?: boolean;
   deferRecommended: boolean;
   machine: {
     id: string;
     name: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
   };
   message: string;
   suggestedOrder: TripFlowStepApi[];

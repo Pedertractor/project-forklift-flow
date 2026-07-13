@@ -28,7 +28,7 @@ export const PICKUP_FLOW_STEPS = [
 export const DELIVERY_FLOW_STEPS = [
   { key: 'supply', title: 'Preparo no recebimento' },
   { key: 'awaiting', title: 'Aguardando transporte' },
-  { key: 'transporting', title: 'Transporte a caminho' },
+  { key: 'on-the-way', title: 'A caminho...' },
   { key: 'delivering', title: 'Entrega na máquina' },
 ] as const;
 
@@ -36,9 +36,21 @@ export const DELIVERY_FLOW_STEPS = [
 export const COMBINED_FLOW_STEPS = [
   { key: 'receiving', title: 'Recebimento' },
   { key: 'awaiting', title: 'Aguardando transporte' },
+  { key: 'on-the-way', title: 'A caminho...' },
   { key: 'deliver', title: 'Entrega na máquina' },
   { key: 'on-machine', title: 'Pallet na máquina' },
   { key: 'pickup', title: 'Retirada em curso' },
+  { key: 'expedition', title: 'Expedição' },
+] as const;
+
+/** Mesmas chaves de `COMBINED_FLOW_STEPS`, títulos curtos (monitor TV). */
+export const COMBINED_FLOW_STEPS_TV = [
+  { key: 'receiving', title: 'Recebimento' },
+  { key: 'awaiting', title: 'Aguardando' },
+  { key: 'on-the-way', title: 'A caminho' },
+  { key: 'deliver', title: 'Entrega' },
+  { key: 'on-machine', title: 'Na máquina' },
+  { key: 'pickup', title: 'Retirada' },
   { key: 'expedition', title: 'Expedição' },
 ] as const;
 
@@ -391,8 +403,44 @@ export function combinedFlowStepStatusesFromTasks(
   delivery: DeliveryTaskListItem | null,
   pickup: PickupTaskListItem | null,
 ): FlowStepStatus[] {
-  if (!delivery || !pickup) {
-    return ['pending', 'pending', 'pending', 'pending', 'pending', 'pending'];
+  if (!pickup) {
+    return [
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+    ];
+  }
+
+  const pickupDone = pickup.status === 'COMPLETED';
+  const pickupInProgress =
+    pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS';
+
+  /** Entrega sumiu da lista aberta, mas a retirada do par ainda está em aberto. */
+  if (!delivery) {
+    if (!OPEN_STATUSES.has(pickup.status) && !pickupDone) {
+      return [
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+      ];
+    }
+    return [
+      'done',
+      'done',
+      'done',
+      'done',
+      pickupInProgress || pickupDone ? 'done' : 'active',
+      pickupDone ? 'done' : pickupInProgress ? 'active' : 'pending',
+      pickupDone ? 'done' : pickupInProgress ? 'active' : 'pending',
+    ];
   }
 
   const prepared = Boolean(delivery.preparedAt);
@@ -405,19 +453,18 @@ export function combinedFlowStepStatusesFromTasks(
     !deliveryEnRoute &&
     !deliveryDone;
 
-  const pickupDone = pickup.status === 'COMPLETED';
-  const pickupInProgress =
-    pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS';
-
   const receiving: FlowStepStatus = prepared ? 'done' : 'active';
 
   let awaiting: FlowStepStatus = 'pending';
   if (awaitingTransportAccept) awaiting = 'active';
   else if (deliveryEnRoute || deliveryDone) awaiting = 'done';
 
+  let onTheWay: FlowStepStatus = 'pending';
+  if (deliveryDone) onTheWay = 'done';
+  else if (deliveryEnRoute) onTheWay = 'active';
+
   let deliver: FlowStepStatus = 'pending';
   if (deliveryDone) deliver = 'done';
-  else if (deliveryEnRoute) deliver = 'active';
 
   let onMachine: FlowStepStatus = 'pending';
   if (deliveryDone) {
@@ -433,7 +480,15 @@ export function combinedFlowStepStatusesFromTasks(
   if (pickupDone) expedition = 'done';
   else if (pickupInProgress) expedition = 'active';
 
-  return [receiving, awaiting, deliver, onMachine, pickupStep, expedition];
+  return [
+    receiving,
+    awaiting,
+    onTheWay,
+    deliver,
+    onMachine,
+    pickupStep,
+    expedition,
+  ];
 }
 
 export function combinedFlowHeadline(
@@ -551,6 +606,7 @@ export const SUPPLY_ONLY_FLOW_STEPS = [
   { key: 'notice', title: 'Aviso ao abastecimento' },
   { key: 'assembly', title: 'Montagem do pallet' },
   { key: 'awaiting', title: 'Aguardando transporte' },
+  { key: 'on-the-way', title: 'A caminho...' },
   { key: 'delivery', title: 'Entrega na máquina' },
 ] as const;
 
@@ -559,18 +615,32 @@ export const NEXT_PALLET_FLOW_STEPS = [
   { key: 'supply', title: 'Aguardando abastecimento' },
   { key: 'prepare', title: 'Preparo do pallet no recebimento' },
   { key: 'awaiting', title: 'Aguardando transporte' },
+  { key: 'on-the-way', title: 'A caminho...' },
   { key: 'deliver', title: 'Entrega na máquina' },
 ] as const;
 
-/** Retirada + abastecimento: próximo prisma (4) e depois retirada (3). */
+/** Retirada + abastecimento: próximo prisma e depois retirada. */
 export const PICKUP_WITH_REPLENISHMENT_FLOW_STEPS = [
   { key: 'supply', title: 'Aguardando abastecimento' },
   { key: 'prepare', title: 'Preparo do pallet no recebimento' },
   { key: 'awaiting-deliver', title: 'Aguardando transporte' },
+  { key: 'on-the-way', title: 'A caminho...' },
   { key: 'deliver', title: 'Entrega na máquina' },
   { key: 'awaiting-pickup', title: 'Aguardando retirada' },
   { key: 'removing', title: 'Retirada em curso' },
   { key: 'done', title: 'Entregue na expedição' },
+] as const;
+
+/** Mesmas chaves de `PICKUP_WITH_REPLENISHMENT_FLOW_STEPS`, títulos curtos (monitor TV). */
+export const PICKUP_WITH_REPLENISHMENT_FLOW_STEPS_TV = [
+  { key: 'supply', title: 'Abastecimento' },
+  { key: 'prepare', title: 'Preparo' },
+  { key: 'awaiting-deliver', title: 'Aguardando' },
+  { key: 'on-the-way', title: 'A caminho' },
+  { key: 'deliver', title: 'Entrega' },
+  { key: 'awaiting-pickup', title: 'Aguard. retirada' },
+  { key: 'removing', title: 'Retirada' },
+  { key: 'done', title: 'Expedição' },
 ] as const;
 
 type ReplenishmentDeliveryStatuses = [
@@ -578,27 +648,31 @@ type ReplenishmentDeliveryStatuses = [
   FlowStepStatus,
   FlowStepStatus,
   FlowStepStatus,
+  FlowStepStatus,
 ];
 
-/** Abastecimento → preparo → aguardando transporte → entrega na máquina. */
+/** Abastecimento → preparo → aguardando → a caminho → entrega na máquina. */
 function replenishmentDeliveryPhaseStatuses(
   openSupply: OperatorMachineSupplyRequestListItem | null,
   delivery: DeliveryTaskListItem | null,
 ): ReplenishmentDeliveryStatuses {
   if (openSupply?.status === 'OPEN' && !delivery) {
-    return ['active', 'pending', 'pending', 'pending'];
+    return ['active', 'pending', 'pending', 'pending', 'pending'];
   }
-  if (!delivery) return ['active', 'pending', 'pending', 'pending'];
-  if (delivery.status === 'COMPLETED') return ['done', 'done', 'done', 'done'];
+  if (!delivery) return ['active', 'pending', 'pending', 'pending', 'pending'];
+  if (delivery.status === 'COMPLETED') {
+    return ['done', 'done', 'done', 'done', 'done'];
+  }
   if (delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS') {
-    return ['done', 'done', 'done', 'active'];
+    return ['done', 'done', 'done', 'active', 'pending'];
   }
   if (delivery.preparedAt && delivery.status === 'CREATED') {
-    return ['done', 'done', 'active', 'pending'];
+    return ['done', 'done', 'active', 'pending', 'pending'];
   }
-  if (delivery.acceptedBySupply)
-    return ['done', 'active', 'pending', 'pending'];
-  return ['active', 'pending', 'pending', 'pending'];
+  if (delivery.acceptedBySupply) {
+    return ['done', 'active', 'pending', 'pending', 'pending'];
+  }
+  return ['active', 'pending', 'pending', 'pending', 'pending'];
 }
 
 function supplyOnlyPhaseStatuses(
@@ -606,31 +680,31 @@ function supplyOnlyPhaseStatuses(
   delivery: DeliveryTaskListItem | null,
 ): FlowStepStatus[] {
   if (!supply || supply.status !== 'OPEN') {
-    if (!delivery) return ['pending', 'pending', 'pending', 'pending'];
-    const [, prepare, awaiting, deliver] = replenishmentDeliveryPhaseStatuses(
-      null,
-      delivery,
-    );
-    return ['done', prepare, awaiting, deliver];
+    if (!delivery) {
+      return ['pending', 'pending', 'pending', 'pending', 'pending'];
+    }
+    const [, prepare, awaiting, onTheWay, deliver] =
+      replenishmentDeliveryPhaseStatuses(null, delivery);
+    return ['done', prepare, awaiting, onTheWay, deliver];
   }
-  if (!delivery) return ['done', 'active', 'pending', 'pending'];
-  const [, prepare, awaiting, deliver] = replenishmentDeliveryPhaseStatuses(
-    supply,
-    delivery,
-  );
-  return ['done', prepare, awaiting, deliver];
+  if (!delivery) {
+    return ['done', 'active', 'pending', 'pending', 'pending'];
+  }
+  const [, prepare, awaiting, onTheWay, deliver] =
+    replenishmentDeliveryPhaseStatuses(supply, delivery);
+  return ['done', prepare, awaiting, onTheWay, deliver];
 }
 
 /**
  * Etapa atualmente ativa (1-based) do fluxo único de retirada + abastecimento.
  *
- * O fluxo é SEQUENCIAL por definição: primeiro a entrega do próximo pallet
- * (etapas 1–4) e só depois a retirada do pallet atual (etapas 5–7). A fase de
- * retirada só avança quando a entrega estiver CONCLUÍDA, para o progresso nunca
- * ultrapassar o que realmente aconteceu (a entrega ainda não foi feita).
+ * O fluxo é SEQUENCIAL: primeiro a entrega do próximo pallet (etapas 1–5) e só
+ * depois a retirada do pallet atual (etapas 6–8). A fase de retirada só avança
+ * quando a entrega estiver CONCLUÍDA.
  *
- * 1 Aguardando abastecimento · 2 Preparo no recebimento · 3 Aguardando transporte
- * 4 Entrega na máquina · 5 Aguardando retirada · 6 Retirada em curso · 7 Expedição
+ * 1 Aguardando abastecimento · 2 Preparo · 3 Aguardando transporte ·
+ * 4 A caminho... · 5 Entrega na máquina · 6 Aguardando retirada ·
+ * 7 Retirada em curso · 8 Expedição
  */
 export function replenishmentPickupActiveStep(
   _openSupply: OperatorMachineSupplyRequestListItem | null,
@@ -640,7 +714,22 @@ export function replenishmentPickupActiveStep(
   const deliveryComplete = delivery?.status === 'COMPLETED';
 
   if (!deliveryComplete) {
-    if (!delivery) return 1;
+    if (!delivery) {
+      /**
+       * Entrega já saiu da lista aberta (ex.: monitor TV) mas a retirada
+       * com reposição ainda está aberta → fase pós-entrega.
+       */
+      if (OPEN_STATUSES.has(pickup.status)) {
+        if (
+          pickup.status === 'ASSIGNED' ||
+          pickup.status === 'IN_PROGRESS'
+        ) {
+          return 7;
+        }
+        return 6;
+      }
+      return 1;
+    }
     if (delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS') {
       return 4;
     }
@@ -648,9 +737,9 @@ export function replenishmentPickupActiveStep(
     return 2;
   }
 
-  if (pickup.status === 'COMPLETED') return 8;
-  if (pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS') return 6;
-  return 5;
+  if (pickup.status === 'COMPLETED') return 9;
+  if (pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS') return 7;
+  return 6;
 }
 
 export function pickupWithReplenishmentFlowStepStatuses(
@@ -689,7 +778,8 @@ export function pickupWithReplenishmentFlowHeadline(
     'Aguardando o abastecimento montar o próximo pallet.',
     'O abastecimento registrou a entrega — pallet em preparo no recebimento.',
     'Pallet pronto — aguardando o transporte buscar no recebimento.',
-    'O transporte está levando o próximo pallet até a máquina.',
+    'O transporte está a caminho da máquina com o próximo pallet.',
+    'Pallet entregue na máquina.',
     'Pallet na máquina — aguardando o transporte aceitar a retirada.',
     'O transporte aceitou — retirada em curso até a expedição.',
     'Pallet entregue na expedição.',
@@ -822,6 +912,25 @@ export function findOpenReplenishmentDelivery(
   )[0];
 }
 
+/**
+ * Entrega vinculada ao aviso de abastecimento (somente abastecimento).
+ * Preferência pelo `deliveryTaskId` após o abastecedor cumprir o aviso.
+ */
+export function findDeliveryForSupplyRequest(
+  deliveryTasks: DeliveryTaskListItem[],
+  supply: OperatorMachineSupplyRequestListItem,
+): DeliveryTaskListItem | null {
+  if (supply.deliveryTaskId) {
+    return (
+      deliveryTasks.find((d) => d.id === supply.deliveryTaskId) ?? null
+    );
+  }
+  if (supply.status === 'OPEN') {
+    return findOpenReplenishmentDelivery(deliveryTasks, supply.machineId);
+  }
+  return null;
+}
+
 export function hasOpenPickupWithReplenishment(
   pickupTasks: PickupTaskListItem[],
 ): boolean {
@@ -831,54 +940,20 @@ export function hasOpenPickupWithReplenishment(
 }
 
 /**
- * Retirada vinculada ao fluxo de reposição:
- * - retirada + abastecimento na mesma solicitação, ou
- * - abastecimento solicitado antes e retirada depois pelo mesmo operador,
- *   enquanto o aviso ou a entrega vinculada ainda estiver em aberto.
+ * Retirada vinculada ao fluxo de reposição (entrega + retirada).
+ *
+ * Usa o flag persistido `triggersReplenishment`, definido no backend somente
+ * na solicitação que cria o aviso ao abastecimento. Assim, uma retirada simples
+ * na mesma máquina não “herda” o continuum de 8 etapas de outra solicitação.
  */
 export function isPickupLinkedToReplenishmentFlow(
   pickup: PickupTaskListItem,
-  supplyRequests: OperatorMachineSupplyRequestListItem[],
-  deliveryTasks: DeliveryTaskListItem[],
+  _supplyRequests: OperatorMachineSupplyRequestListItem[],
+  _deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
-  if (pickup.triggersReplenishment && OPEN_STATUSES.has(pickup.status)) {
-    return true;
-  }
-  if (!OPEN_STATUSES.has(pickup.status)) return false;
-
-  const pickupCreatedAt = new Date(pickup.createdAt).getTime();
-
-  const openSupply = findOpenSupplyForMachine(supplyRequests, pickup.machineId);
-  if (
-    openSupply?.requestedById === pickup.requestedById &&
-    new Date(openSupply.createdAt).getTime() <= pickupCreatedAt
-  ) {
-    return true;
-  }
-
-  const replenishmentDelivery = findReplenishmentDeliveryForPickup(
-    deliveryTasks,
-    supplyRequests,
-    pickup.machineId,
+  return (
+    pickup.triggersReplenishment === true && OPEN_STATUSES.has(pickup.status)
   );
-  if (
-    replenishmentDelivery &&
-    OPEN_STATUSES.has(replenishmentDelivery.status) &&
-    new Date(replenishmentDelivery.createdAt).getTime() <= pickupCreatedAt
-  ) {
-    const supply = findReplenishmentSupplyForMachine(
-      supplyRequests,
-      pickup.machineId,
-    );
-    if (
-      supply?.requestedById === pickup.requestedById &&
-      new Date(supply.createdAt).getTime() <= pickupCreatedAt
-    ) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 export function hasPickupLinkedToReplenishmentFlow(

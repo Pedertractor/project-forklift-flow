@@ -82,6 +82,28 @@ export const userRepository = {
     })
   },
 
+  findManyOperatingTransport(sectorId?: string) {
+    return prisma.user.findMany({
+      where: {
+        ...(sectorId ? { sectorId } : {}),
+        isOperating: { not: null },
+      },
+      select: {
+        id: true,
+        name: true,
+        card: true,
+        unit: true,
+        role: true,
+        sectorId: true,
+        isOperating: true,
+        createdAt: true,
+        updatedAt: true,
+        sector: { select: { id: true, typeSector: true } },
+      },
+      orderBy: { name: 'asc' },
+    })
+  },
+
   findManyForList(options?: { role?: RoleUser; sectorId?: string }) {
     const where: Prisma.UserWhereInput = {}
     if (options?.role !== undefined) {

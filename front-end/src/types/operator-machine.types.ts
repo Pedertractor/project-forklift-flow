@@ -27,6 +27,7 @@ export interface OperatorMachineSupplyRequestListItem {
     assetNumber?: string | null;
     pillar?: string | null;
     typeMachine: { id: string; name: string; urlImage: string };
+    tooling?: { id: string; name: string }[];
   };
   requestedBy: {
     id: string;
@@ -41,6 +42,16 @@ export interface OperatorMachineSupplyRequestListItem {
     movementCube: string;
     status: string;
   } | null;
+  tooling?: { id: string; name: string } | null;
+  toolingId?: string | null;
+}
+
+export interface MachineToolingListItem {
+  id: string;
+  name: string;
+  machineId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MovimentPalletTaskPickupSummary {

@@ -7,6 +7,7 @@ import {
 import { openMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
 import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-type.js'
+import { machineStreetBriefSelect } from './machine-street.repository.js'
 
 const machineBriefInclude = {
   id: true,
@@ -18,6 +19,7 @@ const machineBriefInclude = {
   pillar: true,
   typeMachine: { select: { id: true, name: true } },
   sector: { select: { id: true, typeSector: true } },
+  machineStreet: { select: machineStreetBriefSelect },
 } as const
 
 export const deliveryTaskListInclude = {

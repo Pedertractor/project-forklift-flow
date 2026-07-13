@@ -1,12 +1,15 @@
 import type { FastifyInstance } from 'fastify'
 import {
+  deleteToolingForOperator,
   deleteUnbindOperatorMachine,
   getListMachineTasksForOperator,
   getListMachinesForOperator,
   getListOperatorSupplyRequestsForOperator,
+  getListToolingsForOperator,
   getOperatorCurrentMachineHandler,
   postBindOperatorMachine,
   postCancelPickupRequest,
+  postCreateToolingForOperator,
   postRequestPickupOnly,
   postRequestPickupWithReplenishment,
   postRequestSupplyOnly,
@@ -78,6 +81,27 @@ export async function registerOperatorMachineRoutes(fastify: FastifyInstance) {
           preHandler: [fastify.authenticate, requireOperatorMachineRole()],
         },
         postRequestSupplyOnly,
+      )
+      router.get(
+        '/toolings',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        getListToolingsForOperator,
+      )
+      router.post(
+        '/toolings',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        postCreateToolingForOperator,
+      )
+      router.delete(
+        '/toolings/:toolingId',
+        {
+          preHandler: [fastify.authenticate, requireOperatorMachineRole()],
+        },
+        deleteToolingForOperator,
       )
       router.post(
         '/pickup-tasks/:pickupTaskId/cancel',

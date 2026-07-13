@@ -4,6 +4,7 @@ import {
   getOperatorCurrentTrajectoryHandler,
   getOperationalDashboardByOperatorHandler,
   getOperationalDashboardSnapshotHandler,
+  getOperationalTvMonitorHandler,
 } from '../controllers/operational-dashboard-controller.js'
 import { requireRoles } from '../middleware/require-roles.js'
 
@@ -25,6 +26,13 @@ export async function registerOperationalDashboardRoutes(fastify: FastifyInstanc
           preHandler: [fastify.authenticate, requireRoles(...dashboardRoles)],
         },
         getOperationalDashboardByOperatorHandler,
+      )
+      router.get(
+        '/tv-monitor',
+        {
+          preHandler: [fastify.authenticate, requireRoles(...dashboardRoles)],
+        },
+        getOperationalTvMonitorHandler,
       )
       router.get(
         '/operators/:operatorId/current-trajectory',

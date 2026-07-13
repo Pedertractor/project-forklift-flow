@@ -88,6 +88,31 @@ export class AssignMachineUserError extends Error {
   }
 }
 
+export class MachineStreetNotFoundError extends Error {
+  constructor(message = "Rua da maquina nao encontrada.") {
+    super(message);
+    this.name = "MachineStreetNotFoundError";
+  }
+}
+
+export class MachineStreetInUseError extends Error {
+  constructor(
+    message = "Existem maquinas vinculadas a esta rua; nao e possivel excluir.",
+  ) {
+    super(message);
+    this.name = "MachineStreetInUseError";
+  }
+}
+
+export class MachineStreetSectorMismatchError extends Error {
+  constructor(
+    message = "A rua informada nao pertence ao setor da maquina.",
+  ) {
+    super(message);
+    this.name = "MachineStreetSectorMismatchError";
+  }
+}
+
 export class MachineReplenishmentRequestNotFoundError extends Error {
   constructor(message = "Solicitacao de reposicao nao encontrada.") {
     super(message);
@@ -188,6 +213,22 @@ export class OperatorMachineNotBoundError extends Error {
   }
 }
 
+export class ToolingNotFoundError extends Error {
+  constructor(message = "Ferramental nao encontrado.") {
+    super(message);
+    this.name = "ToolingNotFoundError";
+  }
+}
+
+export class ToolingMachineMismatchError extends Error {
+  constructor(
+    message = "O ferramental informado nao pertence a maquina em operacao.",
+  ) {
+    super(message);
+    this.name = "ToolingMachineMismatchError";
+  }
+}
+
 export class ReplenishmentFinalizeMissingFieldsError extends Error {
   constructor(
     message = "Informe movementCube e typeMovimentPallet para abrir preparo de novo pallet.",
@@ -248,6 +289,29 @@ export class MachineNotInOperatorSectorError extends Error {
   ) {
     super(message);
     this.name = "MachineNotInOperatorSectorError";
+  }
+}
+
+export class MachineSectorAccessDeniedError extends Error {
+  constructor(
+    message = "Sem permissao para acessar maquinas de outro setor.",
+  ) {
+    super(message);
+    this.name = "MachineSectorAccessDeniedError";
+  }
+}
+
+export class MovimentOperatorMachineLinkNotFoundError extends Error {
+  constructor(message = "Vinculo operador-maquina nao encontrado.") {
+    super(message);
+    this.name = "MovimentOperatorMachineLinkNotFoundError";
+  }
+}
+
+export class MovimentOperatorMachineLinkInvalidError extends Error {
+  constructor(message = "Vinculo operador-maquina invalido.") {
+    super(message);
+    this.name = "MovimentOperatorMachineLinkInvalidError";
   }
 }
 

@@ -1,9 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { TypeMovimentPalletValue } from '@/types/machine-task.types';
-import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
+import type {
+  MachineToolingListItem,
+  OperatorMachineSupplyRequestListItem,
+} from '@/types/operator-machine.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import {
   movimentTypePublicIconPath,
@@ -21,6 +25,9 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ChevronLeft,
+  Plus,
+  Wrench,
+  X,
 } from 'lucide-react';
 
 export type OperatorServiceSelection = {
@@ -31,6 +38,8 @@ export type OperatorServiceSelection = {
   /** Obrigatório quando `pickup` é true. */
   typeMovimentPallet?: TypeMovimentPalletValue;
 };
+
+type DialogStep = 'service' | 'movement' | 'tooling';
 
 const MOVEMENT_OPTIONS: {
   value: ReplenishmentMovimentType;
@@ -67,9 +76,14 @@ export interface OperatorMachineOpenRequestDialogProps {
   onClose: () => void;
   openSupply: OperatorMachineSupplyRequestListItem | null;
   deliveryTasks: DeliveryTaskListItem[];
+  toolings: MachineToolingListItem[];
   canPickup: boolean;
   pickupBlockedMessage: string | null;
   submitPending: boolean;
+  createToolingPending?: boolean;
+  deleteToolingPendingId?: string | null;
+  onCreateTooling: (name: string) => Promise<MachineToolingListItem>;
+  onDeleteTooling: (toolingId: string) => Promise<void>;
   onSubmit: (selection: OperatorServiceSelection) => void | Promise<void>;
 }
 
@@ -78,18 +92,24 @@ export function OperatorMachineOpenRequestDialog({
   onClose,
   openSupply,
   deliveryTasks,
+  toolings,
   canPickup,
   pickupBlockedMessage,
   submitPending,
+  createToolingPending = false,
+  deleteToolingPendingId = null,
+  onCreateTooling,
+  onDeleteTooling,
   onSubmit,
 }: OperatorMachineOpenRequestDialogProps) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<DialogStep>('service');
   const [pickup, setPickup] = useState(false);
   const [pickupIsCritical, setPickupIsCritical] = useState(false);
   const [supply, setSupply] = useState(false);
   const [combinedSelected, setCombinedSelected] = useState(false);
   const [typeMovimentPallet, setTypeMovimentPallet] =
     useState<TypeMovimentPalletValue>('FORKLIFT');
+  const [newToolingName, setNewToolingName] = useState('');
 
   const supplyAvailable = canRequestSupply(openSupply, deliveryTasks);
   const supplyAlreadyOpen = openSupply?.status === 'OPEN';
@@ -100,14 +120,19 @@ export function OperatorMachineOpenRequestDialog({
   const palletAtReceivingBlockedMessage =
     PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE;
 
+  const needsToolingConfirm = supply && supplyAvailable;
+  const toolingBusy =
+    createToolingPending || deleteToolingPendingId != null;
+
   useEffect(() => {
     if (!open) {
-      setStep(1);
+      setStep('service');
       setPickup(false);
       setPickupIsCritical(false);
       setSupply(false);
       setCombinedSelected(false);
       setTypeMovimentPallet('FORKLIFT');
+      setNewToolingName('');
     }
   }, [open]);
 
@@ -175,25 +200,92 @@ export function OperatorMachineOpenRequestDialog({
 
   const handlePrimary = async () => {
     if (!canConfirm) return;
-    if (pickupSelected && step === 1) {
-      setStep(2);
+    if (step === 'service') {
+      if (pickupSelected) {
+        setStep('movement');
+        return;
+      }
+      if (needsToolingConfirm) {
+        setStep('tooling');
+        return;
+      }
+      await onSubmit(buildSelection());
+      return;
+    }
+    if (step === 'movement') {
+      if (needsToolingConfirm) {
+        setStep('tooling');
+        return;
+      }
+      await onSubmit(buildSelection());
       return;
     }
     await onSubmit(buildSelection());
   };
 
+  const handleBack = () => {
+    if (step === 'tooling') {
+      setStep(pickupSelected ? 'movement' : 'service');
+      return;
+    }
+    if (step === 'movement') {
+      setStep('service');
+    }
+  };
+
+  const handleCreateToolingInline = async () => {
+    const trimmed = newToolingName.trim();
+    if (!trimmed || toolingBusy || submitPending) return;
+    try {
+      await onCreateTooling(trimmed);
+      setNewToolingName('');
+    } catch {
+      /* toast via mutation */
+    }
+  };
+
+  const handleDeleteToolingInline = async (id: string) => {
+    if (toolingBusy || submitPending) return;
+    try {
+      await onDeleteTooling(id);
+    } catch {
+      /* toast via mutation */
+    }
+  };
+
   const pickupOnlySelected = pickup && !combinedSelected;
   const supplyOnlySelected = supply && supplyAvailable && !combinedSelected;
 
-  const modalTitle = step === 1 ? 'Abrir solicitação' : 'Tipo de retirada';
+  const modalTitle =
+    step === 'service'
+      ? 'Abrir solicitação'
+      : step === 'movement'
+        ? 'Tipo de retirada'
+        : 'Confirmar ferramental';
   const modalDescription =
-    step === 1
+    step === 'service'
       ? pickupWithReplenishmentAvailable
         ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
         : canPickup
           ? 'Há pallet no recebimento — solicite apenas a retirada do pallet na máquina para abrir a sugestão de entrega e retirada.'
           : 'Selecione o serviço desejado abaixo.'
-      : 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.';
+      : step === 'movement'
+        ? 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.'
+        : 'Revise o ferramental em uso nesta máquina. Você pode adicionar ou remover itens e depois confirmar a solicitação.';
+
+  const primaryLabel =
+    submitPending
+      ? 'Enviando…'
+      : step === 'service' && pickupSelected
+        ? 'Continuar'
+        : step === 'service' && needsToolingConfirm
+          ? 'Continuar'
+          : step === 'movement' && needsToolingConfirm
+            ? 'Continuar'
+            : 'Confirmar';
+
+  const primaryDisabled =
+    submitPending || toolingBusy || !canConfirm;
 
   return (
     <SimpleModal
@@ -202,18 +294,12 @@ export function OperatorMachineOpenRequestDialog({
       title={modalTitle}
       description={modalDescription}
       footer={
-        step === 1 ? (
+        step === 'service' ? (
           <ModalActions
             onCancel={onClose}
-            submitLabel={
-              submitPending
-                ? 'Enviando…'
-                : pickupSelected
-                  ? 'Continuar'
-                  : 'Confirmar'
-            }
+            submitLabel={primaryLabel}
             onSubmit={handlePrimary}
-            disabled={submitPending || !canConfirm}
+            disabled={primaryDisabled}
           />
         ) : (
           <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -222,22 +308,22 @@ export function OperatorMachineOpenRequestDialog({
               variant="outline"
               className="sm:min-w-[7rem]"
               disabled={submitPending}
-              onClick={() => setStep(1)}
+              onClick={handleBack}
             >
               <ChevronLeft className="size-4 shrink-0" aria-hidden />
               Voltar
             </Button>
             <ModalActions
               onCancel={onClose}
-              submitLabel={submitPending ? 'Enviando…' : 'Confirmar'}
+              submitLabel={primaryLabel}
               onSubmit={handlePrimary}
-              disabled={submitPending}
+              disabled={primaryDisabled}
             />
           </div>
         )
       }
     >
-      {step === 2 ? (
+      {step === 'movement' ? (
         <ul
           className="m-0 grid list-none gap-3 p-0"
           role="listbox"
@@ -294,6 +380,89 @@ export function OperatorMachineOpenRequestDialog({
             );
           })}
         </ul>
+      ) : step === 'tooling' ? (
+        <div className="flex flex-col gap-4">
+          {toolings.length === 0 ? (
+            <p className="m-0 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              Nenhum ferramental cadastrado. Você pode adicionar um abaixo ou
+              confirmar mesmo assim.
+            </p>
+          ) : (
+            <ul
+              className="m-0 grid list-none gap-2 p-0"
+              aria-label="Ferramental da máquina"
+            >
+              {toolings.map((item) => {
+                const removing = deleteToolingPendingId === item.id;
+                return (
+                  <li
+                    key={item.id}
+                    className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-50 text-zinc-700">
+                      <Wrench className="size-4" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1 font-medium text-zinc-900">
+                      {item.name}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-9 shrink-0 rounded-lg text-zinc-500 hover:bg-red-50 hover:text-red-700"
+                      aria-label={`Remover ${item.name}`}
+                      disabled={submitPending || toolingBusy}
+                      onClick={() => {
+                        void handleDeleteToolingInline(item.id);
+                      }}
+                    >
+                      <X className="size-4" aria-hidden />
+                      {removing ? (
+                        <span className="sr-only">Removendo…</span>
+                      ) : null}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/80 p-3">
+            <p className="m-0 mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Novo ferramental
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={newToolingName}
+                onChange={(e) => setNewToolingName(e.target.value)}
+                placeholder="Ex.: Matriz 45°"
+                disabled={submitPending || toolingBusy}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleCreateToolingInline();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                className="shrink-0 gap-1.5"
+                disabled={
+                  submitPending ||
+                  toolingBusy ||
+                  newToolingName.trim() === ''
+                }
+                onClick={() => {
+                  void handleCreateToolingInline();
+                }}
+              >
+                <Plus className="size-4" aria-hidden />
+                {createToolingPending ? 'Salvando…' : 'Adicionar'}
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
           <ServiceOptionCard

@@ -228,6 +228,7 @@ function SuggestionFlowCardBody({
   machineName,
   assetNumber,
   pillar,
+  machineStreet,
   hint,
   cube,
   requestedAt,
@@ -240,6 +241,10 @@ function SuggestionFlowCardBody({
   machineName?: string;
   assetNumber?: string | null;
   pillar?: string | null;
+  machineStreet?: {
+    name: string;
+    machineStreetColor: string;
+  } | null;
   hint?: string;
   cube?: string;
   /** ISO da solicitação (ex.: `request.createdAt` da tarefa). */
@@ -260,6 +265,7 @@ function SuggestionFlowCardBody({
                 machineName={machineName}
                 assetNumber={assetNumber}
                 pillar={pillar}
+                machineStreet={machineStreet}
                 cube={cube}
                 typography="large"
               />
@@ -361,6 +367,7 @@ function CombinedRouteCard({
         machineName={row.machine.name}
         assetNumber={row.machine.assetNumber}
         pillar={row.machine.pillar}
+        machineStreet={row.machine.machineStreet}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
         requestedAt={resolveSuggestionRequestedAtIso(
           row.deliverTask,
@@ -425,6 +432,7 @@ function StandaloneDeliverRouteCard({
         machineName={row.machine.name}
         assetNumber={row.machine.assetNumber}
         pillar={row.machine.pillar}
+        machineStreet={row.machine.machineStreet}
         cube={resolveMovementCubeDisplay(row.deliverTask, row.suggestedOrder)}
         requestedAt={resolveSuggestionRequestedAtIso(row.deliverTask)}
       />
@@ -490,6 +498,7 @@ function StandalonePickupRouteCard({
         machineName={row.machine.name}
         assetNumber={row.machine.assetNumber}
         pillar={row.machine.pillar}
+        machineStreet={row.machine.machineStreet}
         requestedAt={resolveSuggestionRequestedAtIso(undefined, row.pickupTask)}
       />
 

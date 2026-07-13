@@ -11,6 +11,9 @@ export function useDashboardSectorFilter() {
   const isLeader = user?.role === 'LEADER';
   const [selectedSectorId, setSelectedSectorId] = useState('');
 
+  const leaderSectorId =
+    user?.sectorId?.trim() || user?.sector?.id?.trim() || undefined;
+
   const sectorsQuery = useQuery({
     queryKey: ['sectors', 'dashboard-filter'],
     queryFn: fetchSectors,
@@ -19,13 +22,13 @@ export function useDashboardSectorFilter() {
 
   const sectorIdForQuery = useMemo(() => {
     if (isLeader) {
-      return user?.sectorId?.trim() || undefined;
+      return leaderSectorId;
     }
     if (isAdmin && selectedSectorId.trim()) {
       return selectedSectorId.trim();
     }
     return undefined;
-  }, [isAdmin, isLeader, selectedSectorId, user?.sectorId]);
+  }, [isAdmin, isLeader, leaderSectorId, selectedSectorId]);
 
   const sectorScopeLabel = useMemo(() => {
     if (isLeader) {
@@ -47,6 +50,7 @@ export function useDashboardSectorFilter() {
   ]);
 
   return {
+    /** Só admin/superadmin escolhe setor; líder fica fixo no próprio. */
     canFilterBySector: isAdmin,
     isLeader,
     selectedSectorId,
@@ -55,6 +59,6 @@ export function useDashboardSectorFilter() {
     sectors: sectorsQuery.data ?? [],
     isSectorsLoading: sectorsQuery.isLoading,
     sectorScopeLabel,
-    leaderMissingSector: isLeader && !user?.sectorId,
+    leaderMissingSector: isLeader && !leaderSectorId,
   };
 }

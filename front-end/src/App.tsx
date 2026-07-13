@@ -43,6 +43,11 @@ const DashboardPorEmpilhadeiristaPage = lazy(() =>
     default: m.DashboardPorEmpilhadeiristaPage,
   })),
 );
+const DashboardTvMonitorPage = lazy(() =>
+  import('@/pages/DashboardPage/index').then((m) => ({
+    default: m.DashboardTvMonitorPage,
+  })),
+);
 const TypeMachinesPage = lazy(() =>
   import('@/pages/TypeMachinesPage/index').then((m) => ({
     default: m.TypeMachinesPage,
@@ -68,6 +73,11 @@ const FirstPasswordPage = lazy(() =>
 );
 const UsersPage = lazy(() =>
   import('@/pages/UsersPage/index').then((m) => ({ default: m.UsersPage })),
+);
+const MovimentOperatorPriorityPage = lazy(() =>
+  import('@/pages/MovimentOperatorPriorityPage/index').then((m) => ({
+    default: m.MovimentOperatorPriorityPage,
+  })),
 );
 
 const ReplenishmentRequestsPage = lazy(() =>
@@ -138,6 +148,7 @@ export function App() {
                       path="por-empilhadeirista"
                       element={<DashboardPorEmpilhadeiristaPage />}
                     />
+                    <Route path="monitor" element={<DashboardTvMonitorPage />} />
                   </Route>
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
@@ -170,6 +181,10 @@ export function App() {
                   />
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
+                  <Route
+                    path="administracao/prioridade-operador"
+                    element={<MovimentOperatorPriorityPage />}
+                  />
                   <Route
                     path="administracao/usuarios"
                     element={<UsersPage />}

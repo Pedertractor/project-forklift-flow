@@ -21,9 +21,17 @@ export const API_ENDPOINTS = {
     LIST: '/type-machines',
     BY_ID: (id: string) => `/type-machines/${id}`,
   },
+  MACHINE_STREETS: {
+    LIST: '/machine-streets',
+    BY_ID: (id: string) => `/machine-streets/${id}`,
+  },
   MACHINES: {
     LIST: '/machines',
     BY_ID: (id: string) => `/machines/${id}`,
+    TOOLINGS: (machineId: string) =>
+      `/machines/${encodeURIComponent(machineId)}/toolings`,
+    TOOLING_BY_ID: (machineId: string, toolingId: string) =>
+      `/machines/${encodeURIComponent(machineId)}/toolings/${encodeURIComponent(toolingId)}`,
   },
   MOVIMENT_PALLETS: {
     LIST: '/moviment-pallets',
@@ -45,6 +53,9 @@ export const API_ENDPOINTS = {
     PICKUP_ONLY: '/operator-machine/pickup-only',
     SUPPLY_ONLY: '/operator-machine/supply-only',
     PICKUP_WITH_REPLENISHMENT: '/operator-machine/pickup-with-replenishment',
+    TOOLINGS: '/operator-machine/toolings',
+    TOOLING_BY_ID: (toolingId: string) =>
+      `/operator-machine/toolings/${encodeURIComponent(toolingId)}`,
     CANCEL_PICKUP: (pickupTaskId: string) =>
       `/operator-machine/pickup-tasks/${encodeURIComponent(pickupTaskId)}/cancel`,
   },
@@ -69,7 +80,17 @@ export const API_ENDPOINTS = {
   OPERATIONAL_DASHBOARD: {
     SNAPSHOT: '/operational-dashboard/snapshot',
     BY_OPERATOR: '/operational-dashboard/by-operator',
+    TV_MONITOR: '/operational-dashboard/tv-monitor',
     OPERATOR_CURRENT_TRAJECTORY: (operatorId: string) =>
       `/operational-dashboard/operators/${encodeURIComponent(operatorId)}/current-trajectory`,
+  },
+  MOVIMENT_OPERATOR_MACHINE_LINKS: {
+    BOARD: '/moviment-operator-machine-links/board',
+    LIST: '/moviment-operator-machine-links',
+    REPLACE_OPERATOR: (operatorId: string) =>
+      `/moviment-operator-machine-links/operators/${encodeURIComponent(operatorId)}`,
+    BY_PAIR: '/moviment-operator-machine-links/by-pair',
+    BY_ID: (linkId: string) =>
+      `/moviment-operator-machine-links/${encodeURIComponent(linkId)}`,
   },
 } as const;

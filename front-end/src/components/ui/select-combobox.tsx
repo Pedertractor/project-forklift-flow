@@ -9,15 +9,27 @@ import {
   ComboboxList,
   useComboboxAnchor,
 } from '@/components/ui/combobox';
+import { InputGroupAddon } from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
 
 export type SelectComboboxOption = {
   value: string;
   label: string;
+  /** Cor opcional exibida como círculo à esquerda (ex.: rua). */
+  color?: string;
 };
 
 export const selectComboboxClassName =
   'h-[var(--control-height,2.5rem)] w-full min-w-0 rounded-xl border-2 border-zinc-200 bg-white text-sm font-medium leading-snug text-zinc-900 outline-none transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/35 disabled:cursor-not-allowed disabled:opacity-50';
+
+const selectComboboxDarkClassName =
+  'h-[var(--control-height,2.5rem)] w-full min-w-0 rounded-xl border-2 border-zinc-600 bg-zinc-800 text-sm font-medium leading-snug text-zinc-100 outline-none transition-colors focus-within:border-sky-500 focus-within:ring-[3px] focus-within:ring-sky-500/30 disabled:cursor-not-allowed disabled:opacity-50 [&_[data-slot=input-group-control]]:text-zinc-100 [&_[data-slot=input-group-control]]:placeholder:text-zinc-400 [&_svg]:text-zinc-300';
+
+const selectComboboxDarkContentClassName =
+  'border-zinc-600 bg-zinc-800 text-zinc-100 shadow-lg *:data-[slot=input-group]:border-zinc-600';
+
+const selectComboboxDarkItemClassName =
+  'text-zinc-100 data-highlighted:bg-zinc-700 data-highlighted:text-zinc-50';
 
 export type SelectComboboxProps = {
   id?: string;
@@ -27,6 +39,8 @@ export type SelectComboboxProps = {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Aparência para fundos escuros (ex.: monitor TV). */
+  dark?: boolean;
   'aria-label'?: string;
   emptyMessage?: string;
   searchable?: boolean;
@@ -40,6 +54,7 @@ export function SelectCombobox({
   placeholder = 'Selecione…',
   disabled = false,
   className,
+  dark = false,
   'aria-label': ariaLabel,
   emptyMessage = 'Nenhuma opção encontrada.',
   searchable,
@@ -50,6 +65,16 @@ export function SelectCombobox({
 
   const labelByValue = useMemo(
     () => new Map(options.map((option) => [option.value, option.label])),
+    [options],
+  );
+
+  const colorByValue = useMemo(
+    () =>
+      new Map(
+        options
+          .filter((option) => option.color)
+          .map((option) => [option.value, option.color!]),
+      ),
     [options],
   );
 
@@ -68,6 +93,7 @@ export function SelectCombobox({
   }, [canSearch, items, itemToStringLabel, search]);
 
   const selectedValue = items.includes(value) ? value : (items[0] ?? '');
+  const selectedColor = colorByValue.get(selectedValue);
 
   return (
     <Combobox
@@ -81,38 +107,71 @@ export function SelectCombobox({
       itemToStringLabel={itemToStringLabel}
       disabled={disabled}
     >
-      <div
-        ref={anchorRef}
-        className={cn(
-          selectComboboxClassName,
-          'flex min-w-0 items-stretch overflow-hidden',
-          disabled && 'pointer-events-none opacity-50',
-          className,
-        )}
-      >
+      <div ref={anchorRef} className="w-full min-w-0">
         <ComboboxInput
           id={id}
           placeholder={placeholder}
           aria-label={ariaLabel}
           disabled={disabled}
           readOnly={!canSearch}
-          className="h-full w-full border-0 bg-transparent shadow-none ring-0 focus-within:border-transparent focus-within:ring-0 [&]:h-full [&]:border-0 [&]:bg-transparent [&]:shadow-none [&]:ring-0"
+          className={cn(
+            dark ? selectComboboxDarkClassName : selectComboboxClassName,
+            className,
+            disabled && 'pointer-events-none opacity-50',
+          )}
           onChange={(event) => setSearch(event.target.value)}
-        />
+        >
+          {selectedColor ? (
+            <InputGroupAddon align="inline-start" className="pl-3">
+              <span
+                className={cn(
+                  'size-3 shrink-0 rounded-full border',
+                  dark ? 'border-zinc-500' : 'border-zinc-200',
+                )}
+                style={{ backgroundColor: selectedColor }}
+                aria-hidden
+              />
+            </InputGroupAddon>
+          ) : null}
+        </ComboboxInput>
       </div>
       <ComboboxContent
         anchor={anchorRef}
         side="bottom"
         align="start"
-        className="w-(--anchor-width)"
+        className={cn(
+          'w-(--anchor-width)',
+          dark && selectComboboxDarkContentClassName,
+        )}
       >
         <ComboboxList>
-          {filteredItems.map((item) => (
-            <ComboboxItem key={item} value={item}>
-              {itemToStringLabel(item)}
-            </ComboboxItem>
-          ))}
-          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+          {filteredItems.map((item) => {
+            const color = colorByValue.get(item);
+            return (
+              <ComboboxItem
+                key={item}
+                value={item}
+                className={dark ? selectComboboxDarkItemClassName : undefined}
+              >
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  {color ? (
+                    <span
+                      className={cn(
+                        'size-3 shrink-0 rounded-full border',
+                        dark ? 'border-zinc-500' : 'border-zinc-200',
+                      )}
+                      style={{ backgroundColor: color }}
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span className="truncate">{itemToStringLabel(item)}</span>
+                </span>
+              </ComboboxItem>
+            );
+          })}
+          <ComboboxEmpty className={dark ? 'text-zinc-400' : undefined}>
+            {emptyMessage}
+          </ComboboxEmpty>
         </ComboboxList>
       </ComboboxContent>
     </Combobox>

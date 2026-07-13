@@ -9,7 +9,13 @@ import {
   postCreateDeliveryTask,
   SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
 } from '@/services/delivery-tasks-api';
-import { fetchMachines } from '@/services/machines-api';
+import {
+  createMachineTooling,
+  deleteMachineTooling,
+  fetchMachineToolings,
+  fetchMachines,
+  updateMachineTooling,
+} from '@/services/machines-api';
 import { useAuthStore } from '@/store/auth.store';
 import { hasAdminPrivileges } from '@/types/role.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
@@ -63,6 +69,50 @@ export function useSupplyPendingPreparationPage() {
   const [operatorSupplyRequestId, setOperatorSupplyRequestId] = useState<
     string | undefined
   >(undefined);
+
+  const toolingsQuery = useQuery({
+    queryKey: ['machines', destinationId, 'toolings'],
+    queryFn: () => fetchMachineToolings(destinationId),
+    enabled: apiReady && createOpen && destinationId.trim() !== '',
+  });
+
+  const invalidateToolings = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ['machines', destinationId, 'toolings'],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: SUPPLY_PENDING_OPERATOR_REQUESTS_QUERY_KEY,
+    });
+  }, [destinationId, queryClient]);
+
+  const createToolingMut = useMutation({
+    mutationFn: (name: string) => createMachineTooling(destinationId, name),
+    onSuccess: () => {
+      invalidateToolings();
+      toast.success('Ferramental cadastrado.');
+    },
+    onError: toastApiError,
+  });
+
+  const updateToolingMut = useMutation({
+    mutationFn: ({ toolingId, name }: { toolingId: string; name: string }) =>
+      updateMachineTooling(destinationId, toolingId, name),
+    onSuccess: () => {
+      invalidateToolings();
+      toast.success('Ferramental atualizado.');
+    },
+    onError: toastApiError,
+  });
+
+  const deleteToolingMut = useMutation({
+    mutationFn: (toolingId: string) =>
+      deleteMachineTooling(destinationId, toolingId),
+    onSuccess: () => {
+      invalidateToolings();
+      toast.success('Ferramental removido.');
+    },
+    onError: toastApiError,
+  });
 
   const resetForm = useCallback(() => {
     setDestinationId('');
@@ -122,7 +172,11 @@ export function useSupplyPendingPreparationPage() {
     onError: toastApiError,
   });
 
-  const busy = createMut.isPending;
+  const busy =
+    createMut.isPending ||
+    createToolingMut.isPending ||
+    updateToolingMut.isPending ||
+    deleteToolingMut.isPending;
   const createError =
     createMut.error instanceof Error ? createMut.error.message : null;
 
@@ -146,6 +200,24 @@ export function useSupplyPendingPreparationPage() {
     setTypeMovimentPallet,
     isCritical,
     setIsCritical,
+    toolings: toolingsQuery.data ?? [],
+    toolingsLoading: toolingsQuery.isLoading,
+    createTooling: async (name: string) => {
+      await createToolingMut.mutateAsync(name);
+    },
+    createToolingPending: createToolingMut.isPending,
+    updateTooling: async (toolingId: string, name: string) => {
+      await updateToolingMut.mutateAsync({ toolingId, name });
+    },
+    updateToolingPendingId: updateToolingMut.isPending
+      ? (updateToolingMut.variables?.toolingId ?? null)
+      : null,
+    deleteTooling: async (toolingId: string) => {
+      await deleteToolingMut.mutateAsync(toolingId);
+    },
+    deleteToolingPendingId: deleteToolingMut.isPending
+      ? (deleteToolingMut.variables ?? null)
+      : null,
     openCreateFromOperatorSupply,
     createMut,
     busy,

@@ -16,6 +16,10 @@ export interface HorizontalActivityStepperProps {
   /** Se omitido, calcula a partir de `statuses` (etapa ativa = fração concluída). */
   progressPct?: number;
   className?: string;
+  /** Versão compacta (monitor TV). */
+  compact?: boolean;
+  /** Textos para fundo escuro. */
+  dark?: boolean;
 }
 
 /** Alinha a barra com o círculo ativo: etapa 1/3 → 33%, 2/3 → 67%, concluído → 100%. */
@@ -36,17 +40,20 @@ export function progressPctFromFlowStepStatuses(
 /** Etapas em que o indicador ativo usa o vídeo da empilhadeira (por título). */
 export const FORKLIFT_LOADER_STEP_TITLES = [
   'Retirada em curso',
+  'A caminho...',
+  'A caminho',
   'Transporte a caminho',
   'Movimentação de empilhadeira em andamento',
   'Movimento em curso',
+  'Retirada',
 ] as const;
 
 /** Chaves dos passos no fluxo da máquina (`operator-machine-flow`). */
 export const FORKLIFT_LOADER_STEP_KEYS = [
-  'deliver',
+  'on-the-way',
+  'transporting',
   'removing',
   'pickup',
-  'transporting',
 ] as const;
 
 export function stepTitleShowsForkliftLoader(title: string): boolean {
@@ -65,9 +72,13 @@ type StepConnectorVariant = 'done' | 'pending' | 'flowing';
 /** Colunas: círculo | trilho flex | círculo | trilho | … */
 function buildTrackGridColumns(
   stepCount: number,
-  options?: { wideTracks?: boolean },
+  options?: { wideTracks?: boolean; compact?: boolean },
 ): string {
-  const trackMin = options?.wideTracks ? '1.5rem' : '0.5rem';
+  const trackMin = options?.compact
+    ? '0.35rem'
+    : options?.wideTracks
+      ? '1.5rem'
+      : '0.5rem';
   return Array.from({ length: stepCount }, (_, index) =>
     index === 0 ? 'auto' : `minmax(${trackMin}, 1fr) auto`,
   ).join(' ');
@@ -79,7 +90,7 @@ function connectorBetweenSteps(
 ): StepConnectorVariant {
   const prev = statuses[stepIndex - 1] ?? 'pending';
   const curr = statuses[stepIndex] ?? 'pending';
-  /** Pulso só entre a última etapa concluída e a etapa em curso — não em todos os trilhos à frente. */
+  /** Pulso só entre a última etapa concluída e a etapa em curso. */
   if (prev === 'done' && curr === 'active') {
     return 'flowing';
   }
@@ -89,11 +100,17 @@ function connectorBetweenSteps(
   return 'pending';
 }
 
-function StepConnectorLine({ variant }: { variant: StepConnectorVariant }) {
+function StepConnectorLine({
+  variant,
+  dark = false,
+}: {
+  variant: StepConnectorVariant;
+  dark?: boolean;
+}) {
   if (variant === 'done') {
     return (
       <span
-        className="block h-0.5 w-full rounded-full bg-emerald-400"
+        className="block h-1 w-full rounded-full bg-emerald-400"
         aria-hidden
       />
     );
@@ -102,7 +119,10 @@ function StepConnectorLine({ variant }: { variant: StepConnectorVariant }) {
   if (variant === 'pending') {
     return (
       <span
-        className="block h-0.5 w-full rounded-full bg-zinc-200"
+        className={cn(
+          'block h-1 w-full rounded-full',
+          dark ? 'bg-zinc-700' : 'bg-zinc-200',
+        )}
         aria-hidden
       />
     );
@@ -110,10 +130,21 @@ function StepConnectorLine({ variant }: { variant: StepConnectorVariant }) {
 
   return (
     <span
-      className="relative block h-0.5 w-full overflow-hidden rounded-full bg-zinc-200"
+      className={cn(
+        'relative block h-1 w-full overflow-hidden rounded-full',
+        dark ? 'bg-zinc-700' : 'bg-zinc-200',
+      )}
       aria-hidden
     >
-      <span className="absolute inset-y-0 left-0 w-[28%] min-w-5 max-w-14 rounded-full bg-linear-to-r from-brand/40 via-brand to-brand/70 shadow-[0_0_6px_rgba(0,95,184,0.35)] animate-step-connector-flow" />
+      <span
+        className="absolute inset-y-0 left-0 w-1/3 rounded-full"
+        style={{
+          background:
+            'linear-gradient(90deg, rgba(0,95,184,0.25), #005fb8, rgba(0,95,184,0.85))',
+          boxShadow: '0 0 8px rgba(0,95,184,0.45)',
+          animation: 'forklift-step-connector-flow 2.8s linear infinite',
+        }}
+      />
     </span>
   );
 }
@@ -122,10 +153,14 @@ function StepCircle({
   index,
   status,
   step,
+  compact = false,
+  dark = false,
 }: {
   index: number;
   status: FlowStepStatus;
   step: FlowStepDefinition;
+  compact?: boolean;
+  dark?: boolean;
 }) {
   const done = status === 'done';
   const active = status === 'active';
@@ -133,17 +168,20 @@ function StepCircle({
   return (
     <span
       className={cn(
-        'flex size-15 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-bold',
+        'flex shrink-0 items-center justify-center rounded-full border-2 font-bold',
+        compact ? 'size-8 text-[9px]' : 'size-15 text-[10px]',
         done
           ? 'border-emerald-500 bg-emerald-500 text-white'
           : active
             ? 'border-brand bg-brand/10 text-brand'
-            : 'border-zinc-200  text-zinc-400',
+            : dark
+              ? 'border-zinc-600 text-zinc-500'
+              : 'border-zinc-200 text-zinc-400',
       )}
       aria-hidden
     >
       {done ? (
-        <CheckIcon className="size-8" />
+        <CheckIcon className={compact ? 'size-4' : 'size-8'} />
       ) : active && stepShowsForkliftLoader(step) ? (
         <ForkliftCircleLoader />
       ) : (
@@ -158,22 +196,46 @@ export function HorizontalActivityStepper({
   statuses,
   headline,
   className,
+  compact = false,
+  dark = false,
 }: HorizontalActivityStepperProps) {
   if (steps.length !== statuses.length) {
     return null;
   }
 
-  /** Fluxos longos (ex.: retirada + abastecimento): trilhos mais largos para o pulso animado. */
-  const wideTracks = steps.length >= 5;
-  const gridColumns = buildTrackGridColumns(steps.length, { wideTracks });
-  const gridMinWidth = wideTracks ? `${steps.length * 5.25}rem` : undefined;
+  const longFlow = steps.length >= 5;
+  const gridColumns = buildTrackGridColumns(steps.length, {
+    wideTracks: longFlow && !compact,
+    compact,
+  });
+  /** Só força largura mínima fora do modo compacto (TV) — evita scroll horizontal. */
+  const gridMinWidth =
+    longFlow && !compact ? `${steps.length * 5.25}rem` : undefined;
 
   return (
-    <div className={cn('w-full', className)}>
+    <div className={cn('w-full min-w-0 overflow-hidden', className)}>
+      {/* Keyframes locais: não dependem de prefers-reduced-motion do globals.css */}
+      <style>{`
+        @keyframes forklift-step-connector-flow {
+          0% { transform: translateX(-100%); opacity: 0.55; }
+          12% { opacity: 1; }
+          88% { opacity: 1; }
+          100% { transform: translateX(350%); opacity: 0.55; }
+        }
+      `}</style>
       {headline ? (
-        <p className="mb-3 text-left text-sm leading-relaxed text-zinc-600">
+        <p
+          className={cn(
+            'text-left leading-relaxed',
+            compact ? 'mb-1.5 text-[11px]' : 'mb-3 text-sm',
+            dark ? 'text-zinc-400' : 'text-zinc-600',
+          )}
+        >
           <InfoIcon
-            className="inline size-4 shrink-0 text-blue-500"
+            className={cn(
+              'inline shrink-0 text-blue-500',
+              compact ? 'size-3' : 'size-4',
+            )}
             aria-hidden
           />{' '}
           {headline}
@@ -181,13 +243,16 @@ export function HorizontalActivityStepper({
       ) : null}
       <div
         className={cn(
-          'mt-4 w-full min-w-0',
-          wideTracks &&
-            'overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]',
+          'w-full min-w-0',
+          compact ? 'mt-2' : 'mt-4',
+          longFlow && !compact && 'overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]',
         )}
       >
         <ol
-          className="grid w-full min-w-0 list-none gap-y-2 p-0"
+          className={cn(
+            'grid w-full min-w-0 list-none p-0',
+            compact ? 'gap-y-1' : 'gap-y-2',
+          )}
           style={{
             gridTemplateColumns: gridColumns,
             ...(gridMinWidth ? { minWidth: gridMinWidth } : {}),
@@ -207,12 +272,13 @@ export function HorizontalActivityStepper({
               >
                 {index > 0 ? (
                   <div
-                    className="flex min-w-0 items-center self-center px-0.5"
+                    className="flex w-full min-w-0 items-center self-center px-0.5"
                     style={{ gridColumn: index * 2, gridRow: 1 }}
                     aria-hidden
                   >
                     <StepConnectorLine
                       variant={connectorBetweenSteps(index, statuses)}
+                      dark={dark}
                     />
                   </div>
                 ) : null}
@@ -220,16 +286,29 @@ export function HorizontalActivityStepper({
                   className="flex justify-center justify-self-center"
                   style={{ gridColumn: circleColumn, gridRow: 1 }}
                 >
-                  <StepCircle index={index} status={status} step={step} />
+                  <StepCircle
+                    index={index}
+                    status={status}
+                    step={step}
+                    compact={compact}
+                    dark={dark}
+                  />
                 </div>
                 <p
                   className={cn(
-                    'm-0 min-w-0 max-w-full justify-self-center px-0.5 text-center text-[10px] leading-snug font-medium break-words sm:text-[11px]',
+                    'm-0 min-w-0 max-w-full justify-self-center px-0.5 text-center font-medium break-words',
+                    compact
+                      ? 'text-[9px] leading-tight'
+                      : 'text-[10px] leading-snug sm:text-[11px]',
                     done
-                      ? 'text-emerald-800'
+                      ? dark
+                        ? 'text-emerald-400'
+                        : 'text-emerald-800'
                       : active
                         ? 'text-brand'
-                        : 'text-zinc-400',
+                        : dark
+                          ? 'text-zinc-500'
+                          : 'text-zinc-400',
                   )}
                   style={{ gridColumn: circleColumn, gridRow: 2 }}
                 >

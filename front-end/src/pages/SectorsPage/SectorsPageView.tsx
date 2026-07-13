@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import type { SectorsPageViewModel } from './useSectorsPage';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { Pencil, PlusIcon, Trash2 } from 'lucide-react';
 
 export function SectorsPageView(vm: SectorsPageViewModel) {
   const {
@@ -52,6 +53,7 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
             onClick={openCreate}
             disabled={!apiReady || busy}
           >
+            <PlusIcon className="size-4" />
             Novo setor
           </Button>
         </header>
@@ -115,31 +117,33 @@ export function SectorsPageView(vm: SectorsPageViewModel) {
                         {row.typeSector}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1.5">
                           <Button
                             type="button"
                             variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 px-3 text-xs"
+                            size="icon-sm"
                             disabled={!apiReady || busy}
+                            title="Editar"
+                            aria-label={`Editar ${row.typeSector}`}
                             onClick={() => openEdit(row)}
                           >
-                            Editar
+                            <Pencil aria-hidden />
                           </Button>
                           <Button
                             type="button"
                             variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 border-red-200 px-3 text-xs text-red-700 hover:bg-red-50"
+                            size="icon-sm"
+                            className="border-red-200 text-red-700 hover:bg-red-50"
                             disabled={!apiReady || busy || hasLinks}
                             title={
                               hasLinks
                                 ? 'Não é possível excluir: há máquinas, usuários ou equipamentos vinculados a este setor.'
-                                : undefined
+                                : 'Excluir'
                             }
+                            aria-label={`Excluir ${row.typeSector}`}
                             onClick={() => setDeleteRow(row)}
                           >
-                            Excluir
+                            <Trash2 aria-hidden />
                           </Button>
                         </div>
                       </td>

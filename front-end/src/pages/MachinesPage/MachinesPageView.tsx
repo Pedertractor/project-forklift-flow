@@ -1,12 +1,20 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { UserRound, UserRoundX } from 'lucide-react';
+import {
+  Pencil,
+  PlusIcon,
+  Road,
+  Trash2,
+  UserRound,
+  UserRoundX,
+  WrenchIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 import { ModalActions, SimpleModal } from '@/components/crud/SimpleModal';
 import { DataTableCard } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
-import { type MachinesPageViewModel } from './useMachinesPage';
+import { type MachinesPageViewModel, MACHINE_STREET_FILTER_NONE } from './useMachinesPage';
 import { typeMachineImageSrc } from '../TypeMachinesPage/useTypeMachinesPage';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
 
@@ -16,12 +24,20 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
   const {
     apiReady,
     token,
+    isAdmin,
+    user,
     sectorsForSelect,
     typesQuery,
+    streetsForMachineSector,
+    streetsForDialogSector,
+    dialogStreetsQuery,
     sectorFilter,
     setSectorFilter,
     plantUnitFilter,
     setPlantUnitFilter,
+    streetFilter,
+    setStreetFilter,
+    streetsForListFilter,
     plantUnit,
     setPlantUnit,
     plantUnitLabel,
@@ -35,6 +51,10 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setEditRow,
     deleteRow,
     setDeleteRow,
+    streetCreateOpen,
+    streetEditRow,
+    deleteStreetRow,
+    setDeleteStreetRow,
     name,
     setName,
     assetNumber,
@@ -45,17 +65,36 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
     setTypeMachineId,
     sectorId,
     setSectorId,
+    machineStreetId,
+    setMachineStreetId,
+    streetName,
+    setStreetName,
+    streetColor,
+    setStreetColor,
+    streetSectorId,
+    setStreetSectorId,
     editOperator,
     unlinkOperatorMut,
     openCreate,
     openEdit,
+    openStreetCreate,
+    openStreetEdit,
+    closeStreetDialog,
     createMut,
     updateMut,
     deleteMut,
+    createStreetMut,
+    updateStreetMut,
+    deleteStreetMut,
     busy,
     createError,
     updateError,
+    createStreetError,
+    updateStreetError,
   } = vm;
+
+  const streetFormError = streetEditRow ? updateStreetError : createStreetError;
+  const isEditingStreet = Boolean(streetEditRow);
 
   const navigate = useNavigate();
 
@@ -67,17 +106,29 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
               Máquinas de produção
             </h1>
-            <p className="m-0 text-sm text-zinc-600">Máquinas de linha de produção.</p>
+            <p className="m-0 text-sm text-zinc-600">
+              Máquinas de linha de produção.
+            </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button onClick={() => navigate('/cadastro/tipos-maquina')}>
+              <WrenchIcon className="size-4" />
               Tipos de máquina
+            </Button>
+            <Button
+              type="button"
+              onClick={openStreetCreate}
+              disabled={!apiReady || busy || sectorsEmpty}
+            >
+              <Road className="size-4" />
+              Nova rua
             </Button>
             <Button
               type="button"
               onClick={openCreate}
               disabled={!apiReady || busy}
             >
+              <PlusIcon className="size-4" />
               Nova máquina de produção
             </Button>
           </div>
@@ -85,8 +136,8 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login
-            para gerenciar máquinas de produção.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login para gerenciar máquinas de produção.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -120,28 +171,37 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         ) : null}
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="min-w-48 space-y-2">
-            <Label htmlFor="machine-sector-filter">Filtrar por setor</Label>
-            <SelectCombobox
-              id="machine-sector-filter"
-              value={sectorFilter}
-              onValueChange={setSectorFilter}
-              disabled={!apiReady}
-              placeholder="Todos"
-              options={[
-                { value: '', label: 'Todos' },
-                ...sectorsForSelect.map((s) => ({
-                  value: s.id,
-                  label: `${s.typeSector}${
-                    typeof s.sectorIdAPI === 'number'
-                      ? ` (#${s.sectorIdAPI})`
-                      : ''
-                  }`,
-                })),
-              ]}
-            />
-          </div>
-          <div className="min-w-48 space-y-2">
+          {isAdmin ? (
+            <div className="flex min-w-48 flex-col gap-2">
+              <Label htmlFor="machine-sector-filter">Filtrar por setor</Label>
+              <SelectCombobox
+                id="machine-sector-filter"
+                value={sectorFilter}
+                onValueChange={setSectorFilter}
+                disabled={!apiReady}
+                placeholder="Todos"
+                options={[
+                  { value: '', label: 'Todos' },
+                  ...sectorsForSelect.map((s) => ({
+                    value: s.id,
+                    label: `${s.typeSector}${
+                      typeof s.sectorIdAPI === 'number'
+                        ? ` (#${s.sectorIdAPI})`
+                        : ''
+                    }`,
+                  })),
+                ]}
+              />
+            </div>
+          ) : (
+            <div className="flex min-w-48 flex-col gap-2">
+              <Label>Setor</Label>
+              <p className="m-0 flex h-[var(--control-height,2.5rem)] items-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-700">
+                {user?.sector?.typeSector ?? 'Seu setor'}
+              </p>
+            </div>
+          )}
+          <div className="flex min-w-48 flex-col gap-2">
             <Label htmlFor="machine-plant-unit-filter">
               Filtrar por unidade
             </Label>
@@ -161,16 +221,43 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ]}
             />
           </div>
+          <div className="flex min-w-48 flex-col gap-2">
+            <Label htmlFor="machine-street-filter">Filtrar por rua</Label>
+            <SelectCombobox
+              id="machine-street-filter"
+              value={streetFilter}
+              onValueChange={setStreetFilter}
+              disabled={!apiReady}
+              placeholder="Todas"
+              options={[
+                { value: '', label: 'Todas' },
+                { value: MACHINE_STREET_FILTER_NONE, label: 'Sem rua' },
+                ...streetsForListFilter.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  color: s.machineStreetColor,
+                })),
+              ]}
+            />
+          </div>
           <Button
             type="button"
             variant="outline"
-            className="h-10 shrink-0 whitespace-nowrap"
+            className="h-[var(--control-height,2.5rem)] shrink-0 self-end whitespace-nowrap"
             disabled={
-              !apiReady || (sectorFilter === '' && plantUnitFilter === '')
+              !apiReady ||
+              (isAdmin
+                ? sectorFilter === '' &&
+                  plantUnitFilter === '' &&
+                  streetFilter === ''
+                : plantUnitFilter === '' && streetFilter === '')
             }
             onClick={() => {
-              setSectorFilter('');
+              if (isAdmin) {
+                setSectorFilter('');
+              }
               setPlantUnitFilter('');
+              setStreetFilter('');
             }}
           >
             Limpar filtros
@@ -186,7 +273,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         ) : null}
 
         <DataTableCard className="mt-6">
-          <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[1020px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/90">
                 <th className="px-4 py-3 font-semibold text-zinc-700"></th>
@@ -199,6 +286,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                   Tipo da máquina
                 </th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">Setor</th>
+                <th className="px-4 py-3 font-semibold text-zinc-700">Rua</th>
                 <th className="px-4 py-3 font-semibold text-zinc-700">
                   Unidade
                 </th>
@@ -210,7 +298,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             <tbody>
               {machinesQuery.isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-zinc-500">
+                  <td colSpan={9} className="px-4 py-8 text-zinc-500">
                     <div className="flex items-center justify-center">
                       <AccordionLoader />
                     </div>
@@ -219,7 +307,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
               ) : machinesQuery.data?.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-8 text-center text-zinc-500"
                   >
                     Nenhuma máquina de produção neste filtro.
@@ -259,34 +347,57 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                         {row.sector.typeSector}
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
+                        {row.machineStreet ? (
+                          <span
+                            className="inline-flex max-w-[10rem] items-center gap-1.5 font-medium"
+                            style={{
+                              color: row.machineStreet.machineStreetColor,
+                            }}
+                          >
+                            <Road
+                              className="size-3.5 shrink-0"
+                              strokeWidth={2.5}
+                              aria-hidden
+                            />
+                            <span className="truncate">
+                              {row.machineStreet.name}
+                            </span>
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
                         {row.plantUnit}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1.5">
                           <Button
                             type="button"
                             variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 px-3 text-xs"
+                            size="icon-sm"
                             disabled={!apiReady || busy}
+                            title="Editar"
+                            aria-label={`Editar ${row.name}`}
                             onClick={() => openEdit(row)}
                           >
-                            Editar
+                            <Pencil aria-hidden />
                           </Button>
                           <Button
                             type="button"
                             variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 border-red-200 px-3 text-xs text-red-700 hover:bg-red-50"
+                            size="icon-sm"
+                            className="border-red-200 text-red-700 hover:bg-red-50"
                             disabled={!apiReady || busy || hasLinks}
                             title={
                               hasLinks
                                 ? 'Não é possível excluir: há tarefas ou solicitações vinculadas a esta máquina.'
-                                : undefined
+                                : 'Excluir'
                             }
+                            aria-label={`Excluir ${row.name}`}
                             onClick={() => setDeleteRow(row)}
                           >
-                            Excluir
+                            <Trash2 aria-hidden />
                           </Button>
                         </div>
                       </td>
@@ -302,7 +413,7 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
       <SimpleModal
         open={createOpen}
         title="Nova máquina de produção"
-        description="Máquina de linha de produção (não é empilhadeira). Preencha nome, unidade, tipo de máquina (modelo) e setor. O operador é opcional (UUID do usuário, se souber o identificador)."
+        description="Cadastre uma nova máquina de produção."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions
@@ -402,20 +513,46 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-sector">Setor</Label>
+            {isAdmin ? (
+              <SelectCombobox
+                id="m-sector"
+                value={sectorId}
+                onValueChange={setSectorId}
+                placeholder="Selecione…"
+                options={[
+                  { value: '', label: 'Selecione…' },
+                  ...sectorsForSelect.map((s) => ({
+                    value: s.id,
+                    label: `${s.typeSector}${
+                      typeof s.sectorIdAPI === 'number'
+                        ? ` (#${s.sectorIdAPI})`
+                        : ''
+                    }`,
+                  })),
+                ]}
+              />
+            ) : (
+              <p className="m-0 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+                {user?.sector?.typeSector ?? 'Seu setor'}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-street">Rua (opcional)</Label>
             <SelectCombobox
-              id="m-sector"
-              value={sectorId}
-              onValueChange={setSectorId}
-              placeholder="Selecione…"
+              id="m-street"
+              value={machineStreetId}
+              onValueChange={setMachineStreetId}
+              placeholder={
+                sectorId ? 'Sem rua…' : 'Selecione o setor primeiro…'
+              }
+              disabled={!sectorId}
               options={[
-                { value: '', label: 'Selecione…' },
-                ...sectorsForSelect.map((s) => ({
+                { value: '', label: 'Sem rua' },
+                ...streetsForMachineSector.map((s) => ({
                   value: s.id,
-                  label: `${s.typeSector}${
-                    typeof s.sectorIdAPI === 'number'
-                      ? ` (#${s.sectorIdAPI})`
-                      : ''
-                  }`,
+                  label: s.name,
+                  color: s.machineStreetColor,
                 })),
               ]}
             />
@@ -500,18 +637,46 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-sector">Setor</Label>
+            {isAdmin ? (
+              <SelectCombobox
+                id="m-edit-sector"
+                value={sectorId}
+                onValueChange={setSectorId}
+                options={sectorsForSelect.map((s) => ({
+                  value: s.id,
+                  label: `${s.typeSector}${
+                    typeof s.sectorIdAPI === 'number'
+                      ? ` (#${s.sectorIdAPI})`
+                      : ''
+                  }`,
+                }))}
+              />
+            ) : (
+              <p className="m-0 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+                {user?.sector?.typeSector ??
+                  sectorsForSelect.find((s) => s.id === sectorId)?.typeSector ??
+                  'Seu setor'}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="m-edit-street">Rua (opcional)</Label>
             <SelectCombobox
-              id="m-edit-sector"
-              value={sectorId}
-              onValueChange={setSectorId}
-              options={sectorsForSelect.map((s) => ({
-                value: s.id,
-                label: `${s.typeSector}${
-                  typeof s.sectorIdAPI === 'number'
-                    ? ` (#${s.sectorIdAPI})`
-                    : ''
-                }`,
-              }))}
+              id="m-edit-street"
+              value={machineStreetId}
+              onValueChange={setMachineStreetId}
+              placeholder={
+                sectorId ? 'Sem rua…' : 'Selecione o setor primeiro…'
+              }
+              disabled={!sectorId}
+              options={[
+                { value: '', label: 'Sem rua' },
+                ...streetsForMachineSector.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  color: s.machineStreetColor,
+                })),
+              ]}
             />
           </div>
           <div className="space-y-2">
@@ -575,6 +740,226 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             {deleteMut.error.message}
           </p>
         ) : null}
+      </SimpleModal>
+
+      <SimpleModal
+        open={Boolean(deleteStreetRow)}
+        title="Excluir rua"
+        description={
+          deleteStreetRow
+            ? `Confirma a exclusão de «${deleteStreetRow.name}»?`
+            : undefined
+        }
+        onClose={() => (!busy ? setDeleteStreetRow(null) : undefined)}
+        footer={
+          <ModalActions
+            onCancel={() => !busy && setDeleteStreetRow(null)}
+            submitLabel={busy ? 'Excluindo…' : 'Excluir'}
+            disabled={busy}
+            danger
+            onSubmit={() =>
+              deleteStreetRow && deleteStreetMut.mutate(deleteStreetRow.id)
+            }
+          />
+        }
+      >
+        {deleteStreetMut.error instanceof Error ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {deleteStreetMut.error.message}
+          </p>
+        ) : null}
+      </SimpleModal>
+
+      <SimpleModal
+        open={streetCreateOpen}
+        title={isEditingStreet ? 'Editar rua' : 'Nova rua'}
+        description={
+          isEditingStreet
+            ? 'Altere o nome ou a cor da rua. O setor não pode ser modificado.'
+            : 'Cadastre uma rua do chão de fábrica vinculada a um setor. Só máquinas desse setor poderão usá-la.'
+        }
+        onClose={() => (!busy ? closeStreetDialog() : undefined)}
+        footer={
+          <ModalActions
+            onCancel={() => !busy && closeStreetDialog()}
+            submitLabel={
+              busy
+                ? 'Salvando…'
+                : isEditingStreet
+                  ? 'Salvar alterações'
+                  : 'Criar rua'
+            }
+            disabled={busy || (!isEditingStreet && sectorsEmpty)}
+            onSubmit={() =>
+              isEditingStreet
+                ? updateStreetMut.mutate()
+                : createStreetMut.mutate()
+            }
+          />
+        }
+      >
+        {streetFormError ? (
+          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {streetFormError}
+          </p>
+        ) : null}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="street-name">Nome da rua</Label>
+            <Input
+              id="street-name"
+              value={streetName}
+              onChange={(e) => setStreetName(e.target.value)}
+              placeholder="Ex.: Rua A"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="street-color">Cor</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                id="street-color"
+                type="color"
+                value={streetColor}
+                onChange={(e) => setStreetColor(e.target.value)}
+                className="h-10 w-14 cursor-pointer p-1"
+              />
+              <Input
+                value={streetColor}
+                onChange={(e) => setStreetColor(e.target.value)}
+                placeholder="#2563eb"
+                className="font-mono"
+              />
+            </div>
+          </div>
+          {isAdmin && !isEditingStreet ? (
+            <div className="space-y-2">
+              <Label htmlFor="street-sector">Setor</Label>
+              <SelectCombobox
+                id="street-sector"
+                value={streetSectorId}
+                onValueChange={setStreetSectorId}
+                placeholder="Selecione…"
+                options={[
+                  { value: '', label: 'Selecione…' },
+                  ...sectorsForSelect.map((s) => ({
+                    value: s.id,
+                    label: `${s.typeSector}${
+                      typeof s.sectorIdAPI === 'number'
+                        ? ` (#${s.sectorIdAPI})`
+                        : ''
+                    }`,
+                  })),
+                ]}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Setor</Label>
+              <p className="m-0 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+                {isEditingStreet
+                  ? (sectorsForSelect.find((s) => s.id === streetSectorId)
+                      ?.typeSector ??
+                    user?.sector?.typeSector ??
+                    'Setor da rua')
+                  : (user?.sector?.typeSector ?? 'Seu setor')}
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-3 border-t border-zinc-200 pt-4">
+            <div>
+              <p className="m-0 text-sm font-semibold text-zinc-900">
+                Ruas do setor
+              </p>
+              <p className="m-0 mt-0.5 text-xs text-zinc-500">
+                {isAdmin && !streetSectorId
+                  ? 'Selecione um setor para ver as ruas cadastradas.'
+                  : 'Edite ou exclua ruas sem máquinas vinculadas.'}
+              </p>
+            </div>
+            {dialogStreetsQuery.isLoading &&
+            (streetSectorId || (!isAdmin && user?.sectorId)) ? (
+              <div className="flex justify-center py-4">
+                <AccordionLoader />
+              </div>
+            ) : streetsForDialogSector.length === 0 ? (
+              <p className="m-0 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-6 text-center text-sm text-zinc-500">
+                {isAdmin && !streetSectorId
+                  ? 'Nenhuma rua para exibir.'
+                  : 'Nenhuma rua cadastrada neste setor.'}
+              </p>
+            ) : (
+              <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+                {streetsForDialogSector.map((street) => {
+                  const machineCount = street.references ?? 0;
+                  const canDeleteStreet = machineCount === 0;
+                  const isSelected = streetEditRow?.id === street.id;
+
+                  return (
+                    <div
+                      key={street.id}
+                      className={`flex min-w-0 items-center gap-2 rounded-xl border bg-white px-3 py-2.5 ${
+                        isSelected
+                          ? 'border-brand/40 ring-1 ring-brand/20'
+                          : 'border-zinc-200'
+                      }`}
+                    >
+                      <span
+                        className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50"
+                        style={{ color: street.machineStreetColor }}
+                        aria-hidden
+                      >
+                        <Road className="size-4" strokeWidth={2.5} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="m-0 truncate text-sm font-semibold"
+                          style={{ color: street.machineStreetColor }}
+                        >
+                          {street.name}
+                        </p>
+                        <p className="m-0 mt-0.5 text-xs text-zinc-500">
+                          {machineCount === 1
+                            ? '1 máquina'
+                            : `${machineCount} máquinas`}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          disabled={!apiReady || busy}
+                          title="Editar rua"
+                          aria-label={`Editar ${street.name}`}
+                          onClick={() => openStreetEdit(street)}
+                        >
+                          <Pencil aria-hidden />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          className="border-red-200 text-red-700 hover:bg-red-50"
+                          disabled={!apiReady || busy || !canDeleteStreet}
+                          title={
+                            canDeleteStreet
+                              ? 'Excluir rua'
+                              : 'Não é possível excluir: há máquinas vinculadas a esta rua.'
+                          }
+                          aria-label={`Excluir ${street.name}`}
+                          onClick={() => setDeleteStreetRow(street)}
+                        >
+                          <Trash2 aria-hidden />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </SimpleModal>
     </main>
   );

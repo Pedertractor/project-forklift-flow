@@ -11,7 +11,7 @@ import {
   fetchReplenishmentRequests,
   updateReplenishmentRequest,
 } from '@/services/machine-replenishment-requests-api';
-import { fetchMachines } from '@/services/machines-api';
+import { fetchMachines, createMachineTooling, deleteMachineTooling, fetchMachineToolings, updateMachineTooling } from '@/services/machines-api';
 import { fetchMovimentPallets } from '@/services/moviment-pallets-api';
 import { useAuthStore } from '@/store/auth.store';
 import { hasAdminPrivileges } from '@/types/role.types';
@@ -142,8 +142,13 @@ export function useReplenishmentRequestsPage() {
     setHistoryDates([]);
   }, []);
 
-  const equipmentSectorId =
-    onlyMySector && user?.sectorId ? user.sectorId : undefined;
+  // Abastecedor/líder: sempre o próprio setor.
+  // Admin: todos, ou só o setor se «apenas meu setor» estiver marcado.
+  const equipmentSectorId = isAdmin
+    ? onlyMySector && user?.sectorId
+      ? user.sectorId
+      : undefined
+    : user?.sectorId ?? undefined;
 
   const equipmentQuery = useQuery({
     queryKey: [
@@ -156,7 +161,7 @@ export function useReplenishmentRequestsPage() {
         ...(equipmentSectorId ? { sectorId: equipmentSectorId } : {}),
         includeTaskAvailability: true,
       }),
-    enabled: apiReady && (isAdmin || Boolean(equipmentSectorId)),
+    enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
     refetchInterval: 15_000,
   });
 
@@ -216,6 +221,47 @@ export function useReplenishmentRequestsPage() {
   const [priorityLevel, setPriorityLevel] =
     useState<PriorityLevelValue>('NORMAL');
   const [isCritical, setIsCritical] = useState(false);
+
+  const toolingsQuery = useQuery({
+    queryKey: ['machines', destinationId, 'toolings'],
+    queryFn: () => fetchMachineToolings(destinationId),
+    enabled: apiReady && createOpen && destinationId.trim() !== '',
+  });
+
+  const invalidateToolings = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ['machines', destinationId, 'toolings'],
+    });
+  }, [destinationId, queryClient]);
+
+  const createToolingMut = useMutation({
+    mutationFn: (name: string) => createMachineTooling(destinationId, name),
+    onSuccess: () => {
+      invalidateToolings();
+      toast.success('Ferramental cadastrado.');
+    },
+    onError: toastApiError,
+  });
+
+  const updateToolingMut = useMutation({
+    mutationFn: ({ toolingId, name }: { toolingId: string; name: string }) =>
+      updateMachineTooling(destinationId, toolingId, name),
+    onSuccess: () => {
+      invalidateToolings();
+      toast.success('Ferramental atualizado.');
+    },
+    onError: toastApiError,
+  });
+
+  const deleteToolingMut = useMutation({
+    mutationFn: (toolingId: string) =>
+      deleteMachineTooling(destinationId, toolingId),
+    onSuccess: () => {
+      invalidateToolings();
+      toast.success('Ferramental removido.');
+    },
+    onError: toastApiError,
+  });
 
   const resetForm = useCallback(() => {
     setDestinationId('');
@@ -333,7 +379,12 @@ export function useReplenishmentRequestsPage() {
   });
 
   const busy =
-    createMut.isPending || updateMut.isPending || deleteMut.isPending;
+    createMut.isPending ||
+    updateMut.isPending ||
+    deleteMut.isPending ||
+    createToolingMut.isPending ||
+    updateToolingMut.isPending ||
+    deleteToolingMut.isPending;
   const createError =
     createMut.error instanceof Error ? createMut.error.message : null;
   const updateError =
@@ -386,6 +437,24 @@ export function useReplenishmentRequestsPage() {
     setPriorityLevel,
     isCritical,
     setIsCritical,
+    toolings: toolingsQuery.data ?? [],
+    toolingsLoading: toolingsQuery.isLoading,
+    createTooling: async (name: string) => {
+      await createToolingMut.mutateAsync(name);
+    },
+    createToolingPending: createToolingMut.isPending,
+    updateTooling: async (toolingId: string, name: string) => {
+      await updateToolingMut.mutateAsync({ toolingId, name });
+    },
+    updateToolingPendingId: updateToolingMut.isPending
+      ? (updateToolingMut.variables?.toolingId ?? null)
+      : null,
+    deleteTooling: async (toolingId: string) => {
+      await deleteToolingMut.mutateAsync(toolingId);
+    },
+    deleteToolingPendingId: deleteToolingMut.isPending
+      ? (deleteToolingMut.variables ?? null)
+      : null,
     openCreate,
     openEdit,
     createMut,

@@ -75,12 +75,19 @@ export function shouldInvalidateSupplyReplenishmentPage(
     case 'operator_supply_request_created':
     case 'delivery_task_created':
     case 'machine_production_status_updated':
+    case 'machine_tooling_updated':
       return true;
     case 'delivery_task_updated':
       return 'status' in event;
     default:
       return false;
   }
+}
+
+export function shouldInvalidateMachineToolings(
+  event: OperatorMovimentWsEvent,
+): boolean {
+  return event.type === 'machine_tooling_updated';
 }
 
 export function shouldInvalidateMyMovimentTasks(

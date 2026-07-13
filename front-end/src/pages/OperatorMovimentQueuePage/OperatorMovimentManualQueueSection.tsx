@@ -55,6 +55,7 @@ function SuggestionFlowCardBody({
   machineName,
   assetNumber,
   pillar,
+  machineStreet,
   cube,
   requestedAt,
 }: {
@@ -63,6 +64,10 @@ function SuggestionFlowCardBody({
   machineName?: string;
   assetNumber?: string | null;
   pillar?: string | null;
+  machineStreet?: {
+    name: string;
+    machineStreetColor: string;
+  } | null;
   cube?: string;
   requestedAt?: string;
 }) {
@@ -79,6 +84,7 @@ function SuggestionFlowCardBody({
               machineName={machineName}
               assetNumber={assetNumber}
               pillar={pillar}
+              machineStreet={machineStreet}
               cube={cube}
             />
           }
@@ -196,6 +202,7 @@ function ManualDeliverCard({
         machineName={row.destination?.name}
         assetNumber={row.destination?.assetNumber}
         pillar={row.destination?.pillar}
+        machineStreet={row.destination?.machineStreet}
         cube={cube}
         requestedAt={row.createdAt}
       />
@@ -234,6 +241,7 @@ function ManualPickupCard({
         machineName={req.destination?.name}
         assetNumber={req.destination?.assetNumber}
         pillar={req.destination?.pillar}
+        machineStreet={req.destination?.machineStreet}
         requestedAt={task.createdAt}
       />
       <DeliverFlowActionFooter isCritical={isCritical}>

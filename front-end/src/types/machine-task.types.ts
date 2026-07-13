@@ -1,3 +1,5 @@
+import type { MachineStreetBrief } from '@/types/machine.types';
+
 export type MachineTaskStatusValue =
   | 'CREATED'
   | 'ASSIGNED'
@@ -39,6 +41,7 @@ export interface DeliveryTaskListItem {
     sectorId?: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
     typeMachine?: { id: string; name: string };
     sector?: { id: string; typeSector: string };
   };
@@ -63,5 +66,6 @@ export interface PickupTaskListItem {
     name: string;
     assetNumber?: string | null;
     pillar?: string | null;
+    machineStreet?: MachineStreetBrief | null;
   };
 }

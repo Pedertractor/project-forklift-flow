@@ -13,6 +13,7 @@ export type OperatorMovimentWsEventType =
   | 'trip_suggestions_updated'
   | 'machine_operator_updated'
   | 'machine_production_status_updated'
+  | 'machine_tooling_updated'
   | 'operator_supply_request_created'
   /** Legado — mantido para compatibilidade */
   | 'replenishment_request_created'
@@ -71,6 +72,18 @@ export interface OperatorMovimentWsMachineProductionStatusUpdated
   destinationUserId?: string | null;
 }
 
+export interface OperatorMovimentWsMachineToolingUpdated
+  extends OperatorMovimentWsEventBase {
+  type: 'machine_tooling_updated';
+  machineId: string;
+  sectorId: string;
+  action: 'created' | 'updated' | 'deleted';
+  toolingId: string;
+  tooling: { id: string; name: string; machineId: string } | null;
+  operatorUserId?: string | null;
+  destinationUserId?: string | null;
+}
+
 /** @deprecated Preferir `delivery_task_updated`. */
 export interface OperatorMovimentWsReplenishmentStatusUpdated
   extends OperatorMovimentWsEventBase {
@@ -97,5 +110,6 @@ export type OperatorMovimentWsEvent =
   | OperatorMovimentWsPickupTaskUpdated
   | OperatorMovimentWsMachineOperatorUpdated
   | OperatorMovimentWsMachineProductionStatusUpdated
+  | OperatorMovimentWsMachineToolingUpdated
   | OperatorMovimentWsOperatorSupplyRequestCreated
   | OperatorMovimentWsReplenishmentStatusUpdated;

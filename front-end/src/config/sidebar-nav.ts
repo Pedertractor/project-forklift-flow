@@ -102,17 +102,27 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
         label: 'Painel operacional',
         allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
+      {
+        to: '/dashboard/monitor',
+        label: 'Monitor TV',
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
+      },
     ],
   },
   {
     id: 'admin-setores',
-    title: 'Administração — setores',
-    rolesDescription: 'Somente administrador (ADMIN).',
+    title: 'Administração',
+    rolesDescription: 'Administrador (ADMIN / SUPERADMIN) e líder (LEADER) onde indicado.',
     items: [
       {
         to: '/administracao/setores',
         label: 'Setores',
         allowedRoles: ['ADMIN', 'SUPERADMIN'],
+      },
+      {
+        to: '/administracao/prioridade-operador',
+        label: 'Prioridade por operador',
+        allowedRoles: ADMIN_OR_LEADER_ROLES,
       },
     ],
   },

@@ -4,7 +4,7 @@ import type { RouteFlowStepId } from '@/components/operator-moviment/route-flow-
 import { type RouteFlowDetailItem } from '@/components/operator-moviment/route-flow-step-details';
 import { cn } from '@/lib/utils';
 import { formatMachineMetaLine } from '@/utils/machine-display';
-import { AlertTriangle, Box, Truck } from 'lucide-react';
+import { AlertTriangle, Box, Road, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 
 export function DeliverFlowCriticalBadge({
@@ -76,18 +76,30 @@ export function DeliverFlowMachineCubeHighlight({
   machineName,
   assetNumber,
   pillar,
+  machineStreet,
   cube,
   typography = 'default',
 }: {
   machineName?: string;
   assetNumber?: string | null;
   pillar?: string | null;
+  machineStreet?: {
+    name: string;
+    machineStreetColor: string;
+  } | null;
   cube?: string;
   typography?: ActivityTypography;
 }) {
   const large = typography === 'large';
+  const streetName = machineStreet?.name?.trim();
+  const streetColor = machineStreet?.machineStreetColor?.trim();
 
-  if (!machineName && !cube && !formatMachineMetaLine({ assetNumber, pillar })) {
+  if (
+    !machineName &&
+    !cube &&
+    !streetName &&
+    !formatMachineMetaLine({ assetNumber, pillar })
+  ) {
     return null;
   }
 
@@ -102,6 +114,29 @@ export function DeliverFlowMachineCubeHighlight({
           : 'text-sm phone-landscape:text-base md:text-xl lg:text-2xl xl:text-3xl',
       )}
     >
+      {streetName ? (
+        <span
+          className={cn(
+            'inline-flex max-w-full items-center gap-1 font-semibold normal-case tracking-normal',
+            large
+              ? 'text-[0.7rem] phone-landscape:text-xs md:text-sm'
+              : 'text-[0.7rem] phone-landscape:text-xs md:text-sm',
+          )}
+          style={streetColor ? { color: streetColor } : undefined}
+        >
+          <Road
+            strokeWidth={2.5}
+            className={cn(
+              'shrink-0',
+              large
+                ? 'size-3.5 phone-landscape:size-4 md:size-4'
+                : 'size-3.5 phone-landscape:size-4 md:size-4',
+            )}
+            aria-hidden
+          />
+          <span className="truncate">{streetName}</span>
+        </span>
+      ) : null}
       <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5">
       {machineName ? (
         <span className="truncate font-bold uppercase tracking-wide text-brand">

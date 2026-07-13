@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { SupplyPendingPreparationPageViewModel } from './useSupplyPendingPreparationPage';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 import { useNavigate } from 'react-router-dom';
 import { EmptyStateMessage } from '@/components/empty-state-message/empty-state-message';
@@ -22,6 +22,8 @@ function OperatorSupplyRequestCard({
   disabled: boolean;
   onSelect: () => void;
 }) {
+  const machineToolings = row.machine.tooling ?? [];
+
   return (
     <li className="min-w-0">
       <button
@@ -71,6 +73,28 @@ function OperatorSupplyRequestCard({
             </p>
           </div>
         </div>
+        <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2">
+          <p className="m-0 flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-wide text-zinc-500">
+            <Wrench className="size-3" aria-hidden />
+            Ferramental
+          </p>
+          {machineToolings.length === 0 ? (
+            <p className="mt-1 m-0 text-xs text-zinc-500">
+              Nenhum cadastrado nesta máquina
+            </p>
+          ) : (
+            <ul className="mt-1.5 m-0 flex list-none flex-wrap gap-1.5 p-0">
+              {machineToolings.map((item) => (
+                <li
+                  key={item.id}
+                  className="rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-xs font-medium text-zinc-800"
+                >
+                  {item.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <p className="m-0 text-xs font-medium text-brand">
           Toque para registrar a retirada com o cubo
         </p>
@@ -101,6 +125,14 @@ export function SupplyPendingPreparationPageView(
     setTypeMovimentPallet,
     isCritical,
     setIsCritical,
+    toolings,
+    toolingsLoading,
+    createTooling,
+    createToolingPending,
+    updateTooling,
+    updateToolingPendingId,
+    deleteTooling,
+    deleteToolingPendingId,
     openCreateFromOperatorSupply,
     createMut,
     busy,
@@ -136,7 +168,8 @@ export function SupplyPendingPreparationPageView(
 
         {!ENV.API_URL ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça login.
+            Defina <code className="font-mono">VITE_BASE_URL_API</code> e faça
+            login.
           </p>
         ) : !token ? (
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -209,6 +242,14 @@ export function SupplyPendingPreparationPageView(
         setTypeMovimentPallet={setTypeMovimentPallet}
         isCritical={isCritical}
         setIsCritical={setIsCritical}
+        toolings={toolings}
+        toolingsLoading={toolingsLoading}
+        createToolingPending={createToolingPending}
+        updateToolingPendingId={updateToolingPendingId}
+        deleteToolingPendingId={deleteToolingPendingId}
+        onCreateTooling={createTooling}
+        onUpdateTooling={updateTooling}
+        onDeleteTooling={deleteTooling}
         initialStep={wizardInitialStep}
         createError={createError}
         onClose={() => setCreateOpen(false)}

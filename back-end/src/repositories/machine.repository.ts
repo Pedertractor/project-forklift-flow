@@ -1,6 +1,7 @@
 import type { Prisma } from '../generated/prisma/client.js'
 import { MachineProductionStatus } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
+import { machineStreetBriefSelect } from './machine-street.repository.js'
 
 const machineListSelect = {
   id: true,
@@ -9,6 +10,7 @@ const machineListSelect = {
   typeMachineId: true,
   sectorId: true,
   userId: true,
+  machineStreetId: true,
   productionStatus: true,
   assetNumber: true,
   pillar: true,
@@ -23,6 +25,7 @@ const machineListSelect = {
   user: {
     select: { id: true, name: true, card: true },
   },
+  machineStreet: { select: machineStreetBriefSelect },
 } as const
 
 // Lista administrativa: inclui contagem de vínculos que impedem exclusão
@@ -51,6 +54,7 @@ const machineDetailInclude = {
       unit: true,
     },
   },
+  machineStreet: { select: machineStreetBriefSelect },
 } as const
 
 export const machineRepository = {
@@ -61,13 +65,25 @@ export const machineRepository = {
     })
   },
 
-  findManyForList(options?: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' }) {
-    const where: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' } = {}
+  findManyForList(options?: {
+    sectorId?: string
+    plantUnit?: 'PEDERTRACTOR' | 'TRACTOR'
+    /** UUID da rua, ou `null` para máquinas sem rua. */
+    machineStreetId?: string | null
+  }) {
+    const where: {
+      sectorId?: string
+      plantUnit?: 'PEDERTRACTOR' | 'TRACTOR'
+      machineStreetId?: string | null
+    } = {}
     if (options?.sectorId !== undefined) {
       where.sectorId = options.sectorId
     }
     if (options?.plantUnit !== undefined) {
       where.plantUnit = options.plantUnit
+    }
+    if (options?.machineStreetId !== undefined) {
+      where.machineStreetId = options.machineStreetId
     }
     return prisma.machine.findMany({
       ...(Object.keys(where).length > 0 ? { where } : {}),

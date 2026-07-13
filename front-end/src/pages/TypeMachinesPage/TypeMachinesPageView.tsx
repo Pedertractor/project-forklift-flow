@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { ENV } from '@/constants/env';
 import { typeMachineImageSrc, type TypeMachinesPageViewModel } from './useTypeMachinesPage';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { Pencil, PlusIcon, Trash2 } from 'lucide-react';
 
 export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
   const {
@@ -49,6 +50,7 @@ export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
             onClick={openCreate}
             disabled={!apiReady || busy}
           >
+            <PlusIcon className="size-4" />
             Novo tipo
           </Button>
         </header>
@@ -124,26 +126,29 @@ export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
                       {row.name}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1.5">
                         <Button
                           type="button"
                           variant="outline"
-                          size="default"
-                          className="h-9 min-w-0 px-3 text-xs"
+                          size="icon-sm"
                           disabled={!apiReady || busy}
+                          title="Editar"
+                          aria-label={`Editar ${row.name}`}
                           onClick={() => openEdit(row)}
                         >
-                          Editar
+                          <Pencil aria-hidden />
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
-                          size="default"
-                          className="h-9 min-w-0 border-red-200 px-3 text-xs text-red-700 hover:bg-red-50"
+                          size="icon-sm"
+                          className="border-red-200 text-red-700 hover:bg-red-50"
                           disabled={!apiReady || busy}
+                          title="Excluir"
+                          aria-label={`Excluir ${row.name}`}
                           onClick={() => setDeleteRow(row)}
                         >
-                          Excluir
+                          <Trash2 aria-hidden />
                         </Button>
                       </div>
                     </td>
@@ -158,7 +163,7 @@ export function TypeMachinesPageView(vm: TypeMachinesPageViewModel) {
       <SimpleModal
         open={createOpen}
         title="Novo tipo de máquina"
-        description="Informe o nome e envie uma imagem ilustrativa. O servidor grava o arquivo e guarda apenas o caminho público (não é necessário informar URL manualmente)."
+        description="Cadastre um novo tipo de máquina."
         onClose={() => (!busy ? setCreateOpen(false) : undefined)}
         footer={
           <ModalActions

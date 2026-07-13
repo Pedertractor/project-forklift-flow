@@ -36,6 +36,7 @@ import {
   shouldInvalidateReplenishmentQueue,
   shouldInvalidateSupplyReplenishmentPage,
   shouldInvalidateTripSuggestions,
+  shouldInvalidateMachineToolings,
   WS_INVALIDATE_DEBOUNCE_MS,
 } from '@/lib/operator-moviment-ws-invalidation';
 import { toast } from '@/lib/toast';
@@ -256,6 +257,9 @@ export function OperatorMovimentWorkProvider({
     void queryClient.invalidateQueries({
       queryKey: ['sector-transport-operators'],
     });
+    void queryClient.invalidateQueries({
+      queryKey: ['operational-dashboard-tv-monitor'],
+    });
   }, [queryClient]);
 
   const scheduleSupplyReplenishmentInvalidate = useCallback(() => {
@@ -330,6 +334,25 @@ export function OperatorMovimentWorkProvider({
         ) {
           toast.success('Nova solicitação de reposição na dobra.');
         }
+      }
+
+      if (
+        isSupplyReplenishment &&
+        (event.type === 'pickup_task_updated' ||
+          event.type === 'trip_suggestions_updated')
+      ) {
+        void queryClient.invalidateQueries({
+          queryKey: ['operational-dashboard-tv-monitor'],
+        });
+      }
+
+      if (shouldInvalidateMachineToolings(event) && 'machineId' in event) {
+        void queryClient.invalidateQueries({
+          queryKey: ['machines', event.machineId, 'toolings'],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ['operator-machine', 'toolings'],
+        });
       }
 
       const movimentSectorMatch =

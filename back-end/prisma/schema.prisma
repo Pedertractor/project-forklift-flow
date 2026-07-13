@@ -40,11 +40,31 @@ model User {
   assignedPickupTasks           PickupTask[]                   @relation("PickupTaskAssignedOperator")
   machines                      Machine[]                      @relation("MachineOperator")
   tripSuggestionsAccepted       MovimentPalletTripSuggestion[] @relation("TripSuggestionAcceptedBy")
+  /// Máquinas priorizadas na fila de sugestão deste transportador (corta fila).
+  preferredMachines             MovimentOperatorMachineLink[]  @relation("MovimentOperatorPreferredMachines")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([card, unit])
+}
+
+/// Vínculo: transportador de pallet ↔ máquinas que cortam a fila de sugestão para ele.
+model MovimentOperatorMachineLink {
+  id String @id @default(uuid())
+
+  operator   User   @relation("MovimentOperatorPreferredMachines", fields: [operatorId], references: [id], onDelete: Cascade)
+  operatorId String
+
+  machine   Machine @relation("MovimentOperatorPreferredMachines", fields: [machineId], references: [id], onDelete: Cascade)
+  machineId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([operatorId, machineId])
+  @@index([operatorId])
+  @@index([machineId])
 }
 
 /// Tarefa de levar prisma/pallet até a máquina (criada pelo abastecimento).
@@ -131,6 +151,10 @@ model OperatorMachineSupplyRequest {
   requestedBy   User   @relation("UserOperatorMachineSupplyRequests", fields: [requestedById], references: [id])
   requestedById String
 
+  /// Ferramental confirmado pelo operador no momento da solicitação de abastecimento.
+  tooling   Tooling? @relation(fields: [toolingId], references: [id], onDelete: SetNull)
+  toolingId String?
+
   status OperatorMachineSupplyRequestStatus @default(OPEN)
 
   fulfilledAt DateTime?
@@ -167,6 +191,23 @@ model MovimentPalletTripSuggestion {
   updatedAt DateTime @updatedAt
 }
 
+/// Rua / corredor do chão de fábrica — várias máquinas podem compartilhar a mesma rua (opcional).
+/// Sempre pertence a um setor; só máquinas desse setor podem ser vinculadas.
+model MachineStreet {
+  id                 String    @id @default(uuid())
+  name               String
+  machineStreetColor String
+
+  sector   Sector @relation(fields: [sectorId], references: [id])
+  sectorId String
+
+  machines  Machine[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([sectorId])
+}
+
 model Machine {
   id        String       @id @default(uuid())
   name      String
@@ -181,12 +222,18 @@ model Machine {
   user   User?   @relation("MachineOperator", fields: [userId], references: [id])
   userId String?
 
+  /// Rua opcional no mapa da planta (várias máquinas por rua).
+  machineStreet   MachineStreet? @relation(fields: [machineStreetId], references: [id])
+  machineStreetId String?
+
   deliveryTasks DeliveryTask[] @relation("MachineDeliveryTasks")
   pickupTasks   PickupTask[]   @relation("MachinePickupTasks")
 
   operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
 
   movimentPalletTripSuggestions MovimentPalletTripSuggestion[]
+
+  preferredByMovimentOperators MovimentOperatorMachineLink[] @relation("MovimentOperatorPreferredMachines")
 
   /// Status operacional definido pelo abastecedor (dobra): máquina em produção ou aguardando abastecimento.
   productionStatus MachineProductionStatus @default(TRABALHANDO)
@@ -197,8 +244,26 @@ model Machine {
   /// Physical pillar / bay location of the machine on the plant floor.
   pillar String?
 
+  tooling Tooling[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Ferramental aplicado na máquina de dobra (cadastro pelo operador).
+model Tooling {
+  id   String @id @default(uuid())
+  name String
+
+  machine   Machine @relation(fields: [machineId], references: [id])
+  machineId String
+
+  operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([machineId])
 }
 
 model TypeMachine {
@@ -224,9 +289,10 @@ model Sector {
   id         String @id @default(uuid())
   typeSector String
 
-  costCenters CostCenter[]
-  machines    Machine[]
-  users       User[]
+  costCenters    CostCenter[]
+  machines       Machine[]
+  machineStreets MachineStreet[]
+  users          User[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

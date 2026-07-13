@@ -7,10 +7,13 @@ import type {
   MachineListItem,
   MachineProductionStatus,
 } from '@/types/machine.types';
+import type { MachineToolingListItem } from '@/types/operator-machine.types';
 
 export type FetchMachinesOptions = {
   sectorId?: string;
   plantUnit?: PlantMapUnit;
+  /** ID da rua, ou `__none__` para máquinas sem rua. */
+  machineStreetId?: string;
 };
 
 function machinesListQuery(options?: FetchMachinesOptions): string {
@@ -20,6 +23,9 @@ function machinesListQuery(options?: FetchMachinesOptions): string {
   }
   if (options?.plantUnit) {
     params.set('plantUnit', options.plantUnit);
+  }
+  if (options?.machineStreetId?.trim()) {
+    params.set('machineStreetId', options.machineStreetId.trim());
   }
   const q = params.toString();
   return q ? `?${q}` : '';
@@ -49,6 +55,7 @@ export async function createMachine(input: {
   assetNumber: string;
   pillar: string;
   userId?: string | null;
+  machineStreetId?: string | null;
 }): Promise<MachineDetail> {
   const body: CreateMachinePostBody = {
     name: input.name.trim(),
@@ -60,6 +67,12 @@ export async function createMachine(input: {
   };
   if (input.userId !== undefined && input.userId !== null && input.userId.trim() !== '') {
     body.userId = input.userId.trim();
+  }
+  if (input.machineStreetId !== undefined) {
+    body.machineStreetId =
+      input.machineStreetId === null || input.machineStreetId.trim() === ''
+        ? null
+        : input.machineStreetId.trim();
   }
   const res = await apiAuthFetch<MachineDetail>(API_ENDPOINTS.MACHINES.LIST, {
     method: 'POST',
@@ -79,6 +92,7 @@ export async function updateMachine(
     typeMachineId?: string;
     sectorId?: string;
     userId?: string | null;
+    machineStreetId?: string | null;
     productionStatus?: MachineProductionStatus;
     assetNumber?: string | null;
     pillar?: string | null;
@@ -96,4 +110,55 @@ export async function updateMachine(
 
 export async function deleteMachine(id: string): Promise<void> {
   await apiAuthFetch(API_ENDPOINTS.MACHINES.BY_ID(id), { method: 'DELETE' });
+}
+
+export async function fetchMachineToolings(machineId: string) {
+  const res = await apiAuthFetch<{ toolings: MachineToolingListItem[] }>(
+    API_ENDPOINTS.MACHINES.TOOLINGS(machineId),
+    { method: 'GET' },
+  );
+  return res?.toolings ?? [];
+}
+
+export async function createMachineTooling(machineId: string, name: string) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.MACHINES.TOOLINGS(machineId),
+    {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao cadastrar ferramental.');
+  }
+  return res.tooling;
+}
+
+export async function updateMachineTooling(
+  machineId: string,
+  toolingId: string,
+  name: string,
+) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.MACHINES.TOOLING_BY_ID(machineId, toolingId),
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao atualizar ferramental.');
+  }
+  return res.tooling;
+}
+
+export async function deleteMachineTooling(machineId: string, toolingId: string) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.MACHINES.TOOLING_BY_ID(machineId, toolingId),
+    { method: 'DELETE' },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao remover ferramental.');
+  }
+  return res.tooling;
 }
