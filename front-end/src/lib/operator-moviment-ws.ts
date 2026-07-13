@@ -10,6 +10,7 @@ const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
   'delivery_task_created',
   'delivery_task_updated',
   'machine_production_status_updated',
+  'machine_tooling_updated',
 ]);
 
 const SECTOR_QUEUE_EVENT_TYPES = new Set([
@@ -27,11 +28,13 @@ const MACHINE_OPERATOR_EVENT_TYPES = new Set([
   'replenishment_status_updated',
   'machine_operator_updated',
   'machine_production_status_updated',
+  'machine_tooling_updated',
 ]);
 
 const MACHINE_CADASTRO_EVENT_TYPES = new Set([
   'machine_operator_updated',
   'machine_production_status_updated',
+  'machine_tooling_updated',
 ]);
 
 export function resolveOperatorMovimentWsUrl(token: string): string | null {
@@ -206,7 +209,8 @@ export function wsEventMatchesMachineCadastro(
   }
   if (
     event.type !== 'machine_operator_updated' &&
-    event.type !== 'machine_production_status_updated'
+    event.type !== 'machine_production_status_updated' &&
+    event.type !== 'machine_tooling_updated'
   ) {
     return false;
   }

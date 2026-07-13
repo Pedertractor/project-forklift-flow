@@ -139,6 +139,14 @@ export function ReplenishmentRequestsPageView(
     setTypeMovimentPallet,
     isCritical,
     setIsCritical,
+    toolings,
+    toolingsLoading,
+    createTooling,
+    createToolingPending,
+    updateTooling,
+    updateToolingPendingId,
+    deleteTooling,
+    deleteToolingPendingId,
     openCreate,
     openEdit,
     createMut,
@@ -432,6 +440,14 @@ export function ReplenishmentRequestsPageView(
         setTypeMovimentPallet={setTypeMovimentPallet}
         isCritical={isCritical}
         setIsCritical={setIsCritical}
+        toolings={toolings}
+        toolingsLoading={toolingsLoading}
+        createToolingPending={createToolingPending}
+        updateToolingPendingId={updateToolingPendingId}
+        deleteToolingPendingId={deleteToolingPendingId}
+        onCreateTooling={createTooling}
+        onUpdateTooling={updateTooling}
+        onDeleteTooling={deleteTooling}
         createError={createError}
         onClose={() => setCreateOpen(false)}
         onSubmit={() => createMut.mutate()}

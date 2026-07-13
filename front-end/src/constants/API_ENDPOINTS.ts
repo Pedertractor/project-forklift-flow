@@ -28,6 +28,10 @@ export const API_ENDPOINTS = {
   MACHINES: {
     LIST: '/machines',
     BY_ID: (id: string) => `/machines/${id}`,
+    TOOLINGS: (machineId: string) =>
+      `/machines/${encodeURIComponent(machineId)}/toolings`,
+    TOOLING_BY_ID: (machineId: string, toolingId: string) =>
+      `/machines/${encodeURIComponent(machineId)}/toolings/${encodeURIComponent(toolingId)}`,
   },
   MOVIMENT_PALLETS: {
     LIST: '/moviment-pallets',

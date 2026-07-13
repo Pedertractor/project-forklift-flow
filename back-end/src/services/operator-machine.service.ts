@@ -26,6 +26,7 @@ import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
 import {
   operatorMovimentPalletWsBroadcastMachineOperatorUpdated,
+  operatorMovimentPalletWsBroadcastMachineToolingUpdated,
   operatorMovimentPalletWsBroadcastOperatorSupplyRequestCreated,
   operatorMovimentPalletWsBroadcastQueueUpdated,
   operatorMovimentPalletWsBroadcastTripSuggestionsUpdated,
@@ -303,10 +304,21 @@ export async function createToolingForOperatorMachine(
   if (!trimmed) {
     throw new ToolingNotFoundError('Informe name (texto nao vazio).')
   }
-  return toolingRepository.create({
+  const tooling = await toolingRepository.create({
     name: trimmed,
     machine: { connect: { id: machine.id } },
   })
+  if (machine.sectorId) {
+    operatorMovimentPalletWsBroadcastMachineToolingUpdated({
+      machineId: machine.id,
+      sectorId: machine.sectorId,
+      action: 'created',
+      toolingId: tooling.id,
+      tooling,
+      operatorUserId: machine.userId ?? operatorUserId,
+    })
+  }
+  return tooling
 }
 
 export async function deleteToolingForOperatorMachine(
@@ -319,6 +331,16 @@ export async function deleteToolingForOperatorMachine(
   }
   const tooling = await requireToolingForMachine(toolingId.trim(), machine.id)
   await toolingRepository.deleteById(tooling.id)
+  if (machine.sectorId) {
+    operatorMovimentPalletWsBroadcastMachineToolingUpdated({
+      machineId: machine.id,
+      sectorId: machine.sectorId,
+      action: 'deleted',
+      toolingId: tooling.id,
+      tooling: null,
+      operatorUserId: machine.userId ?? operatorUserId,
+    })
+  }
   return tooling
 }
 

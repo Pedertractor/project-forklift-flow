@@ -42,6 +42,7 @@ const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
   'delivery_task_created',
   'delivery_task_updated',
   'machine_production_status_updated',
+  'machine_tooling_updated',
 ])
 
 const MACHINE_OPERATOR_EVENT_TYPES = new Set([
@@ -50,9 +51,14 @@ const MACHINE_OPERATOR_EVENT_TYPES = new Set([
   'replenishment_status_updated',
   'machine_operator_updated',
   'machine_production_status_updated',
+  'machine_tooling_updated',
 ])
 
-const MACHINE_CADASTRO_EVENT_TYPES = new Set(['machine_operator_updated', 'machine_production_status_updated'])
+const MACHINE_CADASTRO_EVENT_TYPES = new Set([
+  'machine_operator_updated',
+  'machine_production_status_updated',
+  'machine_tooling_updated',
+])
 
 /** Eventos de mudança de status de tarefa acompanhados no painel de supervisão. */
 const SUPERVISION_TASK_EVENT_TYPES = new Set([
@@ -301,6 +307,28 @@ export function operatorMovimentPalletWsBroadcastMachineProductionStatusUpdated(
   broadcast({
     type: 'machine_production_status_updated' as const,
     destinationUserId: payload.operatorUserId,
+    ...payload,
+  })
+}
+
+export type MachineToolingWsAction = 'created' | 'updated' | 'deleted'
+
+export type MachineToolingWsPayload = {
+  machineId: string
+  sectorId: string
+  action: MachineToolingWsAction
+  toolingId: string
+  tooling: { id: string; name: string; machineId: string } | null
+  /** Operador vinculado à máquina (para entrega direta ao OPERATOR_MACHINE). */
+  operatorUserId?: string | null
+}
+
+export function operatorMovimentPalletWsBroadcastMachineToolingUpdated(
+  payload: MachineToolingWsPayload,
+): void {
+  broadcast({
+    type: 'machine_tooling_updated' as const,
+    destinationUserId: payload.operatorUserId ?? null,
     ...payload,
   })
 }

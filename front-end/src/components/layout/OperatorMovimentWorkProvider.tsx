@@ -36,6 +36,7 @@ import {
   shouldInvalidateReplenishmentQueue,
   shouldInvalidateSupplyReplenishmentPage,
   shouldInvalidateTripSuggestions,
+  shouldInvalidateMachineToolings,
   WS_INVALIDATE_DEBOUNCE_MS,
 } from '@/lib/operator-moviment-ws-invalidation';
 import { toast } from '@/lib/toast';
@@ -330,6 +331,15 @@ export function OperatorMovimentWorkProvider({
         ) {
           toast.success('Nova solicitação de reposição na dobra.');
         }
+      }
+
+      if (shouldInvalidateMachineToolings(event) && 'machineId' in event) {
+        void queryClient.invalidateQueries({
+          queryKey: ['machines', event.machineId, 'toolings'],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ['operator-machine', 'toolings'],
+        });
       }
 
       const movimentSectorMatch =

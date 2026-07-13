@@ -7,6 +7,7 @@ import type {
   MachineListItem,
   MachineProductionStatus,
 } from '@/types/machine.types';
+import type { MachineToolingListItem } from '@/types/operator-machine.types';
 
 export type FetchMachinesOptions = {
   sectorId?: string;
@@ -104,4 +105,55 @@ export async function updateMachine(
 
 export async function deleteMachine(id: string): Promise<void> {
   await apiAuthFetch(API_ENDPOINTS.MACHINES.BY_ID(id), { method: 'DELETE' });
+}
+
+export async function fetchMachineToolings(machineId: string) {
+  const res = await apiAuthFetch<{ toolings: MachineToolingListItem[] }>(
+    API_ENDPOINTS.MACHINES.TOOLINGS(machineId),
+    { method: 'GET' },
+  );
+  return res?.toolings ?? [];
+}
+
+export async function createMachineTooling(machineId: string, name: string) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.MACHINES.TOOLINGS(machineId),
+    {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao cadastrar ferramental.');
+  }
+  return res.tooling;
+}
+
+export async function updateMachineTooling(
+  machineId: string,
+  toolingId: string,
+  name: string,
+) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.MACHINES.TOOLING_BY_ID(machineId, toolingId),
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao atualizar ferramental.');
+  }
+  return res.tooling;
+}
+
+export async function deleteMachineTooling(machineId: string, toolingId: string) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.MACHINES.TOOLING_BY_ID(machineId, toolingId),
+    { method: 'DELETE' },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao remover ferramental.');
+  }
+  return res.tooling;
 }

@@ -38,4 +38,12 @@ export const toolingRepository = {
       select: toolingBriefSelect,
     })
   },
+
+  update(id: string, data: Prisma.ToolingUpdateInput) {
+    return prisma.tooling.update({
+      where: { id },
+      data,
+      select: toolingBriefSelect,
+    })
+  },
 }

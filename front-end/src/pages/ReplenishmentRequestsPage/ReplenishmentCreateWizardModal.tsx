@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { MachineOperationSelectGrid } from '@/components/machines/MachineOperationSelectGrid';
 import { cn } from '@/lib/utils';
 import type { MachineListItem } from '@/types/machine.types';
+import type { MachineToolingListItem } from '@/types/operator-machine.types';
 import type { PriorityLevelValue } from '@/types/replenishment-request.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
 import {
@@ -13,9 +14,19 @@ import {
   replenishmentMovimentTypeLabel,
 } from '@/utils/operator-moviment-display';
 import { priorityLevelLabel } from '@/utils/replenishment-labels';
-import { AlertTriangle, Box, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  AlertTriangle,
+  Box,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  Wrench,
+  X,
+} from 'lucide-react';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 const PRISMA_CODE_PREFIX = 'A';
 
@@ -33,6 +44,7 @@ function prismaCodeFromNumberPart(num: string): string {
 
 const STEP_LABELS = [
   'Máquina de destino',
+  'Ferramental',
   'Código do prisma',
   'Tipo de movimentação',
   'Prioridade',
@@ -128,6 +140,14 @@ export interface ReplenishmentCreateWizardModalProps {
   setPriorityLevel?: (value: PriorityLevelValue) => void;
   isCritical?: boolean;
   setIsCritical?: (value: boolean) => void;
+  toolings?: MachineToolingListItem[];
+  toolingsLoading?: boolean;
+  createToolingPending?: boolean;
+  updateToolingPendingId?: string | null;
+  deleteToolingPendingId?: string | null;
+  onCreateTooling?: (name: string) => Promise<void> | void;
+  onUpdateTooling?: (toolingId: string, name: string) => Promise<void> | void;
+  onDeleteTooling?: (toolingId: string) => Promise<void> | void;
   /** Etapa inicial ao abrir (ex.: 2 quando a máquina já veio de um aviso do operador). */
   initialStep?: number;
   createError: string | null;
@@ -150,29 +170,49 @@ export function ReplenishmentCreateWizardModal({
   setPriorityLevel,
   isCritical,
   setIsCritical,
+  toolings = [],
+  toolingsLoading = false,
+  createToolingPending = false,
+  updateToolingPendingId = null,
+  deleteToolingPendingId = null,
+  onCreateTooling,
+  onUpdateTooling,
+  onDeleteTooling,
   initialStep = 1,
   createError,
   onClose,
   onSubmit,
 }: ReplenishmentCreateWizardModalProps) {
   const [step, setStep] = useState(1);
+  const [newToolingName, setNewToolingName] = useState('');
+  const [editingToolingId, setEditingToolingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+
+  const toolingBusy =
+    createToolingPending ||
+    updateToolingPendingId != null ||
+    deleteToolingPendingId != null;
 
   useEffect(() => {
     if (open) {
-      const step = Math.min(Math.max(initialStep, 1), TOTAL_STEPS);
-      setStep(step);
+      const next = Math.min(Math.max(initialStep, 1), TOTAL_STEPS);
+      setStep(next);
+      setNewToolingName('');
+      setEditingToolingId(null);
+      setEditingName('');
     }
   }, [open, initialStep]);
 
   const canGoNext = (() => {
     if (step === 1) return destinationId.trim() !== '';
-    if (step === 2) return prismaCodeNumberPart(movementCube).length > 0;
-    if (step === 3) return Boolean(typeMovimentPallet);
+    if (step === 2) return true;
+    if (step === 3) return prismaCodeNumberPart(movementCube).length > 0;
+    if (step === 4) return Boolean(typeMovimentPallet);
     return true;
   })();
 
   const handleNext = () => {
-    if (!canGoNext || busy) return;
+    if (!canGoNext || busy || toolingBusy) return;
     if (step < TOTAL_STEPS) {
       setStep((s) => s + 1);
     } else {
@@ -181,9 +221,34 @@ export function ReplenishmentCreateWizardModal({
   };
 
   const handleBack = () => {
-    if (busy) return;
+    if (busy || toolingBusy) return;
     if (step > 1) {
       setStep((s) => s - 1);
+    }
+  };
+
+  const handleCreateTooling = async () => {
+    if (!onCreateTooling) return;
+    const trimmed = newToolingName.trim();
+    if (!trimmed || toolingBusy || busy) return;
+    try {
+      await onCreateTooling(trimmed);
+      setNewToolingName('');
+    } catch {
+      /* toast via mutation */
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!onUpdateTooling || !editingToolingId) return;
+    const trimmed = editingName.trim();
+    if (!trimmed || toolingBusy || busy) return;
+    try {
+      await onUpdateTooling(editingToolingId, trimmed);
+      setEditingToolingId(null);
+      setEditingName('');
+    } catch {
+      /* toast via mutation */
     }
   };
 
@@ -192,10 +257,12 @@ export function ReplenishmentCreateWizardModal({
       case 1:
         return 'Selecione a máquina de produção que receberá o pallet.';
       case 2:
-        return 'Informe o prisma do pallet.';
+        return 'Confira o ferramental da máquina. Você pode adicionar, editar ou remover antes de continuar.';
       case 3:
-        return 'Defina qual equipamento de transporte pode atender — ou deixe aberto para qualquer um.';
+        return 'Informe o prisma do pallet.';
       case 4:
+        return 'Defina qual equipamento de transporte pode atender — ou deixe aberto para qualquer um.';
+      case 5:
         return 'Escolha a urgência do pedido na fila de transporte.';
       default:
         return undefined;
@@ -208,15 +275,15 @@ export function ReplenishmentCreateWizardModal({
       title="Nova reposição"
       description={stepDescription}
       panelClassName="max-w-2xl"
-      onClose={() => (!busy ? onClose() : undefined)}
+      onClose={() => (!busy && !toolingBusy ? onClose() : undefined)}
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="outline"
             className="w-full sm:w-auto"
-            disabled={busy}
-            onClick={() => !busy && onClose()}
+            disabled={busy || toolingBusy}
+            onClick={() => !busy && !toolingBusy && onClose()}
           >
             Cancelar
           </Button>
@@ -226,7 +293,7 @@ export function ReplenishmentCreateWizardModal({
                 type="button"
                 variant="outline"
                 className="w-full sm:w-auto"
-                disabled={busy}
+                disabled={busy || toolingBusy}
                 onClick={handleBack}
               >
                 <ChevronLeft className="mr-1 size-4" aria-hidden />
@@ -236,7 +303,7 @@ export function ReplenishmentCreateWizardModal({
             <Button
               type="button"
               className="w-full sm:w-auto"
-              disabled={busy || machinesEmpty || !canGoNext}
+              disabled={busy || toolingBusy || machinesEmpty || !canGoNext}
               onClick={handleNext}
             >
               {step < TOTAL_STEPS ? (
@@ -274,6 +341,177 @@ export function ReplenishmentCreateWizardModal({
       ) : null}
 
       {step === 2 ? (
+        <div className="flex flex-col gap-4">
+          {!destinationId.trim() ? (
+            <p className="m-0 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              Selecione a máquina na etapa anterior para ver o ferramental.
+            </p>
+          ) : toolingsLoading ? (
+            <p className="m-0 text-sm text-zinc-500">Carregando ferramental…</p>
+          ) : toolings.length === 0 ? (
+            <p className="m-0 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              Nenhum ferramental cadastrado nesta máquina. Adicione abaixo se
+              necessário, ou continue.
+            </p>
+          ) : (
+            <ul
+              className="m-0 grid list-none gap-2 p-0"
+              aria-label="Ferramental da máquina"
+            >
+              {toolings.map((item) => {
+                const isEditing = editingToolingId === item.id;
+                const updating = updateToolingPendingId === item.id;
+                const removing = deleteToolingPendingId === item.id;
+                return (
+                  <li
+                    key={item.id}
+                    className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-50 text-zinc-700">
+                      <Wrench className="size-4" aria-hidden />
+                    </span>
+                    {isEditing ? (
+                      <Input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        disabled={busy || toolingBusy}
+                        className="min-w-0 flex-1"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void handleSaveEdit();
+                          }
+                          if (e.key === 'Escape') {
+                            setEditingToolingId(null);
+                            setEditingName('');
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="min-w-0 flex-1 font-medium text-zinc-900">
+                        {item.name}
+                      </span>
+                    )}
+                    {isEditing ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="icon"
+                          className="size-9 shrink-0 rounded-lg"
+                          disabled={
+                            busy ||
+                            toolingBusy ||
+                            editingName.trim() === ''
+                          }
+                          aria-label="Salvar nome"
+                          onClick={() => {
+                            void handleSaveEdit();
+                          }}
+                        >
+                          <Check className="size-4" aria-hidden />
+                          {updating ? (
+                            <span className="sr-only">Salvando…</span>
+                          ) : null}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="size-9 shrink-0 rounded-lg"
+                          disabled={busy || toolingBusy}
+                          aria-label="Cancelar edição"
+                          onClick={() => {
+                            setEditingToolingId(null);
+                            setEditingName('');
+                          }}
+                        >
+                          <X className="size-4" aria-hidden />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        {onUpdateTooling ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-9 shrink-0 rounded-lg text-zinc-500"
+                            aria-label={`Editar ${item.name}`}
+                            disabled={busy || toolingBusy}
+                            onClick={() => {
+                              setEditingToolingId(item.id);
+                              setEditingName(item.name);
+                            }}
+                          >
+                            <Pencil className="size-3.5" aria-hidden />
+                          </Button>
+                        ) : null}
+                        {onDeleteTooling ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-9 shrink-0 rounded-lg text-zinc-500 hover:bg-red-50 hover:text-red-700"
+                            aria-label={`Remover ${item.name}`}
+                            disabled={busy || toolingBusy}
+                            onClick={() => {
+                              void onDeleteTooling(item.id);
+                            }}
+                          >
+                            <X className="size-4" aria-hidden />
+                            {removing ? (
+                              <span className="sr-only">Removendo…</span>
+                            ) : null}
+                          </Button>
+                        ) : null}
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {onCreateTooling && destinationId.trim() ? (
+            <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/80 p-3">
+              <p className="m-0 mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Novo ferramental
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={newToolingName}
+                  onChange={(e) => setNewToolingName(e.target.value)}
+                  placeholder="Ex.: Matriz 45°"
+                  disabled={busy || toolingBusy}
+                  className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleCreateTooling();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  className="shrink-0 gap-1.5"
+                  disabled={
+                    busy || toolingBusy || newToolingName.trim() === ''
+                  }
+                  onClick={() => {
+                    void handleCreateTooling();
+                  }}
+                >
+                  <Plus className="size-4" aria-hidden />
+                  {createToolingPending ? 'Salvando…' : 'Adicionar'}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {step === 3 ? (
         <div className="space-y-3">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -318,7 +556,7 @@ export function ReplenishmentCreateWizardModal({
         </div>
       ) : null}
 
-      {step === 3 ? (
+      {step === 4 ? (
         <ul
           className="m-0 grid list-none gap-3 p-0"
           role="listbox"
@@ -377,7 +615,7 @@ export function ReplenishmentCreateWizardModal({
         </ul>
       ) : null}
 
-      {step === 4 && setIsCritical ? (
+      {step === 5 && setIsCritical ? (
         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
           <input
             type="checkbox"
@@ -393,7 +631,7 @@ export function ReplenishmentCreateWizardModal({
         </label>
       ) : null}
 
-      {step === 4 && setPriorityLevel && priorityLevel !== undefined ? (
+      {step === 5 && setPriorityLevel && priorityLevel !== undefined ? (
         <div className="space-y-4">
           <ul
             className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3"

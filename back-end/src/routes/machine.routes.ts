@@ -7,6 +7,12 @@ import {
   postCreateMachine,
 } from '../controllers/machine-controller.js'
 import {
+  deleteMachineToolingHandler,
+  getListMachineToolings,
+  patchUpdateMachineTooling,
+  postCreateMachineTooling,
+} from '../controllers/machine-tooling-controller.js'
+import {
   requireMachineCatalogReadRoles,
   requireMachineDomainRoles,
 } from '../middleware/require-roles.js'
@@ -27,6 +33,34 @@ export async function registerMachineRoutes(fastify: FastifyInstance) {
           preHandler: [fastify.authenticate, requireMachineCatalogReadRoles()],
         },
         getListMachines,
+      )
+      router.get(
+        '/:machineId/toolings',
+        {
+          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+        },
+        getListMachineToolings,
+      )
+      router.post(
+        '/:machineId/toolings',
+        {
+          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+        },
+        postCreateMachineTooling,
+      )
+      router.patch(
+        '/:machineId/toolings/:toolingId',
+        {
+          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+        },
+        patchUpdateMachineTooling,
+      )
+      router.delete(
+        '/:machineId/toolings/:toolingId',
+        {
+          preHandler: [fastify.authenticate, requireMachineDomainRoles()],
+        },
+        deleteMachineToolingHandler,
       )
       router.get(
         '/:machineId',

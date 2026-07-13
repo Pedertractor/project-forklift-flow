@@ -17,6 +17,10 @@ export const operatorMachineSupplyRequestListInclude = {
       machineStreet: {
         select: { id: true, name: true, machineStreetColor: true },
       },
+      tooling: {
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' as const },
+      },
     },
   },
   requestedBy: {
