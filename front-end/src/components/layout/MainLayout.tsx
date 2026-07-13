@@ -8,6 +8,7 @@ import { OperatorMovimentWorkProvider } from '@/components/layout/OperatorMovime
 import { useAuthStore } from '@/store/auth.store';
 import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 function MenuIcon({ className }: { className?: string }) {
   return (
@@ -55,6 +56,7 @@ export function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isTvMonitor = location.pathname.includes('/dashboard/monitor');
 
   useLayoutEffect(() => {
     if (window.matchMedia('(max-width: 1023px)').matches) {
@@ -84,8 +86,13 @@ export function MainLayout() {
 
   return (
     <OperatorMovimentWorkProvider>
-      <div className="relative flex h-svh min-h-0 overflow-hidden bg-zinc-100 text-zinc-900">
-        {sidebarOpen ? (
+      <div
+        className={cn(
+          'relative flex h-svh min-h-0 overflow-hidden text-zinc-900',
+          isTvMonitor ? 'bg-transparent' : 'bg-zinc-100',
+        )}
+      >
+        {isTvMonitor ? null : sidebarOpen ? (
           <button
             type="button"
             className="fixed inset-0 z-40 bg-zinc-900/35 lg:hidden"
@@ -94,41 +101,54 @@ export function MainLayout() {
           />
         ) : null}
 
-        <AppSidebar
-          sidebarOpen={sidebarOpen}
-          onCloseSidebar={closeSidebarOnNavigate}
-          onRequestLogout={() => setLogoutOpen(true)}
-        />
+        {isTvMonitor ? null : (
+          <AppSidebar
+            sidebarOpen={sidebarOpen}
+            onCloseSidebar={closeSidebarOnNavigate}
+            onRequestLogout={() => setLogoutOpen(true)}
+          />
+        )}
 
         <div
           id={APP_MAIN_PANE_ID}
           className="relative flex min-h-0 min-w-0 flex-1 flex-col"
         >
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3 phone-landscape:hidden">
+          {isTvMonitor ? null : (
+            <header className="flex h-14 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-2 sm:px-3 phone-landscape:hidden">
+              <button
+                type="button"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100"
+                aria-label={sidebarOpen ? 'Recolher menu' : 'Abrir menu'}
+                onClick={() => setSidebarOpen((v) => !v)}
+              >
+                <MenuIcon />
+              </button>
+              <div
+                id={APP_HEADER_ACTIONS_ID}
+                className="ml-auto flex min-w-0 items-center justify-end gap-2"
+              />
+            </header>
+          )}
+
+          {isTvMonitor ? null : (
             <button
               type="button"
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-zinc-600 hover:bg-zinc-100"
+              className="fixed bottom-2 left-2 z-[45] hidden size-11 items-center justify-center rounded-full border border-zinc-200/80 bg-white/95 text-zinc-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 phone-landscape:inline-flex"
               aria-label={sidebarOpen ? 'Recolher menu' : 'Abrir menu'}
               onClick={() => setSidebarOpen((v) => !v)}
             >
-              <MenuIcon />
+              <MenuIcon className="size-5" />
             </button>
-            <div
-              id={APP_HEADER_ACTIONS_ID}
-              className="ml-auto flex min-w-0 items-center justify-end gap-2"
-            />
-          </header>
+          )}
 
-          <button
-            type="button"
-            className="fixed bottom-2 left-2 z-[45] hidden size-11 items-center justify-center rounded-full border border-zinc-200/80 bg-white/95 text-zinc-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25 phone-landscape:inline-flex"
-            aria-label={sidebarOpen ? 'Recolher menu' : 'Abrir menu'}
-            onClick={() => setSidebarOpen((v) => !v)}
+          <div
+            className={cn(
+              'min-h-0 flex-1',
+              isTvMonitor
+                ? 'overflow-hidden'
+                : 'overflow-y-auto overflow-x-hidden',
+            )}
           >
-            <MenuIcon className="size-5" />
-          </button>
-
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             <Outlet />
           </div>
         </div>

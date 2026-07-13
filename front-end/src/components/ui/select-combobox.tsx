@@ -95,7 +95,7 @@ export function SelectCombobox({
       itemToStringLabel={itemToStringLabel}
       disabled={disabled}
     >
-      <div ref={anchorRef} className={cn('w-full min-w-0', className)}>
+      <div ref={anchorRef} className="w-full min-w-0">
         <ComboboxInput
           id={id}
           placeholder={placeholder}
@@ -104,6 +104,7 @@ export function SelectCombobox({
           readOnly={!canSearch}
           className={cn(
             selectComboboxClassName,
+            className,
             disabled && 'pointer-events-none opacity-50',
           )}
           onChange={(event) => setSearch(event.target.value)}

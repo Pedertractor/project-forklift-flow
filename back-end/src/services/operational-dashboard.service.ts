@@ -2,12 +2,16 @@ import { max, min } from "date-fns";
 import {
   IsOperating,
   MachineTaskStatus,
+  OperatorMachineSupplyRequestStatus,
   RoleUser,
   TypeMovimentPallet,
 } from "../generated/prisma/enums.js";
 import { AuthError, UserNotFoundError } from "../errors/domain-errors.js";
 import { prisma } from "../lib/prisma.js";
 import { userRepository } from "../repositories/user.repository.js";
+import { deliveryTaskListInclude } from "../repositories/delivery-task.repository.js";
+import { pickupTaskListInclude } from "../repositories/pickup-task.repository.js";
+import { operatorMachineSupplyRequestListInclude } from "../repositories/operator-machine-supply-request.repository.js";
 import {
   endOfOperationalDay,
   formatOperationalDateLabel,
@@ -646,4 +650,300 @@ export async function getOperatorCurrentTrajectoryForDashboard(
   }
 
   return getOperatorMovimentPalletActiveFlow(trimmedOperatorId, actor.role);
+}
+
+export interface OperationalTvMonitorKpis {
+  deliveries_open: number;
+  pickups_open: number;
+  deliveries_completed: number;
+  pickups_completed: number;
+  forklifts_operating: number;
+  pallet_trucks_operating: number;
+  avg_supply_ms: number | null;
+  avg_pickup_ms: number | null;
+  critical_open: number;
+  pallets_at_receiving: number;
+  machines_total: number;
+}
+
+export interface OperationalTvMonitorSnapshot {
+  now: string;
+  date: string;
+  sector_id: string | null;
+  kpis: OperationalTvMonitorKpis;
+  peak_slots: OperationalDashboardPeakSlot[];
+  /** Mesmos payloads da operação na dobra — linha do tempo idêntica. */
+  delivery_tasks: unknown[];
+  pickup_tasks: unknown[];
+  supply_requests: unknown[];
+}
+
+export async function getOperationalTvMonitorSnapshot(options?: {
+  sectorId?: string | null;
+}): Promise<OperationalTvMonitorSnapshot> {
+  const referenceNow = new Date();
+  const { rangeStart, rangeEnd, labelStart } = resolveDashboardRange({
+    startDate: formatOperationalDateLabel(referenceNow),
+    endDate: formatOperationalDateLabel(referenceNow),
+  });
+  const sectorId =
+    typeof options?.sectorId === "string" && options.sectorId.trim() !== ""
+      ? options.sectorId.trim()
+      : null;
+  const machineFilter = buildMachineScopeFilter({ sectorId });
+  const sectorUserFilter = sectorId ? { sectorId } : {};
+
+  const [
+    deliveryTasks,
+    pickupTasks,
+    supplyRequests,
+    deliveriesOpenCount,
+    pickupsOpenCount,
+    criticalDeliveriesOpen,
+    criticalPickupsOpen,
+    palletsAtReceiving,
+    periodPickups,
+    periodDeliveries,
+    completedDeliveriesToday,
+    completedPickupsToday,
+    forkliftsOperating,
+    palletTrucksOperating,
+    machinesTotal,
+  ] = await Promise.all([
+    prisma.deliveryTask.findMany({
+      where: {
+        AND: [
+          machineFilter,
+          {
+            OR: [
+              { status: { in: openTaskStatuses } },
+              /**
+               * Mantém entregas já concluídas no continuum entrega+retirada /
+               * sugestão combinada enquanto a retirada da máquina ainda está aberta.
+               */
+              {
+                status: MachineTaskStatus.COMPLETED,
+                OR: [
+                  {
+                    AND: [
+                      { operatorSupplyRequest: { isNot: null } },
+                      {
+                        machine: {
+                          pickupTasks: {
+                            some: {
+                              status: { in: openTaskStatuses },
+                              triggersReplenishment: true,
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    tripSuggestionAsDeliver: {
+                      is: {
+                        pickupTask: {
+                          status: { in: openTaskStatuses },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      include: deliveryTaskListInclude,
+      orderBy: [{ isCritical: "desc" }, { createdAt: "asc" }],
+      take: 80,
+    }),
+    prisma.pickupTask.findMany({
+      where: {
+        status: { in: openTaskStatuses },
+        ...machineFilter,
+      },
+      include: pickupTaskListInclude,
+      orderBy: [{ isCritical: "desc" }, { createdAt: "asc" }],
+      take: 60,
+    }),
+    prisma.operatorMachineSupplyRequest.findMany({
+      where: {
+        AND: [
+          sectorId ? { machine: { sectorId } } : {},
+          {
+            OR: [
+              { status: OperatorMachineSupplyRequestStatus.OPEN },
+              {
+                status: OperatorMachineSupplyRequestStatus.FULFILLED,
+                deliveryTaskId: { not: null },
+                OR: [
+                  {
+                    deliveryTask: {
+                      status: { in: openTaskStatuses },
+                    },
+                  },
+                  {
+                    deliveryTask: {
+                      status: MachineTaskStatus.COMPLETED,
+                    },
+                    machine: {
+                      pickupTasks: {
+                        some: {
+                          status: { in: openTaskStatuses },
+                          triggersReplenishment: true,
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      include: operatorMachineSupplyRequestListInclude,
+      orderBy: [{ createdAt: "desc" }],
+      take: 80,
+    }),
+    prisma.deliveryTask.count({
+      where: {
+        status: { in: openTaskStatuses },
+        acceptedBySupply: true,
+        ...machineFilter,
+      },
+    }),
+    prisma.pickupTask.count({
+      where: {
+        status: { in: openTaskStatuses },
+        ...machineFilter,
+      },
+    }),
+    prisma.deliveryTask.count({
+      where: {
+        status: { in: openTaskStatuses },
+        acceptedBySupply: true,
+        isCritical: true,
+        ...machineFilter,
+      },
+    }),
+    prisma.pickupTask.count({
+      where: {
+        status: { in: openTaskStatuses },
+        isCritical: true,
+        ...machineFilter,
+      },
+    }),
+    prisma.deliveryTask.count({
+      where: {
+        status: {
+          in: [MachineTaskStatus.CREATED, MachineTaskStatus.ASSIGNED],
+        },
+        acceptedBySupply: true,
+        preparedAt: { not: null },
+        ...machineFilter,
+      },
+    }),
+    prisma.pickupTask.findMany({
+      where: {
+        createdAt: { gte: rangeStart, lte: rangeEnd },
+        status: { not: MachineTaskStatus.CANCELED },
+        ...machineFilter,
+      },
+      select: {
+        id: true,
+        machineId: true,
+        status: true,
+        createdAt: true,
+        assignedAt: true,
+        assignedOperatorId: true,
+        completedAt: true,
+        machine: {
+          select: { id: true, name: true, assetNumber: true, pillar: true },
+        },
+      },
+    }),
+    prisma.deliveryTask.findMany({
+      where: {
+        OR: [
+          { createdAt: { gte: rangeStart, lte: rangeEnd } },
+          { preparedAt: { gte: rangeStart, lte: rangeEnd } },
+        ],
+        status: { not: MachineTaskStatus.CANCELED },
+        ...machineFilter,
+      },
+      select: {
+        id: true,
+        machineId: true,
+        status: true,
+        createdAt: true,
+        assignedAt: true,
+        assignedOperatorId: true,
+        completedAt: true,
+        preparedAt: true,
+        machine: {
+          select: { id: true, name: true, assetNumber: true, pillar: true },
+        },
+      },
+    }),
+    prisma.deliveryTask.count({
+      where: {
+        status: MachineTaskStatus.COMPLETED,
+        completedAt: { gte: rangeStart, lte: rangeEnd },
+        ...machineFilter,
+      },
+    }),
+    prisma.pickupTask.count({
+      where: {
+        status: MachineTaskStatus.COMPLETED,
+        completedAt: { gte: rangeStart, lte: rangeEnd },
+        ...machineFilter,
+      },
+    }),
+    prisma.user.count({
+      where: {
+        isOperating: IsOperating.FORKLIFT,
+        ...sectorUserFilter,
+      },
+    }),
+    prisma.user.count({
+      where: {
+        isOperating: IsOperating.PALLET_TRUCK,
+        ...sectorUserFilter,
+      },
+    }),
+    prisma.machine.count({
+      where: sectorId ? { sectorId } : {},
+    }),
+  ]);
+
+  const deliveryWaits = periodDeliveries.map((task) =>
+    taskCycleDurationMs(task, referenceNow),
+  );
+  const pickupWaits = periodPickups.map((task) =>
+    taskCycleDurationMs(task, referenceNow),
+  );
+
+  return {
+    now: referenceNow.toISOString(),
+    date: labelStart,
+    sector_id: sectorId,
+    kpis: {
+      deliveries_open: deliveriesOpenCount,
+      pickups_open: pickupsOpenCount,
+      deliveries_completed: completedDeliveriesToday,
+      pickups_completed: completedPickupsToday,
+      forklifts_operating: forkliftsOperating,
+      pallet_trucks_operating: palletTrucksOperating,
+      avg_supply_ms: average(deliveryWaits),
+      avg_pickup_ms: average(pickupWaits),
+      critical_open: criticalDeliveriesOpen + criticalPickupsOpen,
+      pallets_at_receiving: palletsAtReceiving,
+      machines_total: machinesTotal,
+    },
+    peak_slots: buildPeakSlots(periodPickups, periodDeliveries),
+    delivery_tasks: deliveryTasks,
+    pickup_tasks: pickupTasks,
+    supply_requests: supplyRequests,
+  };
 }

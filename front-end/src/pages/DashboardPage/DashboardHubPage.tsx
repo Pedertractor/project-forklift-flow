@@ -1,4 +1,4 @@
-import { BarChart3, Package, UsersRound } from 'lucide-react';
+import { BarChart3, MonitorPlay, Package, UsersRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -61,11 +61,11 @@ export function DashboardHubPage() {
           </h1>
           <p className="mt-1 text-sm text-zinc-600 sm:text-base">
             Escolha a visão: indicadores gerais do período, desempenho por
-            máquina ou por empilhadeirista.
+            máquina, por empilhadeirista ou o monitor ao vivo para TV.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
           <ChoiceCard
             to="/dashboard/geral"
             title="Geral"
@@ -83,6 +83,12 @@ export function DashboardHubPage() {
             title="Por operador"
             description="Quantidade de retiradas e entregas por operador, tarefas em aberto e filtros por equipamento."
             icon={UsersRound}
+          />
+          <ChoiceCard
+            to="/dashboard/monitor"
+            title="Monitor TV"
+            description="Painel ao vivo com KPIs, gráfico de picos e fluxos em andamento — ideal para televisão."
+            icon={MonitorPlay}
           />
         </div>
       </div>

@@ -12,7 +12,6 @@ import {
   findDeliveryForSupplyRequest,
   findReplenishmentDeliveryForPickup,
   findReplenishmentSupplyForMachine,
-  hasPickupLinkedToReplenishmentFlow,
   isCombinedTripSuggestion,
   isPickupLinkedToReplenishmentFlow,
   nextPalletFlowHeadline,
@@ -192,11 +191,17 @@ export function buildOperatorMachineTaskRows(
   supplyRequests: OperatorMachineSupplyRequestListItem[],
 ): OperatorMachineTaskListRow[] {
   const rows: OperatorMachineTaskListRow[] = [];
-  const hideSupplyForReplenishmentPickup = hasPickupLinkedToReplenishmentFlow(
-    pickupTasks,
-    supplyRequests,
-    deliveryTasks,
-  );
+
+  const machineHasReplenishmentPickup = (machineId: string) =>
+    pickupTasks.some(
+      (pickup) =>
+        pickup.machineId === machineId &&
+        isPickupLinkedToReplenishmentFlow(
+          pickup,
+          supplyRequests,
+          deliveryTasks,
+        ),
+    );
 
   let combinedDeliveryId: string | null = null;
   let combinedPickupId: string | null = null;
@@ -250,7 +255,7 @@ export function buildOperatorMachineTaskRows(
       shouldHideSupplyOnlyDeliveryRow(
         t,
         supplyRequests,
-        hideSupplyForReplenishmentPickup,
+        machineHasReplenishmentPickup(t.machineId),
       )
     ) {
       continue;
@@ -315,7 +320,7 @@ export function buildOperatorMachineTaskRows(
       !isSupplyOnlyContinuumActive(
         s,
         deliveryTasks,
-        hideSupplyForReplenishmentPickup,
+        machineHasReplenishmentPickup(s.machineId),
       )
     ) {
       continue;
@@ -334,9 +339,74 @@ export function buildOperatorMachineTaskRows(
     });
   }
 
+  /** Mais antiga primeiro — ordem da solicitação (fila). */
   return rows.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
+}
+
+/** Recorta as listas para renderizar um único card de fluxo (ex.: monitor TV ordenado). */
+export function tasksForOperatorMachineRow(
+  row: OperatorMachineTaskListRow,
+  deliveryTasks: DeliveryTaskListItem[],
+  pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+): {
+  deliveryTasks: DeliveryTaskListItem[];
+  pickupTasks: PickupTaskListItem[];
+  supplyRequests: OperatorMachineSupplyRequestListItem[];
+} {
+  if (row.kind === 'COMBINED') {
+    return {
+      deliveryTasks: deliveryTasks.filter((t) => t.id === row.deliveryId),
+      pickupTasks: pickupTasks.filter((t) => t.id === row.pickupId),
+      supplyRequests: [],
+    };
+  }
+  if (row.kind === 'DELIVERY') {
+    return {
+      deliveryTasks: deliveryTasks.filter((t) => t.id === row.id),
+      pickupTasks: [],
+      supplyRequests: [],
+    };
+  }
+  if (row.kind === 'PICKUP') {
+    const pickup = pickupTasks.find((t) => t.id === row.id);
+    if (!pickup) {
+      return { deliveryTasks: [], pickupTasks: [], supplyRequests: [] };
+    }
+    if (row.linkedToReplenishmentFlow) {
+      const supply = findReplenishmentSupplyForMachine(
+        supplyRequests,
+        pickup.machineId,
+      );
+      const delivery = findReplenishmentDeliveryForPickup(
+        deliveryTasks,
+        supplyRequests,
+        pickup.machineId,
+      );
+      return {
+        deliveryTasks: delivery ? [delivery] : [],
+        pickupTasks: [pickup],
+        supplyRequests: supply ? [supply] : [],
+      };
+    }
+    return {
+      deliveryTasks: [],
+      pickupTasks: [pickup],
+      supplyRequests: [],
+    };
+  }
+  const supply = supplyRequests.find((s) => s.id === row.id);
+  if (!supply) {
+    return { deliveryTasks: [], pickupTasks: [], supplyRequests: [] };
+  }
+  const delivery = findDeliveryForSupplyRequest(deliveryTasks, supply);
+  return {
+    deliveryTasks: delivery ? [delivery] : [],
+    pickupTasks: [],
+    supplyRequests: [supply],
+  };
 }
 
 export { formatTaskDate };

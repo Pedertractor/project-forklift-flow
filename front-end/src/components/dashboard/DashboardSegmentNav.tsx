@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LineChart, Package, UsersRound } from 'lucide-react';
+import { Home, LineChart, MonitorPlay, Package, UsersRound } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,7 @@ export function DashboardSegmentNav() {
   const activeGeral = path === `${base}/geral`;
   const activePorMaquina = path === `${base}/por-maquina`;
   const activePorEmpilhadeirista = path === `${base}/por-empilhadeirista`;
+  const activeMonitor = path === `${base}/monitor`;
 
   const pill = (active: boolean) =>
     cn(
@@ -34,7 +35,7 @@ export function DashboardSegmentNav() {
       <p className="text-xs font-medium tracking-wide text-zinc-500 uppercase sm:hidden">
         Visão
       </p>
-      <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-100/60 p-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:mx-0 md:max-w-3xl md:flex-wrap md:overflow-visible md:pb-1 [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto rounded-full border border-zinc-200 bg-zinc-100/60 p-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:mx-0 md:max-w-4xl md:flex-wrap md:overflow-visible md:pb-1 [&::-webkit-scrollbar]:hidden">
         <Link to={base} className={pill(activeHub)} replace={false}>
           <Home className="size-4 shrink-0 opacity-90" aria-hidden />
           <span>Início</span>
@@ -54,6 +55,14 @@ export function DashboardSegmentNav() {
         >
           <UsersRound className="size-4 shrink-0 opacity-90" aria-hidden />
           <span className="truncate">Por operador</span>
+        </Link>
+        <Link
+          to={`${base}/monitor`}
+          className={pill(activeMonitor)}
+          title="Monitor ao vivo para TV"
+        >
+          <MonitorPlay className="size-4 shrink-0 opacity-90" aria-hidden />
+          <span className="truncate">Monitor TV</span>
         </Link>
       </div>
     </nav>

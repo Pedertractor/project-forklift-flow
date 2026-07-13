@@ -80,6 +80,7 @@ export const API_ENDPOINTS = {
   OPERATIONAL_DASHBOARD: {
     SNAPSHOT: '/operational-dashboard/snapshot',
     BY_OPERATOR: '/operational-dashboard/by-operator',
+    TV_MONITOR: '/operational-dashboard/tv-monitor',
     OPERATOR_CURRENT_TRAJECTORY: (operatorId: string) =>
       `/operational-dashboard/operators/${encodeURIComponent(operatorId)}/current-trajectory`,
   },

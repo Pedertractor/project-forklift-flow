@@ -4,6 +4,7 @@ import {
   getOperatorCurrentTrajectoryForDashboard,
   getOperationalDashboardByOperator,
   getOperationalDashboardSnapshot,
+  getOperationalTvMonitorSnapshot,
 } from '../services/operational-dashboard.service.js'
 import { resolveOperationalDashboardSectorId } from '../services/operational-dashboard-sector.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
@@ -104,4 +105,21 @@ export const getOperatorCurrentTrajectoryHandler: RouteHandlerMethod = async (
     }
     throw error
   }
+}
+
+export const getOperationalTvMonitorHandler: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const { sectorId } = (request.query ?? {}) as { sectorId?: string }
+  const actor = request.user as AppJwtPayload
+  const resolvedSectorId = await resolveOperationalDashboardSectorId(
+    actor,
+    sectorId,
+  )
+
+  const snapshot = await getOperationalTvMonitorSnapshot({
+    sectorId: resolvedSectorId,
+  })
+  return reply.send(snapshot)
 }

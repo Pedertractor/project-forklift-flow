@@ -43,6 +43,17 @@ export const COMBINED_FLOW_STEPS = [
   { key: 'expedition', title: 'Expedição' },
 ] as const;
 
+/** Mesmas chaves de `COMBINED_FLOW_STEPS`, títulos curtos (monitor TV). */
+export const COMBINED_FLOW_STEPS_TV = [
+  { key: 'receiving', title: 'Recebimento' },
+  { key: 'awaiting', title: 'Aguardando' },
+  { key: 'on-the-way', title: 'A caminho' },
+  { key: 'deliver', title: 'Entrega' },
+  { key: 'on-machine', title: 'Na máquina' },
+  { key: 'pickup', title: 'Retirada' },
+  { key: 'expedition', title: 'Expedição' },
+] as const;
+
 export type PickupFlowPhase = 'AWAITING' | 'IN_PROGRESS' | 'DONE' | 'IDLE';
 export type DeliveryFlowPhase =
   | 'SUPPLY'
@@ -392,7 +403,7 @@ export function combinedFlowStepStatusesFromTasks(
   delivery: DeliveryTaskListItem | null,
   pickup: PickupTaskListItem | null,
 ): FlowStepStatus[] {
-  if (!delivery || !pickup) {
+  if (!pickup) {
     return [
       'pending',
       'pending',
@@ -401,6 +412,34 @@ export function combinedFlowStepStatusesFromTasks(
       'pending',
       'pending',
       'pending',
+    ];
+  }
+
+  const pickupDone = pickup.status === 'COMPLETED';
+  const pickupInProgress =
+    pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS';
+
+  /** Entrega sumiu da lista aberta, mas a retirada do par ainda está em aberto. */
+  if (!delivery) {
+    if (!OPEN_STATUSES.has(pickup.status) && !pickupDone) {
+      return [
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+        'pending',
+      ];
+    }
+    return [
+      'done',
+      'done',
+      'done',
+      'done',
+      pickupInProgress || pickupDone ? 'done' : 'active',
+      pickupDone ? 'done' : pickupInProgress ? 'active' : 'pending',
+      pickupDone ? 'done' : pickupInProgress ? 'active' : 'pending',
     ];
   }
 
@@ -413,10 +452,6 @@ export function combinedFlowStepStatusesFromTasks(
     delivery.status === 'CREATED' &&
     !deliveryEnRoute &&
     !deliveryDone;
-
-  const pickupDone = pickup.status === 'COMPLETED';
-  const pickupInProgress =
-    pickup.status === 'ASSIGNED' || pickup.status === 'IN_PROGRESS';
 
   const receiving: FlowStepStatus = prepared ? 'done' : 'active';
 
@@ -596,6 +631,18 @@ export const PICKUP_WITH_REPLENISHMENT_FLOW_STEPS = [
   { key: 'done', title: 'Entregue na expedição' },
 ] as const;
 
+/** Mesmas chaves de `PICKUP_WITH_REPLENISHMENT_FLOW_STEPS`, títulos curtos (monitor TV). */
+export const PICKUP_WITH_REPLENISHMENT_FLOW_STEPS_TV = [
+  { key: 'supply', title: 'Abastecimento' },
+  { key: 'prepare', title: 'Preparo' },
+  { key: 'awaiting-deliver', title: 'Aguardando' },
+  { key: 'on-the-way', title: 'A caminho' },
+  { key: 'deliver', title: 'Entrega' },
+  { key: 'awaiting-pickup', title: 'Aguard. retirada' },
+  { key: 'removing', title: 'Retirada' },
+  { key: 'done', title: 'Expedição' },
+] as const;
+
 type ReplenishmentDeliveryStatuses = [
   FlowStepStatus,
   FlowStepStatus,
@@ -667,7 +714,22 @@ export function replenishmentPickupActiveStep(
   const deliveryComplete = delivery?.status === 'COMPLETED';
 
   if (!deliveryComplete) {
-    if (!delivery) return 1;
+    if (!delivery) {
+      /**
+       * Entrega já saiu da lista aberta (ex.: monitor TV) mas a retirada
+       * com reposição ainda está aberta → fase pós-entrega.
+       */
+      if (OPEN_STATUSES.has(pickup.status)) {
+        if (
+          pickup.status === 'ASSIGNED' ||
+          pickup.status === 'IN_PROGRESS'
+        ) {
+          return 7;
+        }
+        return 6;
+      }
+      return 1;
+    }
     if (delivery.status === 'ASSIGNED' || delivery.status === 'IN_PROGRESS') {
       return 4;
     }
@@ -878,54 +940,20 @@ export function hasOpenPickupWithReplenishment(
 }
 
 /**
- * Retirada vinculada ao fluxo de reposição:
- * - retirada + abastecimento na mesma solicitação, ou
- * - abastecimento solicitado antes e retirada depois pelo mesmo operador,
- *   enquanto o aviso ou a entrega vinculada ainda estiver em aberto.
+ * Retirada vinculada ao fluxo de reposição (entrega + retirada).
+ *
+ * Usa o flag persistido `triggersReplenishment`, definido no backend somente
+ * na solicitação que cria o aviso ao abastecimento. Assim, uma retirada simples
+ * na mesma máquina não “herda” o continuum de 8 etapas de outra solicitação.
  */
 export function isPickupLinkedToReplenishmentFlow(
   pickup: PickupTaskListItem,
-  supplyRequests: OperatorMachineSupplyRequestListItem[],
-  deliveryTasks: DeliveryTaskListItem[],
+  _supplyRequests: OperatorMachineSupplyRequestListItem[],
+  _deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
-  if (pickup.triggersReplenishment && OPEN_STATUSES.has(pickup.status)) {
-    return true;
-  }
-  if (!OPEN_STATUSES.has(pickup.status)) return false;
-
-  const pickupCreatedAt = new Date(pickup.createdAt).getTime();
-
-  const openSupply = findOpenSupplyForMachine(supplyRequests, pickup.machineId);
-  if (
-    openSupply?.requestedById === pickup.requestedById &&
-    new Date(openSupply.createdAt).getTime() <= pickupCreatedAt
-  ) {
-    return true;
-  }
-
-  const replenishmentDelivery = findReplenishmentDeliveryForPickup(
-    deliveryTasks,
-    supplyRequests,
-    pickup.machineId,
+  return (
+    pickup.triggersReplenishment === true && OPEN_STATUSES.has(pickup.status)
   );
-  if (
-    replenishmentDelivery &&
-    OPEN_STATUSES.has(replenishmentDelivery.status) &&
-    new Date(replenishmentDelivery.createdAt).getTime() <= pickupCreatedAt
-  ) {
-    const supply = findReplenishmentSupplyForMachine(
-      supplyRequests,
-      pickup.machineId,
-    );
-    if (
-      supply?.requestedById === pickup.requestedById &&
-      new Date(supply.createdAt).getTime() <= pickupCreatedAt
-    ) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 export function hasPickupLinkedToReplenishmentFlow(

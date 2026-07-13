@@ -3,3 +3,4 @@ export { DashboardHubPage } from './DashboardHubPage';
 export { DashboardGeralPage } from './DashboardGeralPage';
 export { DashboardPorMaquinaPage } from './DashboardPorMaquinaPage';
 export { DashboardPorEmpilhadeiristaPage } from './DashboardPorEmpilhadeiristaPage';
+export { DashboardTvMonitorPage } from './DashboardTvMonitorPage';

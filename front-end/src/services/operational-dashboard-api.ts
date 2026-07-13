@@ -4,6 +4,11 @@ import {
   mapOperatorActiveFlowResponse,
   type ActiveFlowApiResponse,
 } from '@/services/operator-moviment-pallet-api';
+import type {
+  DeliveryTaskListItem,
+  PickupTaskListItem,
+} from '@/types/machine-task.types';
+import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import type { OperatorMovimentTaskItem } from '@/types/operator-moviment-pallet.types';
 
 export interface OperationalDashboardWaitMetrics {
@@ -152,4 +157,46 @@ export async function getOperatorCurrentTrajectory(
     { method: 'GET' },
   );
   return mapOperatorActiveFlowResponse(data);
+}
+
+export interface OperationalTvMonitorKpis {
+  deliveries_open: number;
+  pickups_open: number;
+  deliveries_completed: number;
+  pickups_completed: number;
+  forklifts_operating: number;
+  pallet_trucks_operating: number;
+  avg_supply_ms: number | null;
+  avg_pickup_ms: number | null;
+  critical_open: number;
+  pallets_at_receiving: number;
+  machines_total: number;
+}
+
+export interface OperationalTvMonitorSnapshot {
+  now: string;
+  date: string;
+  sector_id: string | null;
+  kpis: OperationalTvMonitorKpis;
+  peak_slots: OperationalDashboardPeakSlot[];
+  delivery_tasks: DeliveryTaskListItem[];
+  pickup_tasks: PickupTaskListItem[];
+  supply_requests: OperatorMachineSupplyRequestListItem[];
+}
+
+export async function getOperationalTvMonitorSnapshot(filters?: {
+  sectorId?: string;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.sectorId) {
+    params.set('sectorId', filters.sectorId);
+  }
+  const query = params.toString();
+  const data = await apiAuthFetch<OperationalTvMonitorSnapshot>(
+    `${API_ENDPOINTS.OPERATIONAL_DASHBOARD.TV_MONITOR}${query ? `?${query}` : ''}`,
+  );
+  if (!data) {
+    throw new Error('Resposta vazia do monitor operacional.');
+  }
+  return data;
 }

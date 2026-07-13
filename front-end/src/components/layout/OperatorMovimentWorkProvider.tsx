@@ -257,6 +257,9 @@ export function OperatorMovimentWorkProvider({
     void queryClient.invalidateQueries({
       queryKey: ['sector-transport-operators'],
     });
+    void queryClient.invalidateQueries({
+      queryKey: ['operational-dashboard-tv-monitor'],
+    });
   }, [queryClient]);
 
   const scheduleSupplyReplenishmentInvalidate = useCallback(() => {
@@ -331,6 +334,16 @@ export function OperatorMovimentWorkProvider({
         ) {
           toast.success('Nova solicitação de reposição na dobra.');
         }
+      }
+
+      if (
+        isSupplyReplenishment &&
+        (event.type === 'pickup_task_updated' ||
+          event.type === 'trip_suggestions_updated')
+      ) {
+        void queryClient.invalidateQueries({
+          queryKey: ['operational-dashboard-tv-monitor'],
+        });
       }
 
       if (shouldInvalidateMachineToolings(event) && 'machineId' in event) {

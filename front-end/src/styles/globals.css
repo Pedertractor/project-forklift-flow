@@ -44,12 +44,11 @@ body {
   animation: task-confirm-progress 1.05s ease-in-out infinite;
 }
 
-/* Stepper horizontal: pulso percorre toda a barra até o próximo círculo */
+/* Stepper horizontal: pulso percorre o trilho (fallback global) */
 @keyframes step-connector-flow {
   0% {
-    left: 0%;
-    transform: translateX(0);
-    opacity: 0.45;
+    transform: translateX(-100%);
+    opacity: 0.55;
   }
   12% {
     opacity: 1;
@@ -58,22 +57,19 @@ body {
     opacity: 1;
   }
   100% {
-    left: 100%;
-    transform: translateX(-100%);
-    opacity: 0.45;
+    transform: translateX(350%);
+    opacity: 0.55;
   }
 }
 
 .animate-step-connector-flow {
-  animation: step-connector-flow 1.5s ease-in-out infinite;
+  animation: step-connector-flow 2.8s linear infinite;
 }
 
+/* Mantém um pulso suave mesmo com “reduzir movimento” no SO (TV / chão de fábrica). */
 @media (prefers-reduced-motion: reduce) {
   .animate-step-connector-flow {
-    animation: none;
-    left: 50%;
-    transform: translateX(-50%);
-    opacity: 0.85;
+    animation: step-connector-flow 4s linear infinite;
   }
 }
 

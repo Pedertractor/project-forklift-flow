@@ -43,6 +43,11 @@ const DashboardPorEmpilhadeiristaPage = lazy(() =>
     default: m.DashboardPorEmpilhadeiristaPage,
   })),
 );
+const DashboardTvMonitorPage = lazy(() =>
+  import('@/pages/DashboardPage/index').then((m) => ({
+    default: m.DashboardTvMonitorPage,
+  })),
+);
 const TypeMachinesPage = lazy(() =>
   import('@/pages/TypeMachinesPage/index').then((m) => ({
     default: m.TypeMachinesPage,
@@ -138,6 +143,7 @@ export function App() {
                       path="por-empilhadeirista"
                       element={<DashboardPorEmpilhadeiristaPage />}
                     />
+                    <Route path="monitor" element={<DashboardTvMonitorPage />} />
                   </Route>
                 </Route>
                 <Route element={<RequireRoles roles={ADMIN_OR_LEADER_ROLES} />}>
