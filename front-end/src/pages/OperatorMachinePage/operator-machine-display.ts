@@ -339,9 +339,143 @@ export function buildOperatorMachineTaskRows(
     });
   }
 
-  /** Mais antiga primeiro — ordem da solicitação (fila). */
-  return rows.sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  /** Aceitas primeiro; dentro de cada grupo, mais antiga primeiro. */
+  return rows.sort((a, b) =>
+    compareOperatorMachineRows(
+      a,
+      b,
+      deliveryTasks,
+      pickupTasks,
+      supplyRequests,
+    ),
+  );
+}
+
+function isTransportActiveStatus(
+  status: string | undefined,
+): boolean {
+  return status === 'ASSIGNED' || status === 'IN_PROGRESS';
+}
+
+/**
+ * Fluxo já acatado por empilhadeirista / follow-up (há aceite ou status em curso).
+ */
+export function operatorMachineRowIsAccepted(
+  row: OperatorMachineTaskListRow,
+  deliveryTasks: DeliveryTaskListItem[],
+  pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+): boolean {
+  if (row.kind === 'COMBINED') {
+    const delivery = deliveryTasks.find((t) => t.id === row.deliveryId);
+    const pickup = pickupTasks.find((t) => t.id === row.pickupId);
+    return Boolean(
+      delivery?.assignedAt ||
+        pickup?.assignedAt ||
+        isTransportActiveStatus(delivery?.status) ||
+        isTransportActiveStatus(pickup?.status),
+    );
+  }
+  if (row.kind === 'DELIVERY') {
+    const delivery = deliveryTasks.find((t) => t.id === row.id);
+    return Boolean(
+      delivery?.assignedAt || isTransportActiveStatus(delivery?.status),
+    );
+  }
+  if (row.kind === 'PICKUP') {
+    const pickup = pickupTasks.find((t) => t.id === row.id);
+    if (
+      pickup?.assignedAt ||
+      isTransportActiveStatus(pickup?.status)
+    ) {
+      return true;
+    }
+    if (row.linkedToReplenishmentFlow && pickup) {
+      const delivery = findReplenishmentDeliveryForPickup(
+        deliveryTasks,
+        supplyRequests,
+        pickup.machineId,
+      );
+      return Boolean(
+        delivery?.assignedAt || isTransportActiveStatus(delivery?.status),
+      );
+    }
+  }
+  return false;
+}
+
+/**
+ * Instante usado para ordenar o card na fila:
+ * - se já houve aceite (`assignedAt`), usa o mais antigo entre as tarefas do fluxo;
+ * - senão, usa a data da solicitação.
+ */
+export function operatorMachineRowSortTime(
+  row: OperatorMachineTaskListRow,
+  deliveryTasks: DeliveryTaskListItem[],
+  pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+): number {
+  const created = new Date(row.createdAt).getTime();
+  const assignedTimes: number[] = [];
+
+  const pushAssigned = (iso: string | null | undefined) => {
+    if (!iso) return;
+    const t = new Date(iso).getTime();
+    if (Number.isFinite(t)) assignedTimes.push(t);
+  };
+
+  if (row.kind === 'COMBINED') {
+    pushAssigned(
+      deliveryTasks.find((t) => t.id === row.deliveryId)?.assignedAt,
+    );
+    pushAssigned(pickupTasks.find((t) => t.id === row.pickupId)?.assignedAt);
+  } else if (row.kind === 'DELIVERY') {
+    pushAssigned(deliveryTasks.find((t) => t.id === row.id)?.assignedAt);
+  } else if (row.kind === 'PICKUP') {
+    const pickup = pickupTasks.find((t) => t.id === row.id);
+    pushAssigned(pickup?.assignedAt);
+    if (row.linkedToReplenishmentFlow && pickup) {
+      pushAssigned(
+        findReplenishmentDeliveryForPickup(
+          deliveryTasks,
+          supplyRequests,
+          pickup.machineId,
+        )?.assignedAt,
+      );
+    }
+  }
+
+  if (assignedTimes.length > 0) {
+    return Math.min(...assignedTimes);
+  }
+  return Number.isFinite(created) ? created : 0;
+}
+
+export function compareOperatorMachineRows(
+  a: OperatorMachineTaskListRow,
+  b: OperatorMachineTaskListRow,
+  deliveryTasks: DeliveryTaskListItem[],
+  pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+): number {
+  const aAccepted = operatorMachineRowIsAccepted(
+    a,
+    deliveryTasks,
+    pickupTasks,
+    supplyRequests,
+  );
+  const bAccepted = operatorMachineRowIsAccepted(
+    b,
+    deliveryTasks,
+    pickupTasks,
+    supplyRequests,
+  );
+  if (aAccepted !== bAccepted) {
+    return aAccepted ? -1 : 1;
+  }
+  return (
+    operatorMachineRowSortTime(a, deliveryTasks, pickupTasks, supplyRequests) -
+    operatorMachineRowSortTime(b, deliveryTasks, pickupTasks, supplyRequests)
   );
 }
 

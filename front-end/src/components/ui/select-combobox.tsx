@@ -22,6 +22,15 @@ export type SelectComboboxOption = {
 export const selectComboboxClassName =
   'h-[var(--control-height,2.5rem)] w-full min-w-0 rounded-xl border-2 border-zinc-200 bg-white text-sm font-medium leading-snug text-zinc-900 outline-none transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/35 disabled:cursor-not-allowed disabled:opacity-50';
 
+const selectComboboxDarkClassName =
+  'h-[var(--control-height,2.5rem)] w-full min-w-0 rounded-xl border-2 border-zinc-600 bg-zinc-800 text-sm font-medium leading-snug text-zinc-100 outline-none transition-colors focus-within:border-sky-500 focus-within:ring-[3px] focus-within:ring-sky-500/30 disabled:cursor-not-allowed disabled:opacity-50 [&_[data-slot=input-group-control]]:text-zinc-100 [&_[data-slot=input-group-control]]:placeholder:text-zinc-400 [&_svg]:text-zinc-300';
+
+const selectComboboxDarkContentClassName =
+  'border-zinc-600 bg-zinc-800 text-zinc-100 shadow-lg *:data-[slot=input-group]:border-zinc-600';
+
+const selectComboboxDarkItemClassName =
+  'text-zinc-100 data-highlighted:bg-zinc-700 data-highlighted:text-zinc-50';
+
 export type SelectComboboxProps = {
   id?: string;
   value: string;
@@ -30,6 +39,8 @@ export type SelectComboboxProps = {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Aparência para fundos escuros (ex.: monitor TV). */
+  dark?: boolean;
   'aria-label'?: string;
   emptyMessage?: string;
   searchable?: boolean;
@@ -43,6 +54,7 @@ export function SelectCombobox({
   placeholder = 'Selecione…',
   disabled = false,
   className,
+  dark = false,
   'aria-label': ariaLabel,
   emptyMessage = 'Nenhuma opção encontrada.',
   searchable,
@@ -103,7 +115,7 @@ export function SelectCombobox({
           disabled={disabled}
           readOnly={!canSearch}
           className={cn(
-            selectComboboxClassName,
+            dark ? selectComboboxDarkClassName : selectComboboxClassName,
             className,
             disabled && 'pointer-events-none opacity-50',
           )}
@@ -112,7 +124,10 @@ export function SelectCombobox({
           {selectedColor ? (
             <InputGroupAddon align="inline-start" className="pl-3">
               <span
-                className="size-3 shrink-0 rounded-full border border-zinc-200"
+                className={cn(
+                  'size-3 shrink-0 rounded-full border',
+                  dark ? 'border-zinc-500' : 'border-zinc-200',
+                )}
                 style={{ backgroundColor: selectedColor }}
                 aria-hidden
               />
@@ -124,17 +139,27 @@ export function SelectCombobox({
         anchor={anchorRef}
         side="bottom"
         align="start"
-        className="w-(--anchor-width)"
+        className={cn(
+          'w-(--anchor-width)',
+          dark && selectComboboxDarkContentClassName,
+        )}
       >
         <ComboboxList>
           {filteredItems.map((item) => {
             const color = colorByValue.get(item);
             return (
-              <ComboboxItem key={item} value={item}>
+              <ComboboxItem
+                key={item}
+                value={item}
+                className={dark ? selectComboboxDarkItemClassName : undefined}
+              >
                 <span className="inline-flex min-w-0 items-center gap-2">
                   {color ? (
                     <span
-                      className="size-3 shrink-0 rounded-full border border-zinc-200"
+                      className={cn(
+                        'size-3 shrink-0 rounded-full border',
+                        dark ? 'border-zinc-500' : 'border-zinc-200',
+                      )}
                       style={{ backgroundColor: color }}
                       aria-hidden
                     />
@@ -144,7 +169,9 @@ export function SelectCombobox({
               </ComboboxItem>
             );
           })}
-          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
+          <ComboboxEmpty className={dark ? 'text-zinc-400' : undefined}>
+            {emptyMessage}
+          </ComboboxEmpty>
         </ComboboxList>
       </ComboboxContent>
     </Combobox>

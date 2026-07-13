@@ -35,6 +35,8 @@ import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-mach
 import { OperatorMachineTasksList } from '@/pages/OperatorMachinePage/OperatorMachineTasksList';
 import {
   buildOperatorMachineTaskRows,
+  operatorMachineRowIsAccepted,
+  operatorMachineRowSortTime,
   tasksForOperatorMachineRow,
 } from '@/pages/OperatorMachinePage/operator-machine-display';
 import type { DashboardTvMonitorPageViewModel } from './useDashboardTvMonitorPage';
@@ -449,7 +451,7 @@ export function DashboardTvMonitorView({
     );
   }, [data]);
 
-  /** Cards de fluxo ordenados pela hora da solicitação (mais antiga primeiro). */
+  /** Aceitas / follow-up no topo; depois por horário (aceite ou solicitação). */
   const sortedFlowItems = useMemo(() => {
     return machineFlows
       .flatMap((bucket) => {
@@ -460,11 +462,37 @@ export function DashboardTvMonitorView({
         );
         return rows.map((row) => ({ row, bucket }));
       })
-      .sort(
-        (a, b) =>
-          new Date(a.row.createdAt).getTime() -
-          new Date(b.row.createdAt).getTime(),
-      );
+      .sort((a, b) => {
+        const aAccepted = operatorMachineRowIsAccepted(
+          a.row,
+          a.bucket.deliveryTasks,
+          a.bucket.pickupTasks,
+          a.bucket.supplyRequests,
+        );
+        const bAccepted = operatorMachineRowIsAccepted(
+          b.row,
+          b.bucket.deliveryTasks,
+          b.bucket.pickupTasks,
+          b.bucket.supplyRequests,
+        );
+        if (aAccepted !== bAccepted) {
+          return aAccepted ? -1 : 1;
+        }
+        return (
+          operatorMachineRowSortTime(
+            a.row,
+            a.bucket.deliveryTasks,
+            a.bucket.pickupTasks,
+            a.bucket.supplyRequests,
+          ) -
+          operatorMachineRowSortTime(
+            b.row,
+            b.bucket.deliveryTasks,
+            b.bucket.pickupTasks,
+            b.bucket.supplyRequests,
+          )
+        );
+      });
   }, [machineFlows]);
 
   const flowCount = sortedFlowItems.length;
@@ -708,11 +736,7 @@ export function DashboardTvMonitorView({
                 onValueChange={setSelectedSectorId}
                 placeholder="Todos os setores"
                 aria-label="Filtrar setor"
-                className={
-                  dark
-                    ? 'border-zinc-600 bg-zinc-800 text-zinc-100 focus-within:border-sky-500 focus-within:ring-sky-500/30 [&_[data-slot=input-group-control]]:text-zinc-100 [&_[data-slot=input-group-control]]:placeholder:text-zinc-400 [&_svg]:text-zinc-300'
-                    : 'border-zinc-200 bg-white text-zinc-900 focus-within:border-brand focus-within:ring-brand/35'
-                }
+                dark={dark}
                 options={[
                   { value: '', label: 'Todos os setores' },
                   ...sectors.map((s) => ({
