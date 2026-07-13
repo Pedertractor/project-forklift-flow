@@ -41,6 +41,16 @@ export interface OperatorMachineSupplyRequestListItem {
     movementCube: string;
     status: string;
   } | null;
+  tooling?: { id: string; name: string } | null;
+  toolingId?: string | null;
+}
+
+export interface MachineToolingListItem {
+  id: string;
+  name: string;
+  machineId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MovimentPalletTaskPickupSummary {

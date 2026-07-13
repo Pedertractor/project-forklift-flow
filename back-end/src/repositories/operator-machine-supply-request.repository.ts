@@ -39,6 +39,9 @@ export const operatorMachineSupplyRequestListInclude = {
       isCritical: true,
     },
   },
+  tooling: {
+    select: { id: true, name: true },
+  },
 } as const
 
 export type OperatorMachineSupplyRequestListRow =

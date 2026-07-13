@@ -7,11 +7,14 @@ import { ENV } from '@/constants/env';
 import {
   deleteOperatorUnbindMachine,
   fetchOperatorMachineTasks,
+  fetchOperatorMachineToolings,
   fetchOperatorMachinesForPicker,
   fetchOperatorMyMachine,
   fetchOperatorSupplyRequests,
   postOperatorBindMachine,
   postCancelOperatorPickup,
+  postOperatorMachineTooling,
+  deleteOperatorMachineTooling,
   postOperatorPickupOnly,
   postOperatorPickupWithReplenishment,
   postOperatorSupplyOnly,
@@ -36,6 +39,7 @@ const queryKeyOperatorSupply = [
   'operator-supply-requests',
 ] as const;
 const queryKeyTasks = ['operator-machine', 'machine-tasks'] as const;
+const queryKeyToolings = ['operator-machine', 'toolings'] as const;
 
 function useApiReady(): boolean {
   const token = useAuthStore((s) => s.token);
@@ -189,6 +193,30 @@ export function useOperatorMachinePage() {
     deliveryTasks,
   );
 
+  const toolingsQuery = useQuery({
+    queryKey: [...queryKeyToolings, current?.id ?? ''],
+    queryFn: fetchOperatorMachineToolings,
+    enabled: apiReady && Boolean(current?.id),
+  });
+
+  const createToolingMut = useMutation({
+    mutationFn: (name: string) => postOperatorMachineTooling(name),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeyToolings });
+      toast.success('Ferramental cadastrado.');
+    },
+    onError: toastApiError,
+  });
+
+  const deleteToolingMut = useMutation({
+    mutationFn: (toolingId: string) => deleteOperatorMachineTooling(toolingId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeyToolings });
+      toast.success('Ferramental removido.');
+    },
+    onError: toastApiError,
+  });
+
   const unbindMut = useMutation({
     mutationFn: () => {
       if (user?.id) {
@@ -200,6 +228,7 @@ export function useOperatorMachinePage() {
       void queryClient.invalidateQueries({ queryKey: queryKeyMyMachine });
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
+      void queryClient.invalidateQueries({ queryKey: queryKeyToolings });
       setEndShiftOpen(false);
       setShowMachinePicker(true);
       toast.success('Vínculo encerrado.');
@@ -247,7 +276,7 @@ export function useOperatorMachinePage() {
   });
 
   const supplyOnlyMut = useMutation({
-    mutationFn: postOperatorSupplyOnly,
+    mutationFn: () => postOperatorSupplyOnly(),
     onSuccess: (res) => {
       void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
       if (res.created) {
@@ -312,7 +341,9 @@ export function useOperatorMachinePage() {
     pickupWithReplenishmentMut.isPending ||
     supplyOnlyMut.isPending ||
     cancelPickupMut.isPending ||
-    bindMut.isPending;
+    bindMut.isPending ||
+    createToolingMut.isPending ||
+    deleteToolingMut.isPending;
 
   return {
     apiReady,
@@ -343,6 +374,18 @@ export function useOperatorMachinePage() {
     canOpenRequestDialog,
     pickupBlockedMessage,
     operatorSupplyRequests: operatorSupplyQuery.data ?? [],
+    toolings: toolingsQuery.data ?? [],
+    toolingsLoading: toolingsQuery.isLoading,
+    createTooling: async (name: string) => {
+      return createToolingMut.mutateAsync(name);
+    },
+    createToolingPending: createToolingMut.isPending,
+    deleteTooling: async (toolingId: string) => {
+      await deleteToolingMut.mutateAsync(toolingId);
+    },
+    deleteToolingPendingId: deleteToolingMut.isPending
+      ? (deleteToolingMut.variables ?? null)
+      : null,
     submitServiceRequest,
     serviceRequestSubmitPending:
       pickupOnlyMut.isPending ||

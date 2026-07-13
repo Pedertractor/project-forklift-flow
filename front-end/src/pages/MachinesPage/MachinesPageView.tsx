@@ -1,7 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  Pencil,
   PlusIcon,
   Road,
+  Trash2,
   UserRound,
   UserRoundX,
   WrenchIcon,
@@ -156,27 +158,36 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
         ) : null}
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="flex min-w-48 flex-col gap-2">
-            <Label htmlFor="machine-sector-filter">Filtrar por setor</Label>
-            <SelectCombobox
-              id="machine-sector-filter"
-              value={sectorFilter}
-              onValueChange={setSectorFilter}
-              disabled={!apiReady}
-              placeholder="Todos"
-              options={[
-                { value: '', label: 'Todos' },
-                ...sectorsForSelect.map((s) => ({
-                  value: s.id,
-                  label: `${s.typeSector}${
-                    typeof s.sectorIdAPI === 'number'
-                      ? ` (#${s.sectorIdAPI})`
-                      : ''
-                  }`,
-                })),
-              ]}
-            />
-          </div>
+          {isAdmin ? (
+            <div className="flex min-w-48 flex-col gap-2">
+              <Label htmlFor="machine-sector-filter">Filtrar por setor</Label>
+              <SelectCombobox
+                id="machine-sector-filter"
+                value={sectorFilter}
+                onValueChange={setSectorFilter}
+                disabled={!apiReady}
+                placeholder="Todos"
+                options={[
+                  { value: '', label: 'Todos' },
+                  ...sectorsForSelect.map((s) => ({
+                    value: s.id,
+                    label: `${s.typeSector}${
+                      typeof s.sectorIdAPI === 'number'
+                        ? ` (#${s.sectorIdAPI})`
+                        : ''
+                    }`,
+                  })),
+                ]}
+              />
+            </div>
+          ) : (
+            <div className="flex min-w-48 flex-col gap-2">
+              <Label>Setor</Label>
+              <p className="m-0 flex h-[var(--control-height,2.5rem)] items-center rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-700">
+                {user?.sector?.typeSector ?? 'Seu setor'}
+              </p>
+            </div>
+          )}
           <div className="flex min-w-48 flex-col gap-2">
             <Label htmlFor="machine-plant-unit-filter">
               Filtrar por unidade
@@ -202,10 +213,15 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
             variant="outline"
             className="h-[var(--control-height,2.5rem)] shrink-0 self-end whitespace-nowrap"
             disabled={
-              !apiReady || (sectorFilter === '' && plantUnitFilter === '')
+              !apiReady ||
+              (isAdmin
+                ? sectorFilter === '' && plantUnitFilter === ''
+                : plantUnitFilter === '')
             }
             onClick={() => {
-              setSectorFilter('');
+              if (isAdmin) {
+                setSectorFilter('');
+              }
               setPlantUnitFilter('');
             }}
           >
@@ -298,31 +314,33 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
                         {row.plantUnit}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1.5">
                           <Button
                             type="button"
                             variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 px-3 text-xs"
+                            size="icon-sm"
                             disabled={!apiReady || busy}
+                            title="Editar"
+                            aria-label={`Editar ${row.name}`}
                             onClick={() => openEdit(row)}
                           >
-                            Editar
+                            <Pencil aria-hidden />
                           </Button>
                           <Button
                             type="button"
                             variant="outline"
-                            size="default"
-                            className="h-9 min-w-0 border-red-200 px-3 text-xs text-red-700 hover:bg-red-50"
+                            size="icon-sm"
+                            className="border-red-200 text-red-700 hover:bg-red-50"
                             disabled={!apiReady || busy || hasLinks}
                             title={
                               hasLinks
                                 ? 'Não é possível excluir: há tarefas ou solicitações vinculadas a esta máquina.'
-                                : undefined
+                                : 'Excluir'
                             }
+                            aria-label={`Excluir ${row.name}`}
                             onClick={() => setDeleteRow(row)}
                           >
-                            Excluir
+                            <Trash2 aria-hidden />
                           </Button>
                         </div>
                       </td>
@@ -438,23 +456,29 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-sector">Setor</Label>
-            <SelectCombobox
-              id="m-sector"
-              value={sectorId}
-              onValueChange={setSectorId}
-              placeholder="Selecione…"
-              options={[
-                { value: '', label: 'Selecione…' },
-                ...sectorsForSelect.map((s) => ({
-                  value: s.id,
-                  label: `${s.typeSector}${
-                    typeof s.sectorIdAPI === 'number'
-                      ? ` (#${s.sectorIdAPI})`
-                      : ''
-                  }`,
-                })),
-              ]}
-            />
+            {isAdmin ? (
+              <SelectCombobox
+                id="m-sector"
+                value={sectorId}
+                onValueChange={setSectorId}
+                placeholder="Selecione…"
+                options={[
+                  { value: '', label: 'Selecione…' },
+                  ...sectorsForSelect.map((s) => ({
+                    value: s.id,
+                    label: `${s.typeSector}${
+                      typeof s.sectorIdAPI === 'number'
+                        ? ` (#${s.sectorIdAPI})`
+                        : ''
+                    }`,
+                  })),
+                ]}
+              />
+            ) : (
+              <p className="m-0 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+                {user?.sector?.typeSector ?? 'Seu setor'}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-street">Rua (opcional)</Label>
@@ -556,19 +580,27 @@ export function MachinesPageView(vm: MachinesPageViewModel) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-sector">Setor</Label>
-            <SelectCombobox
-              id="m-edit-sector"
-              value={sectorId}
-              onValueChange={setSectorId}
-              options={sectorsForSelect.map((s) => ({
-                value: s.id,
-                label: `${s.typeSector}${
-                  typeof s.sectorIdAPI === 'number'
-                    ? ` (#${s.sectorIdAPI})`
-                    : ''
-                }`,
-              }))}
-            />
+            {isAdmin ? (
+              <SelectCombobox
+                id="m-edit-sector"
+                value={sectorId}
+                onValueChange={setSectorId}
+                options={sectorsForSelect.map((s) => ({
+                  value: s.id,
+                  label: `${s.typeSector}${
+                    typeof s.sectorIdAPI === 'number'
+                      ? ` (#${s.sectorIdAPI})`
+                      : ''
+                  }`,
+                }))}
+              />
+            ) : (
+              <p className="m-0 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+                {user?.sector?.typeSector ??
+                  sectorsForSelect.find((s) => s.id === sectorId)?.typeSector ??
+                  'Seu setor'}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="m-edit-street">Rua (opcional)</Label>

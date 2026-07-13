@@ -76,12 +76,27 @@ export function useMachinesPage() {
     retry: false,
   });
 
-  const sectorsForSelect = sectorsForForms(
-    user?.sectorId ?? undefined,
+  const sectorsForSelect = useMemo(() => {
+    const all = sectorsForForms(
+      user?.sectorId ?? undefined,
+      user?.sector?.typeSector,
+      sectorsQuery.data,
+      sectorsQuery.isError,
+    );
+    if (isAdmin) {
+      return all;
+    }
+    if (!user?.sectorId) {
+      return [];
+    }
+    return all.filter((s) => s.id === user.sectorId);
+  }, [
+    isAdmin,
+    user?.sectorId,
     user?.sector?.typeSector,
     sectorsQuery.data,
     sectorsQuery.isError,
-  );
+  ]);
 
   const typesQuery = useQuery({
     queryKey: ['type-machines'],
@@ -92,14 +107,26 @@ export function useMachinesPage() {
   const [sectorFilter, setSectorFilter] = useState('');
   const [plantUnitFilter, setPlantUnitFilter] = useState<'' | PlantMapUnit>('');
 
+  useEffect(() => {
+    if (!isAdmin && user?.sectorId) {
+      setSectorFilter(user.sectorId);
+    }
+  }, [isAdmin, user?.sectorId]);
+
   const machinesQuery = useQuery({
-    queryKey: ['machines', sectorFilter, plantUnitFilter],
+    queryKey: [
+      'machines',
+      isAdmin ? sectorFilter : (user?.sectorId ?? ''),
+      plantUnitFilter,
+    ],
     queryFn: () =>
       fetchMachines({
-        sectorId: sectorFilter || undefined,
+        sectorId: isAdmin
+          ? sectorFilter || undefined
+          : (user?.sectorId ?? undefined),
         plantUnit: plantUnitFilter || undefined,
       }),
-    enabled: apiReady,
+    enabled: apiReady && (isAdmin || Boolean(user?.sectorId)),
   });
 
   const sectorsEmpty =
@@ -309,11 +336,19 @@ export function useMachinesPage() {
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
+      const resolvedSectorId = isAdmin ? sectorId : (user?.sectorId ?? '');
+      if (!resolvedSectorId) {
+        throw new Error(
+          isAdmin
+            ? 'Selecione o setor.'
+            : 'Usuário sem setor; não é possível criar máquina.',
+        );
+      }
       return createMachine({
         name: n,
         plantUnit,
         typeMachineId,
-        sectorId,
+        sectorId: resolvedSectorId,
         assetNumber: asset,
         pillar: pillarValue,
         userId: userId.trim() === '' ? undefined : userId.trim(),
@@ -350,11 +385,19 @@ export function useMachinesPage() {
       if (!typeMachineId || !sectorId) {
         throw new Error('Selecione o tipo e o setor.');
       }
+      const resolvedSectorId = isAdmin ? sectorId : (user?.sectorId ?? '');
+      if (!resolvedSectorId) {
+        throw new Error(
+          isAdmin
+            ? 'Selecione o setor.'
+            : 'Usuário sem setor; não é possível atualizar máquina.',
+        );
+      }
       return updateMachine(editRow.id, {
         name: n,
         plantUnit,
         typeMachineId,
-        sectorId,
+        ...(isAdmin ? { sectorId: resolvedSectorId } : {}),
         assetNumber: asset,
         pillar: pillarValue,
         machineStreetId:

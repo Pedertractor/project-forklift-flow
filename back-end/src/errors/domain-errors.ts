@@ -213,6 +213,22 @@ export class OperatorMachineNotBoundError extends Error {
   }
 }
 
+export class ToolingNotFoundError extends Error {
+  constructor(message = "Ferramental nao encontrado.") {
+    super(message);
+    this.name = "ToolingNotFoundError";
+  }
+}
+
+export class ToolingMachineMismatchError extends Error {
+  constructor(
+    message = "O ferramental informado nao pertence a maquina em operacao.",
+  ) {
+    super(message);
+    this.name = "ToolingMachineMismatchError";
+  }
+}
+
 export class ReplenishmentFinalizeMissingFieldsError extends Error {
   constructor(
     message = "Informe movementCube e typeMovimentPallet para abrir preparo de novo pallet.",
@@ -273,6 +289,15 @@ export class MachineNotInOperatorSectorError extends Error {
   ) {
     super(message);
     this.name = "MachineNotInOperatorSectorError";
+  }
+}
+
+export class MachineSectorAccessDeniedError extends Error {
+  constructor(
+    message = "Sem permissao para acessar maquinas de outro setor.",
+  ) {
+    super(message);
+    this.name = "MachineSectorAccessDeniedError";
   }
 }
 

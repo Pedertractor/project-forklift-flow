@@ -131,6 +131,10 @@ model OperatorMachineSupplyRequest {
   requestedBy   User   @relation("UserOperatorMachineSupplyRequests", fields: [requestedById], references: [id])
   requestedById String
 
+  /// Ferramental confirmado pelo operador no momento da solicitação de abastecimento.
+  tooling   Tooling? @relation(fields: [toolingId], references: [id], onDelete: SetNull)
+  toolingId String?
+
   status OperatorMachineSupplyRequestStatus @default(OPEN)
 
   fulfilledAt DateTime?
@@ -218,8 +222,26 @@ model Machine {
   /// Physical pillar / bay location of the machine on the plant floor.
   pillar String?
 
+  tooling Tooling[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Ferramental aplicado na máquina de dobra (cadastro pelo operador).
+model Tooling {
+  id   String @id @default(uuid())
+  name String
+
+  machine   Machine @relation(fields: [machineId], references: [id])
+  machineId String
+
+  operatorMachineSupplyRequests OperatorMachineSupplyRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([machineId])
 }
 
 model TypeMachine {

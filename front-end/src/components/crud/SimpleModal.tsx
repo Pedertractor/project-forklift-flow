@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
@@ -28,11 +29,11 @@ export function SimpleModal({
   showHeaderClose,
   headerCloseDisabled,
 }: SimpleModalProps) {
-  if (!open) {
+  if (!open || typeof document === 'undefined') {
     return null;
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <button
         type="button"
@@ -80,7 +81,8 @@ export function SimpleModal({
           </div>
         ) : null}
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

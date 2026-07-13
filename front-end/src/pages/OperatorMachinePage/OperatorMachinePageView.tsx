@@ -6,6 +6,7 @@ import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPag
 import type { OperatorMachinePageViewModel } from './useOperatorMachinePage';
 import { OperatorMachineOperationGrid } from './OperatorMachineOperationGrid';
 import { OperatorMachineTasksList } from './OperatorMachineTasksList';
+import { OperatorMachineToolingBar } from './OperatorMachineToolingBar';
 import { MachineProductionStatusIndicator } from './MachineProductionStatusIndicator';
 import { MachineMetaText } from '@/components/machines/MachineMetaText';
 import { LogOut } from 'lucide-react';
@@ -41,6 +42,12 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     submitServiceRequest,
     serviceRequestSubmitPending,
     operatorSupplyRequests,
+    toolings,
+    toolingsLoading,
+    createTooling,
+    createToolingPending,
+    deleteTooling,
+    deleteToolingPendingId,
     endShiftOpen,
     setEndShiftOpen,
     unbindMut,
@@ -59,8 +66,8 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
     cancelPickupTask?.triggersReplenishment === true;
 
   return (
-    <main className="px-4 py-8 max-[800px]:px-3">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <main className="flex min-h-full flex-col px-4 py-8 max-[800px]:px-3">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6">
         <header className="flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="m-0 text-2xl font-bold tracking-tight text-zinc-900">
@@ -162,6 +169,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
             <OperatorMachineOperationGrid
               openSupply={openOperatorSupply}
               deliveryTasks={deliveryTasks}
+              toolings={toolings}
               canPickup={canPickup}
               canOpenRequestDialog={canOpenRequestDialog}
               pickupBlockedMessage={pickupBlockedMessage}
@@ -169,8 +177,12 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
                 palletAtReceiving ? palletAtReceivingBlockedMessage : null
               }
               serviceRequestSubmitPending={serviceRequestSubmitPending}
+              createToolingPending={createToolingPending}
+              deleteToolingPendingId={deleteToolingPendingId}
               busy={busy}
               apiReady={apiReady}
+              onCreateTooling={createTooling}
+              onDeleteTooling={deleteTooling}
               onSubmitServiceRequest={(selection) => {
                 void submitServiceRequest(selection);
               }}
@@ -190,6 +202,20 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
             />
           </>
         )}
+
+        {!pickingMachine && current ? (
+          <div className="sticky bottom-0 z-10 -mx-1 mt-auto border-t border-transparent bg-zinc-100/95 pb-1 pt-3 backdrop-blur-sm">
+            <OperatorMachineToolingBar
+              toolings={toolings}
+              loading={toolingsLoading}
+              createPending={createToolingPending}
+              deletePendingId={deleteToolingPendingId}
+              disabled={!apiReady || busy}
+              onCreate={createTooling}
+              onDelete={deleteTooling}
+            />
+          </div>
+        ) : null}
       </div>
 
       <SimpleModal

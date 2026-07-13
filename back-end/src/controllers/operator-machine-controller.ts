@@ -13,14 +13,19 @@ import {
   PickupTaskCannotBeCanceledError,
   PickupTaskNotFoundError,
   PickupTaskNotOnOperatorMachineError,
+  ToolingMachineMismatchError,
+  ToolingNotFoundError,
 } from '../errors/domain-errors.js'
 import {
   bindOperatorToMachine,
   cancelPickupRequestByOperator,
+  createToolingForOperatorMachine,
+  deleteToolingForOperatorMachine,
   getOperatorCurrentMachine,
   listMachineTasksForOperator,
   listMachinesForOperatorPicker,
   listOperatorSupplyRequestsForOperatorMachine,
+  listToolingsForOperatorMachine,
   requestPickupOnly,
   requestPickupWithReplenishment,
   requestSupplyOnly,
@@ -54,11 +59,26 @@ function parseOptionalTypeMovimentPallet(
   return value as TypeMovimentPallet
 }
 
+function parseOptionalToolingId(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed === '' ? undefined : trimmed
+}
+
 function parsePickupRequestBody(body: {
   isCritical?: boolean
   typeMovimentPallet?: unknown
+  toolingId?: unknown
 }):
-  | { ok: true; options: { isCritical?: boolean; typeMovimentPallet?: TypeMovimentPallet } }
+  | {
+      ok: true
+      options: {
+        isCritical?: boolean
+        typeMovimentPallet?: TypeMovimentPallet
+        toolingId?: string
+      }
+    }
   | { ok: false; error: string } {
   const typeMovimentPallet = parseOptionalTypeMovimentPallet(
     body.typeMovimentPallet,
@@ -70,11 +90,21 @@ function parsePickupRequestBody(body: {
   ) {
     return { ok: false, error: 'typeMovimentPallet invalido.' }
   }
+  if (
+    body.toolingId !== undefined &&
+    body.toolingId !== null &&
+    body.toolingId !== '' &&
+    typeof body.toolingId !== 'string'
+  ) {
+    return { ok: false, error: 'toolingId invalido.' }
+  }
+  const toolingId = parseOptionalToolingId(body.toolingId)
   return {
     ok: true,
     options: {
       isCritical: body.isCritical === true,
       ...(typeMovimentPallet ? { typeMovimentPallet } : {}),
+      ...(toolingId ? { toolingId } : {}),
     },
   }
 }
@@ -189,11 +219,30 @@ export const postRequestSupplyOnly: RouteHandlerMethod = async (
   reply,
 ) => {
   const user = request.user as AppJwtPayload
+  const body = (request.body ?? {}) as { toolingId?: unknown }
+  if (
+    body.toolingId !== undefined &&
+    body.toolingId !== null &&
+    body.toolingId !== '' &&
+    typeof body.toolingId !== 'string'
+  ) {
+    return reply.status(400).send({ error: 'toolingId invalido.' })
+  }
+  const toolingId = parseOptionalToolingId(body.toolingId)
   try {
-    const result = await requestSupplyOnly(user.sub)
+    const result = await requestSupplyOnly(
+      user.sub,
+      toolingId ? { toolingId } : undefined,
+    )
     return reply.status(result.created ? 201 : 200).send(result)
   } catch (error) {
     if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ToolingNotFoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ToolingMachineMismatchError) {
       return reply.status(400).send({ error: error.message })
     }
     if (error instanceof OperatorRequestBlockedByPalletAtReceivingError) {
@@ -211,6 +260,7 @@ export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
   const body = (request.body ?? {}) as {
     isCritical?: boolean
     typeMovimentPallet?: unknown
+    toolingId?: unknown
   }
   const parsed = parsePickupRequestBody(body)
   if (!parsed.ok) {
@@ -223,11 +273,85 @@ export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
     if (error instanceof OperatorMachineNotBoundError) {
       return reply.status(400).send({ error: error.message })
     }
+    if (error instanceof ToolingNotFoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ToolingMachineMismatchError) {
+      return reply.status(400).send({ error: error.message })
+    }
     if (error instanceof PickupTaskAlreadyOpenError) {
       return reply.status(409).send({ error: error.message })
     }
     if (error instanceof OperatorRequestBlockedByPalletAtReceivingError) {
       return reply.status(409).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const getListToolingsForOperator: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  try {
+    const toolings = await listToolingsForOperatorMachine(user.sub)
+    return reply.send({ toolings })
+  } catch (error) {
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const postCreateToolingForOperator: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const body = (request.body ?? {}) as { name?: unknown }
+  if (typeof body.name !== 'string') {
+    return reply.status(400).send({ error: 'Informe name.' })
+  }
+  try {
+    const tooling = await createToolingForOperatorMachine(user.sub, body.name)
+    return reply.status(201).send({ tooling })
+  } catch (error) {
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ToolingNotFoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    throw error
+  }
+}
+
+export const deleteToolingForOperator: RouteHandlerMethod = async (
+  request,
+  reply,
+) => {
+  const user = request.user as AppJwtPayload
+  const { toolingId } = request.params as { toolingId?: string }
+  if (typeof toolingId !== 'string' || toolingId.trim() === '') {
+    return reply.status(400).send({ error: 'Informe toolingId.' })
+  }
+  try {
+    const tooling = await deleteToolingForOperatorMachine(
+      user.sub,
+      toolingId.trim(),
+    )
+    return reply.send({ tooling })
+  } catch (error) {
+    if (error instanceof OperatorMachineNotBoundError) {
+      return reply.status(400).send({ error: error.message })
+    }
+    if (error instanceof ToolingNotFoundError) {
+      return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof ToolingMachineMismatchError) {
+      return reply.status(403).send({ error: error.message })
     }
     throw error
   }

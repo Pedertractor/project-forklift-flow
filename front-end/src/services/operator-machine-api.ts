@@ -11,6 +11,7 @@ import type {
   OperatorPickupProgressPhase,
   OperatorPickupProgressResponse,
   OperatorSupplyRequestsResponse,
+  MachineToolingListItem,
 } from '@/types/operator-machine.types';
 
 export async function fetchOperatorMyMachine() {
@@ -110,11 +111,16 @@ export async function postCancelOperatorPickup(pickupTaskId: string) {
   return res;
 }
 
-export async function postOperatorSupplyOnly() {
+export async function postOperatorSupplyOnly(options?: { toolingId?: string }) {
   const res = await apiAuthFetch<{
     operatorSupplyRequest: { id: string; status: string };
     created: boolean;
-  }>(API_ENDPOINTS.OPERATOR_MACHINE.SUPPLY_ONLY, { method: 'POST' });
+  }>(API_ENDPOINTS.OPERATOR_MACHINE.SUPPLY_ONLY, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(options?.toolingId ? { toolingId: options.toolingId } : {}),
+    }),
+  });
   if (!res?.operatorSupplyRequest) {
     throw new Error('Resposta inválida ao solicitar abastecimento.');
   }
@@ -124,6 +130,7 @@ export async function postOperatorSupplyOnly() {
 export async function postOperatorPickupWithReplenishment(options?: {
   isCritical?: boolean;
   typeMovimentPallet?: 'FORKLIFT' | 'ANY';
+  toolingId?: string;
 }) {
   const res = await apiAuthFetch<{
     pickupTask: PickupTaskListItem;
@@ -135,12 +142,46 @@ export async function postOperatorPickupWithReplenishment(options?: {
       ...(options?.typeMovimentPallet
         ? { typeMovimentPallet: options.typeMovimentPallet }
         : {}),
+      ...(options?.toolingId ? { toolingId: options.toolingId } : {}),
     }),
   });
   if (!res?.pickupTask) {
     throw new Error('Resposta inválida ao solicitar retirada e abastecimento.');
   }
   return res;
+}
+
+export async function fetchOperatorMachineToolings() {
+  const res = await apiAuthFetch<{ toolings: MachineToolingListItem[] }>(
+    API_ENDPOINTS.OPERATOR_MACHINE.TOOLINGS,
+    { method: 'GET' },
+  );
+  return res?.toolings ?? [];
+}
+
+export async function postOperatorMachineTooling(name: string) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.OPERATOR_MACHINE.TOOLINGS,
+    {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao cadastrar ferramental.');
+  }
+  return res.tooling;
+}
+
+export async function deleteOperatorMachineTooling(toolingId: string) {
+  const res = await apiAuthFetch<{ tooling: MachineToolingListItem }>(
+    API_ENDPOINTS.OPERATOR_MACHINE.TOOLING_BY_ID(toolingId),
+    { method: 'DELETE' },
+  );
+  if (!res?.tooling) {
+    throw new Error('Resposta inválida ao remover ferramental.');
+  }
+  return res.tooling;
 }
 
 function transportLabelFor(typeMovimentPallet: string): string {

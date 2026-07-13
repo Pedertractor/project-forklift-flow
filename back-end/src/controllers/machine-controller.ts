@@ -3,11 +3,13 @@ import {
   AssignMachineUserError,
   MachineInUseError,
   MachineNotFoundError,
+  MachineSectorAccessDeniedError,
   MachineStreetNotFoundError,
   MachineStreetSectorMismatchError,
   SectorNotFoundError,
   TypeMachineNotFoundError,
 } from '../errors/domain-errors.js'
+import { userRepository } from '../repositories/user.repository.js'
 import {
   createMachine,
   deleteMachine,
@@ -17,6 +19,8 @@ import {
   parsePlantMapUnit,
   updateMachine,
 } from '../services/machine.service.js'
+import type { AppJwtPayload } from '../types/auth.types.js'
+import { isAdminOrSuperAdmin } from '../utils/role-user.js'
 
 function parseOptionalTrimmedString(
   value: unknown,
@@ -34,7 +38,26 @@ function parseOptionalTrimmedString(
   return trimmed === '' ? null : trimmed
 }
 
+async function resolveNonAdminSectorId(
+  actorUserId: string,
+): Promise<string | null> {
+  const user = await userRepository.findUniqueByIdWithSector(actorUserId)
+  return user?.sectorId ?? null
+}
+
+async function assertMachineInActorSector(
+  machineId: string,
+  actorSectorId: string,
+) {
+  const row = await getMachineById(machineId)
+  if (row.sectorId !== actorSectorId) {
+    throw new MachineSectorAccessDeniedError()
+  }
+  return row
+}
+
 export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
+  const actor = request.user as AppJwtPayload
   const body = (request.body ?? {}) as {
     name?: string
     plantUnit?: string
@@ -51,9 +74,6 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
   if (typeof body.typeMachineId !== 'string' || body.typeMachineId.trim() === '') {
     return reply.status(400).send({ error: 'Informe typeMachineId.' })
   }
-  if (typeof body.sectorId !== 'string' || body.sectorId.trim() === '') {
-    return reply.status(400).send({ error: 'Informe sectorId.' })
-  }
   if (typeof body.plantUnit !== 'string' || body.plantUnit.trim() === '') {
     return reply.status(400).send({ error: 'Informe plantUnit (PEDERTRACTOR | TRACTOR).' })
   }
@@ -68,12 +88,28 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
     return reply.status(400).send({ error: 'Informe pillar (texto nao vazio).' })
   }
 
+  let sectorId: string
+  if (isAdminOrSuperAdmin(actor.role)) {
+    if (typeof body.sectorId !== 'string' || body.sectorId.trim() === '') {
+      return reply.status(400).send({ error: 'Informe sectorId.' })
+    }
+    sectorId = body.sectorId.trim()
+  } else {
+    const actorSectorId = await resolveNonAdminSectorId(actor.sub)
+    if (!actorSectorId) {
+      return reply
+        .status(400)
+        .send({ error: 'Usuario sem setor; nao e possivel criar maquina.' })
+    }
+    sectorId = actorSectorId
+  }
+
   try {
     const row = await createMachine({
       name: body.name,
       plantUnit,
       typeMachineId: body.typeMachineId.trim(),
-      sectorId: body.sectorId.trim(),
+      sectorId,
       userId: body.userId,
       machineStreetId: parseOptionalTrimmedString(body.machineStreetId),
       assetNumber: body.assetNumber,
@@ -101,14 +137,27 @@ export const postCreateMachine: RouteHandlerMethod = async (request, reply) => {
 }
 
 export const getListMachines: RouteHandlerMethod = async (request, reply) => {
-  const { sectorId, plantUnit: plantUnitRaw } = (request.query ?? {}) as {
+  const actor = request.user as AppJwtPayload
+  const { sectorId: sectorIdRaw, plantUnit: plantUnitRaw } = (request.query ??
+    {}) as {
     sectorId?: string
     plantUnit?: string
   }
-  const options: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' } = {}
-  if (typeof sectorId === 'string' && sectorId.trim() !== '') {
-    options.sectorId = sectorId.trim()
+  const options: { sectorId?: string; plantUnit?: 'PEDERTRACTOR' | 'TRACTOR' } =
+    {}
+
+  if (isAdminOrSuperAdmin(actor.role)) {
+    if (typeof sectorIdRaw === 'string' && sectorIdRaw.trim() !== '') {
+      options.sectorId = sectorIdRaw.trim()
+    }
+  } else {
+    const actorSectorId = await resolveNonAdminSectorId(actor.sub)
+    if (!actorSectorId) {
+      return reply.send({ machines: [] })
+    }
+    options.sectorId = actorSectorId
   }
+
   if (typeof plantUnitRaw === 'string' && plantUnitRaw.trim() !== '') {
     const plantUnit = parsePlantMapUnit(plantUnitRaw)
     if (!plantUnit) {
@@ -116,27 +165,44 @@ export const getListMachines: RouteHandlerMethod = async (request, reply) => {
     }
     options.plantUnit = plantUnit
   }
-  const machines = await listMachines(Object.keys(options).length > 0 ? options : undefined)
+  const machines = await listMachines(
+    Object.keys(options).length > 0 ? options : undefined,
+  )
   return reply.send({ machines })
 }
 
 export const getMachineByIdHandler: RouteHandlerMethod = async (request, reply) => {
+  const actor = request.user as AppJwtPayload
   const { machineId } = request.params as { machineId?: string }
   if (!machineId) {
     return reply.status(400).send({ error: 'machineId invalido.' })
   }
   try {
+    if (!isAdminOrSuperAdmin(actor.role)) {
+      const actorSectorId = await resolveNonAdminSectorId(actor.sub)
+      if (!actorSectorId) {
+        return reply.status(403).send({
+          error: 'Usuario sem setor; nao e possivel acessar maquinas.',
+        })
+      }
+      const row = await assertMachineInActorSector(machineId, actorSectorId)
+      return reply.send(row)
+    }
     const row = await getMachineById(machineId)
     return reply.send(row)
   } catch (error) {
     if (error instanceof MachineNotFoundError) {
       return reply.status(404).send({ error: error.message })
     }
+    if (error instanceof MachineSectorAccessDeniedError) {
+      return reply.status(403).send({ error: error.message })
+    }
     throw error
   }
 }
 
 export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => {
+  const actor = request.user as AppJwtPayload
   const { machineId } = request.params as { machineId?: string }
   const body = (request.body ?? {}) as {
     name?: string
@@ -186,7 +252,7 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
     }
     patch.typeMachineId = body.typeMachineId.trim()
   }
-  if (typeof body.sectorId === 'string') {
+  if (isAdminOrSuperAdmin(actor.role) && typeof body.sectorId === 'string') {
     if (body.sectorId.trim() === '') {
       return reply.status(400).send({ error: 'sectorId nao pode ser vazio.' })
     }
@@ -236,11 +302,23 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
   }
 
   try {
+    if (!isAdminOrSuperAdmin(actor.role)) {
+      const actorSectorId = await resolveNonAdminSectorId(actor.sub)
+      if (!actorSectorId) {
+        return reply.status(403).send({
+          error: 'Usuario sem setor; nao e possivel alterar maquinas.',
+        })
+      }
+      await assertMachineInActorSector(machineId, actorSectorId)
+    }
     const row = await updateMachine(machineId, patch)
     return reply.send(row)
   } catch (error) {
     if (error instanceof MachineNotFoundError) {
       return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MachineSectorAccessDeniedError) {
+      return reply.status(403).send({ error: error.message })
     }
     if (error instanceof TypeMachineNotFoundError) {
       return reply.status(404).send({ error: error.message })
@@ -262,16 +340,29 @@ export const patchUpdateMachine: RouteHandlerMethod = async (request, reply) => 
 }
 
 export const deleteMachineHandler: RouteHandlerMethod = async (request, reply) => {
+  const actor = request.user as AppJwtPayload
   const { machineId } = request.params as { machineId?: string }
   if (!machineId) {
     return reply.status(400).send({ error: 'machineId invalido.' })
   }
   try {
+    if (!isAdminOrSuperAdmin(actor.role)) {
+      const actorSectorId = await resolveNonAdminSectorId(actor.sub)
+      if (!actorSectorId) {
+        return reply.status(403).send({
+          error: 'Usuario sem setor; nao e possivel excluir maquinas.',
+        })
+      }
+      await assertMachineInActorSector(machineId, actorSectorId)
+    }
     await deleteMachine(machineId)
     return reply.status(204).send()
   } catch (error) {
     if (error instanceof MachineNotFoundError) {
       return reply.status(404).send({ error: error.message })
+    }
+    if (error instanceof MachineSectorAccessDeniedError) {
+      return reply.status(403).send({ error: error.message })
     }
     if (error instanceof MachineInUseError) {
       return reply.status(409).send({ error: error.message })

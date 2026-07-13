@@ -49,6 +49,9 @@ export const API_ENDPOINTS = {
     PICKUP_ONLY: '/operator-machine/pickup-only',
     SUPPLY_ONLY: '/operator-machine/supply-only',
     PICKUP_WITH_REPLENISHMENT: '/operator-machine/pickup-with-replenishment',
+    TOOLINGS: '/operator-machine/toolings',
+    TOOLING_BY_ID: (toolingId: string) =>
+      `/operator-machine/toolings/${encodeURIComponent(toolingId)}`,
     CANCEL_PICKUP: (pickupTaskId: string) =>
       `/operator-machine/pickup-tasks/${encodeURIComponent(pickupTaskId)}/cancel`,
   },

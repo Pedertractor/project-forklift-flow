@@ -13,12 +13,15 @@ import {
   PickupTaskCannotBeCanceledError,
   PickupTaskNotFoundError,
   PickupTaskNotOnOperatorMachineError,
+  ToolingMachineMismatchError,
+  ToolingNotFoundError,
 } from '../errors/domain-errors.js'
 import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
 import { operatorMachineSupplyRequestRepository, operatorMachineSupplyRequestListInclude } from '../repositories/operator-machine-supply-request.repository.js'
 import { movimentPalletTripSuggestionRepository } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
+import { toolingRepository } from '../repositories/tooling.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
 import {
@@ -226,7 +229,10 @@ export async function requestPickupOnly(
 }
 
 /** Aviso ao abastecimento sem retirada; no maximo uma solicitacao OPEN por maquina. */
-export async function requestSupplyOnly(operatorUserId: string) {
+export async function requestSupplyOnly(
+  operatorUserId: string,
+  options?: { toolingId?: string },
+) {
   const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
   if (!machine) {
     throw new OperatorMachineNotBoundError()
@@ -242,10 +248,16 @@ export async function requestSupplyOnly(operatorUserId: string) {
     return { operatorSupplyRequest: existingOpen, created: false as const }
   }
 
+  const toolingId = options?.toolingId?.trim()
+  if (toolingId) {
+    await requireToolingForMachine(toolingId, machine.id)
+  }
+
   const operatorSupplyRequest = await operatorMachineSupplyRequestRepository.create(
     {
       machine: { connect: { id: machine.id } },
       requestedBy: { connect: { id: operatorUserId } },
+      ...(toolingId ? { tooling: { connect: { id: toolingId } } } : {}),
       status: OperatorMachineSupplyRequestStatus.OPEN,
     },
   )
@@ -260,10 +272,64 @@ export async function requestSupplyOnly(operatorUserId: string) {
   return { operatorSupplyRequest, created: true as const }
 }
 
+async function requireToolingForMachine(toolingId: string, machineId: string) {
+  const tooling = await toolingRepository.findUniqueById(toolingId)
+  if (!tooling) {
+    throw new ToolingNotFoundError()
+  }
+  if (tooling.machineId !== machineId) {
+    throw new ToolingMachineMismatchError()
+  }
+  return tooling
+}
+
+export async function listToolingsForOperatorMachine(operatorUserId: string) {
+  const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!machine) {
+    throw new OperatorMachineNotBoundError()
+  }
+  return toolingRepository.findManyByMachineId(machine.id)
+}
+
+export async function createToolingForOperatorMachine(
+  operatorUserId: string,
+  name: string,
+) {
+  const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!machine) {
+    throw new OperatorMachineNotBoundError()
+  }
+  const trimmed = name.trim()
+  if (!trimmed) {
+    throw new ToolingNotFoundError('Informe name (texto nao vazio).')
+  }
+  return toolingRepository.create({
+    name: trimmed,
+    machine: { connect: { id: machine.id } },
+  })
+}
+
+export async function deleteToolingForOperatorMachine(
+  operatorUserId: string,
+  toolingId: string,
+) {
+  const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
+  if (!machine) {
+    throw new OperatorMachineNotBoundError()
+  }
+  const tooling = await requireToolingForMachine(toolingId.trim(), machine.id)
+  await toolingRepository.deleteById(tooling.id)
+  return tooling
+}
+
 /** Retirada + aviso ao abastecimento (cria sugestao de viagem quando houver entrega). */
 export async function requestPickupWithReplenishment(
   operatorUserId: string,
-  options?: { isCritical?: boolean; typeMovimentPallet?: TypeMovimentPallet },
+  options?: {
+    isCritical?: boolean
+    typeMovimentPallet?: TypeMovimentPallet
+    toolingId?: string
+  },
 ) {
   const machine = await machineRepository.findFirstByOperatorUserId(operatorUserId)
   if (!machine) {
@@ -294,10 +360,16 @@ export async function requestPickupWithReplenishment(
     let operatorSupplyRequest = existingOpenSupply
     let createdSupplyRequest = false
     if (!replenishmentAlreadyPending) {
+      const toolingId = options?.toolingId?.trim()
+      if (toolingId) {
+        await requireToolingForMachine(toolingId, machine.id)
+      }
+
       operatorSupplyRequest = await tx.operatorMachineSupplyRequest.create({
         data: {
           machine: { connect: { id: machine.id } },
           requestedBy: { connect: { id: operatorUserId } },
+          ...(toolingId ? { tooling: { connect: { id: toolingId } } } : {}),
           status: OperatorMachineSupplyRequestStatus.OPEN,
         },
         include: operatorMachineSupplyRequestListInclude,
