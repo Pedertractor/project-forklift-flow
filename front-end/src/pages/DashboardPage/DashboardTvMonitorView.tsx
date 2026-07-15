@@ -203,7 +203,7 @@ function TvKpiCard({
   return (
     <Card
       className={cn(
-        'flex min-h-[3.75rem] min-w-0 items-center overflow-hidden rounded-xl border-0 p-2.5 shadow-sm',
+        'flex min-h-[4.75rem] min-w-0 items-center overflow-hidden rounded-xl border-0 px-3 py-3 shadow-sm',
         dark
           ? 'bg-gradient-to-br from-zinc-800/90 to-zinc-900/80'
           : 'bg-gradient-to-br from-white to-zinc-50/80',
@@ -213,10 +213,10 @@ function TvKpiCard({
             : 'from-emerald-50 to-emerald-50/30'),
       )}
     >
-      <div className="flex w-full items-center gap-2">
+      <div className="flex w-full items-center gap-2.5">
         <div
           className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-lg',
+            'flex size-9 shrink-0 items-center justify-center rounded-lg',
             accent === 'critical'
               ? 'bg-red-600 text-white'
               : accent === 'ok'
@@ -232,17 +232,17 @@ function TvKpiCard({
             <img
               src={iconSrc}
               alt=""
-              className="size-3.5 object-contain p-px"
+              className="size-4 object-contain p-px"
               aria-hidden
             />
           ) : Icon ? (
-            <Icon className="size-4" strokeWidth={1.75} aria-hidden />
+            <Icon className="size-5" strokeWidth={1.75} aria-hidden />
           ) : null}
         </div>
         <div className="min-w-0 flex-1">
           <p
             className={cn(
-              'm-0 text-[0.6rem] font-semibold uppercase leading-tight tracking-wide',
+              'm-0 text-xs font-semibold uppercase leading-tight tracking-wide',
               dark ? 'text-zinc-400' : 'text-zinc-500',
             )}
           >
@@ -250,7 +250,7 @@ function TvKpiCard({
           </p>
           <p
             className={cn(
-              'm-0 mt-0.5 text-lg font-bold tabular-nums leading-none sm:text-xl',
+              'm-0 mt-1 text-xl font-bold tabular-nums leading-none sm:text-2xl',
               dark ? 'text-zinc-50' : 'text-zinc-900',
             )}
           >
@@ -272,16 +272,16 @@ function TvKpiColumn({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-2">
       <p
         className={cn(
-          'm-0 px-0.5 text-[0.65rem] font-bold uppercase tracking-wider',
+          'm-0 px-0.5 text-xs font-bold uppercase tracking-wider',
           dark ? 'text-zinc-500' : 'text-zinc-400',
         )}
       >
         {title}
       </p>
-      <div className="flex flex-col gap-1.5">{children}</div>
+      <div className="flex flex-col gap-2">{children}</div>
     </div>
   );
 }
