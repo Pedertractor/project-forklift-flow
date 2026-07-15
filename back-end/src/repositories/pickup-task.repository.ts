@@ -1,8 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import {
-  IsOperating,
-  MachineTaskStatus,
-} from '../generated/prisma/enums.js'
+import { IsOperating } from '../generated/prisma/enums.js'
 import { openMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
 import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-type.js'
@@ -76,12 +73,19 @@ export const pickupTaskRepository = {
     })
   },
 
-  findFirstOpenWithReplenishmentForMachine(machineId: string) {
+  /**
+   * 1ª retirada aberta da máquina ainda sem vínculo com nenhum aviso de
+   * abastecimento (mais antiga primeiro). Usada quando um NOVO aviso é
+   * criado depois de uma retirada avulsa já solicitada — amarra os dois
+   * (retirada + abastecimento sequenciais, nenhum ainda acatado pelo
+   * transporte é exigido; ver `pickup-supply-link.service.ts`).
+   */
+  findFirstOpenUnlinkedForMachine(machineId: string) {
     return prisma.pickupTask.findFirst({
       where: {
         machineId,
-        triggersReplenishment: true,
         status: { in: openMachineTaskStatuses },
+        linkedSupplyRequestId: null,
       },
       include: pickupTaskListInclude,
       orderBy: { createdAt: 'asc' },
@@ -133,14 +137,28 @@ export const pickupTaskRepository = {
     return prisma.pickupTask.count({ where })
   },
 
-  findManyOpenWithReplenishmentForSector(
-    sectorId: string,
-    operatingMode: IsOperating,
-  ) {
+  /**
+   * Retirada aberta amarrada a um aviso de abastecimento (continuum
+   * "Entrega + Retirada") — usada para resolver a sugestão de viagem sem
+   * heurística: no máximo uma por máquina (vínculo único no banco).
+   */
+  findFirstOpenLinkedForMachine(machineId: string) {
+    return prisma.pickupTask.findFirst({
+      where: {
+        machineId,
+        linkedSupplyRequestId: { not: null },
+        status: { in: openMachineTaskStatuses },
+      },
+      include: pickupTaskListInclude,
+      orderBy: { createdAt: 'asc' },
+    })
+  },
+
+  findManyOpenLinkedForSector(sectorId: string, operatingMode: IsOperating) {
     return prisma.pickupTask.findMany({
       where: {
         machine: { sectorId },
-        triggersReplenishment: true,
+        linkedSupplyRequestId: { not: null },
         status: { in: openMachineTaskStatuses },
         typeMovimentPallet: { in: openPoolTypesForOperatingMode(operatingMode) },
       },

@@ -177,11 +177,11 @@ Igual `LEADER` / `ADMIN` — **✅** CRUD completo (`POST`, `GET`, `GET/:id`, `P
 ## `FORKLIFT_OPERATOR` e `FOLLOW_UP_OPERATOR`
 
 - Rotas **“qualquer autenticado”** + **públicas**.
-- Apenas prefixo **`/api/operator-moviment-pallet`** (além de `ADMIN`).
-- Tabela completa com **Status** na seção [`ADMIN`](#admin) (operador de movimentação), incluindo `complete-deliver`, `complete-pickup`, `active-flow`.
+- Apenas prefixo **`/api/operator-moviment-pallet`**. **ADMIN e LEADER não acessam** (nem a tela «Operação — movimentação» no front).
+- Tabela completa com **Status** na seção de transportador (hoje `PALLET_TRANSPORTER`), incluindo `complete-deliver`, `complete-pickup`, `active-flow`.
 - **✅** `GET .../notifications` (§9).
 
-**Nota:** empilhadeirista vs transpaleteiro é filtrado pelo **tipo do equipamento** vinculado; detalhes em `REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`.
+**Nota:** empilhadeirista vs transpaleteiro é filtrado pelo **modo `isOperating`** (`FORKLIFT` / `PALLET_TRUCK`); detalhes em `REGRAS_NEGOCIO_REPOSICAO_OPERADOR.md`.
 
 ---
 
@@ -216,7 +216,7 @@ Outras rotas (cadastros, operadores, etc.) retornam **403** até existir permiss
 | `GET` `/api/machine-replenishment-requests` (lista, `:id`, `pending-preparation`) | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR`, `SUPERVISOR`, `MANAGER` |
 | `POST`/`PATCH`/`DELETE` `/api/machine-replenishment-requests` (+ `mark-pallet-ready`) | `ADMIN`, `LEADER`, `SUPPLY_OPERATOR` |
 | `/api/operator-machine` | `ADMIN`, `OPERATOR_MACHINE` |
-| `/api/operator-moviment-pallet` | `ADMIN`, `FORKLIFT_OPERATOR`, `FOLLOW_UP_OPERATOR` |
+| `/api/operator-moviment-pallet` | `PALLET_TRANSPORTER` (somente; sem `ADMIN`/`LEADER`) |
 | Orquestração §9 | ✅ — [Rotas §9](#rotas-orquestração-dobra-finalizou-9) |
 
 

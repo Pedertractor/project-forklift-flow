@@ -1,10 +1,17 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import type {
-  IsOperating,
+import {
   RoleUser,
-  Unit,
+  type IsOperating,
+  type Unit,
 } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
+
+/**
+ * `isOperating` só é significativo para `PALLET_TRANSPORTER` (ADMIN/LEADER
+ * não operam movimentação). Se algum `isOperating` ficar "preso" após mudança
+ * de role (fora de `updateUserRole`), esse filtro evita que conte de qualquer forma.
+ */
+const OPERATING_ROLES: RoleUser[] = [RoleUser.PALLET_TRANSPORTER]
 
 export const userRepository = {
   findFirstByCardAndUnit(card: string, unit: Unit) {
@@ -65,6 +72,7 @@ export const userRepository = {
       where: {
         sectorId,
         isOperating: { not: null },
+        role: { in: OPERATING_ROLES },
       },
       select: {
         id: true,
@@ -87,6 +95,7 @@ export const userRepository = {
       where: {
         ...(sectorId ? { sectorId } : {}),
         isOperating: { not: null },
+        role: { in: OPERATING_ROLES },
       },
       select: {
         id: true,

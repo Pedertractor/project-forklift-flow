@@ -9,14 +9,12 @@ import type {
   OperatorMachineSupplyRequestListItem,
 } from '@/types/operator-machine.types';
 import type { ReplenishmentMovimentType } from '@/types/replenishment-moviment.types';
-import {
-  movimentTypePublicIconPath,
-  replenishmentMovimentTypeLabel,
-} from '@/utils/operator-moviment-display';
+import { replenishmentMovimentTypeLabel } from '@/utils/operator-moviment-display';
 import {
   canRequestPickupWithReplenishment,
   canRequestSupply,
   PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
+  PICKUP_WITH_REPLENISHMENT_BLOCKED_BY_OPEN_SUPPLY_MESSAGE,
   PICKUP_WITH_REPLENISHMENT_BLOCKED_MESSAGE,
 } from './operator-machine-flow';
 import type { DeliveryTaskListItem } from '@/types/machine-task.types';
@@ -25,6 +23,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ChevronLeft,
+  Forklift,
   Plus,
   Wrench,
   X,
@@ -136,18 +135,18 @@ export function OperatorMachineOpenRequestDialog({
     }
   }, [open]);
 
-  const canSelectBoth =
-    canPickup &&
-    pickupWithReplenishmentAvailable &&
-    (supplyAvailable || supplyAlreadyOpen);
+  // `pickupWithReplenishmentAvailable` já bloqueia tanto pallet/entrega a
+  // caminho quanto aviso de abastecimento já em aberto (mesmas condições de
+  // `canRequestSupply`) — nunca mais permissivo do que o card "abastecimento".
+  const canSelectBoth = canPickup && pickupWithReplenishmentAvailable;
 
   const combinedBlockedHint = !canPickup
     ? pickupBlockedMessage
     : !pickupWithReplenishmentAvailable
-      ? PICKUP_WITH_REPLENISHMENT_BLOCKED_MESSAGE
-      : !supplyAvailable && !supplyAlreadyOpen
-        ? 'Abastecimento indisponível no momento.'
-        : null;
+      ? supplyAlreadyOpen
+        ? PICKUP_WITH_REPLENISHMENT_BLOCKED_BY_OPEN_SUPPLY_MESSAGE
+        : PICKUP_WITH_REPLENISHMENT_BLOCKED_MESSAGE
+      : null;
 
   const canConfirm = (pickup && canPickup) || (supply && supplyAvailable);
 
@@ -191,9 +190,16 @@ export function OperatorMachineOpenRequestDialog({
 
   const pickupSelected = pickup && canPickup;
 
+  /**
+   * `supply` reflete só o que o operador marcou (nunca forçado por
+   * `supplyAlreadyOpen`): com aviso já em aberto ou pallet a caminho, o card
+   * combinado fica desabilitado (ver `canSelectBoth`), então essa combinação
+   * nunca chega aqui de qualquer forma. A retirada avulsa amarra sozinha, no
+   * back-end, a um aviso elegível ainda sem vínculo.
+   */
   const buildSelection = (): OperatorServiceSelection => ({
     pickup: pickupSelected,
-    supply: (supply && supplyAvailable) || supplyAlreadyOpen,
+    supply: supply && supplyAvailable,
     pickupIsCritical: pickupSelected && pickupIsCritical,
     typeMovimentPallet: pickupSelected ? typeMovimentPallet : undefined,
   });
@@ -267,7 +273,9 @@ export function OperatorMachineOpenRequestDialog({
       ? pickupWithReplenishmentAvailable
         ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
         : canPickup
-          ? 'Há pallet no recebimento — solicite apenas a retirada do pallet na máquina para abrir a sugestão de entrega e retirada.'
+          ? supplyAlreadyOpen
+            ? 'Já existe uma solicitação de abastecimento em aberto — solicite apenas a retirada, ela será amarrada automaticamente.'
+            : 'Há pallet destinado a esta máquina — solicite apenas a retirada. Nova solicitação de abastecimento só após a entrega na máquina.'
           : 'Selecione o serviço desejado abaixo.'
       : step === 'movement'
         ? 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.'
@@ -348,22 +356,22 @@ export function OperatorMachineOpenRequestDialog({
                   <div className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-50 px-4 py-3 sm:w-36">
                     {opt.value === 'ANY' ? (
                       <>
-                        <img
-                          src={movimentTypePublicIconPath('FORKLIFT')}
-                          alt=""
-                          className="h-10 w-auto max-w-[3.5rem] object-contain"
+                        <Forklift
+                          className="size-10 text-zinc-800"
+                          strokeWidth={1.5}
+                          aria-hidden
                         />
                         <img
-                          src={movimentTypePublicIconPath('PALLET_TRUCK')}
+                          src="/PALLET_TRUCK.png"
                           alt=""
-                          className="h-10 w-auto max-w-[3.5rem] object-contain opacity-90"
+                          className="h-7 w-auto max-w-10 object-contain p-0.5 opacity-90"
                         />
                       </>
                     ) : (
-                      <img
-                        src={movimentTypePublicIconPath(opt.value)}
-                        alt=""
-                        className="h-14 w-auto max-w-[5rem] object-contain"
+                      <Forklift
+                        className="size-14 text-zinc-800"
+                        strokeWidth={1.5}
+                        aria-hidden
                       />
                     )}
                   </div>
@@ -476,7 +484,11 @@ export function OperatorMachineOpenRequestDialog({
               </span>
             }
             title="Retirada e abastecimento"
-            description="Solicita retirada do pallet na máquina e aviso ao abastecimento em um único passo."
+            description={
+              supplyAlreadyOpen
+                ? 'Amarra a retirada ao abastecimento já solicitado. Quando o pallet ficar pronto, vira uma sugestão de viagem.'
+                : 'Solicita retirada do pallet na máquina e aviso ao abastecimento em um único passo.'
+            }
             hint={combinedBlockedHint}
           >
             {combinedSelected && canPickup ? (

@@ -1,9 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import {
-  IsOperating,
-  RoleUser,
-  TypeMovimentPallet,
-} from '../generated/prisma/enums.js'
+import { IsOperating, RoleUser } from '../generated/prisma/enums.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import type { AppJwtPayload } from '../types/auth.types.js'
@@ -26,15 +22,13 @@ function allowedTypesForClient(user: {
   role: RoleUser
   isOperating: IsOperating | null
 }) {
+  // Só PALLET_TRANSPORTER opera filas de movimentação (ADMIN/LEADER não).
   if (
-    (user.role === RoleUser.PALLET_TRANSPORTER || isAdminOrSuperAdmin(user.role)) &&
+    user.role === RoleUser.PALLET_TRANSPORTER &&
     (user.isOperating === IsOperating.FORKLIFT ||
       user.isOperating === IsOperating.PALLET_TRUCK)
   ) {
     return openPoolTypesForOperatingMode(user.isOperating)
-  }
-  if (isAdminOrSuperAdmin(user.role)) {
-    return [TypeMovimentPallet.FORKLIFT, TypeMovimentPallet.ANY]
   }
   return []
 }

@@ -120,7 +120,13 @@ model PickupTask {
   status      MachineTaskStatus @default(CREATED)
   statusSince DateTime          @default(now())
 
-  triggersReplenishment Boolean @default(false)
+  /// Vínculo explícito e único com o aviso de abastecimento que forma o
+  /// continuum "Entrega + Retirada" desta retirada. Definido uma única vez
+  /// (na solicitação combinada ou ao amarrar duas solicitações sequenciais em
+  /// `pickup-supply-link.service.ts`) — nunca reinferido por status/timestamp.
+  /// Cadeia completa: pickup -> linkedSupplyRequest -> deliveryTaskId -> entrega.
+  linkedSupplyRequest   OperatorMachineSupplyRequest? @relation("SupplyRequestLinkedPickup", fields: [linkedSupplyRequestId], references: [id], onDelete: SetNull)
+  linkedSupplyRequestId String?                       @unique
 
   requestedBy   User   @relation("UserPickupTasks", fields: [requestedById], references: [id])
   requestedById String
@@ -161,6 +167,9 @@ model OperatorMachineSupplyRequest {
 
   deliveryTask   DeliveryTask? @relation("SupplyRequestDeliveryTask", fields: [deliveryTaskId], references: [id], onDelete: SetNull)
   deliveryTaskId String?       @unique
+
+  /// Retirada amarrada a este aviso (continuum "Entrega + Retirada"), se houver.
+  linkedPickupTask PickupTask? @relation("SupplyRequestLinkedPickup")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

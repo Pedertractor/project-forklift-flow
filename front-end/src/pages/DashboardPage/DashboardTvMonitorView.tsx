@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   AlertTriangle,
+  ArrowDownLeft,
   ArrowDownToLine,
   ArrowLeft,
   ArrowUpFromLine,
+  ArrowUpRight,
   Boxes,
   Clock3,
   Forklift,
@@ -192,7 +194,7 @@ function TvKpiCard({
             <img
               src={iconSrc}
               alt=""
-              className="size-5 object-contain"
+              className="size-3.5 object-contain p-px"
               aria-hidden
             />
           ) : Icon ? (
@@ -269,6 +271,8 @@ function TvPeakSeriesCard({
   fillId: string;
   strokeVar: string;
 }) {
+  const PeakIcon = dataKey === 'entregas' ? ArrowUpRight : ArrowDownLeft;
+
   return (
     <Card
       className={cn(
@@ -280,10 +284,18 @@ function TvPeakSeriesCard({
         <div className="min-w-0 space-y-0.5">
           <CardTitle
             className={cn(
-              'text-sm sm:text-base',
+              'flex items-center gap-1.5 text-sm sm:text-base',
               dark ? 'text-zinc-100' : 'text-zinc-900',
             )}
           >
+            <PeakIcon
+              className={cn(
+                'size-4 shrink-0 rounded-full',
+                dataKey === 'entregas' ? 'bg-green-200' : 'bg-red-200',
+                dark && 'text-black',
+              )}
+              aria-hidden
+            />
             {title}
           </CardTitle>
           <p
@@ -315,7 +327,7 @@ function TvPeakSeriesCard({
           >
             <AreaChart
               data={data}
-              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
             >
               <defs>
                 <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
@@ -331,17 +343,17 @@ function TvPeakSeriesCard({
                 dataKey="slot"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={6}
+                tickMargin={8}
                 minTickGap={28}
-                tick={{ fill: dark ? '#a1a1aa' : undefined, fontSize: 10 }}
+                tick={{ fill: dark ? '#a1a1aa' : undefined, fontSize: 14 }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 allowDecimals={false}
                 domain={[0, 'auto']}
-                width={28}
-                tick={{ fill: dark ? '#a1a1aa' : undefined, fontSize: 10 }}
+                width={36}
+                tick={{ fill: dark ? '#a1a1aa' : undefined, fontSize: 14 }}
               />
               <ChartTooltip
                 cursor={false}
@@ -568,7 +580,9 @@ export function DashboardTvMonitorView({
               />
               <TvKpiCard
                 dark={dark}
-                iconSrc="/PALLET_TRUCK.png"
+                iconSrc={
+                  dark ? '/PALLET_TRUCK_WHITE.png' : '/PALLET_TRUCK.png'
+                }
                 label="Transpaleteiras"
                 value={kpis.pallet_trucks_operating}
               />
@@ -663,6 +677,7 @@ export function DashboardTvMonitorView({
                       return (
                         <OperatorMachineTasksList
                           key={`${row.kind}-${row.id}`}
+                          rows={[row]}
                           deliveryTasks={scoped.deliveryTasks}
                           pickupTasks={scoped.pickupTasks}
                           supplyRequests={scoped.supplyRequests}

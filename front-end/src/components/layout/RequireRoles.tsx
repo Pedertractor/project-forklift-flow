@@ -10,6 +10,11 @@ const UNAUTHORIZED_PATH = '/nao-autorizado';
 
 interface RequireRolesProps {
   roles: readonly AppRole[];
+  /**
+   * Se true, ADMIN/SUPERADMIN não bypassam — só os `roles` listados.
+   * Usado em «Operação — movimentação» (somente PALLET_TRANSPORTER).
+   */
+  strict?: boolean;
 }
 
 /**
@@ -18,7 +23,7 @@ interface RequireRolesProps {
  * tela `/nao-autorizado` só aparece quando não há destino válido (evita o flash
  * de "sem acesso" ao restaurar a sessão numa rota que o papel não acessa).
  */
-export function RequireRoles({ roles }: RequireRolesProps) {
+export function RequireRoles({ roles, strict = false }: RequireRolesProps) {
   const user = useAuthStore((s) => s.user);
   const { role, isBootstrapping } = useSessionRole();
   const location = useLocation();
@@ -32,7 +37,7 @@ export function RequireRoles({ roles }: RequireRolesProps) {
   }
 
   const allowed =
-    hasFullSystemAccess(role) ||
+    (!strict && hasFullSystemAccess(role)) ||
     (role !== undefined && roles.includes(role as AppRole));
 
   if (!allowed) {

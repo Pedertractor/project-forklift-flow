@@ -7,12 +7,11 @@ import type {
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
 import {
   canCancelPickupRequest,
-  combinedFlowHeadline,
-  findCombinedTripPair,
+  findActiveLinkedPickupForSupply,
+  findDeliveryForPickup,
   findDeliveryForSupplyRequest,
-  findReplenishmentDeliveryForPickup,
-  findReplenishmentSupplyForMachine,
-  isCombinedTripSuggestion,
+  findSupplyForDeliveryTask,
+  findSupplyForPickup,
   isPickupLinkedToReplenishmentFlow,
   nextPalletFlowHeadline,
   supplyFlowHeadline,
@@ -75,17 +74,6 @@ export function machineTaskStatusBadge(status: MachineTaskStatusValue): string {
 
 export type OperatorMachineTaskListRow =
   | {
-      kind: 'COMBINED';
-      id: string;
-      deliveryId: string;
-      pickupId: string;
-      createdAt: string;
-      title: string;
-      subtitle: string;
-      statusLabel: string;
-      isCritical: boolean;
-    }
-  | {
       kind: 'DELIVERY';
       id: string;
       createdAt: string;
@@ -93,7 +81,6 @@ export type OperatorMachineTaskListRow =
       subtitle: string;
       statusLabel: string;
       isCritical: boolean;
-      triggersReplenishment?: false;
     }
   | {
       kind: 'PICKUP';
@@ -104,7 +91,6 @@ export type OperatorMachineTaskListRow =
       subtitle: string;
       statusLabel: string;
       isCritical: boolean;
-      triggersReplenishment: boolean;
       linkedToReplenishmentFlow: boolean;
       canCancel: boolean;
       linkedSupplyRequestId: string | null;
@@ -118,7 +104,6 @@ export type OperatorMachineTaskListRow =
       subtitle: string;
       statusLabel: string;
       isCritical: false;
-      triggersReplenishment?: false;
     };
 
 const TERMINAL_MACHINE_TASK_STATUSES = new Set<MachineTaskStatusValue>([
@@ -126,53 +111,41 @@ const TERMINAL_MACHINE_TASK_STATUSES = new Set<MachineTaskStatusValue>([
   'CANCELED',
 ]);
 
+/**
+ * Entrega já representada dentro de um card "Entrega + Retirada" (aviso que a
+ * originou tem retirada ativa amarrada via `linkedSupplyRequestId`) — nunca
+ * vira card avulso de "Entrega à máquina".
+ */
 function shouldHideReplenishmentDeliveryRow(
   delivery: DeliveryTaskListItem,
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[],
-  deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
-  return pickupTasks.some((pickup) => {
-    if (
-      !isPickupLinkedToReplenishmentFlow(pickup, supplyRequests, deliveryTasks)
-    ) {
-      return false;
-    }
-    if (TERMINAL_MACHINE_TASK_STATUSES.has(pickup.status)) return false;
-    return pickup.machineId === delivery.machineId;
-  });
+  const supply = findSupplyForDeliveryTask(delivery, supplyRequests);
+  if (!supply) return false;
+  return Boolean(findActiveLinkedPickupForSupply(supply, pickupTasks));
 }
 
 /**
  * Mantém o continuum do aviso ao abastecimento após o fulfill:
- * a entrega vinculada não vira card separado de «Entrega à máquina».
+ * a entrega vinculada a um aviso ainda ativo (sem retirada amarrada) não vira
+ * card separado de «Entrega à máquina» — aparece dentro do card do aviso.
  */
 function shouldHideSupplyOnlyDeliveryRow(
   delivery: DeliveryTaskListItem,
   supplyRequests: OperatorMachineSupplyRequestListItem[],
-  hideSupplyForReplenishmentPickup: boolean,
 ): boolean {
-  if (hideSupplyForReplenishmentPickup) return false;
-  return supplyRequests.some((supply) => {
-    if (supply.status === 'CANCELLED') return false;
-    if (supply.deliveryTaskId === delivery.id) {
-      return supply.status === 'OPEN' || supply.status === 'FULFILLED';
-    }
-    return (
-      supply.status === 'OPEN' &&
-      !supply.deliveryTaskId &&
-      supply.machineId === delivery.machineId &&
-      !TERMINAL_MACHINE_TASK_STATUSES.has(delivery.status)
-    );
-  });
+  const supply = findSupplyForDeliveryTask(delivery, supplyRequests);
+  if (!supply) return false;
+  return supply.status === 'OPEN' || supply.status === 'FULFILLED';
 }
 
 function isSupplyOnlyContinuumActive(
   supply: OperatorMachineSupplyRequestListItem,
   deliveryTasks: DeliveryTaskListItem[],
-  hideSupplyForReplenishmentPickup: boolean,
+  pickupTasks: PickupTaskListItem[],
 ): boolean {
-  if (hideSupplyForReplenishmentPickup) return false;
+  if (findActiveLinkedPickupForSupply(supply, pickupTasks)) return false;
   if (supply.status === 'CANCELLED') return false;
   if (supply.status === 'OPEN') return true;
   if (supply.status !== 'FULFILLED') return false;
@@ -192,72 +165,12 @@ export function buildOperatorMachineTaskRows(
 ): OperatorMachineTaskListRow[] {
   const rows: OperatorMachineTaskListRow[] = [];
 
-  const machineHasReplenishmentPickup = (machineId: string) =>
-    pickupTasks.some(
-      (pickup) =>
-        pickup.machineId === machineId &&
-        isPickupLinkedToReplenishmentFlow(
-          pickup,
-          supplyRequests,
-          deliveryTasks,
-        ),
-    );
-
-  let combinedDeliveryId: string | null = null;
-  let combinedPickupId: string | null = null;
-
-  if (isCombinedTripSuggestion(deliveryTasks, pickupTasks, supplyRequests)) {
-    const pair = findCombinedTripPair(
-      deliveryTasks,
-      pickupTasks,
-      supplyRequests,
-    );
-    if (
-      pair &&
-      pair.delivery.machineId === pair.pickup.machineId &&
-      !TERMINAL_MACHINE_TASK_STATUSES.has(pair.pickup.status)
-    ) {
-      const { delivery, pickup } = pair;
-      combinedDeliveryId = delivery.id;
-      combinedPickupId = pickup.id;
-      rows.push({
-        kind: 'COMBINED',
-        id: `combined-${delivery.id}-${pickup.id}`,
-        deliveryId: delivery.id,
-        pickupId: pickup.id,
-        createdAt:
-          new Date(pickup.createdAt).getTime() >=
-          new Date(delivery.createdAt).getTime()
-            ? pickup.createdAt
-            : delivery.createdAt,
-        title: 'Sugestão de viagem',
-        subtitle: 'Entrega do pallet no recebimento + retirada na máquina',
-        statusLabel: combinedFlowHeadline(delivery, pickup),
-        isCritical: delivery.isCritical || pickup.isCritical,
-      });
-    }
-  }
-
   for (const t of deliveryTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
-    if (t.id === combinedDeliveryId) continue;
-    if (
-      shouldHideReplenishmentDeliveryRow(
-        t,
-        pickupTasks,
-        supplyRequests,
-        deliveryTasks,
-      )
-    ) {
+    if (shouldHideReplenishmentDeliveryRow(t, pickupTasks, supplyRequests)) {
       continue;
     }
-    if (
-      shouldHideSupplyOnlyDeliveryRow(
-        t,
-        supplyRequests,
-        machineHasReplenishmentPickup(t.machineId),
-      )
-    ) {
+    if (shouldHideSupplyOnlyDeliveryRow(t, supplyRequests)) {
       continue;
     }
     rows.push({
@@ -273,21 +186,13 @@ export function buildOperatorMachineTaskRows(
 
   for (const t of pickupTasks) {
     if (TERMINAL_MACHINE_TASK_STATUSES.has(t.status)) continue;
-    if (t.id === combinedPickupId) continue;
-    const linkedToReplenishmentFlow = isPickupLinkedToReplenishmentFlow(
-      t,
-      supplyRequests,
-      deliveryTasks,
-    );
+
+    const linkedToReplenishmentFlow = isPickupLinkedToReplenishmentFlow(t);
     const linkedSupply = linkedToReplenishmentFlow
-      ? findReplenishmentSupplyForMachine(supplyRequests, t.machineId)
+      ? findSupplyForPickup(t, supplyRequests)
       : null;
     const replenishmentDelivery = linkedToReplenishmentFlow
-      ? findReplenishmentDeliveryForPickup(
-          deliveryTasks,
-          supplyRequests,
-          t.machineId,
-        )
+      ? findDeliveryForPickup(t, supplyRequests, deliveryTasks)
       : null;
 
     let statusLabel = machinePickupStatusLabel(t);
@@ -308,7 +213,6 @@ export function buildOperatorMachineTaskRows(
         : '',
       statusLabel,
       isCritical: t.isCritical,
-      triggersReplenishment: t.triggersReplenishment,
       linkedToReplenishmentFlow,
       canCancel: canCancelPickupRequest(t, deliveryTasks),
       linkedSupplyRequestId: linkedSupply?.id ?? null,
@@ -316,13 +220,7 @@ export function buildOperatorMachineTaskRows(
   }
 
   for (const s of supplyRequests) {
-    if (
-      !isSupplyOnlyContinuumActive(
-        s,
-        deliveryTasks,
-        machineHasReplenishmentPickup(s.machineId),
-      )
-    ) {
+    if (!isSupplyOnlyContinuumActive(s, deliveryTasks, pickupTasks)) {
       continue;
     }
     const delivery = findDeliveryForSupplyRequest(deliveryTasks, s);
@@ -366,16 +264,6 @@ export function operatorMachineRowIsAccepted(
   pickupTasks: PickupTaskListItem[],
   supplyRequests: OperatorMachineSupplyRequestListItem[],
 ): boolean {
-  if (row.kind === 'COMBINED') {
-    const delivery = deliveryTasks.find((t) => t.id === row.deliveryId);
-    const pickup = pickupTasks.find((t) => t.id === row.pickupId);
-    return Boolean(
-      delivery?.assignedAt ||
-        pickup?.assignedAt ||
-        isTransportActiveStatus(delivery?.status) ||
-        isTransportActiveStatus(pickup?.status),
-    );
-  }
   if (row.kind === 'DELIVERY') {
     const delivery = deliveryTasks.find((t) => t.id === row.id);
     return Boolean(
@@ -391,11 +279,7 @@ export function operatorMachineRowIsAccepted(
       return true;
     }
     if (row.linkedToReplenishmentFlow && pickup) {
-      const delivery = findReplenishmentDeliveryForPickup(
-        deliveryTasks,
-        supplyRequests,
-        pickup.machineId,
-      );
+      const delivery = findDeliveryForPickup(pickup, supplyRequests, deliveryTasks);
       return Boolean(
         delivery?.assignedAt || isTransportActiveStatus(delivery?.status),
       );
@@ -424,23 +308,15 @@ export function operatorMachineRowSortTime(
     if (Number.isFinite(t)) assignedTimes.push(t);
   };
 
-  if (row.kind === 'COMBINED') {
-    pushAssigned(
-      deliveryTasks.find((t) => t.id === row.deliveryId)?.assignedAt,
-    );
-    pushAssigned(pickupTasks.find((t) => t.id === row.pickupId)?.assignedAt);
-  } else if (row.kind === 'DELIVERY') {
+  if (row.kind === 'DELIVERY') {
     pushAssigned(deliveryTasks.find((t) => t.id === row.id)?.assignedAt);
   } else if (row.kind === 'PICKUP') {
     const pickup = pickupTasks.find((t) => t.id === row.id);
     pushAssigned(pickup?.assignedAt);
     if (row.linkedToReplenishmentFlow && pickup) {
       pushAssigned(
-        findReplenishmentDeliveryForPickup(
-          deliveryTasks,
-          supplyRequests,
-          pickup.machineId,
-        )?.assignedAt,
+        findDeliveryForPickup(pickup, supplyRequests, deliveryTasks)
+          ?.assignedAt,
       );
     }
   }
@@ -490,13 +366,6 @@ export function tasksForOperatorMachineRow(
   pickupTasks: PickupTaskListItem[];
   supplyRequests: OperatorMachineSupplyRequestListItem[];
 } {
-  if (row.kind === 'COMBINED') {
-    return {
-      deliveryTasks: deliveryTasks.filter((t) => t.id === row.deliveryId),
-      pickupTasks: pickupTasks.filter((t) => t.id === row.pickupId),
-      supplyRequests: [],
-    };
-  }
   if (row.kind === 'DELIVERY') {
     return {
       deliveryTasks: deliveryTasks.filter((t) => t.id === row.id),
@@ -510,14 +379,11 @@ export function tasksForOperatorMachineRow(
       return { deliveryTasks: [], pickupTasks: [], supplyRequests: [] };
     }
     if (row.linkedToReplenishmentFlow) {
-      const supply = findReplenishmentSupplyForMachine(
+      const supply = findSupplyForPickup(pickup, supplyRequests);
+      const delivery = findDeliveryForPickup(
+        pickup,
         supplyRequests,
-        pickup.machineId,
-      );
-      const delivery = findReplenishmentDeliveryForPickup(
         deliveryTasks,
-        supplyRequests,
-        pickup.machineId,
       );
       return {
         deliveryTasks: delivery ? [delivery] : [],

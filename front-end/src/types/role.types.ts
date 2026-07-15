@@ -73,12 +73,10 @@ export const OPERATOR_MACHINE_ROLES: readonly AppRole[] = [
 
 /**
  * Transportador de pallet (empilhadeira ou transpaleteira via `isOperating`).
- * ADMIN e SUPERADMIN incluídos para testes e suporte.
+ * Somente este papel opera a tela «Operação — movimentação» (sem ADMIN/LEADER).
  */
 export const MOVIMENT_OPERATOR_ROLES: readonly AppRole[] = [
   'PALLET_TRANSPORTER',
-  'ADMIN',
-  'SUPERADMIN',
 ];
 
 /** Papéis de gestão com leitura ampliada de filas e cadastros. */

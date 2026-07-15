@@ -9,6 +9,15 @@ export type MachineTaskStatusValue =
 
 export type TypeMovimentPalletValue = 'FORKLIFT' | 'ANY';
 
+/** Equipamento efetivo do operador de transporte (`User.isOperating` / `operatedWith`). */
+export type TaskOperatedWithValue = 'FORKLIFT' | 'PALLET_TRUCK';
+
+export interface TaskAssignedOperatorBrief {
+  id: string;
+  name: string;
+  isOperating: TaskOperatedWithValue | null;
+}
+
 export interface DeliveryTaskListItem {
   id: string;
   machineId: string;
@@ -21,7 +30,12 @@ export interface DeliveryTaskListItem {
   supplyAcceptedAt: string | null;
   preparedAt: string | null;
   requestedById: string;
+  assignedOperatorId?: string | null;
+  /** @deprecated Prefer `assignedOperatorId`. */
   assignedMovimentPalletId: string | null;
+  /** Equipamento usado no aceite do transporte. */
+  operatedWith?: TaskOperatedWithValue | null;
+  assignedOperator?: TaskAssignedOperatorBrief | null;
   createdAt: string;
   updatedAt: string;
   assignedAt: string | null;
@@ -54,9 +68,20 @@ export interface PickupTaskListItem {
   isCritical: boolean;
   status: MachineTaskStatusValue;
   statusSince: string;
-  triggersReplenishment: boolean;
+  /**
+   * Vínculo explícito e único com o aviso de abastecimento que forma o
+   * continuum "Entrega + Retirada" desta retirada (substitui a antiga flag
+   * `triggersReplenishment`, reinferida por heurística). `null` = retirada
+   * avulsa, sem nenhum vínculo.
+   */
+  linkedSupplyRequestId: string | null;
   requestedById: string;
+  assignedOperatorId?: string | null;
+  /** @deprecated Prefer `assignedOperatorId`. */
   assignedMovimentPalletId: string | null;
+  /** Equipamento usado no aceite do transporte. */
+  operatedWith?: TaskOperatedWithValue | null;
+  assignedOperator?: TaskAssignedOperatorBrief | null;
   createdAt: string;
   updatedAt: string;
   assignedAt: string | null;

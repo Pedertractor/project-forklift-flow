@@ -269,7 +269,11 @@ export const movimentPalletTripSuggestionRepository = {
     })
   },
 
-  /** Sugestao combinada so vale com entrega preparada; expira pares antecipados. */
+  /**
+   * Expira sugestões OPEN cuja entrega não está mais elegível
+   * (cancelada / já atribuída / concluída). Mantém pares com entrega
+   * ainda em preparo — amarração desde a solicitação do pallet.
+   */
   expireOpenWithUnpreparedDeliveryInSector(
     sectorId: string,
     types: TypeMovimentPallet[],
@@ -279,7 +283,12 @@ export const movimentPalletTripSuggestionRepository = {
         status: MovimentPalletTripSuggestionStatus.OPEN,
         typeMovimentPallet: { in: types },
         machine: { sectorId },
-        deliverTask: { preparedAt: null },
+        OR: [
+          { deliverTask: { status: MachineTaskStatus.CANCELED } },
+          { deliverTask: { status: MachineTaskStatus.COMPLETED } },
+          { deliverTask: { assignedOperatorId: { not: null } } },
+          { pickupTask: { status: { not: MachineTaskStatus.CREATED } } },
+        ],
       },
       data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
     })
@@ -287,6 +296,145 @@ export const movimentPalletTripSuggestionRepository = {
 
   async upsertOpenPair(input: TripSuggestionPairInput): Promise<{ created: boolean }> {
     return prisma.$transaction((tx) => upsertOpenPairInTransaction(tx, input))
+  },
+
+  /**
+   * Emparelha entrega já acatada com retirada nova: sugestão ACCEPTED
+   * (anexa ao transporte em curso do mesmo operador).
+   */
+  async upsertAcceptedPair(
+    input: TripSuggestionPairInput & {
+      acceptedByUserId: string
+      acceptedAt?: Date
+    },
+  ): Promise<{ created: boolean; id: string | null }> {
+    const acceptedAt = input.acceptedAt ?? new Date()
+
+    return prisma.$transaction(async (tx) => {
+      await tx.movimentPalletTripSuggestion.updateMany({
+        where: {
+          pickupTaskId: input.pickupTaskId,
+          status: MovimentPalletTripSuggestionStatus.OPEN,
+          deliverTaskId: { not: input.deliverTaskId },
+        },
+        data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
+      })
+
+      const rowByDeliver = await tx.movimentPalletTripSuggestion.findUnique({
+        where: { deliverTaskId: input.deliverTaskId },
+      })
+      const rowByPickup = await tx.movimentPalletTripSuggestion.findUnique({
+        where: { pickupTaskId: input.pickupTaskId },
+      })
+
+      if (
+        rowByDeliver &&
+        rowByDeliver.status === MovimentPalletTripSuggestionStatus.COMPLETED
+      ) {
+        return { created: false, id: null }
+      }
+      if (
+        rowByPickup &&
+        rowByPickup.status === MovimentPalletTripSuggestionStatus.COMPLETED
+      ) {
+        return { created: false, id: null }
+      }
+
+      if (
+        rowByDeliver &&
+        rowByPickup &&
+        rowByDeliver.id !== rowByPickup.id
+      ) {
+        if (
+          isTerminalTripSuggestionStatus(rowByPickup.status) &&
+          rowByPickup.status !== MovimentPalletTripSuggestionStatus.ACCEPTED
+        ) {
+          return { created: false, id: null }
+        }
+        if (rowByPickup.status === MovimentPalletTripSuggestionStatus.OPEN) {
+          await tx.movimentPalletTripSuggestion.delete({
+            where: { id: rowByPickup.id },
+          })
+        } else if (
+          rowByPickup.status === MovimentPalletTripSuggestionStatus.ACCEPTED
+        ) {
+          return { created: false, id: rowByPickup.id }
+        }
+      }
+
+      const existing = rowByDeliver ?? rowByPickup
+      if (existing) {
+        if (
+          existing.status === MovimentPalletTripSuggestionStatus.COMPLETED
+        ) {
+          return { created: false, id: null }
+        }
+
+        const conflicts = await tx.movimentPalletTripSuggestion.findMany({
+          where: {
+            OR: [
+              { deliverTaskId: input.deliverTaskId },
+              { pickupTaskId: input.pickupTaskId },
+            ],
+            NOT: { id: existing.id },
+          },
+        })
+        for (const conflict of conflicts) {
+          if (
+            conflict.status === MovimentPalletTripSuggestionStatus.COMPLETED
+          ) {
+            return { created: false, id: null }
+          }
+          if (conflict.status === MovimentPalletTripSuggestionStatus.OPEN) {
+            await tx.movimentPalletTripSuggestion.delete({
+              where: { id: conflict.id },
+            })
+          }
+        }
+
+        await tx.movimentPalletTripSuggestion.update({
+          where: { id: existing.id },
+          data: {
+            deliverTaskId: input.deliverTaskId,
+            pickupTaskId: input.pickupTaskId,
+            machineId: input.machineId,
+            typeMovimentPallet: input.typeMovimentPallet,
+            status: MovimentPalletTripSuggestionStatus.ACCEPTED,
+            acceptedByUserId: input.acceptedByUserId,
+            acceptedAt,
+          },
+        })
+        return { created: false, id: existing.id }
+      }
+
+      try {
+        const created = await tx.movimentPalletTripSuggestion.create({
+          data: {
+            status: MovimentPalletTripSuggestionStatus.ACCEPTED,
+            deliverTask: { connect: { id: input.deliverTaskId } },
+            pickupTask: { connect: { id: input.pickupTaskId } },
+            machine: { connect: { id: input.machineId } },
+            typeMovimentPallet: input.typeMovimentPallet,
+            acceptedBy: { connect: { id: input.acceptedByUserId } },
+            acceptedAt,
+          },
+        })
+        return { created: true, id: created.id }
+      } catch (error) {
+        if (!isPrismaUniqueViolation(error)) {
+          throw error
+        }
+        const row = await tx.movimentPalletTripSuggestion.findFirst({
+          where: {
+            OR: [
+              { deliverTaskId: input.deliverTaskId },
+              { pickupTaskId: input.pickupTaskId },
+            ],
+          },
+        })
+        return { created: false, id: row?.id ?? null }
+      }
+    })
   },
 }
 

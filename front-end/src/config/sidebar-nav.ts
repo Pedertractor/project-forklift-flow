@@ -13,6 +13,11 @@ export interface SidebarNavItem {
   label: string;
   /** `null` = qualquer usuário autenticado. */
   allowedRoles: readonly AppRole[] | null;
+  /**
+   * Se true, ADMIN/SUPERADMIN não veem o item só por ter acesso total —
+   * precisam estar em `allowedRoles` (ex.: Operação — movimentação).
+   */
+  strictRoles?: boolean;
 }
 
 export interface SidebarNavSection {
@@ -31,7 +36,7 @@ function itemVisibleForRole(
   item: SidebarNavItem,
   role: string | undefined,
 ): boolean {
-  if (hasFullSystemAccess(role)) {
+  if (!item.strictRoles && hasFullSystemAccess(role)) {
     return true;
   }
   if (item.allowedRoles === null) {
@@ -143,12 +148,13 @@ export const SIDEBAR_NAV_SECTIONS: readonly SidebarNavSection[] = [
     id: 'operacao-movimentacao',
     title: 'Operação — movimentação',
     rolesDescription:
-      'Transportador de pallet (PALLET_TRANSPORTER) e administrador (ADMIN) para testes.',
+      'Somente transportador de pallet (PALLET_TRANSPORTER). Admin e líder não acessam.',
     items: [
       {
         to: OPERATOR_MOVIMENT_TASKS_QUEUE_PATH,
         label: 'Tarefas disponíveis',
         allowedRoles: MOVIMENT_OPERATOR_ROLES,
+        strictRoles: true,
       },
     ],
   },

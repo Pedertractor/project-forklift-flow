@@ -9,7 +9,12 @@ import {
 import { defaultHomePathForRole } from '@/lib/default-home-path';
 
 /** Rotas do app (pathnames) alinhadas a `App.tsx` + `RequireRoles`. */
-const PATH_RULES: { path: string; roles: readonly AppRole[] }[] = [
+const PATH_RULES: {
+  path: string;
+  roles: readonly AppRole[];
+  /** Se true, ADMIN/SUPERADMIN não bypassam (só os roles listados). */
+  strict?: boolean;
+}[] = [
   { path: '/dashboard', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/cadastro/tipos-maquina', roles: ADMIN_OR_LEADER_ROLES },
   { path: '/cadastro/maquinas', roles: ADMIN_OR_LEADER_ROLES },
@@ -23,11 +28,23 @@ const PATH_RULES: { path: string; roles: readonly AppRole[] }[] = [
     roles: ADMIN_OR_LEADER_ROLES,
   },
   { path: '/administracao/usuarios', roles: ADMIN_OR_LEADER_ROLES },
-  { path: '/operacao/equipamento', roles: MOVIMENT_OPERATOR_ROLES },
-  { path: '/operacao/aceitar-tarefas', roles: MOVIMENT_OPERATOR_ROLES },
-  { path: '/operacao/tarefas', roles: MOVIMENT_OPERATOR_ROLES },
-  { path: '/operacao/filas-manuais', roles: MOVIMENT_OPERATOR_ROLES },
-  { path: '/operacao/minhas-tarefas', roles: MOVIMENT_OPERATOR_ROLES },
+  { path: '/operacao/equipamento', roles: MOVIMENT_OPERATOR_ROLES, strict: true },
+  {
+    path: '/operacao/aceitar-tarefas',
+    roles: MOVIMENT_OPERATOR_ROLES,
+    strict: true,
+  },
+  { path: '/operacao/tarefas', roles: MOVIMENT_OPERATOR_ROLES, strict: true },
+  {
+    path: '/operacao/filas-manuais',
+    roles: MOVIMENT_OPERATOR_ROLES,
+    strict: true,
+  },
+  {
+    path: '/operacao/minhas-tarefas',
+    roles: MOVIMENT_OPERATOR_ROLES,
+    strict: true,
+  },
   { path: '/dobra', roles: OPERATOR_MACHINE_ROLES },
   { path: '/dobra/operacao', roles: OPERATOR_MACHINE_ROLES },
 ];
@@ -45,9 +62,6 @@ export function isPathAllowedForAppRole(
   pathname: string,
   role: string | undefined,
 ): boolean {
-  if (hasFullSystemAccess(role)) {
-    return true;
-  }
   const normalized = normalizeAppPathname(pathname);
   if (
     normalized.startsWith('/dobra/retirada/') &&
@@ -66,6 +80,12 @@ export function isPathAllowedForAppRole(
   }
   if (!role) {
     return false;
+  }
+  if (rule.strict) {
+    return rule.roles.includes(role as AppRole);
+  }
+  if (hasFullSystemAccess(role)) {
+    return true;
   }
   return rule.roles.includes(role as AppRole);
 }

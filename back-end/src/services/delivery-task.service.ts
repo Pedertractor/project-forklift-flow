@@ -18,7 +18,10 @@ import { machineRepository } from '../repositories/machine.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
 import { isAdminOrSuperAdmin } from '../utils/role-user.js'
-import { syncTripSuggestionPairForMachine } from './trip-suggestion-sync.service.js'
+import {
+  bindLinkedPickupToDelivery,
+  syncTripSuggestionPairForMachine,
+} from './trip-suggestion-sync.service.js'
 import {
   operatorMovimentPalletWsBroadcastDeliveryTaskCreated,
   operatorMovimentPalletWsBroadcastQueueUpdated,
@@ -89,23 +92,28 @@ export async function createDeliveryTask(input: CreateDeliveryTaskInput) {
     return task
   })
 
+  // Amarra à retirada explicitamente vinculada ao aviso desta entrega (se houver).
+  const bound = await bindLinkedPickupToDelivery({
+    machineId: machine.id,
+    deliverTaskId: row.id,
+    typeMovimentPallet: row.typeMovimentPallet,
+  })
+
   if (machine.sectorId) {
     operatorMovimentPalletWsBroadcastDeliveryTaskCreated(
       machine.sectorId,
       row.typeMovimentPallet,
     )
-  }
-
-  if (row.preparedAt && machine.sectorId) {
-    await syncTripSuggestionPairForMachine(machine.id)
-    operatorMovimentPalletWsBroadcastQueueUpdated(
-      machine.sectorId,
-      row.typeMovimentPallet,
-    )
-    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
-      machine.sectorId,
-      row.typeMovimentPallet,
-    )
+    if (bound.synced || row.preparedAt) {
+      operatorMovimentPalletWsBroadcastQueueUpdated(
+        machine.sectorId,
+        row.typeMovimentPallet,
+      )
+      operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+        machine.sectorId,
+        row.typeMovimentPallet,
+      )
+    }
   }
 
   return row
@@ -233,6 +241,11 @@ export async function markDeliveryTaskPrepared(taskId: string) {
     operatorMovimentPalletWsNotifyDeliveryTaskChange(refreshed)
   }
 
+  await bindLinkedPickupToDelivery({
+    machineId: current.machineId,
+    deliverTaskId: updated.id,
+    typeMovimentPallet: updated.typeMovimentPallet,
+  })
   await syncTripSuggestionPairForMachine(current.machineId)
 
   const sectorId = current.machine.sectorId

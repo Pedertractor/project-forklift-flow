@@ -68,8 +68,6 @@ const SUPERVISION_TASK_EVENT_TYPES = new Set([
 
 const MOVIMENT_OPERATOR_ROLES = new Set<RoleUser>([
   RoleUser.PALLET_TRANSPORTER,
-  RoleUser.ADMIN,
-  RoleUser.SUPERADMIN,
 ])
 
 const OPERATOR_MACHINE_ROLES = new Set<RoleUser>([
@@ -345,6 +343,9 @@ export type DeliveryTaskRowForWs = {
   }
 }
 
+/** Motivo do vínculo retirada <-> abastecimento sendo notificado ao empilhadeirista. */
+export type PickupLinkNotifyReason = 'joined_active_delivery' | 'replenishment_linked'
+
 export type PickupTaskRowForWs = {
   id: string
   status: MachineTaskStatus
@@ -354,6 +355,17 @@ export type PickupTaskRowForWs = {
     userId: string | null
     sectorId: string
   }
+  /**
+   * Vínculo formado com um continuum de abastecimento já acatado pelo
+   * transporte — notifica o empilhadeirista responsável em vez do operador
+   * da máquina. `joined_active_delivery`: entrega já a caminho ganhou uma
+   * retirada anexada. `replenishment_linked`: retirada já aceita ganhou um
+   * aviso de abastecimento amarrado.
+   */
+  notifyReason?: PickupLinkNotifyReason
+  assignedOperatorId?: string | null
+  deliveryTaskId?: string | null
+  machineName?: string | null
 }
 
 export function operatorMovimentPalletWsNotifyPickupTaskChange(
@@ -369,7 +381,18 @@ export function operatorMovimentPalletWsNotifyPickupTaskChange(
     status: row.status,
     typeMovimentPallet,
     machineId: row.machine.id,
-    destinationUserId: row.machine.userId,
+    // Com vínculo pós-aceite: notifica o empilhadeirista; senão, o operador da máquina.
+    destinationUserId: row.notifyReason
+      ? (row.assignedOperatorId ?? null)
+      : row.machine.userId,
+    ...(row.notifyReason
+      ? {
+          reason: row.notifyReason,
+          assignedOperatorId: row.assignedOperatorId ?? null,
+          deliveryTaskId: row.deliveryTaskId ?? null,
+          machineName: row.machineName ?? null,
+        }
+      : {}),
   })
 
   if (

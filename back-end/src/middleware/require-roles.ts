@@ -51,9 +51,9 @@ export function requireMachineReplenishmentReadRoles() {
   return requireMachineReplenishmentRequestRoles();
 }
 
-/** Transportador de pallet: modo de operacao (empilhadeira ou transpaleteira) e fila. */
+/** Transportador de pallet: modo de operacao (empilhadeira ou transpaleteira) e fila. Sem ADMIN/LEADER. */
 export function requirePalletTransporterRole() {
-  return requireRoles(RoleUser.PALLET_TRANSPORTER, RoleUser.ADMIN)
+  return requireRoles(RoleUser.PALLET_TRANSPORTER)
 }
 
 /** @deprecated Use requirePalletTransporterRole */
