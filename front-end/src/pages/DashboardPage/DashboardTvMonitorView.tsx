@@ -45,7 +45,45 @@ import type { DashboardTvMonitorPageViewModel } from './useDashboardTvMonitorPag
 
 const TV_THEME_STORAGE_KEY = 'forklift-tv-monitor-theme';
 
+/** Alinhado ao backend (`PEAK_SLOT_MINUTES` / 48 slots no dia). */
+const PEAK_SLOT_MINUTES = 30;
+const PEAK_SLOT_COUNT = (24 * 60) / PEAK_SLOT_MINUTES;
+const PEAK_X_MAX = PEAK_SLOT_COUNT - 1;
+const PEAK_X_TICKS = Array.from(
+  { length: Math.ceil(PEAK_SLOT_COUNT / 4) },
+  (_, i) => Math.min(PEAK_X_MAX, i * 4),
+);
+
 type TvTheme = 'dark' | 'light';
+
+type PeakChartPoint = {
+  x: number;
+  slot: string;
+  entregas: number | null;
+  retiradas: number | null;
+};
+
+function useRealTimeClock(intervalMs = 1_000) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), intervalMs);
+    return () => window.clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+/** Posição contínua no eixo X (0…47) e índice do slot de 30 min atual. */
+function peakNowPosition(now: Date) {
+  const minutes =
+    now.getHours() * 60 +
+    now.getMinutes() +
+    now.getSeconds() / 60 +
+    now.getMilliseconds() / 60_000;
+  const rawX = minutes / PEAK_SLOT_MINUTES;
+  const nowX = Math.min(PEAK_X_MAX, Math.max(0, rawX));
+  const currentSlotIndex = Math.min(PEAK_X_MAX, Math.floor(rawX));
+  return { nowX, currentSlotIndex };
+}
 
 type MachineFlowBucket = {
   machineId: string;
@@ -256,6 +294,7 @@ function TvPeakSeriesCard({
   totalLabel,
   dataKey,
   data,
+  slotLabels,
   config,
   fillId,
   strokeVar,
@@ -266,7 +305,8 @@ function TvPeakSeriesCard({
   total: number;
   totalLabel: string;
   dataKey: 'entregas' | 'retiradas';
-  data: { slot: string; entregas?: number; retiradas?: number }[];
+  data: PeakChartPoint[];
+  slotLabels: string[];
   config: ChartConfig;
   fillId: string;
   strokeVar: string;
@@ -340,11 +380,16 @@ function TvPeakSeriesCard({
                 stroke={dark ? '#3f3f46' : undefined}
               />
               <XAxis
-                dataKey="slot"
+                dataKey="x"
+                type="number"
+                domain={[0, PEAK_X_MAX]}
+                ticks={PEAK_X_TICKS}
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                minTickGap={28}
+                tickFormatter={(value: number) =>
+                  slotLabels[Math.round(value)] ?? ''
+                }
                 tick={{ fill: dark ? '#a1a1aa' : undefined, fontSize: 14 }}
               />
               <YAxis
@@ -357,7 +402,17 @@ function TvPeakSeriesCard({
               />
               <ChartTooltip
                 cursor={false}
-                content={<ChartTooltipContent indicator="dot" />}
+                content={
+                  <ChartTooltipContent
+                    indicator="dot"
+                    labelFormatter={(_, payload) => {
+                      const point = payload?.[0]?.payload as
+                        | PeakChartPoint
+                        | undefined;
+                      return point?.slot ?? '';
+                    }}
+                  />
+                }
               />
               <Area
                 dataKey={dataKey}
@@ -366,6 +421,8 @@ function TvPeakSeriesCard({
                 fill={`url(#${fillId})`}
                 stroke={strokeVar}
                 strokeWidth={2}
+                connectNulls={false}
+                isAnimationActive={false}
               />
             </AreaChart>
           </ChartContainer>
@@ -382,15 +439,48 @@ function TvPeakChart({
   data: OperationalTvMonitorSnapshot;
   dark: boolean;
 }) {
-  const peakChartData = useMemo(
-    () =>
-      data.peak_slots.map((slot) => ({
+  const now = useRealTimeClock(1_000);
+  const { nowX, currentSlotIndex } = peakNowPosition(now);
+
+  const slotLabels = useMemo(
+    () => data.peak_slots.map((slot) => slot.slot),
+    [data.peak_slots],
+  );
+
+  /** Só pontos até “agora”; a ponta avança em tempo real no eixo. */
+  const peakChartData = useMemo<PeakChartPoint[]>(() => {
+    const points: PeakChartPoint[] = [];
+    for (let index = 0; index < currentSlotIndex; index += 1) {
+      const slot = data.peak_slots[index];
+      if (!slot) continue;
+      points.push({
+        x: index,
         slot: slot.slot,
         retiradas: slot.pickups,
         entregas: slot.deliveries,
-      })),
-    [data.peak_slots],
-  );
+      });
+    }
+
+    const current = data.peak_slots[currentSlotIndex];
+    if (current) {
+      if (nowX > currentSlotIndex) {
+        points.push({
+          x: currentSlotIndex,
+          slot: current.slot,
+          retiradas: current.pickups,
+          entregas: current.deliveries,
+        });
+      }
+      points.push({
+        x: nowX,
+        slot: current.slot,
+        retiradas: current.pickups,
+        entregas: current.deliveries,
+      });
+    }
+
+    return points;
+  }, [data.peak_slots, currentSlotIndex, nowX]);
 
   const totals = useMemo(() => {
     let retiradas = 0;
@@ -412,6 +502,7 @@ function TvPeakChart({
         totalLabel="Entregas"
         dataKey="entregas"
         data={peakChartData}
+        slotLabels={slotLabels}
         config={chartConfigEntregas}
         fillId="tvFillEntregas"
         strokeVar="var(--color-entregas)"
@@ -424,6 +515,7 @@ function TvPeakChart({
         totalLabel="Retiradas"
         dataKey="retiradas"
         data={peakChartData}
+        slotLabels={slotLabels}
         config={chartConfigRetiradas}
         fillId="tvFillRetiradas"
         strokeVar="var(--color-retiradas)"
