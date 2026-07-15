@@ -88,7 +88,7 @@ function mapDeliveryToTaskItem(task: DeliveryTaskApiRow): OperatorPickupTaskQueu
     isCritical: task.isCritical,
     status: task.status,
     statusSince: task.statusSince,
-    triggersReplenishment: false,
+    linkedSupplyRequestId: null,
     requestedById: task.requestedById,
     assignedOperatorId:
       task.assignedOperatorId ?? task.assignedMovimentPalletId ?? null,

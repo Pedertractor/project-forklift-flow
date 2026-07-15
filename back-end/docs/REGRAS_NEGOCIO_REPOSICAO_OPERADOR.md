@@ -35,17 +35,27 @@ Sistema tipo **campainha de restaurante**: tarefas ligadas à **máquina**, sem 
 | Campo | Descrição |
 |-------|-----------|
 | `machineId` | Máquina de origem |
-| `triggersReplenishment` | `true` quando operador pediu **retirada + abastecimento** |
+| `linkedSupplyRequestId` | FK **única** (`@unique`) e opcional para `OperatorMachineSupplyRequest`. Substitui a antiga flag heurística `triggersReplenishment`: quando preenchida, esta é *a* retirada do continuum "Entrega + Retirada" daquele aviso — vínculo explícito, gravado uma única vez no banco, nunca reinferido por status/timestamp |
 | `isCritical` | Prioridade na fila |
 | `status` | `MachineTaskStatus` |
 
 ### `OperatorMachineSupplyRequest`
 
-Aviso ao abastecimento. Encerrado (`FULFILLED`) quando supply cria `DeliveryTask` para a mesma máquina.
+Aviso ao abastecimento. Encerrado (`FULFILLED`) quando supply cria `DeliveryTask` para a mesma máquina (`deliveryTaskId` preenchido). Relação reversa `linkedPickupTask` aponta para a retirada amarrada (se houver) via `PickupTask.linkedSupplyRequestId`.
+
+### Vínculo explícito "Entrega + Retirada" (`pickup-supply-link.service.ts`)
+
+Toda a amarração entre retirada e abastecimento passa por um único módulo, `back-end/src/services/pickup-supply-link.service.ts`, com regra única e sem heurística por máquina/data:
+
+- **Pedido combinado** (retirada + abastecimento na mesma solicitação): vínculo criado na mesma transação (`requestPickupWithReplenishment`), ou reaproveita um aviso elegível ainda não reivindicado (`findFirstEligibleUnclaimedForMachine`).
+- **Retirada avulsa pedida e, depois, aviso elegível já existente/aceito na máquina**: `linkNewPickupToEligibleSupplyRequest` amarra a retirada nova ao aviso mais antigo elegível (`OPEN`, ou `FULFILLED` com entrega ainda em aberto) e ainda sem retirada vinculada.
+- **Aviso pedido e, depois, retirada avulsa já existente na máquina**: `linkNewSupplyRequestToEligiblePickup` amarra o aviso novo à 1ª retirada aberta da máquina ainda sem vínculo.
+- **Unicidade garantida no banco**: `PickupTask.linkedSupplyRequestId` é `@unique` — nunca duas retiradas amarram no mesmo aviso; corrida de amarração é resolvida como "não amarrado" (a retirada segue avulsa) em vez de erro.
+- **Notificação ao empilhadeirista**: se o lado que já estava em rota (entrega `ASSIGNED`/`IN_PROGRESS`, ou retirada `ASSIGNED`/`IN_PROGRESS`) ganha um vínculo novo, o empilhadeirista responsável é notificado via WebSocket (`pickup_task_updated` com `reason: 'joined_active_delivery'` ou `'replenishment_linked'`) em vez do operador da máquina.
 
 ### `MovimentPalletTripSuggestion`
 
-Par **entrega + retirada** na mesma máquina. O empilhadeirista só vê a sugestão combinada quando a `DeliveryTask` vinculada tem `preparedAt` (pallet pronto no abastecimento). O operador da máquina pode abrir **retirada + abastecimento** antes disso; a sugestão é criada/sincronizada no `mark-prepared` ou na listagem de `/trip-suggestions`.
+Par **entrega + retirada** na mesma máquina, resolvido **apenas** pela cadeia de FK explícita (`PickupTask.linkedSupplyRequestId` → `OperatorMachineSupplyRequest.deliveryTaskId` → `DeliveryTask`) em `trip-suggestion-sync.service.ts` — sem pareamento heurístico por "qual entrega/retirada está aberta na máquina agora". O empilhadeirista só vê a sugestão combinada quando a `DeliveryTask` vinculada tem `preparedAt` (pallet pronto no abastecimento). A sugestão é criada/sincronizada no `mark-prepared`, na criação da entrega, ou na listagem de `/trip-suggestions`. Entregas/retiradas sem vínculo explícito nunca formam sugestão ad-hoc — seguem cada uma na sua fila, sem interferir visual ou logicamente uma na outra.
 
 ---
 
@@ -53,11 +63,11 @@ Par **entrega + retirada** na mesma máquina. O empilhadeirista só vê a sugest
 
 | Método | Rota | Efeito |
 |--------|------|--------|
-| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) a qualquer momento; body opcional `{ isCritical?: boolean }`; se houver `DeliveryTask` preparada no recebimento, sincroniza sugestão de viagem (entrega + retirada). Se o **mesmo operador** já tiver aviso de abastecimento OPEN (ou entrega em andamento vinculada a esse aviso), a retirada entra no fluxo de reposição e forma sugestão combinada quando o pallet ficar pronto no recebimento |
-| `POST` | `/pickup-with-replenishment` | Cria `PickupTask` + `OperatorMachineSupplyRequest` OPEN (se ainda não houver); body opcional `{ isCritical?: boolean }`; sincroniza sugestão de viagem se houver `DeliveryTask` pronta. **Bloqueado** enquanto houver pallet no recebimento |
-| `POST` | `/supply-only` | Aviso ao abastecimento. **Bloqueado** enquanto houver pallet no recebimento (neste caso o operador só pode `/pickup-only`) |
+| `POST` | `/pickup-only` | Cria `PickupTask` (só retirada) a qualquer momento; body opcional `{ isCritical?: boolean }`. Se já houver aviso de abastecimento elegível e ainda sem retirada vinculada na máquina, a retirada nova amarra automaticamente nele (`linkNewPickupToEligibleSupplyRequest`) e o continuum "Entrega + Retirada" passa a valer; caso contrário, fica avulsa |
+| `POST` | `/pickup-with-replenishment` | Se já houver aviso elegível ainda não reivindicado na máquina, comportamento idêntico a `/pickup-only` (amarra nele, sem criar 2º aviso); caso contrário, cria `PickupTask` + `OperatorMachineSupplyRequest` OPEN juntos, já amarrados na mesma transação (par genuinamente novo, sem corrida possível). Body opcional `{ isCritical?: boolean }`. **Bloqueado** enquanto houver `DeliveryTask` em aberto para a máquina (até entrega / `COMPLETED`) |
+| `POST` | `/supply-only` | Aviso ao abastecimento; no máximo um `OPEN` por máquina. Se já houver retirada avulsa aberta e sem vínculo na máquina, o aviso novo amarra nela (`linkNewSupplyRequestToEligiblePickup`). **Bloqueado** enquanto houver `DeliveryTask` em aberto para a máquina (neste caso o operador só pode `/pickup-only` até o pallet ser entregue) |
 | `GET` | `/machine-tasks` | Lista `deliveryTasks` e `pickupTasks` da máquina vinculada |
-| `POST` | `/pickup-tasks/:pickupTaskId/cancel` | Cancela retirada em `CREATED`; se `triggersReplenishment`, cancela também aviso OPEN ao abastecimento e `DeliveryTask` em preparo (sem `preparedAt`) |
+| `POST` | `/pickup-tasks/:pickupTaskId/cancel` | Cancela retirada em `CREATED`; se houver `linkedSupplyRequestId`, cancela também o aviso vinculado quando seguro: `OPEN` vira `CANCELLED` direto; `FULFILLED` só é cancelado se a entrega vinculada ainda estiver `CREATED`, sem operador atribuído e sem preparo (senão o pallet já está em curso e a retirada cancelada não pode descartá-lo) |
 
 **Removido:** `finalize`, `replenishment-requests`, pickup por `requestId`.
 
@@ -111,9 +121,14 @@ flowchart LR
 
 1. Supply antecipa ou responde aviso → `DeliveryTask` com `preparedAt`.
 2. Transporte entrega → `DeliveryTask` COMPLETED (registro no sistema; nao e pre-requisito para retirada).
-3. Operador **só retirada** → `PickupTask` a qualquer momento (pedido de serviço ao transporte); se já houver entrega preparada no recebimento, abre sugestão de viagem (entrega + retirada).
-4. Operador **retirada + abastecimento** → `PickupTask` + aviso supply; sugestão de viagem para o transporte **após** abastecimento marcar o pallet pronto (`preparedAt`). Não permitido enquanto existir pallet no recebimento.
-5. Com pallet no recebimento, o operador **não** pode solicitar novo abastecimento nem retirada+abastecimento — apenas retirada (item 3).
+3. Operador **só retirada** (sem aviso elegível na máquina) → `PickupTask` avulsa a qualquer momento (pedido de serviço ao transporte); segue sua própria fila/fluxo, sem interferir em nenhum aviso de abastecimento.
+4. Operador **só abastecimento** (sem retirada avulsa aberta na máquina) → aviso `OPEN`; segue seu próprio fluxo de "próximo prisma", sem interferir em nenhuma retirada.
+5. Operador **retirada + abastecimento** (pedido combinado) → `PickupTask` + aviso amarrados na criação (mesma transação); sugestão de viagem para o transporte **após** abastecimento marcar o pallet pronto (`preparedAt`). Não permitido enquanto existir `DeliveryTask` em aberto para a máquina.
+6. Operador pede **retirada** e, em seguida, **abastecimento** (ou vice-versa) para a mesma máquina, **antes de o transporte aceitar** qualquer um dos dois → os dois são amarrados automaticamente pelo `pickup-supply-link.service.ts` (retirada avulsa CREATED + aviso elegível OPEN/FULFILLED-em-aberto, sem vínculo prévio), formando o mesmo continuum "Entrega + Retirada" do item 5.
+7. Se há um aviso `OPEN` na máquina, **ou** o empilhadeirista **já aceitou** a entrega vinculada a um aviso `FULFILLED` (`ASSIGNED`/`IN_PROGRESS`), e o operador dessa máquina pede retirada → a retirada nova amarra no mesmo aviso/entrega. Se a entrega já estava em rota, a retirada entra na mesma sugestão (`ACCEPTED`) e **o empilhadeirista responsável é notificado** (`reason: 'joined_active_delivery'`).
+8. Simetricamente: se uma retirada avulsa já foi **aceita pelo transporte** (`ASSIGNED`/`IN_PROGRESS`) e o operador da máquina pede um aviso de abastecimento novo → o aviso amarra nessa retirada e **o empilhadeirista responsável é notificado** (`reason: 'replenishment_linked'`), mesmo sem ainda existir `DeliveryTask` para o próximo pallet.
+9. Com pallet destinado à máquina (no recebimento, em preparo ou a caminho), o operador **não** pode solicitar novo abastecimento nem retirada+abastecimento até a entrega na máquina (`COMPLETED`) — apenas retirada (item 3).
+10. Tarefas/continuums sem vínculo explícito entre si **nunca** se misturam visualmente: cada retirada avulsa, aviso avulso ou continuum "Entrega + Retirada" aparece em exatamente um card, resolvido só pela FK (`linkedSupplyRequestId` / `deliveryTaskId`) — sem pareamento heurístico por máquina, status ou proximidade de datas.
 
 ---
 
@@ -125,4 +140,4 @@ npx prisma migrate deploy
 npx prisma generate
 ```
 
-Migração: `20260522120000_task_based_flow` (remove tabelas antigas; dados não migrados).
+Migrações: `20260522120000_task_based_flow` (remove tabelas antigas; dados não migrados); `20260715120000_pickup_supply_explicit_link` (adiciona `PickupTask.linkedSupplyRequestId` `@unique`; remove `triggersReplenishment`).

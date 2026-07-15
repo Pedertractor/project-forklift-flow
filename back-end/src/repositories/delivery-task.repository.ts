@@ -113,6 +113,42 @@ export const deliveryTaskRepository = {
     })
   },
 
+  /**
+   * Entrega aberta ainda não acatada pelo transporte (pronta ou só solicitada).
+   * Prefere a mais antiga — base da amarração com a 1ª retirada.
+   */
+  findOpenUnassignedDeliveryForMachine(machineId: string) {
+    return prisma.deliveryTask.findFirst({
+      where: {
+        machineId,
+        status: MachineTaskStatus.CREATED,
+        acceptedBySupply: true,
+        assignedOperatorId: null,
+      },
+      include: deliveryTaskListInclude,
+      orderBy: [
+        { preparedAt: { sort: 'asc', nulls: 'last' } },
+        { createdAt: 'asc' },
+      ],
+    })
+  },
+
+  /** Entrega já acatada / a caminho (empilhadeirista em rota para a máquina). */
+  findOpenAssignedForMachine(machineId: string) {
+    return prisma.deliveryTask.findFirst({
+      where: {
+        machineId,
+        status: {
+          in: [MachineTaskStatus.ASSIGNED, MachineTaskStatus.IN_PROGRESS],
+        },
+        preparedAt: { not: null },
+        assignedOperatorId: { not: null },
+      },
+      include: deliveryTaskListInclude,
+      orderBy: { assignedAt: 'desc' },
+    })
+  },
+
   findMachineIdsWithOpenPreparedDelivery(machineIds: string[]) {
     if (machineIds.length === 0) {
       return Promise.resolve([] as string[])

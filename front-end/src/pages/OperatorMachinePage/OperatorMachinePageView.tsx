@@ -61,7 +61,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
       ? (pickupTasks.find((p) => p.id === cancelPickupId) ?? null)
       : null;
   const cancelIncludesReplenishment =
-    cancelPickupTask?.triggersReplenishment === true;
+    cancelPickupTask?.linkedSupplyRequestId != null;
 
   return (
     <main className="flex min-h-full flex-col px-4 py-8 max-[800px]:px-3">

@@ -663,6 +663,7 @@ export function DashboardTvMonitorView({
                       return (
                         <OperatorMachineTasksList
                           key={`${row.kind}-${row.id}`}
+                          rows={[row]}
                           deliveryTasks={scoped.deliveryTasks}
                           pickupTasks={scoped.pickupTasks}
                           supplyRequests={scoped.supplyRequests}

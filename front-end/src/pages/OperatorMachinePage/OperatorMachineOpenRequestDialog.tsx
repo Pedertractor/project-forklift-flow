@@ -191,9 +191,21 @@ export function OperatorMachineOpenRequestDialog({
 
   const pickupSelected = pickup && canPickup;
 
+  /**
+   * `supplyAlreadyOpen` só entra na seleção quando o operador escolheu
+   * explicitamente o card "Retirada e abastecimento" — sinaliza a intenção de
+   * amarrar a retirada ao aviso já aberto. Nunca forçar isso na retirada
+   * avulsa: o back-end já amarra automaticamente uma retirada avulsa a um
+   * aviso elegível ainda sem vínculo (`linkNewPickupToEligibleSupplyRequest`);
+   * se o aviso já estiver vinculado a outra retirada, forçar `supply: true`
+   * aqui faria o back-end criar um 2º aviso + retirada (par duplicado —
+   * bug do card "Entrega + Retirada" repetido).
+   */
   const buildSelection = (): OperatorServiceSelection => ({
     pickup: pickupSelected,
-    supply: (supply && supplyAvailable) || supplyAlreadyOpen,
+    supply: combinedSelected
+      ? (supply && supplyAvailable) || supplyAlreadyOpen
+      : supply && supplyAvailable,
     pickupIsCritical: pickupSelected && pickupIsCritical,
     typeMovimentPallet: pickupSelected ? typeMovimentPallet : undefined,
   });
@@ -267,7 +279,7 @@ export function OperatorMachineOpenRequestDialog({
       ? pickupWithReplenishmentAvailable
         ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
         : canPickup
-          ? 'Há pallet no recebimento — solicite apenas a retirada do pallet na máquina para abrir a sugestão de entrega e retirada.'
+          ? 'Há pallet destinado a esta máquina — solicite apenas a retirada. Nova solicitação de abastecimento só após a entrega na máquina.'
           : 'Selecione o serviço desejado abaixo.'
       : step === 'movement'
         ? 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.'
@@ -476,7 +488,11 @@ export function OperatorMachineOpenRequestDialog({
               </span>
             }
             title="Retirada e abastecimento"
-            description="Solicita retirada do pallet na máquina e aviso ao abastecimento em um único passo."
+            description={
+              supplyAlreadyOpen
+                ? 'Amarra a retirada ao abastecimento já solicitado. Quando o pallet ficar pronto, vira uma sugestão de viagem.'
+                : 'Solicita retirada do pallet na máquina e aviso ao abastecimento em um único passo.'
+            }
             hint={combinedBlockedHint}
           >
             {combinedSelected && canPickup ? (

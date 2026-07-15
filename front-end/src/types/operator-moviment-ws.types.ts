@@ -51,6 +51,16 @@ export interface OperatorMovimentWsPickupTaskUpdated
   typeMovimentPallet: ReplenishmentMovimentType;
   machineId: string;
   destinationUserId: string | null;
+  /**
+   * Vínculo formado com um continuum já acatado pelo transporte, notificado
+   * ao empilhadeirista responsável em vez do operador da máquina:
+   * `joined_active_delivery` (entrega a caminho ganhou retirada anexada) ou
+   * `replenishment_linked` (retirada já aceita ganhou aviso de abastecimento).
+   */
+  reason?: 'joined_active_delivery' | 'replenishment_linked';
+  assignedOperatorId?: string | null;
+  deliveryTaskId?: string | null;
+  machineName?: string | null;
 }
 
 export interface OperatorMovimentWsMachineOperatorUpdated

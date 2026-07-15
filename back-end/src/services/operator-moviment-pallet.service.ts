@@ -43,10 +43,7 @@ import {
   movimentPalletTripSuggestionRepository,
   type MovimentPalletTripSuggestionWithTasks,
 } from "../repositories/moviment-pallet-trip-suggestion.repository.js";
-import {
-  syncOpenTripSuggestionsForSector,
-  isPickupLinkedToReplenishmentFlow,
-} from "./trip-suggestion-sync.service.js";
+import { syncOpenTripSuggestionsForSector } from "./trip-suggestion-sync.service.js";
 import { listPreferredMachineIdsForOperator } from "./moviment-operator-machine-link.service.js";
 import type { DeliveryTaskListRow } from "../repositories/delivery-task.repository.js";
 import type { PickupTaskListRow } from "../repositories/pickup-task.repository.js";
@@ -262,11 +259,13 @@ function mapStandaloneDeliverRow(
   };
 }
 
-/** Retirada vinculada a reposição so entra na fila do empilhadeirista via par combinado. */
-async function isPickupEligibleForStandaloneQueue(
-  pickup: PickupTaskListRow,
-): Promise<boolean> {
-  return !(await isPickupLinkedToReplenishmentFlow(pickup));
+/**
+ * Retirada explicitamente vinculada a um aviso de abastecimento
+ * (`linkedSupplyRequestId`) so entra na fila do empilhadeirista via par
+ * combinado — nunca avulsa, mesmo que o par ainda não tenha sido formado.
+ */
+function isPickupEligibleForStandaloneQueue(pickup: PickupTaskListRow): boolean {
+  return pickup.linkedSupplyRequestId === null
 }
 
 async function listStandaloneTripTasksForSector(
@@ -297,7 +296,7 @@ async function listStandaloneTripTasksForSector(
     if (pickup.status !== MachineTaskStatus.CREATED) continue;
     if (pickup.assignedOperatorId) continue;
     if (linked.pickupIds.has(pickup.id)) continue;
-    if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
+    if (!isPickupEligibleForStandaloneQueue(pickup)) continue;
     if (!pickup.machine) continue;
     const preferred = preferredMachineIds.has(pickup.machineId);
     // Criticas ou maquinas priorizadas do operador entram na sugestao principal.
@@ -388,7 +387,7 @@ async function listOneNonCriticalStandaloneFallback(
     if (pickup.status !== MachineTaskStatus.CREATED) continue;
     if (pickup.assignedOperatorId) continue;
     if (linked.pickupIds.has(pickup.id)) continue;
-    if (!(await isPickupEligibleForStandaloneQueue(pickup))) continue;
+    if (!isPickupEligibleForStandaloneQueue(pickup)) continue;
     if (pickup.isCritical) continue;
     if (!pickup.machine) continue;
     candidates.push({
@@ -553,7 +552,7 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
     if (linked.pickupIds.has(task.id)) continue;
     if (task.isCritical) continue;
     if (preferredMachineIds.has(task.machineId)) continue;
-    if (!(await isPickupEligibleForStandaloneQueue(task))) continue;
+    if (!isPickupEligibleForStandaloneQueue(task)) continue;
     openPickupTasks.push(task);
   }
 

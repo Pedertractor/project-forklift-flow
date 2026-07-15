@@ -18,12 +18,19 @@ import {
 } from '../errors/domain-errors.js'
 import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
-import { operatorMachineSupplyRequestRepository, operatorMachineSupplyRequestListInclude } from '../repositories/operator-machine-supply-request.repository.js'
-import { movimentPalletTripSuggestionRepository } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
+import {
+  operatorMachineSupplyRequestRepository,
+  operatorMachineSupplyRequestListInclude,
+} from '../repositories/operator-machine-supply-request.repository.js'
 import { machineRepository } from '../repositories/machine.repository.js'
 import { toolingRepository } from '../repositories/tooling.repository.js'
 import { userRepository } from '../repositories/user.repository.js'
 import { prisma } from '../lib/prisma.js'
+import {
+  linkNewPickupToEligibleSupplyRequest,
+  linkNewSupplyRequestToEligiblePickup,
+  type PickupSupplyLinkResult,
+} from './pickup-supply-link.service.js'
 import {
   operatorMovimentPalletWsBroadcastMachineOperatorUpdated,
   operatorMovimentPalletWsBroadcastMachineToolingUpdated,
@@ -162,35 +169,75 @@ async function findPalletAtReceivingForMachine(machineId: string) {
   return deliveryTaskRepository.findOpenPreparedForMachine(machineId)
 }
 
+/**
+ * Bloqueia novo aviso de abastecimento enquanto houver DeliveryTask em aberto
+ * para a máquina (no recebimento, em preparo ou a caminho). Só libera após
+ * COMPLETED (pallet entregue na máquina) ou CANCELED.
+ */
 async function assertNoPalletAtReceivingForSupplyRequest(machineId: string) {
-  const atReceiving = await findPalletAtReceivingForMachine(machineId)
-  if (atReceiving) {
+  const incomingDelivery =
+    await deliveryTaskRepository.findFirstOpenForMachine(machineId)
+  if (incomingDelivery) {
     throw new OperatorRequestBlockedByPalletAtReceivingError()
   }
 }
 
-/** Vincula retirada a entrega preparada no recebimento (sugestao de viagem). */
-async function syncOpenTripSuggestionForPreparedDelivery(
-  machineId: string,
-  pickupTaskId: string,
+/**
+ * Após um vínculo ser gravado (por `pickup-supply-link.service.ts`), notifica
+ * o empilhadeirista responsável quando aplicável e atualiza os broadcasts de
+ * fila/sugestão de viagem do setor. Fonte única desse pós-processamento —
+ * usada nos três pontos em que um vínculo novo pode se formar (retirada nova
+ * encontra abastecimento elegível, abastecimento novo encontra retirada
+ * elegível, ou o ramo "abastecimento já existente" do pedido combinado).
+ */
+async function applyLinkOutcome(
+  linkResult: PickupSupplyLinkResult,
   sectorId: string | null | undefined,
+  machineName: string,
 ) {
-  const openDelivery = await findPalletAtReceivingForMachine(machineId)
-  if (!openDelivery || !sectorId) return
+  if (!linkResult.linked || !linkResult.pickupTaskId) {
+    return
+  }
 
-  await movimentPalletTripSuggestionRepository.upsertOpenPair({
-    deliverTaskId: openDelivery.id,
-    pickupTaskId,
-    machineId,
-    typeMovimentPallet: openDelivery.typeMovimentPallet,
-  })
-  operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
-    sectorId,
-    openDelivery.typeMovimentPallet,
-  )
+  const pickup = await pickupTaskRepository.findById(linkResult.pickupTaskId)
+  if (!pickup) {
+    return
+  }
+
+  if (linkResult.notify && pickup.machine) {
+    operatorMovimentPalletWsNotifyPickupTaskChange({
+      id: pickup.id,
+      status: pickup.status,
+      typeMovimentPallet: pickup.typeMovimentPallet,
+      machine: pickup.machine,
+      notifyReason: linkResult.notify.reason,
+      assignedOperatorId: linkResult.notify.assignedOperatorId,
+      deliveryTaskId: linkResult.notify.deliveryTaskId ?? null,
+      machineName,
+    })
+  }
+
+  if (sectorId) {
+    operatorMovimentPalletWsBroadcastTripSuggestionsUpdated(
+      sectorId,
+      pickup.typeMovimentPallet,
+    )
+    if (linkResult.notify?.reason === 'joined_active_delivery') {
+      operatorMovimentPalletWsBroadcastQueueUpdated(
+        sectorId,
+        pickup.typeMovimentPallet,
+      )
+    }
+  }
 }
 
-/** Somente retirada do prisma na maquina. */
+/**
+ * Somente retirada. Se já houver um aviso de abastecimento elegível para
+ * amarração (aberto, ou já aceito pelo transporte com entrega a caminho) na
+ * mesma máquina — e que ainda não tenha retirada vinculada — amarra os dois
+ * automaticamente (`pickup-supply-link.service.ts`). Caso contrário, a
+ * retirada fica avulsa.
+ */
 export async function requestPickupOnly(
   operatorUserId: string,
   options?: { isCritical?: boolean; typeMovimentPallet?: TypeMovimentPallet },
@@ -202,11 +249,11 @@ export async function requestPickupOnly(
 
   const typeMovimentPallet =
     options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
+
   const pickupTask = await pickupTaskRepository.create({
     machine: { connect: { id: machine.id } },
     requestedBy: { connect: { id: operatorUserId } },
     typeMovimentPallet,
-    triggersReplenishment: false,
     isCritical: options?.isCritical === true,
     status: MachineTaskStatus.CREATED,
   })
@@ -220,13 +267,14 @@ export async function requestPickupOnly(
     })
   }
 
-  await syncOpenTripSuggestionForPreparedDelivery(
-    machine.id,
-    pickupTask.id,
-    machine.sectorId,
-  )
+  const linkResult = await linkNewPickupToEligibleSupplyRequest({
+    machineId: machine.id,
+    pickupTaskId: pickupTask.id,
+  })
+  await applyLinkOutcome(linkResult, machine.sectorId, machine.name)
 
-  return { pickupTask }
+  const refreshed = await pickupTaskRepository.findById(pickupTask.id)
+  return { pickupTask: refreshed ?? pickupTask }
 }
 
 /** Aviso ao abastecimento sem retirada; no maximo uma solicitacao OPEN por maquina. */
@@ -269,6 +317,14 @@ export async function requestSupplyOnly(
       machine.id,
     )
   }
+
+  // Se já havia uma retirada avulsa em aberto para esta máquina, amarra agora
+  // (retirada solicitada antes do abastecimento — ver regra do continuum).
+  const linkResult = await linkNewSupplyRequestToEligiblePickup({
+    machineId: machine.id,
+    supplyRequestId: operatorSupplyRequest.id,
+  })
+  await applyLinkOutcome(linkResult, machine.sectorId, machine.name)
 
   return { operatorSupplyRequest, created: true as const }
 }
@@ -344,7 +400,15 @@ export async function deleteToolingForOperatorMachine(
   return tooling
 }
 
-/** Retirada + aviso ao abastecimento (cria sugestao de viagem quando houver entrega). */
+/**
+ * Retirada + aviso ao abastecimento pedidos juntos ("Entrega + Retirada").
+ *
+ * - Se já houver um aviso elegível (aberto, ou aceito com entrega a caminho)
+ *   para a máquina: comportamento idêntico a `requestPickupOnly` — a retirada
+ *   nova amarra nele via `pickup-supply-link.service.ts` (sem criar 2º aviso).
+ * - Caso contrário: cria o aviso e a retirada juntos, já amarrados na mesma
+ *   transação (par genuinamente novo, sem corrida possível).
+ */
 export async function requestPickupWithReplenishment(
   operatorUserId: string,
   options?: {
@@ -363,31 +427,51 @@ export async function requestPickupWithReplenishment(
   const typeMovimentPallet =
     options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
 
-  const result = await prisma.$transaction(async (tx) => {
-    const existingOpenSupply =
-      await operatorMachineSupplyRequestRepository.findFirstOpenByMachineId(
-        machine.id,
-      )
-
-    // Abastecimento é geral por máquina: se já há aviso aberto ou um pallet a
-    // caminho, esta solicitação vira retirada simples (não cria novo aviso nem
-    // marca triggersReplenishment). Só a solicitação que cria o aviso "puxa" o
-    // abastecimento — evita duas "entrega + retirada" para o mesmo pallet.
-    const incomingDelivery = await deliveryTaskRepository.findFirstOpenForMachine(
+  const existingEligibleSupply =
+    await operatorMachineSupplyRequestRepository.findFirstEligibleUnclaimedForMachine(
       machine.id,
     )
-    const replenishmentAlreadyPending =
-      Boolean(existingOpenSupply) || Boolean(incomingDelivery)
 
-    let operatorSupplyRequest = existingOpenSupply
-    let createdSupplyRequest = false
-    if (!replenishmentAlreadyPending) {
-      const toolingId = options?.toolingId?.trim()
-      if (toolingId) {
-        await requireToolingForMachine(toolingId, machine.id)
-      }
+  if (existingEligibleSupply) {
+    const pickupTask = await pickupTaskRepository.create({
+      machine: { connect: { id: machine.id } },
+      requestedBy: { connect: { id: operatorUserId } },
+      typeMovimentPallet,
+      isCritical: options?.isCritical === true,
+      status: MachineTaskStatus.CREATED,
+    })
 
-      operatorSupplyRequest = await tx.operatorMachineSupplyRequest.create({
+    if (pickupTask.machine) {
+      operatorMovimentPalletWsNotifyPickupTaskChange({
+        id: pickupTask.id,
+        status: pickupTask.status,
+        typeMovimentPallet: pickupTask.typeMovimentPallet,
+        machine: pickupTask.machine,
+      })
+    }
+
+    const linkResult = await linkNewPickupToEligibleSupplyRequest({
+      machineId: machine.id,
+      pickupTaskId: pickupTask.id,
+    })
+    await applyLinkOutcome(linkResult, machine.sectorId, machine.name)
+
+    const refreshedPickup = await pickupTaskRepository.findById(pickupTask.id)
+    return {
+      pickupTask: refreshedPickup ?? pickupTask,
+      operatorSupplyRequest: existingEligibleSupply,
+      createdSupplyRequest: false,
+    }
+  }
+
+  const toolingId = options?.toolingId?.trim()
+  if (toolingId) {
+    await requireToolingForMachine(toolingId, machine.id)
+  }
+
+  const { pickupTask, operatorSupplyRequest } = await prisma.$transaction(
+    async (tx) => {
+      const supply = await tx.operatorMachineSupplyRequest.create({
         data: {
           machine: { connect: { id: machine.id } },
           requestedBy: { connect: { id: operatorUserId } },
@@ -396,112 +480,109 @@ export async function requestPickupWithReplenishment(
         },
         include: operatorMachineSupplyRequestListInclude,
       })
-      createdSupplyRequest = true
-    }
 
-    const pickupTask = await tx.pickupTask.create({
-      data: {
-        machine: { connect: { id: machine.id } },
-        requestedBy: { connect: { id: operatorUserId } },
-        typeMovimentPallet,
-        triggersReplenishment: createdSupplyRequest,
-        isCritical: options?.isCritical === true,
-        status: MachineTaskStatus.CREATED,
-      },
-      include: {
-        machine: {
-          select: {
-            id: true,
-            name: true,
-            sectorId: true,
-            userId: true,
+      const pickup = await tx.pickupTask.create({
+        data: {
+          machine: { connect: { id: machine.id } },
+          requestedBy: { connect: { id: operatorUserId } },
+          typeMovimentPallet,
+          isCritical: options?.isCritical === true,
+          status: MachineTaskStatus.CREATED,
+          linkedSupplyRequest: { connect: { id: supply.id } },
+        },
+        include: {
+          machine: {
+            select: {
+              id: true,
+              name: true,
+              sectorId: true,
+              userId: true,
+            },
           },
         },
-      },
-    })
+      })
 
-    return { pickupTask, operatorSupplyRequest, createdSupplyRequest }
-  })
-
-  await syncOpenTripSuggestionForPreparedDelivery(
-    machine.id,
-    result.pickupTask.id,
-    machine.sectorId,
+      return { pickupTask: pickup, operatorSupplyRequest: supply }
+    },
   )
 
-  if (result.pickupTask.machine) {
+  if (pickupTask.machine) {
     operatorMovimentPalletWsNotifyPickupTaskChange({
-      id: result.pickupTask.id,
-      status: result.pickupTask.status,
-      typeMovimentPallet: result.pickupTask.typeMovimentPallet,
-      machine: result.pickupTask.machine,
+      id: pickupTask.id,
+      status: pickupTask.status,
+      typeMovimentPallet: pickupTask.typeMovimentPallet,
+      machine: pickupTask.machine,
     })
   }
 
-  if (result.createdSupplyRequest && machine.sectorId) {
+  if (machine.sectorId) {
     operatorMovimentPalletWsBroadcastOperatorSupplyRequestCreated(
       machine.sectorId,
       machine.id,
     )
   }
 
-  return result
+  return { pickupTask, operatorSupplyRequest, createdSupplyRequest: true }
 }
 
 /**
- * Encerra aviso de abastecimento e entrega em preparo vinculados a retirada + abastecimento.
- * Nao cancela entrega ja preparada no recebimento (preparedAt).
+ * Cancela o aviso de abastecimento amarrado à retirada cancelada — só quando
+ * seguro: aviso OPEN (ainda sem pallet montado) vira CANCELLED direto; aviso
+ * FULFILLED só é cancelado se a entrega vinculada ainda estiver CREATED, sem
+ * operador atribuído e sem preparo (senão o pallet já está em curso e não
+ * pode ser descartado por uma retirada cancelada).
  */
-async function cancelReplenishmentCompanionTasks(
+async function cancelLinkedSupplyRequestIfSafe(
   tx: Prisma.TransactionClient,
-  machineId: string,
+  linkedSupplyRequestId: string,
   now: Date,
 ) {
-  await tx.operatorMachineSupplyRequest.updateMany({
-    where: {
-      machineId,
-      status: OperatorMachineSupplyRequestStatus.OPEN,
-    },
-    data: { status: OperatorMachineSupplyRequestStatus.CANCELLED },
+  const supply = await tx.operatorMachineSupplyRequest.findUnique({
+    where: { id: linkedSupplyRequestId },
   })
+  if (!supply) {
+    return null
+  }
 
-  const deliveriesToCancel = await tx.deliveryTask.findMany({
-    where: {
-      machineId,
-      status: MachineTaskStatus.CREATED,
-      assignedOperatorId: null,
-      preparedAt: null,
-      acceptedBySupply: true,
-    },
+  if (supply.status === OperatorMachineSupplyRequestStatus.OPEN) {
+    await tx.operatorMachineSupplyRequest.update({
+      where: { id: linkedSupplyRequestId },
+      data: { status: OperatorMachineSupplyRequestStatus.CANCELLED },
+    })
+    return null
+  }
+
+  if (
+    supply.status !== OperatorMachineSupplyRequestStatus.FULFILLED ||
+    !supply.deliveryTaskId
+  ) {
+    return null
+  }
+
+  const delivery = await tx.deliveryTask.findUnique({
+    where: { id: supply.deliveryTaskId },
+  })
+  if (
+    !delivery ||
+    delivery.status !== MachineTaskStatus.CREATED ||
+    delivery.assignedOperatorId !== null ||
+    delivery.preparedAt !== null
+  ) {
+    return null
+  }
+
+  const canceledDelivery = await tx.deliveryTask.update({
+    where: { id: delivery.id },
+    data: { status: MachineTaskStatus.CANCELED, statusSince: now },
     include: deliveryTaskListInclude,
   })
 
-  if (deliveriesToCancel.length === 0) {
-    return []
-  }
-
-  const deliveryIds = deliveriesToCancel.map((d) => d.id)
-  await tx.deliveryTask.updateMany({
-    where: { id: { in: deliveryIds } },
-    data: {
-      status: MachineTaskStatus.CANCELED,
-      statusSince: now,
-    },
-  })
-
-  await tx.operatorMachineSupplyRequest.updateMany({
-    where: {
-      deliveryTaskId: { in: deliveryIds },
-      status: OperatorMachineSupplyRequestStatus.FULFILLED,
-    },
+  await tx.operatorMachineSupplyRequest.update({
+    where: { id: linkedSupplyRequestId },
     data: { status: OperatorMachineSupplyRequestStatus.CANCELLED },
   })
 
-  return deliveriesToCancel.map((d) => ({
-    ...d,
-    status: MachineTaskStatus.CANCELED,
-    statusSince: now,
-  }))
+  return canceledDelivery
 }
 
 /** Cancela retirada enquanto ainda nao foi aceita pelo transporte (status CREATED). */
@@ -533,7 +614,7 @@ export async function cancelPickupRequestByOperator(
   }
 
   const now = new Date()
-  const { pickupTask: updated, canceledDeliveries } = await prisma.$transaction(
+  const { pickupTask: updated, canceledDelivery } = await prisma.$transaction(
     async (tx) => {
       await tx.movimentPalletTripSuggestion.updateMany({
         where: {
@@ -543,9 +624,13 @@ export async function cancelPickupRequestByOperator(
         data: { status: MovimentPalletTripSuggestionStatus.EXPIRED },
       })
 
-      const canceledDeliveries = task.triggersReplenishment
-        ? await cancelReplenishmentCompanionTasks(tx, machine.id, now)
-        : []
+      const canceledDelivery = task.linkedSupplyRequestId
+        ? await cancelLinkedSupplyRequestIfSafe(
+            tx,
+            task.linkedSupplyRequestId,
+            now,
+          )
+        : null
 
       const pickupTask = await tx.pickupTask.update({
         where: { id: pickupTaskId },
@@ -565,7 +650,7 @@ export async function cancelPickupRequestByOperator(
         },
       })
 
-      return { pickupTask, canceledDeliveries }
+      return { pickupTask, canceledDelivery }
     },
   )
 
@@ -576,8 +661,8 @@ export async function cancelPickupRequestByOperator(
       typeMovimentPallet: updated.typeMovimentPallet,
       machine: updated.machine,
     })
-    for (const delivery of canceledDeliveries) {
-      operatorMovimentPalletWsNotifyDeliveryTaskChange(delivery)
+    if (canceledDelivery) {
+      operatorMovimentPalletWsNotifyDeliveryTaskChange(canceledDelivery)
     }
     operatorMovimentPalletWsBroadcastQueueUpdated(
       updated.machine.sectorId,
@@ -591,6 +676,6 @@ export async function cancelPickupRequestByOperator(
 
   return {
     pickupTask: updated,
-    replenishmentCanceled: task.triggersReplenishment,
+    replenishmentCanceled: canceledDelivery !== null,
   }
 }

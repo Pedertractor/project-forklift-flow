@@ -54,7 +54,13 @@ export interface PickupTaskListItem {
   isCritical: boolean;
   status: MachineTaskStatusValue;
   statusSince: string;
-  triggersReplenishment: boolean;
+  /**
+   * Vínculo explícito e único com o aviso de abastecimento que forma o
+   * continuum "Entrega + Retirada" desta retirada (substitui a antiga flag
+   * `triggersReplenishment`, reinferida por heurística). `null` = retirada
+   * avulsa, sem nenhum vínculo.
+   */
+  linkedSupplyRequestId: string | null;
   requestedById: string;
   assignedMovimentPalletId: string | null;
   createdAt: string;

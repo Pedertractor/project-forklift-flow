@@ -69,23 +69,29 @@ export const operatorMachineSupplyRequestRepository = {
     })
   },
 
-  /** Aviso atendido com entrega ainda em aberto, do mesmo operador que solicitou. */
-  findLatestFulfilledWithOpenDeliveryForMachineAndOperator(
-    machineId: string,
-    requestedById: string,
-  ) {
+  /**
+   * Aviso ainda elegível para amarrar uma retirada (continuum "Entrega +
+   * Retirada"): OPEN (abastecimento ainda não montou o pallet) OU FULFILLED
+   * com entrega ainda em aberto (não CANCELED/COMPLETED) — e sem retirada já
+   * vinculada (`linkedPickupTask`), já que o vínculo é único por aviso.
+   * Mais antigo primeiro: several avisos nunca coexistem OPEN na mesma
+   * máquina, mas o FULFILLED anterior pode ainda estar em aberto.
+   */
+  findFirstEligibleUnclaimedForMachine(machineId: string) {
     return prisma.operatorMachineSupplyRequest.findFirst({
       where: {
         machineId,
-        requestedById,
-        status: OperatorMachineSupplyRequestStatus.FULFILLED,
-        deliveryTaskId: { not: null },
-        deliveryTask: {
-          status: { in: openMachineTaskStatuses },
-        },
+        linkedPickupTask: null,
+        OR: [
+          { status: OperatorMachineSupplyRequestStatus.OPEN },
+          {
+            status: OperatorMachineSupplyRequestStatus.FULFILLED,
+            deliveryTask: { status: { in: openMachineTaskStatuses } },
+          },
+        ],
       },
       include: operatorMachineSupplyRequestListInclude,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     })
   },
 

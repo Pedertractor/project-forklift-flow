@@ -16,18 +16,14 @@ import {
   type OperatorMachineTaskListRow,
 } from './operator-machine-display';
 import {
-  COMBINED_FLOW_STEPS,
-  COMBINED_FLOW_STEPS_TV,
-  combinedFlowHeadline,
-  combinedFlowStepStatusesFromTasks,
   DELIVERY_FLOW_STEPS,
   deliveryFlowHeadline,
   deliveryFlowStepStatusesFromTask,
   deriveDeliveryFlowPhaseFromTask,
   derivePickupFlowPhaseFromTask,
+  findDeliveryForPickup,
   findDeliveryForSupplyRequest,
-  findReplenishmentDeliveryForPickup,
-  findReplenishmentSupplyForMachine,
+  findSupplyForPickup,
   PICKUP_FLOW_STEPS,
   PICKUP_WITH_REPLENISHMENT_FLOW_STEPS,
   PICKUP_WITH_REPLENISHMENT_FLOW_STEPS_TV,
@@ -78,14 +74,6 @@ function FlowRequestTimer({
 }
 
 function TaskKindIcon({ kind }: { kind: OperatorMachineTaskListRow['kind'] }) {
-  if (kind === 'COMBINED') {
-    return (
-      <span className="inline-flex shrink-0 items-center gap-0.5" aria-hidden>
-        <ArrowUpRight className="size-3.5 rounded-full bg-green-200" />
-        <ArrowDownLeft className="size-3.5 rounded-full bg-red-200" />
-      </span>
-    );
-  }
   if (kind === 'DELIVERY') {
     return (
       <ArrowUpRight
@@ -110,10 +98,6 @@ function flowCardTitle(
   compact = false,
 ): string {
   switch (row.kind) {
-    case 'COMBINED':
-      return compact
-        ? 'Entrega + Retirada'
-        : 'Entrega de pallet + Retirada de pallet';
     case 'DELIVERY':
       return 'Entrega de pallet';
     case 'PICKUP':
@@ -166,6 +150,17 @@ export interface OperatorMachineTasksListProps {
   compact?: boolean;
   /** Aparência para fundo escuro. */
   dark?: boolean;
+  /**
+   * Linhas já calculadas (bypassa `buildOperatorMachineTaskRows` interno).
+   *
+   * Necessário quando o chamador recorta `deliveryTasks`/`pickupTasks`/
+   * `supplyRequests` para renderizar um único card por vez (monitor TV): o
+   * recorte tira do contexto as retiradas irmãs da mesma máquina, e recalcular
+   * `linkedToReplenishmentFlow` só com 1 item sempre dá "vinculado" — duplicando
+   * o card de "Entrega + Retirada". Calcule as `rows` uma vez com as listas
+   * completas da máquina e passe aqui.
+   */
+  rows?: OperatorMachineTaskListRow[];
 }
 
 export function OperatorMachineTasksList({
@@ -182,12 +177,11 @@ export function OperatorMachineTasksList({
   className,
   compact = false,
   dark = false,
+  rows: rowsOverride,
 }: OperatorMachineTasksListProps) {
-  const rows = buildOperatorMachineTaskRows(
-    deliveryTasks,
-    pickupTasks,
-    supplyRequests,
-  );
+  const rows =
+    rowsOverride ??
+    buildOperatorMachineTaskRows(deliveryTasks, pickupTasks, supplyRequests);
 
   if (loading) {
     return (
@@ -278,33 +272,18 @@ function RequestFlowCard({
   dark = false,
 }: RequestFlowCardProps) {
   const deliveryTask =
-    row.kind === 'DELIVERY'
-      ? findDeliveryTask(deliveryTasks, row.id)
-      : row.kind === 'COMBINED'
-        ? findDeliveryTask(deliveryTasks, row.deliveryId)
-        : null;
+    row.kind === 'DELIVERY' ? findDeliveryTask(deliveryTasks, row.id) : null;
   const pickupTask =
-    row.kind === 'PICKUP'
-      ? findPickupTask(pickupTasks, row.id)
-      : row.kind === 'COMBINED'
-        ? findPickupTask(pickupTasks, row.pickupId)
-        : null;
+    row.kind === 'PICKUP' ? findPickupTask(pickupTasks, row.id) : null;
   const supplyRequest =
     row.kind === 'SUPPLY'
       ? findSupplyRequest(supplyRequests, row.id)
       : row.kind === 'PICKUP' && row.linkedToReplenishmentFlow && pickupTask
-        ? findReplenishmentSupplyForMachine(
-            supplyRequests,
-            pickupTask.machineId,
-          )
+        ? findSupplyForPickup(pickupTask, supplyRequests)
         : null;
   const replenishmentDelivery =
     row.kind === 'PICKUP' && row.linkedToReplenishmentFlow && pickupTask
-      ? findReplenishmentDeliveryForPickup(
-          deliveryTasks,
-          supplyRequests,
-          pickupTask.machineId,
-        )
+      ? findDeliveryForPickup(pickupTask, supplyRequests, deliveryTasks)
       : row.kind === 'SUPPLY' && supplyRequest
         ? findDeliveryForSupplyRequest(deliveryTasks, supplyRequest)
         : null;
@@ -386,7 +365,7 @@ function RequestFlowCard({
           >
             {cancelPickupPendingId === row.id
               ? 'Cancelando…'
-              : 'Cancelar solicitação'}
+              : 'Cancelar retirada'}
           </Button>
         ) : null}
       </div>
@@ -395,25 +374,6 @@ function RequestFlowCard({
 
   const stepper = (
     <>
-      {row.kind === 'COMBINED' && pickupTask ? (
-        <HorizontalActivityStepper
-          compact={compact}
-          dark={dark}
-          steps={[
-            ...(compact ? COMBINED_FLOW_STEPS_TV : COMBINED_FLOW_STEPS),
-          ]}
-          statuses={combinedFlowStepStatusesFromTasks(
-            deliveryTask,
-            pickupTask,
-          )}
-          headline={
-            compact
-              ? undefined
-              : combinedFlowHeadline(deliveryTask, pickupTask)
-          }
-        />
-      ) : null}
-
       {row.kind === 'DELIVERY' && deliveryTask ? (
         <HorizontalActivityStepper
           compact={compact}

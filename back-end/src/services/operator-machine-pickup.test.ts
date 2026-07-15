@@ -32,6 +32,38 @@ test("pickup-only: requestPickupOnly nao chama findLatestCompletedForMachine", (
   );
 });
 
+test("pickup-only: usa o link service explicito (linkedSupplyRequestId), sem heuristica de status/data", () => {
+  const src = readFileSync(servicePath, "utf8");
+  const pickupOnlyBlock = src.slice(
+    src.indexOf("export async function requestPickupOnly"),
+    src.indexOf("export async function requestSupplyOnly"),
+  );
+  assert.match(pickupOnlyBlock, /linkNewPickupToEligibleSupplyRequest/);
+  assert.equal(pickupOnlyBlock.includes("triggersReplenishment"), false);
+});
+
+test("pickup+replenishment: reusa aviso elegivel ainda nao reivindicado via findFirstEligibleUnclaimedForMachine", () => {
+  const src = readFileSync(servicePath, "utf8");
+  const block = src.slice(
+    src.indexOf("export async function requestPickupWithReplenishment"),
+    src.indexOf("export async function cancelPickupRequestByOperator"),
+  );
+  assert.match(block, /findFirstEligibleUnclaimedForMachine/);
+  assert.match(block, /linkNewPickupToEligibleSupplyRequest/);
+  assert.equal(block.includes("triggersReplenishment"), false);
+});
+
+test("pickup-supply-link: vinculo e unico por retirada (linkedSupplyRequest), sem reamarrar retirada ja vinculada", () => {
+  const linkServicePath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "pickup-supply-link.service.ts",
+  );
+  const src = readFileSync(linkServicePath, "utf8");
+  assert.match(src, /linkNewPickupToEligibleSupplyRequest/);
+  assert.match(src, /linkNewSupplyRequestToEligiblePickup/);
+  assert.match(src, /linkedSupplyRequest:\s*\{\s*connect/);
+});
+
 test("frontend: canRequestPickup sempre retorna true", () => {
   const src = readFileSync(flowPath, "utf8");
   const fnBlock = src.slice(

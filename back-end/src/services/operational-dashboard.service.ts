@@ -725,19 +725,13 @@ export async function getOperationalTvMonitorSnapshot(options?: {
                 status: MachineTaskStatus.COMPLETED,
                 OR: [
                   {
-                    AND: [
-                      { operatorSupplyRequest: { isNot: null } },
-                      {
-                        machine: {
-                          pickupTasks: {
-                            some: {
-                              status: { in: openTaskStatuses },
-                              triggersReplenishment: true,
-                            },
-                          },
+                    operatorSupplyRequest: {
+                      is: {
+                        linkedPickupTask: {
+                          status: { in: openTaskStatuses },
                         },
                       },
-                    ],
+                    },
                   },
                   {
                     tripSuggestionAsDeliver: {
@@ -787,13 +781,8 @@ export async function getOperationalTvMonitorSnapshot(options?: {
                     deliveryTask: {
                       status: MachineTaskStatus.COMPLETED,
                     },
-                    machine: {
-                      pickupTasks: {
-                        some: {
-                          status: { in: openTaskStatuses },
-                          triggersReplenishment: true,
-                        },
-                      },
+                    linkedPickupTask: {
+                      status: { in: openTaskStatuses },
                     },
                   },
                 ],

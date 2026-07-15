@@ -364,6 +364,29 @@ export function OperatorMovimentWorkProvider({
         );
 
       if (movimentSectorMatch) {
+        if (
+          event.type === 'pickup_task_updated' &&
+          'reason' in event &&
+          event.assignedOperatorId &&
+          event.assignedOperatorId === user?.id
+        ) {
+          const machineLabel =
+            typeof event.machineName === 'string' && event.machineName.trim()
+              ? event.machineName.trim()
+              : 'a máquina';
+          if (event.reason === 'joined_active_delivery') {
+            toast.success(
+              `O operador da máquina solicitou retirada em conjunto (${machineLabel}).`,
+              { id: `pickup-joined-${event.taskId}` },
+            );
+          } else if (event.reason === 'replenishment_linked') {
+            toast.success(
+              `Um abastecimento foi vinculado à retirada que você já aceitou (${machineLabel}).`,
+              { id: `pickup-replenishment-linked-${event.taskId}` },
+            );
+          }
+        }
+
         if (shouldInvalidateTripSuggestions(event)) {
           scheduleDebouncedInvalidate(
             tripSuggestionsInvalidateTimerRef,
