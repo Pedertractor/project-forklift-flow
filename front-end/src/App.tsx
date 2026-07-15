@@ -191,7 +191,9 @@ export function App() {
                   />
                 </Route>
                 <Route
-                  element={<RequireRoles roles={MOVIMENT_OPERATOR_ROLES} />}
+                  element={
+                    <RequireRoles roles={MOVIMENT_OPERATOR_ROLES} strict />
+                  }
                 >
                   <Route
                     path="operacao/equipamento"

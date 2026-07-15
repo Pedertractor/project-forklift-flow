@@ -60,7 +60,7 @@ import {
 } from "../utils/machine-transport-queue-block.js";
 
 function assertPalletTransporterRole(role: RoleUser) {
-  if (role !== RoleUser.PALLET_TRANSPORTER && !isAdminOrSuperAdmin(role)) {
+  if (role !== RoleUser.PALLET_TRANSPORTER) {
     throw new InvalidOperatingModeError(
       "Sem permissao para operar movimentacao de pallets.",
     );

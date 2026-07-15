@@ -298,7 +298,7 @@ export function HorizontalActivityStepper({
                   className={cn(
                     'm-0 min-w-0 max-w-full justify-self-center px-0.5 text-center font-medium break-words',
                     compact
-                      ? 'text-[9px] leading-tight'
+                      ? 'text-[11px] leading-tight sm:text-xs'
                       : 'text-[10px] leading-snug sm:text-[11px]',
                     done
                       ? dark

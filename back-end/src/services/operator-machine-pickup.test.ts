@@ -42,14 +42,18 @@ test("pickup-only: usa o link service explicito (linkedSupplyRequestId), sem heu
   assert.equal(pickupOnlyBlock.includes("triggersReplenishment"), false);
 });
 
-test("pickup+replenishment: reusa aviso elegivel ainda nao reivindicado via findFirstEligibleUnclaimedForMachine", () => {
+test("pickup+replenishment: bloqueia (nao reusa) quando ja ha aviso elegivel via findFirstEligibleUnclaimedForMachine", () => {
   const src = readFileSync(servicePath, "utf8");
   const block = src.slice(
     src.indexOf("export async function requestPickupWithReplenishment"),
     src.indexOf("export async function cancelPickupRequestByOperator"),
   );
   assert.match(block, /findFirstEligibleUnclaimedForMachine/);
-  assert.match(block, /linkNewPickupToEligibleSupplyRequest/);
+  assert.match(block, /throw new OperatorSupplyRequestAlreadyOpenError/);
+  // Nunca mais deve linkar retirada nova a aviso ja existente por esta via —
+  // so cria par genuinamente novo (aviso + retirada) na mesma transacao.
+  // A retirada avulsa (requestPickupOnly) continua amarrando automaticamente.
+  assert.equal(block.includes("linkNewPickupToEligibleSupplyRequest"), false);
   assert.equal(block.includes("triggersReplenishment"), false);
 });
 
@@ -62,6 +66,30 @@ test("pickup-supply-link: vinculo e unico por retirada (linkedSupplyRequest), se
   assert.match(src, /linkNewPickupToEligibleSupplyRequest/);
   assert.match(src, /linkNewSupplyRequestToEligiblePickup/);
   assert.match(src, /linkedSupplyRequest:\s*\{\s*connect/);
+});
+
+test("frontend: canRequestPickupWithReplenishment bloqueia com aviso ja aberto (nao so com pallet a caminho)", () => {
+  const src = readFileSync(flowPath, "utf8");
+  const fnBlock = src.slice(
+    src.indexOf("export function canRequestPickupWithReplenishment"),
+    src.indexOf("export function pickupBlockedReason"),
+  );
+  assert.match(fnBlock, /hasIncomingDelivery\(deliveryTasks\)/);
+  assert.match(fnBlock, /hasOpenOperatorSupply\(openSupply\)/);
+});
+
+test("frontend: dialog nunca forca supply:true — card combinado fica indisponivel com aviso ja aberto", () => {
+  const dialogPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../front-end/src/pages/OperatorMachinePage/OperatorMachineOpenRequestDialog.tsx",
+  );
+  const src = readFileSync(dialogPath, "utf8");
+  const fnBlock = src.slice(
+    src.indexOf("const buildSelection"),
+    src.indexOf("const handlePrimary"),
+  );
+  assert.match(fnBlock, /supply: supply && supplyAvailable,/);
+  assert.equal(fnBlock.includes("supplyAlreadyOpen"), false);
 });
 
 test("frontend: canRequestPickup sempre retorna true", () => {

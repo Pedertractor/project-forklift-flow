@@ -71,11 +71,12 @@ test('frontend: retirada avulsa nunca forca supply:true so por existir aviso OPE
     src.indexOf('const buildSelection'),
     src.indexOf('const handlePrimary'),
   )
-  // `supplyAlreadyOpen` só pode virar `supply: true` quando o operador
-  // escolheu o card combinado — nunca na retirada avulsa (2a retirada
-  // solicitada com o aviso já amarrado à 1a criaria um par duplicado).
-  assert.match(fnBlock, /combinedSelected\s*\n?\s*\?\s*\(supply && supplyAvailable\) \|\| supplyAlreadyOpen/)
-  assert.match(fnBlock, /:\s*supply && supplyAvailable/)
+  // `supply` nunca é forçado por `supplyAlreadyOpen`: o card combinado fica
+  // indisponível (ver `canRequestPickupWithReplenishment`) sempre que já há
+  // um aviso em aberto, então a retirada avulsa (2a retirada solicitada com
+  // o aviso já amarrado à 1a) nunca cria um par duplicado.
+  assert.match(fnBlock, /supply:\s*supply && supplyAvailable,/)
+  assert.equal(fnBlock.includes('supplyAlreadyOpen'), false)
 })
 
 test('frontend: card "Entrega + Retirada" e exibido so via linkedToReplenishmentFlow (sem pareamento COMBINED heuristico)', () => {

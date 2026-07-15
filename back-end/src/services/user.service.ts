@@ -1,5 +1,6 @@
 import { RoleUser, type Unit } from '../generated/prisma/enums.js'
 import type { UserModel } from '../generated/prisma/models/User.js'
+import type { Prisma } from '../generated/prisma/client.js'
 import { env } from '../env/index.js'
 import {
   CreateUserError,
@@ -242,7 +243,17 @@ export async function updateUserRole(
     assertActorCanAssignRole(actor.role, role)
   }
 
-  return userRepository.update(targetUserId, { role })
+  // `isOperating` (modo empilhadeira/transpaleteira) só é significativo para
+  // PALLET_TRANSPORTER (ou ADMIN/SUPERADMIN em substituição). Zera aqui —
+  // fonte principal da correção — para que um usuário promovido/realocado
+  // para outro perfil (ex.: LEADER, SUPPLY_OPERATOR) não continue "preso"
+  // como empilhadeira/transpaleteira na Frota da TV.
+  const data: Prisma.UserUpdateInput =
+    role === RoleUser.PALLET_TRANSPORTER
+      ? { role }
+      : { role, isOperating: null }
+
+  return userRepository.update(targetUserId, data)
 }
 
 export async function updateUserSector(

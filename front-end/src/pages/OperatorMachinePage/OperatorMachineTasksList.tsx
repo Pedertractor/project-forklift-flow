@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Package } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Forklift, Package } from 'lucide-react';
 import { HorizontalActivityStepper } from '@/components/activity/HorizontalActivityStepper';
 import { Button } from '@/components/ui/brand-button';
 import { Card } from '@/components/ui/card';
@@ -8,8 +8,12 @@ import { formatDurationMs } from '@/utils/formatDurationMs';
 import type {
   DeliveryTaskListItem,
   PickupTaskListItem,
+  TaskOperatedWithValue,
 } from '@/types/machine-task.types';
 import type { OperatorMachineSupplyRequestListItem } from '@/types/operator-machine.types';
+import {
+  movimentTypeLabel,
+} from '@/utils/operator-moviment-display';
 import {
   buildOperatorMachineTaskRows,
   formatTaskDate,
@@ -64,8 +68,8 @@ function FlowRequestTimer({
       title="Tempo desde a solicitação"
       className={cn(
         'shrink-0 tabular-nums font-semibold tracking-tight',
-        compact ? 'text-xs' : 'text-sm',
         dark ? 'text-sky-300' : 'text-brand',
+        compact ? 'text-base sm:text-lg' : 'text-sm',
       )}
     >
       {formatDurationMs(elapsed)}
@@ -73,11 +77,36 @@ function FlowRequestTimer({
   );
 }
 
-function TaskKindIcon({ kind }: { kind: OperatorMachineTaskListRow['kind'] }) {
+function TaskKindIcon({
+  kind,
+  linkedToReplenishmentFlow = false,
+  dark = false,
+}: {
+  kind: OperatorMachineTaskListRow['kind'];
+  linkedToReplenishmentFlow?: boolean;
+  dark?: boolean;
+}) {
+  const arrowTone = dark ? 'text-black' : undefined;
+
+  if (kind === 'PICKUP' && linkedToReplenishmentFlow) {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-0.5" aria-hidden>
+        <ArrowUpRight
+          className={cn('size-4 rounded-full bg-green-200', arrowTone)}
+        />
+        <ArrowDownLeft
+          className={cn('size-4 rounded-full bg-red-200', arrowTone)}
+        />
+      </span>
+    );
+  }
   if (kind === 'DELIVERY') {
     return (
       <ArrowUpRight
-        className="size-4 shrink-0 rounded-full bg-green-200"
+        className={cn(
+          'size-4 shrink-0 rounded-full bg-green-200',
+          arrowTone,
+        )}
         aria-hidden
       />
     );
@@ -85,12 +114,12 @@ function TaskKindIcon({ kind }: { kind: OperatorMachineTaskListRow['kind'] }) {
   if (kind === 'PICKUP') {
     return (
       <ArrowDownLeft
-        className="size-4 shrink-0 rounded-full bg-red-200"
+        className={cn('size-4 shrink-0 rounded-full bg-red-200', arrowTone)}
         aria-hidden
       />
     );
   }
-  return <Package className="size-4 shrink-0 text-amber-700" aria-hidden />;
+  return <Package className="size-4 shrink-0 text-sky-400" aria-hidden />;
 }
 
 function flowCardTitle(
@@ -259,6 +288,47 @@ function resolveMachineLabel(
   return parts.join(' · ');
 }
 
+type TransportAssignedTask = Pick<
+  DeliveryTaskListItem,
+  | 'status'
+  | 'assignedAt'
+  | 'assignedOperatorId'
+  | 'assignedMovimentPalletId'
+  | 'operatedWith'
+  | 'assignedOperator'
+>;
+
+function isTransportAccepted(task: TransportAssignedTask | null | undefined): boolean {
+  if (!task) return false;
+  return Boolean(
+    task.assignedAt ||
+      task.assignedOperatorId ||
+      task.assignedMovimentPalletId ||
+      task.status === 'ASSIGNED' ||
+      task.status === 'IN_PROGRESS',
+  );
+}
+
+/**
+ * Equipamento do transporte que aceitou a task (ou o deliver do continuum
+ * vinculado). Só retorna após o aceite.
+ */
+function resolveAcceptedTransportEquipment(
+  deliveryTask: DeliveryTaskListItem | null,
+  pickupTask: PickupTaskListItem | null,
+  replenishmentDelivery: DeliveryTaskListItem | null,
+): TaskOperatedWithValue | null {
+  const candidates = [deliveryTask, replenishmentDelivery, pickupTask];
+  for (const task of candidates) {
+    if (!isTransportAccepted(task)) continue;
+    if (task?.operatedWith) return task.operatedWith;
+    if (task?.assignedOperator?.isOperating) {
+      return task.assignedOperator.isOperating;
+    }
+  }
+  return null;
+}
+
 function RequestFlowCard({
   row,
   deliveryTasks,
@@ -295,6 +365,22 @@ function RequestFlowCard({
     ? resolveMachineLabel(deliveryTask, pickupTask, supplyRequest)
     : null;
 
+  const acceptedEquipment = resolveAcceptedTransportEquipment(
+    deliveryTask,
+    pickupTask,
+    replenishmentDelivery,
+  );
+  const equipmentLabel = acceptedEquipment
+    ? movimentTypeLabel(acceptedEquipment)
+    : null;
+  const showForkliftIcon = acceptedEquipment === 'FORKLIFT';
+  const palletTruckIconSrc =
+    acceptedEquipment === 'PALLET_TRUCK'
+      ? dark
+        ? '/PALLET_TRUCK_WHITE.png'
+        : '/PALLET_TRUCK.png'
+      : null;
+
   const metaBlock = (
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0 flex-1">
@@ -302,7 +388,11 @@ function RequestFlowCard({
           <p
             className={cn(
               'm-0 truncate font-semibold tracking-wide text-brand',
-              compact ? 'mb-0.5 text-[11px] normal-case' : 'mb-1 text-xs uppercase',
+              dark
+                ? 'mb-1 text-sm normal-case sm:text-base'
+                : compact
+                  ? 'mb-0.5 text-[11px] normal-case'
+                  : 'mb-1 text-xs uppercase',
             )}
           >
             {machineLabel}
@@ -311,12 +401,21 @@ function RequestFlowCard({
         <h3
           className={cn(
             'm-0 flex items-center gap-1.5 font-semibold tracking-tight',
-            compact ? 'text-xs' : 'text-sm',
-            dark ? 'text-zinc-100' : 'text-zinc-900',
+            dark
+              ? 'text-base sm:text-lg text-zinc-100'
+              : compact
+                ? 'text-xs text-zinc-900'
+                : 'text-sm text-zinc-900',
           )}
         >
           {flowCardTitle(row, compact)}
-          <TaskKindIcon kind={row.kind} />
+          <TaskKindIcon
+            kind={row.kind}
+            linkedToReplenishmentFlow={
+              row.kind === 'PICKUP' && row.linkedToReplenishmentFlow
+            }
+            dark={dark}
+          />
         </h3>
         <div
           className={cn(
@@ -340,7 +439,7 @@ function RequestFlowCard({
           <time
             className={cn(
               dark ? 'text-zinc-400' : 'text-zinc-500',
-              compact ? 'text-[10px]' : 'text-xs',
+              compact ? 'text-xs sm:text-sm' : 'text-xs',
             )}
             dateTime={row.createdAt}
           >
@@ -350,11 +449,36 @@ function RequestFlowCard({
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <FlowRequestTimer
-          startIso={row.createdAt}
-          dark={dark}
-          compact={compact}
-        />
+        <div className="flex items-center gap-3">
+          {(showForkliftIcon || palletTruckIconSrc) && equipmentLabel ? (
+            <span
+              className={cn(
+                'inline-flex shrink-0 items-center justify-center rounded-full p-1',
+                dark ? 'bg-zinc-700 text-zinc-100' : 'bg-zinc-200 text-zinc-800',
+                compact ? 'size-8 sm:size-9' : 'size-9',
+              )}
+              title={equipmentLabel}
+            >
+              {showForkliftIcon ? (
+                <Forklift
+                  className="size-[70%] stroke-[1.75]"
+                  aria-hidden
+                />
+              ) : palletTruckIconSrc ? (
+                <img
+                  src={palletTruckIconSrc}
+                  alt={equipmentLabel}
+                  className="size-[55%] object-contain object-center"
+                />
+              ) : null}
+            </span>
+          ) : null}
+          <FlowRequestTimer
+            startIso={row.createdAt}
+            dark={dark}
+            compact={compact}
+          />
+        </div>
         {showCancelButton ? (
           <Button
             type="button"

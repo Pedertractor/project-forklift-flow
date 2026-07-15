@@ -8,6 +8,7 @@ import {
   MachineNotFoundError,
   MachineNotInOperatorSectorError,
   OperatorMachineNotBoundError,
+  OperatorSupplyRequestAlreadyOpenError,
   OperatorWithoutSectorError,
   PickupTaskAlreadyOpenError,
   PickupTaskCannotBeCanceledError,
@@ -283,6 +284,9 @@ export const postRequestPickupWithReplenishment: RouteHandlerMethod = async (
       return reply.status(409).send({ error: error.message })
     }
     if (error instanceof OperatorRequestBlockedByPalletAtReceivingError) {
+      return reply.status(409).send({ error: error.message })
+    }
+    if (error instanceof OperatorSupplyRequestAlreadyOpenError) {
       return reply.status(409).send({ error: error.message })
     }
     throw error

@@ -889,15 +889,18 @@ export async function getOperationalTvMonitorSnapshot(options?: {
         ...machineFilter,
       },
     }),
+    // Frota: só `PALLET_TRANSPORTER` com modo ativo (ADMIN/LEADER não operam).
     prisma.user.count({
       where: {
         isOperating: IsOperating.FORKLIFT,
+        role: RoleUser.PALLET_TRANSPORTER,
         ...sectorUserFilter,
       },
     }),
     prisma.user.count({
       where: {
         isOperating: IsOperating.PALLET_TRUCK,
+        role: RoleUser.PALLET_TRANSPORTER,
         ...sectorUserFilter,
       },
     }),

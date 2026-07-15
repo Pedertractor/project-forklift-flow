@@ -9,6 +9,8 @@ const SUPPLY_REPLENISHMENT_EVENT_TYPES = new Set([
   'operator_supply_request_created',
   'delivery_task_created',
   'delivery_task_updated',
+  'pickup_task_updated',
+  'trip_suggestions_updated',
   'machine_production_status_updated',
   'machine_tooling_updated',
 ]);

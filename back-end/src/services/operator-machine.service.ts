@@ -9,6 +9,7 @@ import {
   MachineNotInOperatorSectorError,
   OperatorRequestBlockedByPalletAtReceivingError,
   OperatorMachineNotBoundError,
+  OperatorSupplyRequestAlreadyOpenError,
   OperatorWithoutSectorError,
   PickupTaskCannotBeCanceledError,
   PickupTaskNotFoundError,
@@ -190,6 +191,11 @@ async function assertNoPalletAtReceivingForSupplyRequest(machineId: string) {
  * encontra abastecimento elegível, abastecimento novo encontra retirada
  * elegível, ou o ramo "abastecimento já existente" do pedido combinado).
  */
+/**
+ * Vincula retirada a entrega/abastecimento e notifica observadores.
+ * Sempre reemite `pickup_task_updated` após o vínculo (TV/operador precisam
+ * do `linkedSupplyRequestId` sem esperar o próximo poll).
+ */
 async function applyLinkOutcome(
   linkResult: PickupSupplyLinkResult,
   sectorId: string | null | undefined,
@@ -204,16 +210,20 @@ async function applyLinkOutcome(
     return
   }
 
-  if (linkResult.notify && pickup.machine) {
+  if (pickup.machine) {
     operatorMovimentPalletWsNotifyPickupTaskChange({
       id: pickup.id,
       status: pickup.status,
       typeMovimentPallet: pickup.typeMovimentPallet,
       machine: pickup.machine,
-      notifyReason: linkResult.notify.reason,
-      assignedOperatorId: linkResult.notify.assignedOperatorId,
-      deliveryTaskId: linkResult.notify.deliveryTaskId ?? null,
-      machineName,
+      ...(linkResult.notify
+        ? {
+            notifyReason: linkResult.notify.reason,
+            assignedOperatorId: linkResult.notify.assignedOperatorId,
+            deliveryTaskId: linkResult.notify.deliveryTaskId ?? null,
+            machineName,
+          }
+        : {}),
     })
   }
 
@@ -258,7 +268,15 @@ export async function requestPickupOnly(
     status: MachineTaskStatus.CREATED,
   })
 
-  if (pickupTask.machine) {
+  const linkResult = await linkNewPickupToEligibleSupplyRequest({
+    machineId: machine.id,
+    pickupTaskId: pickupTask.id,
+  })
+  await applyLinkOutcome(linkResult, machine.sectorId, machine.name)
+
+  // Sem vínculo: notifica criação avulsa. Com vínculo, applyLinkOutcome já
+  // emitiu o pickup com linkedSupplyRequestId (evita TV mostrar 2 cards).
+  if (!linkResult.linked && pickupTask.machine) {
     operatorMovimentPalletWsNotifyPickupTaskChange({
       id: pickupTask.id,
       status: pickupTask.status,
@@ -266,12 +284,6 @@ export async function requestPickupOnly(
       machine: pickupTask.machine,
     })
   }
-
-  const linkResult = await linkNewPickupToEligibleSupplyRequest({
-    machineId: machine.id,
-    pickupTaskId: pickupTask.id,
-  })
-  await applyLinkOutcome(linkResult, machine.sectorId, machine.name)
 
   const refreshed = await pickupTaskRepository.findById(pickupTask.id)
   return { pickupTask: refreshed ?? pickupTask }
@@ -403,11 +415,13 @@ export async function deleteToolingForOperatorMachine(
 /**
  * Retirada + aviso ao abastecimento pedidos juntos ("Entrega + Retirada").
  *
- * - Se já houver um aviso elegível (aberto, ou aceito com entrega a caminho)
- *   para a máquina: comportamento idêntico a `requestPickupOnly` — a retirada
- *   nova amarra nele via `pickup-supply-link.service.ts` (sem criar 2º aviso).
- * - Caso contrário: cria o aviso e a retirada juntos, já amarrados na mesma
- *   transação (par genuinamente novo, sem corrida possível).
+ * Só cria par genuinamente novo (aviso + retirada amarrados na mesma
+ * transação, sem corrida possível). Se a máquina já tiver um aviso em aberto
+ * (ou pallet a caminho — bloqueado antes, por `assertNoPalletAtReceivingForSupplyRequest`),
+ * a solicitação é rejeitada: o operador deve pedir apenas a retirada
+ * (`requestPickupOnly`), que amarra automaticamente ao aviso já aberto via
+ * `pickup-supply-link.service.ts`. Evita um 2º caminho de UI fazendo a mesma
+ * coisa de forma implícita — só existe uma ação por intenção.
  */
 export async function requestPickupWithReplenishment(
   operatorUserId: string,
@@ -424,45 +438,16 @@ export async function requestPickupWithReplenishment(
 
   await assertNoPalletAtReceivingForSupplyRequest(machine.id)
 
-  const typeMovimentPallet =
-    options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
-
   const existingEligibleSupply =
     await operatorMachineSupplyRequestRepository.findFirstEligibleUnclaimedForMachine(
       machine.id,
     )
-
   if (existingEligibleSupply) {
-    const pickupTask = await pickupTaskRepository.create({
-      machine: { connect: { id: machine.id } },
-      requestedBy: { connect: { id: operatorUserId } },
-      typeMovimentPallet,
-      isCritical: options?.isCritical === true,
-      status: MachineTaskStatus.CREATED,
-    })
-
-    if (pickupTask.machine) {
-      operatorMovimentPalletWsNotifyPickupTaskChange({
-        id: pickupTask.id,
-        status: pickupTask.status,
-        typeMovimentPallet: pickupTask.typeMovimentPallet,
-        machine: pickupTask.machine,
-      })
-    }
-
-    const linkResult = await linkNewPickupToEligibleSupplyRequest({
-      machineId: machine.id,
-      pickupTaskId: pickupTask.id,
-    })
-    await applyLinkOutcome(linkResult, machine.sectorId, machine.name)
-
-    const refreshedPickup = await pickupTaskRepository.findById(pickupTask.id)
-    return {
-      pickupTask: refreshedPickup ?? pickupTask,
-      operatorSupplyRequest: existingEligibleSupply,
-      createdSupplyRequest: false,
-    }
+    throw new OperatorSupplyRequestAlreadyOpenError()
   }
+
+  const typeMovimentPallet =
+    options?.typeMovimentPallet ?? (await resolveTypeForMachine(machine.id))
 
   const toolingId = options?.toolingId?.trim()
   if (toolingId) {

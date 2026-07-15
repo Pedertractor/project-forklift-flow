@@ -123,6 +123,9 @@ export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE =
 export const PICKUP_WITH_REPLENISHMENT_BLOCKED_MESSAGE =
   'Já há um pallet a caminho desta máquina. Conclua a entrega antes de pedir retirada com novo abastecimento.';
 
+export const PICKUP_WITH_REPLENISHMENT_BLOCKED_BY_OPEN_SUPPLY_MESSAGE =
+  'Já existe uma solicitação de abastecimento em aberto para esta máquina. Solicite apenas a retirada — ela será amarrada automaticamente.';
+
 export function canRequestPickup(
   _deliveryTasks: DeliveryTaskListItem[],
   _pickupTasks: PickupTaskListItem[],
@@ -131,15 +134,20 @@ export function canRequestPickup(
 }
 
 /**
- * Retirada amarrada a abastecimento. Bloqueada só com pallet/entrega a caminho
- * (evita segundo continuum). Com aviso OPEN, ainda pode pedir retirada amarrada
- * sem criar novo aviso.
+ * Retirada + aviso ao abastecimento pedidos juntos ("Entrega + Retirada").
+ *
+ * Só cria par genuinamente novo: bloqueada se já houver pallet/entrega a
+ * caminho OU um aviso de abastecimento já em aberto para a máquina — nesses
+ * casos o operador deve pedir apenas a retirada avulsa
+ * (`requestPickupOnly`), que o back-end amarra automaticamente ao aviso já
+ * aberto. Evita um 2º caminho de UI fazendo a mesma coisa implicitamente.
  */
 export function canRequestPickupWithReplenishment(
-  _openSupply: OperatorMachineSupplyRequestListItem | null,
+  openSupply: OperatorMachineSupplyRequestListItem | null,
   deliveryTasks: DeliveryTaskListItem[],
 ): boolean {
   if (hasIncomingDelivery(deliveryTasks)) return false;
+  if (hasOpenOperatorSupply(openSupply)) return false;
   return true;
 }
 

@@ -168,6 +168,15 @@ export class OperatorRequestBlockedByPalletAtReceivingError extends Error {
   }
 }
 
+export class OperatorSupplyRequestAlreadyOpenError extends Error {
+  constructor(
+    message = 'Ja existe uma solicitacao de abastecimento em aberto para esta maquina. Solicite apenas a retirada do pallet — ela sera amarrada automaticamente ao abastecimento ja aberto.',
+  ) {
+    super(message)
+    this.name = 'OperatorSupplyRequestAlreadyOpenError'
+  }
+}
+
 export class MachineReplenishmentRequestNotEditableError extends Error {
   constructor(
     message = "Solicitacao concluida ou cancelada; nao e possivel alterar.",

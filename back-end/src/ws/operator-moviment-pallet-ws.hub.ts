@@ -68,8 +68,6 @@ const SUPERVISION_TASK_EVENT_TYPES = new Set([
 
 const MOVIMENT_OPERATOR_ROLES = new Set<RoleUser>([
   RoleUser.PALLET_TRANSPORTER,
-  RoleUser.ADMIN,
-  RoleUser.SUPERADMIN,
 ])
 
 const OPERATOR_MACHINE_ROLES = new Set<RoleUser>([
