@@ -1,5 +1,5 @@
 import type { Prisma } from '../generated/prisma/client.js'
-import { IsOperating } from '../generated/prisma/enums.js'
+import { IsOperating, MachineTaskStatus } from '../generated/prisma/enums.js'
 import { openMachineTaskStatuses } from '../constants/machine-task-status.js'
 import { prisma } from '../lib/prisma.js'
 import { openPoolTypesForOperatingMode } from '../utils/replenishment-moviment-type.js'
@@ -120,6 +120,18 @@ export const pickupTaskRepository = {
       where: { assignedOperatorId: operatorUserId },
       include: pickupTaskListInclude,
       orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  findLatestCompletedByOperator(operatorUserId: string) {
+    return prisma.pickupTask.findFirst({
+      where: {
+        assignedOperatorId: operatorUserId,
+        status: MachineTaskStatus.COMPLETED,
+        completedAt: { not: null },
+      },
+      orderBy: { completedAt: 'desc' },
+      select: { id: true, completedAt: true },
     })
   },
 

@@ -58,6 +58,12 @@ import {
   findBlockedMachineIdsForTransportInSector,
   isMachineDeliveryBlockedFromTransportQueue,
 } from "../utils/machine-transport-queue-block.js";
+import {
+  compareTripQueuePriority,
+  resolveLastCompletedTripTaskKind,
+  tripQueueKindAffinityRank,
+  type LastCompletedTripTaskKind,
+} from "../utils/trip-queue-priority.js";
 
 function assertPalletTransporterRole(role: RoleUser) {
   if (role !== RoleUser.PALLET_TRANSPORTER) {
@@ -102,23 +108,17 @@ function sortByCritical<T extends { isCritical: boolean; createdAt: Date }>(
   });
 }
 
-/** Preferidas do operador cortam a fila; depois crítica; depois mais antiga. */
-function compareTripQueuePriority(a: {
-  preferredMachine: boolean;
-  effectiveCritical: boolean;
-  sortAt: number;
-}, b: {
-  preferredMachine: boolean;
-  effectiveCritical: boolean;
-  sortAt: number;
-}) {
-  if (a.preferredMachine !== b.preferredMachine) {
-    return a.preferredMachine ? -1 : 1;
-  }
-  if (a.effectiveCritical !== b.effectiveCritical) {
-    return a.effectiveCritical ? -1 : 1;
-  }
-  return a.sortAt - b.sortAt;
+async function findLastCompletedTripTaskKindForOperator(
+  operatorUserId: string,
+): Promise<LastCompletedTripTaskKind | null> {
+  const [latestDeliver, latestPickup] = await Promise.all([
+    deliveryTaskRepository.findLatestCompletedByOperator(operatorUserId),
+    pickupTaskRepository.findLatestCompletedByOperator(operatorUserId),
+  ]);
+  return resolveLastCompletedTripTaskKind(
+    latestDeliver?.completedAt,
+    latestPickup?.completedAt,
+  );
 }
 
 type LinkedOpenTripTaskIds = {
@@ -274,6 +274,7 @@ async function listStandaloneTripTasksForSector(
   linked: LinkedOpenTripTaskIds,
   blockedMachineIds: Set<string>,
   preferredMachineIds: Set<string> = new Set(),
+  lastCompleted: LastCompletedTripTaskKind | null = null,
 ): Promise<{
   standalonePickupTasks: StandalonePickupSuggestionRow[];
   standaloneDeliverTasks: StandaloneDeliverSuggestionRow[];
@@ -318,11 +319,13 @@ async function listStandaloneTripTasksForSector(
       {
         preferredMachine: a.preferredMachine,
         effectiveCritical: a.effectiveCritical,
+        kindRank: tripQueueKindAffinityRank("pickup", lastCompleted),
         sortAt: new Date(a.pickupTask.createdAt).getTime(),
       },
       {
         preferredMachine: b.preferredMachine,
         effectiveCritical: b.effectiveCritical,
+        kindRank: tripQueueKindAffinityRank("pickup", lastCompleted),
         sortAt: new Date(b.pickupTask.createdAt).getTime(),
       },
     ),
@@ -332,11 +335,13 @@ async function listStandaloneTripTasksForSector(
       {
         preferredMachine: a.preferredMachine,
         effectiveCritical: a.effectiveCritical,
+        kindRank: tripQueueKindAffinityRank("deliver", lastCompleted),
         sortAt: new Date(a.deliverTask.createdAt).getTime(),
       },
       {
         preferredMachine: b.preferredMachine,
         effectiveCritical: b.effectiveCritical,
+        kindRank: tripQueueKindAffinityRank("deliver", lastCompleted),
         sortAt: new Date(b.deliverTask.createdAt).getTime(),
       },
     ),
@@ -351,6 +356,7 @@ async function listOneNonCriticalStandaloneFallback(
   operatingMode: IsOperating,
   linked: LinkedOpenTripTaskIds,
   blockedMachineIds: Set<string>,
+  lastCompleted: LastCompletedTripTaskKind | null = null,
 ): Promise<{
   standalonePickupTasks: StandalonePickupSuggestionRow[];
   standaloneDeliverTasks: StandaloneDeliverSuggestionRow[];
@@ -363,11 +369,13 @@ async function listOneNonCriticalStandaloneFallback(
     | {
         kind: "pickup";
         createdAt: Date;
+        kindRank: number;
         row: StandalonePickupSuggestionRow;
       }
     | {
         kind: "deliver";
         createdAt: Date;
+        kindRank: number;
         row: StandaloneDeliverSuggestionRow;
       }
   > = [];
@@ -393,6 +401,7 @@ async function listOneNonCriticalStandaloneFallback(
     candidates.push({
       kind: "pickup",
       createdAt: pickup.createdAt,
+      kindRank: tripQueueKindAffinityRank("pickup", lastCompleted),
       row: mapStandalonePickupRow(pickup),
     });
   }
@@ -405,22 +414,27 @@ async function listOneNonCriticalStandaloneFallback(
     candidates.push({
       kind: "deliver",
       createdAt: deliver.createdAt,
+      kindRank: tripQueueKindAffinityRank("deliver", lastCompleted),
       row: mapStandaloneDeliverRow(deliver),
     });
   }
 
   if (candidates.length === 0) return empty;
 
-  const oldest = candidates.reduce((best, cur) =>
-    new Date(cur.createdAt).getTime() < new Date(best.createdAt).getTime()
+  const best = candidates.reduce((current, cur) => {
+    if (cur.kindRank !== current.kindRank) {
+      return cur.kindRank < current.kindRank ? cur : current;
+    }
+    return new Date(cur.createdAt).getTime() <
+      new Date(current.createdAt).getTime()
       ? cur
-      : best,
-  );
+      : current;
+  });
 
-  if (oldest.kind === "pickup") {
-    return { standalonePickupTasks: [oldest.row], standaloneDeliverTasks: [] };
+  if (best.kind === "pickup") {
+    return { standalonePickupTasks: [best.row], standaloneDeliverTasks: [] };
   }
-  return { standalonePickupTasks: [], standaloneDeliverTasks: [oldest.row] };
+  return { standalonePickupTasks: [], standaloneDeliverTasks: [best.row] };
 }
 
 async function assertNoIncompleteTasks(
@@ -649,7 +663,10 @@ export async function listTripRouteSuggestionsForOperator(
       suggestions: [],
       standalonePickupTasks: [],
       standaloneDeliverTasks: [],
-      priorityContext: { hasCritical: false },
+      priorityContext: {
+        hasCritical: false,
+        lastCompletedTaskKind: null,
+      },
     };
   }
   const types = poolTypesForOperatingMode(
@@ -660,7 +677,10 @@ export async function listTripRouteSuggestionsForOperator(
       suggestions: [],
       standalonePickupTasks: [],
       standaloneDeliverTasks: [],
-      priorityContext: { hasCritical: false },
+      priorityContext: {
+        hasCritical: false,
+        lastCompletedTaskKind: null,
+      },
     };
   }
 
@@ -669,7 +689,10 @@ export async function listTripRouteSuggestionsForOperator(
       suggestions: [],
       standalonePickupTasks: [],
       standaloneDeliverTasks: [],
-      priorityContext: { hasCritical: false },
+      priorityContext: {
+        hasCritical: false,
+        lastCompletedTaskKind: null,
+      },
     };
   }
 
@@ -698,6 +721,12 @@ export async function listTripRouteSuggestionsForOperator(
   const preferredMachineIdList =
     await listPreferredMachineIdsForOperator(operatorUserId);
   const preferredMachineIds = new Set(preferredMachineIdList);
+  const lastCompleted =
+    await findLastCompletedTripTaskKindForOperator(operatorUserId);
+  const combinedKindRank = tripQueueKindAffinityRank(
+    "combined",
+    lastCompleted,
+  );
 
   const suggestions = rows
     .filter((row) => {
@@ -739,6 +768,7 @@ export async function listTripRouteSuggestionsForOperator(
         {
           preferredMachine: a.preferredMachine,
           effectiveCritical: a.effectiveCritical,
+          kindRank: combinedKindRank,
           sortAt: Math.min(
             new Date(a.deliverTask.createdAt).getTime(),
             new Date(a.pickupTask.createdAt).getTime(),
@@ -747,6 +777,7 @@ export async function listTripRouteSuggestionsForOperator(
         {
           preferredMachine: b.preferredMachine,
           effectiveCritical: b.effectiveCritical,
+          kindRank: combinedKindRank,
           sortAt: Math.min(
             new Date(b.deliverTask.createdAt).getTime(),
             new Date(b.pickupTask.createdAt).getTime(),
@@ -764,6 +795,7 @@ export async function listTripRouteSuggestionsForOperator(
       linked,
       blockedMachineIds,
       preferredMachineIds,
+      lastCompleted,
     );
 
   if (
@@ -776,6 +808,7 @@ export async function listTripRouteSuggestionsForOperator(
       operatingMode,
       linked,
       blockedMachineIds,
+      lastCompleted,
     );
     standalonePickupTasks = fallback.standalonePickupTasks;
     standaloneDeliverTasks = fallback.standaloneDeliverTasks;
@@ -790,6 +823,13 @@ export async function listTripRouteSuggestionsForOperator(
     standalonePickupTasks.some((s) => s.effectiveCritical) ||
     standaloneDeliverTasks.some((s) => s.effectiveCritical);
 
+  const affinityHint =
+    !hasPreferred && !hasCritical && lastCompleted === "PICKUP"
+      ? "Apos retirada, priorizamos entrega+retirada ou entrega."
+      : !hasPreferred && !hasCritical && lastCompleted === "DELIVER"
+        ? "Apos abastecimento, priorizamos entrega+retirada ou retirada."
+        : undefined;
+
   return {
     suggestions,
     standalonePickupTasks,
@@ -797,11 +837,12 @@ export async function listTripRouteSuggestionsForOperator(
     priorityContext: {
       hasCritical,
       hasPreferredMachine: hasPreferred,
+      lastCompletedTaskKind: lastCompleted,
       hint: hasPreferred
         ? "Existem maquinas vinculadas a voce — elas cortam a fila."
         : hasCritical
           ? "Existem tarefas criticas no setor — priorize-as."
-          : undefined,
+          : affinityHint,
     },
   };
 }

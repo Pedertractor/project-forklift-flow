@@ -686,6 +686,7 @@ export function TripSuggestionsFlowSection({
     combined,
     standaloneDelivers,
     standalonePickupsWithoutCombinedOverlap,
+    data.priorityContext?.lastCompletedTaskKind,
   );
   const topSuggestion = pickTopMainTripQueueItem(mainQueue);
 

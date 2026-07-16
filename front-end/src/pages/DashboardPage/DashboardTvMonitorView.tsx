@@ -672,9 +672,7 @@ export function DashboardTvMonitorView({
               />
               <TvKpiCard
                 dark={dark}
-                iconSrc={
-                  dark ? '/PALLET_TRUCK_WHITE.png' : '/PALLET_TRUCK.png'
-                }
+                iconSrc={dark ? '/PALLET_TRUCK_WHITE.png' : '/PALLET_TRUCK.png'}
                 label="Transpaleteiras"
                 value={kpis.pallet_trucks_operating}
               />

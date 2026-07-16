@@ -25,6 +25,7 @@ import {
   canRequestPickup,
   canRequestPickupWithReplenishment,
   hasPalletAtReceiving,
+  hasPickupLinkedToReplenishmentFlow,
   PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
   pickupBlockedReason,
 } from './operator-machine-flow';
@@ -177,6 +178,8 @@ export function useOperatorMachinePage() {
     }, [operatorSupplyQuery.data]);
 
   const palletAtReceiving = hasPalletAtReceiving(deliveryTasks);
+  const hasLinkedReplenishmentFlow =
+    hasPickupLinkedToReplenishmentFlow(pickupTasks);
   const canPickup = canRequestPickup(deliveryTasks, pickupTasks);
   const pickupBlockedMessage = pickupBlockedReason(deliveryTasks, pickupTasks);
   const canRequestSupplyNow = canRequestSupply(
@@ -245,12 +248,25 @@ export function useOperatorMachinePage() {
         isCritical: input?.isCritical === true,
         typeMovimentPallet: input?.typeMovimentPallet,
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       void queryClient.invalidateQueries({ queryKey: queryKeyTasks });
+      void queryClient.invalidateQueries({ queryKey: queryKeyOperatorSupply });
+      void queryClient.invalidateQueries({ queryKey: ['operator-moviment'] });
+      const linked = res.pickupTask.linkedSupplyRequestId != null;
+      const joinedInFlight =
+        linked &&
+        (res.pickupTask.status === 'ASSIGNED' ||
+          res.pickupTask.status === 'IN_PROGRESS');
       toast.success(
-        palletAtReceiving
-          ? 'Retirada solicitada. O transporte receberá a sugestão de entrega e retirada.'
-          : 'Retirada solicitada. O transporte será acionado.',
+        joinedInFlight
+          ? 'Retirada anexada à entrega em andamento. O empilhadeirista foi notificado.'
+          : linked
+            ? 'Retirada solicitada e vinculada à entrega. O transporte receberá a sugestão combinada.'
+            : hasLinkedReplenishmentFlow
+              ? 'Retirada avulsa solicitada em paralelo ao fluxo de entrega + retirada.'
+              : palletAtReceiving
+                ? 'Retirada solicitada. O transporte receberá a sugestão de entrega e retirada.'
+                : 'Retirada solicitada. O transporte será acionado.',
       );
     },
     onError: toastApiError,

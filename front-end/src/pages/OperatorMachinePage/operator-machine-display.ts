@@ -214,7 +214,7 @@ export function buildOperatorMachineTaskRows(
       statusLabel,
       isCritical: t.isCritical,
       linkedToReplenishmentFlow,
-      canCancel: canCancelPickupRequest(t, deliveryTasks),
+      canCancel: canCancelPickupRequest(t, deliveryTasks, supplyRequests),
       linkedSupplyRequestId: linkedSupply?.id ?? null,
     });
   }

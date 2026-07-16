@@ -110,22 +110,27 @@ test("frontend: pickupBlockedReason nao bloqueia retirada", () => {
   assert.match(fnBlock, /return null;/);
 });
 
-test("frontend: canCancelPickupRequest bloqueia quando ha pallet no recebimento", () => {
+test("frontend: canCancelPickupRequest bloqueia so o continuum com pallet pronto no recebimento", () => {
   const src = readFileSync(flowPath, "utf8");
   const fnBlock = src.slice(
     src.indexOf("export function canCancelPickupRequest"),
-    src.indexOf("export function canRequestPickup"),
+    src.indexOf("export const PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE"),
   );
-  assert.match(fnBlock, /hasPalletAtReceivingForMachine/);
-  assert.match(fnBlock, /return false/);
+  assert.match(fnBlock, /linkedSupplyRequestId/);
+  assert.match(fnBlock, /findSupplyForPickup/);
+  assert.match(fnBlock, /preparedAt/);
+  // Retirada avulsa nao e bloqueada por pallet de outro continuum.
+  assert.equal(fnBlock.includes("hasPalletAtReceivingForMachine"), false);
 });
 
-test("cancel pickup: service bloqueia quando ha entrega preparada no recebimento", () => {
+test("cancel pickup: service bloqueia so quando o continuum vinculado tem pallet pronto", () => {
   const src = readFileSync(servicePath, "utf8");
   const cancelBlock = src.slice(
     src.indexOf("export async function cancelPickupRequestByOperator"),
     src.indexOf("return {\n    pickupTask: updated,"),
   );
-  assert.match(cancelBlock, /findPalletAtReceivingForMachine/);
+  assert.match(cancelBlock, /linkedSupplyRequestId/);
+  assert.match(cancelBlock, /preparedAt/);
   assert.match(cancelBlock, /PickupTaskCannotBeCanceledError/);
+  assert.equal(cancelBlock.includes("findPalletAtReceivingForMachine"), false);
 });

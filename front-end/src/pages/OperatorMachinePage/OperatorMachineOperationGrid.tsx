@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/brand-button';
 import { OperatorMachineOpenRequestDialog } from './OperatorMachineOpenRequestDialog';
 import type { OperatorServiceSelection } from './OperatorMachineOpenRequestDialog';
-import type { DeliveryTaskListItem } from '@/types/machine-task.types';
+import type { DeliveryTaskListItem, PickupTaskListItem } from '@/types/machine-task.types';
 import type {
   MachineToolingListItem,
   OperatorMachineSupplyRequestListItem,
@@ -12,6 +12,7 @@ import { ClipboardList } from 'lucide-react';
 export interface OperatorMachineOperationGridProps {
   openSupply: OperatorMachineSupplyRequestListItem | null;
   deliveryTasks: DeliveryTaskListItem[];
+  pickupTasks: PickupTaskListItem[];
   toolings: MachineToolingListItem[];
   canPickup: boolean;
   canOpenRequestDialog: boolean;
@@ -31,6 +32,7 @@ export interface OperatorMachineOperationGridProps {
 export function OperatorMachineOperationGrid({
   openSupply,
   deliveryTasks,
+  pickupTasks,
   toolings,
   canPickup,
   canOpenRequestDialog,
@@ -72,6 +74,7 @@ export function OperatorMachineOperationGrid({
         onClose={() => setRequestDialogOpen(false)}
         openSupply={openSupply}
         deliveryTasks={deliveryTasks}
+        pickupTasks={pickupTasks}
         toolings={toolings}
         canPickup={canPickup}
         pickupBlockedMessage={pickupBlockedMessage}
