@@ -13,11 +13,12 @@ import { replenishmentMovimentTypeLabel } from '@/utils/operator-moviment-displa
 import {
   canRequestPickupWithReplenishment,
   canRequestSupply,
+  hasPickupLinkedToReplenishmentFlow,
   PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE,
   PICKUP_WITH_REPLENISHMENT_BLOCKED_BY_OPEN_SUPPLY_MESSAGE,
   PICKUP_WITH_REPLENISHMENT_BLOCKED_MESSAGE,
 } from './operator-machine-flow';
-import type { DeliveryTaskListItem } from '@/types/machine-task.types';
+import type { DeliveryTaskListItem, PickupTaskListItem } from '@/types/machine-task.types';
 import {
   AlertTriangle,
   ArrowDownLeft,
@@ -75,6 +76,7 @@ export interface OperatorMachineOpenRequestDialogProps {
   onClose: () => void;
   openSupply: OperatorMachineSupplyRequestListItem | null;
   deliveryTasks: DeliveryTaskListItem[];
+  pickupTasks: PickupTaskListItem[];
   toolings: MachineToolingListItem[];
   canPickup: boolean;
   pickupBlockedMessage: string | null;
@@ -91,6 +93,7 @@ export function OperatorMachineOpenRequestDialog({
   onClose,
   openSupply,
   deliveryTasks,
+  pickupTasks,
   toolings,
   canPickup,
   pickupBlockedMessage,
@@ -116,6 +119,8 @@ export function OperatorMachineOpenRequestDialog({
     openSupply,
     deliveryTasks,
   );
+  const hasLinkedReplenishmentFlow =
+    hasPickupLinkedToReplenishmentFlow(pickupTasks);
   const palletAtReceivingBlockedMessage =
     PALLET_AT_RECEIVING_SUPPLY_BLOCKED_MESSAGE;
 
@@ -273,9 +278,11 @@ export function OperatorMachineOpenRequestDialog({
       ? pickupWithReplenishmentAvailable
         ? 'Selecione retirada e abastecimento juntos ou apenas um dos serviços abaixo.'
         : canPickup
-          ? supplyAlreadyOpen
-            ? 'Já existe uma solicitação de abastecimento em aberto — solicite apenas a retirada, ela será amarrada automaticamente.'
-            : 'Há pallet destinado a esta máquina — solicite apenas a retirada. Nova solicitação de abastecimento só após a entrega na máquina.'
+          ? hasLinkedReplenishmentFlow
+            ? 'Já há entrega + retirada em andamento. Nova retirada será avulsa e independente, em paralelo ao fluxo atual.'
+            : supplyAlreadyOpen
+              ? 'Já existe uma solicitação de abastecimento em aberto — solicite apenas a retirada, ela será amarrada automaticamente.'
+              : 'Há pallet destinado a esta máquina — solicite apenas a retirada. Nova solicitação de abastecimento só após a entrega na máquina.'
           : 'Selecione o serviço desejado abaixo.'
       : step === 'movement'
         ? 'Escolha se a retirada será feita somente por empilhadeira ou por qualquer transporte disponível.'
@@ -517,7 +524,11 @@ export function OperatorMachineOpenRequestDialog({
                 />
               }
               title="Solicitar retirada do pallet"
-              description="Aciona o transporte para retirar o pallet na máquina."
+              description={
+                hasLinkedReplenishmentFlow
+                  ? 'Retirada avulsa em paralelo ao fluxo de entrega + retirada já aberto.'
+                  : 'Aciona o transporte para retirar o pallet na máquina.'
+              }
               hint={!canPickup ? pickupBlockedMessage : undefined}
             >
               {pickupOnlySelected ? (

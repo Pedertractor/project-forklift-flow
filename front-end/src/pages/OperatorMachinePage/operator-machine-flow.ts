@@ -105,15 +105,42 @@ export function hasPalletAtReceivingForMachine(
   );
 }
 
-/** Retirada em CREATED pode ser cancelada pelo operador da máquina. */
+/**
+ * Retirada em CREATED pode ser cancelada pelo operador da máquina.
+ *
+ * - Retirada avulsa: sempre cancelável enquanto CREATED (pallet no recebimento
+ *   de outro continuum não a bloqueia).
+ * - Retirada amarrada (entrega + retirada): bloqueada só quando o pallet
+ *   vinculado a esse continuum já está pronto no recebimento.
+ */
 export function canCancelPickupRequest(
   pickup: PickupTaskListItem,
   deliveryTasks: DeliveryTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[] = [],
 ): boolean {
   if (pickup.status !== 'CREATED') return false;
-  if (hasPalletAtReceivingForMachine(deliveryTasks, pickup.machineId)) {
+
+  if (!pickup.linkedSupplyRequestId) {
+    return true;
+  }
+
+  const supply = findSupplyForPickup(pickup, supplyRequests);
+  const deliveryId = supply?.deliveryTaskId ?? null;
+  if (!deliveryId) {
+    // Aviso ainda OPEN / sem entrega: cancelável.
+    return true;
+  }
+
+  const linkedDelivery = deliveryTasks.find((d) => d.id === deliveryId);
+  if (
+    linkedDelivery &&
+    linkedDelivery.status === 'CREATED' &&
+    linkedDelivery.acceptedBySupply &&
+    linkedDelivery.preparedAt != null
+  ) {
     return false;
   }
+
   return true;
 }
 
@@ -130,6 +157,8 @@ export function canRequestPickup(
   _deliveryTasks: DeliveryTaskListItem[],
   _pickupTasks: PickupTaskListItem[],
 ): boolean {
+  // Sempre permitido: retiradas avulsas em paralelo coexistem com o continuum
+  // "Entrega + Retirada" já em andamento na mesma máquina.
   return true;
 }
 

@@ -5,6 +5,26 @@ import type { OrionEventBody } from '../../types/external-api/orion-event.types.
 const APP_ACCESS_INTERVAL_MS = 30 * 60_000
 const lastAppAccessByUserId = new Map<string, number>()
 
+/** Mesmo intervalo para acesso a módulos (dash/TV podem remontar ao navegar). */
+const MODULE_ACCESS_INTERVAL_MS = 30 * 60_000
+const lastModuleAccessByKey = new Map<string, number>()
+
+export const ORION_TRACKED_MODULES = [
+  'dashboard_geral',
+  'dashboard_tv',
+] as const
+
+export type OrionTrackedModule = (typeof ORION_TRACKED_MODULES)[number]
+
+export function isOrionTrackedModule(
+  value: unknown,
+): value is OrionTrackedModule {
+  return (
+    typeof value === 'string' &&
+    (ORION_TRACKED_MODULES as readonly string[]).includes(value)
+  )
+}
+
 export async function notifyOrion(body: OrionEventBody): Promise<boolean> {
   const { ORION_URL, ORION_APP_TOKEN } = env
   if (!ORION_URL || !ORION_APP_TOKEN) {
@@ -57,5 +77,36 @@ export function notifyOrionAppAccess(user: {
     if (ok) {
       lastAppAccessByUserId.set(user.id, now)
     }
+  })
+}
+
+export function notifyOrionModuleAccess(
+  user: {
+    id: string
+    name: string
+    card: string
+    role: string
+  },
+  module: OrionTrackedModule,
+): void {
+  const now = Date.now()
+  const key = `${user.id}:${module}`
+  const last = lastModuleAccessByKey.get(key) ?? 0
+  if (now - last < MODULE_ACCESS_INTERVAL_MS) {
+    return
+  }
+
+  // Marca antes do fetch: evita race (Strict Mode / requests paralelos).
+  lastModuleAccessByKey.set(key, now)
+
+  void notifyOrion({
+    userId: user.id,
+    userName: user.name,
+    cardNumberUser: user.card,
+    metadata: {
+      action: 'module_access',
+      module,
+      role: user.role,
+    },
   })
 }

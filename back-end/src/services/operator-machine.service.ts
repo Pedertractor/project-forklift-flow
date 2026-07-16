@@ -30,6 +30,7 @@ import { prisma } from '../lib/prisma.js'
 import {
   linkNewPickupToEligibleSupplyRequest,
   linkNewSupplyRequestToEligiblePickup,
+  repairUnlinkedPickupLinksForMachine,
   type PickupSupplyLinkResult,
 } from './pickup-supply-link.service.js'
 import {
@@ -138,6 +139,11 @@ export async function listMachineTasksForOperator(operatorUserId: string) {
     return { deliveryTasks: [], pickupTasks: [], openSupply: null }
   }
 
+  const linkResult = await repairUnlinkedPickupLinksForMachine(machine.id)
+  if (linkResult.linked) {
+    await applyLinkOutcome(linkResult, machine.sectorId, machine.name)
+  }
+
   const [deliveryTasks, pickupTasks, openSupply] = await Promise.all([
     deliveryTaskRepository.findManyForMachine(machine.id),
     pickupTaskRepository.findManyForMachine(machine.id),
@@ -164,10 +170,6 @@ async function resolveTypeForMachine(machineId: string): Promise<TypeMovimentPal
     select: { typeMovimentPallet: true },
   })
   return latestDelivery?.typeMovimentPallet ?? TypeMovimentPallet.FORKLIFT
-}
-
-async function findPalletAtReceivingForMachine(machineId: string) {
-  return deliveryTaskRepository.findOpenPreparedForMachine(machineId)
 }
 
 /**
@@ -591,11 +593,34 @@ export async function cancelPickupRequestByOperator(
     throw new PickupTaskCannotBeCanceledError()
   }
 
-  const palletAtReceiving = await findPalletAtReceivingForMachine(machine.id)
-  if (palletAtReceiving) {
-    throw new PickupTaskCannotBeCanceledError(
-      'Nao e possivel cancelar: ha pallet no recebimento aguardando transporte vinculado a esta retirada.',
-    )
+  // Só bloqueia cancelamento quando o continuum desta retirada já tem pallet
+  // pronto no recebimento. Retirada avulsa (sem vínculo) pode cancelar mesmo
+  // com outra entrega+retirada em andamento na mesma máquina.
+  if (task.linkedSupplyRequestId) {
+    const linkedSupply = await prisma.operatorMachineSupplyRequest.findUnique({
+      where: { id: task.linkedSupplyRequestId },
+      select: {
+        deliveryTask: {
+          select: {
+            id: true,
+            status: true,
+            acceptedBySupply: true,
+            preparedAt: true,
+          },
+        },
+      },
+    })
+    const linkedDelivery = linkedSupply?.deliveryTask
+    if (
+      linkedDelivery &&
+      linkedDelivery.status === MachineTaskStatus.CREATED &&
+      linkedDelivery.acceptedBySupply &&
+      linkedDelivery.preparedAt != null
+    ) {
+      throw new PickupTaskCannotBeCanceledError(
+        'Nao e possivel cancelar: ha pallet no recebimento aguardando transporte vinculado a esta retirada.',
+      )
+    }
   }
 
   const now = new Date()
@@ -622,6 +647,7 @@ export async function cancelPickupRequestByOperator(
         data: {
           status: MachineTaskStatus.CANCELED,
           statusSince: now,
+          linkedSupplyRequest: { disconnect: true },
         },
         include: {
           machine: {

@@ -17,6 +17,7 @@ import {
 import {
   buildOperatorMachineTaskRows,
   formatTaskDate,
+  operatorMachineRowTimerStartIso,
   type OperatorMachineTaskListRow,
 } from './operator-machine-display';
 import {
@@ -448,42 +449,16 @@ function RequestFlowCard({
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <div className="flex items-center gap-3">
-          {(showForkliftIcon || palletTruckIconSrc) && equipmentLabel ? (
-            <span
-              className={cn(
-                'inline-flex shrink-0 items-center justify-center rounded-full p-1',
-                dark ? 'bg-zinc-700 text-zinc-100' : 'bg-zinc-200 text-zinc-800',
-                compact ? 'size-8 sm:size-9' : 'size-9',
-              )}
-              title={equipmentLabel}
-            >
-              {showForkliftIcon ? (
-                <Forklift
-                  className="size-[70%] stroke-[1.75]"
-                  aria-hidden
-                />
-              ) : palletTruckIconSrc ? (
-                <img
-                  src={palletTruckIconSrc}
-                  alt={equipmentLabel}
-                  className="size-[55%] object-contain object-center"
-                />
-              ) : null}
-            </span>
-          ) : null}
-          <FlowRequestTimer
-            startIso={row.createdAt}
-            dark={dark}
-            compact={compact}
-          />
-        </div>
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {showCancelButton ? (
           <Button
             type="button"
             variant="outline"
-            className="shrink-0 text-red-700 hover:bg-red-50"
+            className={cn(
+              'shrink-0 text-red-700 hover:bg-red-50',
+              dark && 'border-red-800 text-red-300 hover:bg-red-950/50',
+              compact && 'h-8 px-2 text-xs',
+            )}
             disabled={busy}
             onClick={() => onRequestCancelPickup(row.id)}
           >
@@ -492,6 +467,39 @@ function RequestFlowCard({
               : 'Cancelar retirada'}
           </Button>
         ) : null}
+        {(showForkliftIcon || palletTruckIconSrc) && equipmentLabel ? (
+          <span
+            className={cn(
+              'inline-flex shrink-0 items-center justify-center rounded-full p-1',
+              dark ? 'bg-zinc-700 text-zinc-100' : 'bg-zinc-200 text-zinc-800',
+              compact ? 'size-8 sm:size-9' : 'size-9',
+            )}
+            title={equipmentLabel}
+          >
+            {showForkliftIcon ? (
+              <Forklift
+                className="size-[70%] stroke-[1.75]"
+                aria-hidden
+              />
+            ) : palletTruckIconSrc ? (
+              <img
+                src={palletTruckIconSrc}
+                alt={equipmentLabel}
+                className="size-[55%] object-contain object-center"
+              />
+            ) : null}
+          </span>
+        ) : null}
+        <FlowRequestTimer
+          startIso={operatorMachineRowTimerStartIso(
+            row,
+            deliveryTasks,
+            pickupTasks,
+            supplyRequests,
+          )}
+          dark={dark}
+          compact={compact}
+        />
       </div>
     </div>
   );

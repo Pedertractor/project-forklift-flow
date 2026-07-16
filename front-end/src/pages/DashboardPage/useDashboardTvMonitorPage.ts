@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { useDashboardSectorFilter } from './useDashboardSectorFilter';
 import { getOperationalTvMonitorSnapshot } from '@/services/operational-dashboard-api';
+import { notifyOrionModuleAccess } from '@/services/orion-api';
 import type { SectorListItem } from '@/types/machine.types';
 
 const TV_LIVE_REFETCH_MS = 12_000;
@@ -32,6 +34,10 @@ export function useDashboardTvMonitorPage(): DashboardTvMonitorPageViewModel {
     sectorScopeLabel,
     leaderMissingSector,
   } = useDashboardSectorFilter();
+
+  useEffect(() => {
+    void notifyOrionModuleAccess('dashboard_tv');
+  }, []);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [TV_MONITOR_QUERY_KEY, sectorIdForQuery ?? 'all'],

@@ -84,6 +84,9 @@ export const API_ENDPOINTS = {
     OPERATOR_CURRENT_TRAJECTORY: (operatorId: string) =>
       `/operational-dashboard/operators/${encodeURIComponent(operatorId)}/current-trajectory`,
   },
+  ORION: {
+    MODULE_ACCESS: '/orion/module-access',
+  },
   MOVIMENT_OPERATOR_MACHINE_LINKS: {
     BOARD: '/moviment-operator-machine-links/board',
     LIST: '/moviment-operator-machine-links',

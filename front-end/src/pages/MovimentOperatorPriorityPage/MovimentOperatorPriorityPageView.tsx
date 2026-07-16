@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { typeMachineImageSrc } from '@/pages/TypeMachinesPage/useTypeMachinesPage';
 
 import type { MovimentOperatorPriorityPageViewModel } from './useMovimentOperatorPriorityPage';
+import { captalizeString } from '@/utils/captalizeString';
 
 export function MovimentOperatorPriorityPageView(
   vm: MovimentOperatorPriorityPageViewModel,
@@ -240,7 +241,7 @@ export function MovimentOperatorPriorityPageView(
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
                   <div className="min-w-0">
                     <p className="m-0 text-sm font-semibold text-zinc-900">
-                      Máquinas de {selectedOperator.name}
+                      Máquinas de {captalizeString(selectedOperator.name)}
                     </p>
                     <p className="m-0 mt-0.5 text-xs text-zinc-500">
                       {selectedOperator.sector?.typeSector

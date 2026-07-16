@@ -178,6 +178,18 @@ export const deliveryTaskRepository = {
     })
   },
 
+  findLatestCompletedByOperator(operatorUserId: string) {
+    return prisma.deliveryTask.findFirst({
+      where: {
+        assignedOperatorId: operatorUserId,
+        status: MachineTaskStatus.COMPLETED,
+        completedAt: { not: null },
+      },
+      orderBy: { completedAt: 'desc' },
+      select: { id: true, completedAt: true },
+    })
+  },
+
   /** Qualquer entrega em aberto (pallet a caminho): registrada, em preparo ou em rota. */
   findFirstOpenForMachine(machineId: string) {
     return prisma.deliveryTask.findFirst({

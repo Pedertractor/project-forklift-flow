@@ -1,8 +1,11 @@
 import { MachineTaskStatus } from '../generated/prisma/enums.js'
 import { prisma } from '../lib/prisma.js'
+import { deliveryTaskRepository } from '../repositories/delivery-task.repository.js'
 import { pickupTaskRepository } from '../repositories/pickup-task.repository.js'
 import { operatorMachineSupplyRequestRepository } from '../repositories/operator-machine-supply-request.repository.js'
+import type { OperatorMachineSupplyRequestListRow } from '../repositories/operator-machine-supply-request.repository.js'
 import { movimentPalletTripSuggestionRepository } from '../repositories/moviment-pallet-trip-suggestion.repository.js'
+import { bindLinkedPickupToDelivery } from './trip-suggestion-sync.service.js'
 import type { PickupLinkNotifyReason } from '../ws/operator-moviment-pallet-ws.hub.js'
 
 /**
@@ -56,6 +59,80 @@ const NOT_LINKED: PickupSupplyLinkResult = {
   notify: null,
 }
 
+async function clearTerminalPickupLinksForSupply(supplyId: string) {
+  await prisma.pickupTask.updateMany({
+    where: {
+      linkedSupplyRequestId: supplyId,
+      status: {
+        in: [MachineTaskStatus.CANCELED, MachineTaskStatus.COMPLETED],
+      },
+    },
+    data: { linkedSupplyRequestId: null },
+  })
+}
+
+/**
+ * Resolve o aviso para amarrar uma retirada nova:
+ * 1) aviso elegível da máquina;
+ * 2) aviso da entrega aberta (pronta no recebimento OU já aceita / a caminho);
+ * 3) materializa aviso FULFILLED se o abastecedor criou a entrega sem aviso prévio.
+ *
+ * Não amarra quando já existe retirada aberta vinculada ao continuum
+ * "Entrega + Retirada" — a nova retirada segue avulsa em paralelo.
+ */
+async function resolveSupplyForNewPickupLink(
+  machineId: string,
+): Promise<OperatorMachineSupplyRequestListRow | null> {
+  const linkedContinuumPickup =
+    await pickupTaskRepository.findFirstOpenLinkedForMachine(machineId)
+  if (linkedContinuumPickup) {
+    return null
+  }
+
+  const primary =
+    await operatorMachineSupplyRequestRepository.findFirstEligibleUnclaimedForMachine(
+      machineId,
+    )
+  if (primary) return primary
+
+  // Preferência: entrega ainda na fila → entrega já aceita pelo transporte
+  // (mid-flight: operador solicita retirada enquanto o empilhadeirista está a caminho).
+  const deliveryAtReceiving =
+    await deliveryTaskRepository.findOpenPreparedForMachine(machineId)
+  const deliveryUnassigned =
+    deliveryAtReceiving ??
+    (await deliveryTaskRepository.findOpenUnassignedDeliveryForMachine(machineId))
+  const deliveryInFlight =
+    await deliveryTaskRepository.findOpenAssignedForMachine(machineId)
+  const delivery = deliveryUnassigned ?? deliveryInFlight
+
+  if (!delivery?.acceptedBySupply) {
+    return null
+  }
+
+  const byDelivery =
+    await operatorMachineSupplyRequestRepository.findEligibleUnclaimedByDeliveryTaskId(
+      delivery.id,
+    )
+  if (byDelivery) return byDelivery
+
+  if (
+    delivery.status !== MachineTaskStatus.CREATED &&
+    delivery.status !== MachineTaskStatus.ASSIGNED &&
+    delivery.status !== MachineTaskStatus.IN_PROGRESS
+  ) {
+    return null
+  }
+
+  return operatorMachineSupplyRequestRepository.ensureFulfilledForOrphanDelivery(
+    {
+      deliveryTaskId: delivery.id,
+      machineId: delivery.machineId,
+      requestedById: delivery.requestedById,
+    },
+  )
+}
+
 /**
  * Amarra uma retirada RECÉM-CRIADA a um aviso de abastecimento ainda
  * elegível e sem retirada vinculada (o mais antigo, se houver mais de um
@@ -69,11 +146,10 @@ export async function linkNewPickupToEligibleSupplyRequest(input: {
   machineId: string
   pickupTaskId: string
 }): Promise<PickupSupplyLinkResult> {
-  const supply =
-    await operatorMachineSupplyRequestRepository.findFirstEligibleUnclaimedForMachine(
-      input.machineId,
-    )
+  const supply = await resolveSupplyForNewPickupLink(input.machineId)
   if (!supply) return NOT_LINKED
+
+  await clearTerminalPickupLinksForSupply(supply.id)
 
   try {
     await prisma.pickupTask.update({
@@ -97,9 +173,39 @@ export async function linkNewPickupToEligibleSupplyRequest(input: {
 
   const delivery = await prisma.deliveryTask.findUnique({
     where: { id: supply.deliveryTaskId },
+    select: {
+      id: true,
+      status: true,
+      assignedOperatorId: true,
+      operatedWith: true,
+      typeMovimentPallet: true,
+      machineId: true,
+    },
   })
+  if (!delivery) {
+    return {
+      linked: true,
+      linkedSupplyRequestId: supply.id,
+      pickupTaskId: input.pickupTaskId,
+      notify: null,
+    }
+  }
+
+  if (delivery.status === MachineTaskStatus.CREATED) {
+    await bindLinkedPickupToDelivery({
+      machineId: input.machineId,
+      deliverTaskId: delivery.id,
+      typeMovimentPallet: delivery.typeMovimentPallet,
+    })
+    return {
+      linked: true,
+      linkedSupplyRequestId: supply.id,
+      pickupTaskId: input.pickupTaskId,
+      notify: null,
+    }
+  }
+
   if (
-    !delivery ||
     !delivery.assignedOperatorId ||
     (delivery.status !== MachineTaskStatus.ASSIGNED &&
       delivery.status !== MachineTaskStatus.IN_PROGRESS)
@@ -112,7 +218,8 @@ export async function linkNewPickupToEligibleSupplyRequest(input: {
     }
   }
 
-  // Entrega já acatada pelo transporte: a retirada nova entra na mesma rota.
+  // Entrega já acatada pelo transporte: a retirada nova entra na mesma rota
+  // e o empilhadeirista responsável é notificado (joined_active_delivery).
   const now = new Date()
   await prisma.pickupTask.update({
     where: { id: input.pickupTaskId },
@@ -121,6 +228,7 @@ export async function linkNewPickupToEligibleSupplyRequest(input: {
       assignedOperator: { connect: { id: delivery.assignedOperatorId } },
       assignedAt: now,
       operatedWith: delivery.operatedWith,
+      statusSince: now,
     },
   })
 
@@ -189,4 +297,25 @@ export async function linkNewSupplyRequestToEligiblePickup(input: {
         }
       : null,
   }
+}
+
+/**
+ * Corrige retiradas abertas sem vínculo quando já há pallet/entrega elegível
+ * (ex.: retirada criada antes do deploy da amarração automática).
+ */
+export async function repairUnlinkedPickupLinksForMachine(
+  machineId: string,
+): Promise<PickupSupplyLinkResult> {
+  if (await pickupTaskRepository.findFirstOpenLinkedForMachine(machineId)) {
+    return NOT_LINKED
+  }
+
+  const pickup = await pickupTaskRepository.findFirstOpenUnlinkedForMachine(
+    machineId,
+  )
+  if (!pickup) return NOT_LINKED
+  return linkNewPickupToEligibleSupplyRequest({
+    machineId,
+    pickupTaskId: pickup.id,
+  })
 }

@@ -167,6 +167,7 @@ export function OperatorMachinePageView(vm: OperatorMachinePageViewModel) {
             <OperatorMachineOperationGrid
               openSupply={openOperatorSupply}
               deliveryTasks={deliveryTasks}
+              pickupTasks={pickupTasks}
               toolings={toolings}
               canPickup={canPickup}
               canOpenRequestDialog={canOpenRequestDialog}

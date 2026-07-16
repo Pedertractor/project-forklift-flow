@@ -209,8 +209,12 @@ export interface TripStandaloneDeliverApi {
   deliverTask: OperatorPickupTaskQueueItem | null;
 }
 
+/** Última tarefa concluída pelo operador (para alternância da sugestão). */
+export type LastCompletedTripTaskKindApi = 'DELIVER' | 'PICKUP';
+
 export interface TripSuggestionsPriorityContext {
   mostUrgentOpenInSector: PriorityLevelApi | null;
+  lastCompletedTaskKind?: LastCompletedTripTaskKindApi | null;
   hint?: string;
 }
 

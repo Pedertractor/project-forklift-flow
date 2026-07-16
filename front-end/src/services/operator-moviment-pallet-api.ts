@@ -376,7 +376,12 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
     suggestions?: TripSuggestionApiRow[];
     standalonePickupTasks?: TripStandalonePickupApiRow[];
     standaloneDeliverTasks?: TripStandaloneDeliverApiRow[];
-    priorityContext?: { hasCritical?: boolean; hint?: string };
+    priorityContext?: {
+      hasCritical?: boolean;
+      hasPreferredMachine?: boolean;
+      lastCompletedTaskKind?: 'DELIVER' | 'PICKUP' | null;
+      hint?: string;
+    };
   }>(API_ENDPOINTS.OPERATOR_MOVIMENT_PALLET.TRIP_SUGGESTIONS, { method: 'GET' });
 
   if (!res) {
@@ -384,7 +389,10 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
       suggestions: [],
       standalonePickupTasks: [],
       standaloneDeliverTasks: [],
-      priorityContext: { mostUrgentOpenInSector: null },
+      priorityContext: {
+        mostUrgentOpenInSector: null,
+        lastCompletedTaskKind: null,
+      },
     };
   }
 
@@ -446,6 +454,7 @@ export async function fetchOperatorTripSuggestions(): Promise<TripSuggestionsRes
     }),
     priorityContext: {
       mostUrgentOpenInSector: res.priorityContext?.hasCritical ? 'VERY_HIGH' : null,
+      lastCompletedTaskKind: res.priorityContext?.lastCompletedTaskKind ?? null,
       hint: res.priorityContext?.hint,
     },
   };

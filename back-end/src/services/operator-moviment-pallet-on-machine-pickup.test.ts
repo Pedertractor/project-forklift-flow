@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { tripQueueKindAffinityRank } from "../utils/trip-queue-priority.js";
 
 /**
  * Contrato: tarefas em sugestao de viagem OPEN nao aparecem como avulsas;
@@ -38,16 +39,37 @@ test("tela principal: avulsa so entra se for critica", () => {
   assert.deepEqual(mainScreen, ["d1"]);
 });
 
-test("tela principal vazia: promove uma avulsa nao critica (mais antiga)", () => {
+test("tela principal vazia: promove avulsa nao critica por afinidade (apos retirada = entrega)", () => {
+  // Fallback usa afinidade da última tarefa; só empata por idade.
   const candidates = [
-    { id: "d1", createdAt: new Date("2026-01-02") },
-    { id: "p1", createdAt: new Date("2026-01-01") },
-    { id: "d2", createdAt: new Date("2026-01-03") },
+    {
+      id: "d1",
+      kind: "deliver" as const,
+      createdAt: new Date("2026-01-02"),
+      kindRank: tripQueueKindAffinityRank("deliver", "PICKUP"),
+    },
+    {
+      id: "p1",
+      kind: "pickup" as const,
+      createdAt: new Date("2026-01-01"),
+      kindRank: tripQueueKindAffinityRank("pickup", "PICKUP"),
+    },
+    {
+      id: "d2",
+      kind: "deliver" as const,
+      createdAt: new Date("2026-01-03"),
+      kindRank: tripQueueKindAffinityRank("deliver", "PICKUP"),
+    },
   ];
-  const oldest = candidates.reduce((best, cur) =>
-    cur.createdAt.getTime() < best.createdAt.getTime() ? cur : best,
-  );
-  assert.equal(oldest.id, "p1");
+  const best = candidates.reduce((current, cur) => {
+    if (cur.kindRank !== current.kindRank) {
+      return cur.kindRank < current.kindRank ? cur : current;
+    }
+    return cur.createdAt.getTime() < current.createdAt.getTime()
+      ? cur
+      : current;
+  });
+  assert.equal(best.id, "d1");
 });
 
 test("retirada com reposicao nao entra como avulsa na fila do empilhadeirista", () => {

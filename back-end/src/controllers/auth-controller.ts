@@ -1,5 +1,4 @@
 import type { RouteHandlerMethod } from 'fastify'
-import { notifyOrionAppAccess } from '../external-api/orion/index.js'
 import type { IsOperating, RoleUser, Unit } from '../generated/prisma/enums.js'
 import { AuthError, UserPasswordError } from '../errors/domain-errors.js'
 import {
@@ -62,13 +61,6 @@ export const getMe: RouteHandlerMethod = async (request, reply) => {
           firstAccess: !user.isLogged,
         })
       : undefined
-
-  notifyOrionAppAccess({
-    id: user.id,
-    name: user.name,
-    card: user.card,
-    role: user.role,
-  })
 
   return {
     ...publicAuthUser(user),

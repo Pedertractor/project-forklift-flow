@@ -4,11 +4,14 @@ import type {
   TripStandalonePickupApi,
 } from '@/types/operator-moviment-pallet.types';
 
+export type LastCompletedTripTaskKind = 'DELIVER' | 'PICKUP';
+
 export type MainTripQueueItem =
   | {
       displayKind: 'combined';
       preferredMachine: boolean;
       critical: boolean;
+      kindRank: number;
       sortAt: number;
       combined: TripCombinedSuggestionApi;
     }
@@ -16,6 +19,7 @@ export type MainTripQueueItem =
       displayKind: 'deliver';
       preferredMachine: boolean;
       critical: boolean;
+      kindRank: number;
       sortAt: number;
       deliver: TripStandaloneDeliverApi;
     }
@@ -23,26 +27,53 @@ export type MainTripQueueItem =
       displayKind: 'pickup';
       preferredMachine: boolean;
       critical: boolean;
+      kindRank: number;
       sortAt: number;
       pickup: TripStandalonePickupApi;
     };
 
 /**
+ * Após retirada → entrega+retirada ou entrega.
+ * Após entrega (abastecimento) → entrega+retirada ou retirada.
+ * Sem histórico → combina primeiro; depois age decide.
+ */
+export function tripQueueKindAffinityRank(
+  kind: MainTripQueueItem['displayKind'],
+  lastCompleted: LastCompletedTripTaskKind | null | undefined,
+): number {
+  if (lastCompleted === 'PICKUP') {
+    if (kind === 'combined') return 0;
+    if (kind === 'deliver') return 1;
+    return 2;
+  }
+  if (lastCompleted === 'DELIVER') {
+    if (kind === 'combined') return 0;
+    if (kind === 'pickup') return 1;
+    return 2;
+  }
+  if (kind === 'combined') return 0;
+  return 1;
+}
+
+/**
  * Ordena a fila principal:
  * 1. Máquinas vinculadas ao operador (cortam a fila)
  * 2. Criticidade
- * 3. Mais antiga
+ * 3. Afinidade com a última tarefa concluída
+ * 4. Mais antiga
  */
 export function buildMainTripQueueItems(
   combined: TripCombinedSuggestionApi[],
   standaloneDelivers: TripStandaloneDeliverApi[],
   standalonePickups: TripStandalonePickupApi[],
+  lastCompleted: LastCompletedTripTaskKind | null | undefined = null,
 ): MainTripQueueItem[] {
   const items: MainTripQueueItem[] = [
     ...combined.map((row) => ({
       displayKind: 'combined' as const,
       preferredMachine: Boolean(row.preferredMachine),
       critical: row.effectivePriority === 'VERY_HIGH',
+      kindRank: tripQueueKindAffinityRank('combined', lastCompleted),
       sortAt: Math.min(
         new Date(row.deliverTask.createdAt).getTime(),
         new Date(row.pickupTask.createdAt).getTime(),
@@ -53,6 +84,7 @@ export function buildMainTripQueueItems(
       displayKind: 'deliver' as const,
       preferredMachine: Boolean(row.preferredMachine),
       critical: row.effectivePriority === 'VERY_HIGH',
+      kindRank: tripQueueKindAffinityRank('deliver', lastCompleted),
       sortAt: row.deliverTask
         ? new Date(row.deliverTask.createdAt).getTime()
         : 0,
@@ -62,6 +94,7 @@ export function buildMainTripQueueItems(
       displayKind: 'pickup' as const,
       preferredMachine: Boolean(row.preferredMachine),
       critical: row.effectivePriority === 'VERY_HIGH',
+      kindRank: tripQueueKindAffinityRank('pickup', lastCompleted),
       sortAt: new Date(row.pickupTask.createdAt).getTime(),
       pickup: row,
     })),
@@ -73,6 +106,9 @@ export function buildMainTripQueueItems(
     }
     if (a.critical !== b.critical) {
       return a.critical ? -1 : 1;
+    }
+    if (a.kindRank !== b.kindRank) {
+      return a.kindRank - b.kindRank;
     }
     return a.sortAt - b.sortAt;
   });

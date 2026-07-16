@@ -8,6 +8,7 @@ import { registerMovimentOperatorMachineLinkRoutes } from './moviment-operator-m
 import { registerOperatorMachineRoutes } from './operator-machine.routes.js'
 import { registerOperationalDashboardRoutes } from './operational-dashboard.routes.js'
 import { registerOperatorMovimentPalletRoutes } from './operator-moviment-pallet.routes.js'
+import { registerOrionRoutes } from './orion.routes.js'
 import { registerSectorRoutes } from './sector.routes.js'
 import { registerTypeMachineRoutes } from './type-machine.routes.js'
 import { registerUserRoutes } from './user.routes.js'
@@ -15,6 +16,7 @@ import { registerUserRoutes } from './user.routes.js'
 export async function registerRoutes(fastify: FastifyInstance) {
   await registerHealthRoutes(fastify)
   await registerAuthRoutes(fastify)
+  await registerOrionRoutes(fastify)
   await registerUserRoutes(fastify)
   await registerSectorRoutes(fastify)
   await registerTypeMachineRoutes(fastify)
