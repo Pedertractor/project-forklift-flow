@@ -289,6 +289,47 @@ export function operatorMachineRowIsAccepted(
 }
 
 /**
+ * Início do cronômetro do card: o `createdAt` mais antigo do continuum.
+ * Assim, ao anexar uma retirada à entrega em andamento (junção), o timer
+ * não reinicia no horário da retirada nova.
+ */
+export function operatorMachineRowTimerStartIso(
+  row: OperatorMachineTaskListRow,
+  deliveryTasks: DeliveryTaskListItem[],
+  pickupTasks: PickupTaskListItem[],
+  supplyRequests: OperatorMachineSupplyRequestListItem[],
+): string {
+  if (row.kind !== 'PICKUP' || !row.linkedToReplenishmentFlow) {
+    return row.createdAt;
+  }
+
+  const pickup = pickupTasks.find((t) => t.id === row.id);
+  if (!pickup) return row.createdAt;
+
+  const candidates = [row.createdAt];
+  const supply = findSupplyForPickup(pickup, supplyRequests);
+  if (supply?.createdAt) candidates.push(supply.createdAt);
+  const delivery = findDeliveryForPickup(
+    pickup,
+    supplyRequests,
+    deliveryTasks,
+  );
+  if (delivery?.createdAt) candidates.push(delivery.createdAt);
+
+  let earliestIso = row.createdAt;
+  let earliestMs = new Date(row.createdAt).getTime();
+  for (const iso of candidates) {
+    const ms = new Date(iso).getTime();
+    if (!Number.isFinite(ms)) continue;
+    if (!Number.isFinite(earliestMs) || ms < earliestMs) {
+      earliestMs = ms;
+      earliestIso = iso;
+    }
+  }
+  return earliestIso;
+}
+
+/**
  * Instante usado para ordenar o card na fila:
  * - se já houve aceite (`assignedAt`), usa o mais antigo entre as tarefas do fluxo;
  * - senão, usa a data da solicitação.

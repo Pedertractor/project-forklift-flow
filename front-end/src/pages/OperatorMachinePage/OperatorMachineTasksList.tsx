@@ -17,6 +17,7 @@ import {
 import {
   buildOperatorMachineTaskRows,
   formatTaskDate,
+  operatorMachineRowTimerStartIso,
   type OperatorMachineTaskListRow,
 } from './operator-machine-display';
 import {
@@ -490,7 +491,12 @@ function RequestFlowCard({
           </span>
         ) : null}
         <FlowRequestTimer
-          startIso={row.createdAt}
+          startIso={operatorMachineRowTimerStartIso(
+            row,
+            deliveryTasks,
+            pickupTasks,
+            supplyRequests,
+          )}
           dark={dark}
           compact={compact}
         />
