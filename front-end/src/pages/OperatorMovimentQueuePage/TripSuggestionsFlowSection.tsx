@@ -191,7 +191,10 @@ function AcceptButtonLabel({ accepting }: { accepting: boolean }) {
     </>
   ) : (
     <>
-      <Check className="size-5 shrink-0 phone-landscape:size-4 lg:size-6 xl:size-7" aria-hidden />
+      <Check
+        className="size-5 shrink-0 phone-landscape:size-4 lg:size-6 xl:size-7"
+        aria-hidden
+      />
       Aceitar
     </>
   );

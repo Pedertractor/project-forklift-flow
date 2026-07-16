@@ -65,7 +65,9 @@ test("tela principal vazia: promove avulsa nao critica por afinidade (apos retir
     if (cur.kindRank !== current.kindRank) {
       return cur.kindRank < current.kindRank ? cur : current;
     }
-    return cur.createdAt.getTime() < current.createdAt.getTime() ? cur : current;
+    return cur.createdAt.getTime() < current.createdAt.getTime()
+      ? cur
+      : current;
   });
   assert.equal(best.id, "d1");
 });

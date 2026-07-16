@@ -11,6 +11,7 @@ import {
 import { useDashboardSectorFilter } from './useDashboardSectorFilter';
 import { getOperationalDashboardSnapshot } from '@/services/operational-dashboard-api';
 import { fetchMachines } from '@/services/machines-api';
+import { notifyOrionModuleAccess } from '@/services/orion-api';
 import type { SectorListItem } from '@/types/machine.types';
 
 const DASHBOARD_LIVE_REFETCH_MS = 15_000;
@@ -51,6 +52,10 @@ export function useDashboardGeneralPage(): DashboardGeneralPageViewModel {
     sectorScopeLabel,
     leaderMissingSector,
   } = useDashboardSectorFilter();
+
+  useEffect(() => {
+    void notifyOrionModuleAccess('dashboard_geral');
+  }, []);
 
   const { startDate, endDate } = useMemo(
     () => resolveDashboardQueryDates(dates),

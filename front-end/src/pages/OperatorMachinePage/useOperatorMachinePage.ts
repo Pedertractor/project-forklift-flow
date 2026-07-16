@@ -263,7 +263,7 @@ export function useOperatorMachinePage() {
           : linked
             ? 'Retirada solicitada e vinculada à entrega. O transporte receberá a sugestão combinada.'
             : hasLinkedReplenishmentFlow
-              ? 'Retirada avulsa solicitada em paralelo ao fluxo de entrega + retirada.'
+              ? 'Retirada solicitada.'
               : palletAtReceiving
                 ? 'Retirada solicitada. O transporte receberá a sugestão de entrega e retirada.'
                 : 'Retirada solicitada. O transporte será acionado.',

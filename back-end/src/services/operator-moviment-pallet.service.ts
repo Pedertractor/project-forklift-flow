@@ -264,8 +264,10 @@ function mapStandaloneDeliverRow(
  * (`linkedSupplyRequestId`) so entra na fila do empilhadeirista via par
  * combinado — nunca avulsa, mesmo que o par ainda não tenha sido formado.
  */
-function isPickupEligibleForStandaloneQueue(pickup: PickupTaskListRow): boolean {
-  return pickup.linkedSupplyRequestId === null
+function isPickupEligibleForStandaloneQueue(
+  pickup: PickupTaskListRow,
+): boolean {
+  return pickup.linkedSupplyRequestId === null;
 }
 
 async function listStandaloneTripTasksForSector(
@@ -534,9 +536,8 @@ export async function listOpenReplenishmentRequestsForMyMovimentType(
     await syncTripSuggestions(sectorScope, poolTypes);
   }
   const linked = await linkedOpenTripTaskIdsForSector(sectorScope, poolTypes);
-  const blockedMachineIds = await findBlockedMachineIdsForTransportInSector(
-    sectorScope,
-  );
+  const blockedMachineIds =
+    await findBlockedMachineIdsForTransportInSector(sectorScope);
   const preferredMachineIds = new Set(
     await listPreferredMachineIdsForOperator(operatorUserId),
   );
@@ -714,19 +715,15 @@ export async function listTripRouteSuggestionsForOperator(
       types,
     );
 
-  const blockedMachineIds = await findBlockedMachineIdsForTransportInSector(
-    sectorScope,
-  );
+  const blockedMachineIds =
+    await findBlockedMachineIdsForTransportInSector(sectorScope);
 
   const preferredMachineIdList =
     await listPreferredMachineIdsForOperator(operatorUserId);
   const preferredMachineIds = new Set(preferredMachineIdList);
   const lastCompleted =
     await findLastCompletedTripTaskKindForOperator(operatorUserId);
-  const combinedKindRank = tripQueueKindAffinityRank(
-    "combined",
-    lastCompleted,
-  );
+  const combinedKindRank = tripQueueKindAffinityRank("combined", lastCompleted);
 
   const suggestions = rows
     .filter((row) => {
@@ -864,10 +861,7 @@ export async function acceptTripRouteSuggestion(
   if (full.status !== MovimentPalletTripSuggestionStatus.OPEN) {
     throw new TripRouteSuggestionNotOpenError();
   }
-  if (
-    !isAdminOrSuperAdmin(role) &&
-    full.machine.sectorId !== user.sectorId
-  ) {
+  if (!isAdminOrSuperAdmin(role) && full.machine.sectorId !== user.sectorId) {
     throw new TripRouteSuggestionAcceptForbiddenError();
   }
 

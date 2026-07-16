@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { performLogout } from '@/lib/auth-session';
 import { fetchAuthMe } from '@/services/auth.service';
@@ -20,6 +20,7 @@ export function shouldClearSessionAfterMeFailure(message: string): boolean {
 /**
  * Keeps session aligned with the server (`GET /auth/me`): role, sector, first-access flag.
  * Runs while a JWT exists (private routes). Clears session on definitive auth failures.
+ * Perfil fica só em memória; no reload hidrata via `/me` (localStorage tem só o JWT).
  */
 export function useAuthMe() {
   const token = useAuthStore((s) => s.token);
@@ -39,7 +40,8 @@ export function useAuthMe() {
     retry: false,
   });
 
-  useEffect(() => {
+  // useLayoutEffect: hidrata o user antes do paint, evitando filhos com user=null no F5.
+  useLayoutEffect(() => {
     if (!query.data) {
       return;
     }
@@ -73,7 +75,7 @@ export function useAuthMe() {
 }
 
 /**
- * Papel efetivo da sessão: prioriza `GET /auth/me` para não usar role desatualizada do localStorage.
+ * Papel efetivo da sessão: prioriza `GET /auth/me` (perfil só em memória; localStorage guarda só o JWT).
  */
 export function useSessionRole(): {
   role: string | undefined;

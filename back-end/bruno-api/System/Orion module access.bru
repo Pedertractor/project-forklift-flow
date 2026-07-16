@@ -1,0 +1,26 @@
+meta {
+  name: Orion module access
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/orion/module-access
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "module": "dashboard_geral"
+  }
+}
+
+docs {
+  # Registra acesso a módulo no Orion (dashboard_geral | dashboard_tv).
+  # Requer JWT de ADMIN ou LEADER.
+}

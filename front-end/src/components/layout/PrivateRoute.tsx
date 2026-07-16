@@ -49,6 +49,11 @@ export function PrivateRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  // Token ok e /me ok, mas perfil ainda não entrou na store (só JWT no localStorage).
+  if (!user) {
+    return <PageLoader />;
+  }
+
   if (firstAccess && location.pathname !== FIRST_PASSWORD_PATH) {
     return (
       <Navigate to={FIRST_PASSWORD_PATH} replace state={{ from: location }} />

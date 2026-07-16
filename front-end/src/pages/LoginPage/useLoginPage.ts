@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   authMeQueryKeyBase,
@@ -31,7 +31,7 @@ export function useLoginPage(): { isRestoringSession: boolean } {
     retry: false,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!bootstrapQuery.isSuccess || !bootstrapQuery.data || !token) {
       return;
     }
@@ -41,6 +41,18 @@ export function useLoginPage(): { isRestoringSession: boolean } {
       bootstrapQuery.data.firstAccess,
       bootstrapQuery.data.token,
     );
+  }, [
+    bootstrapQuery.isSuccess,
+    bootstrapQuery.data,
+    token,
+    syncSessionFromProfile,
+  ]);
+
+  useEffect(() => {
+    if (!bootstrapQuery.isSuccess || !bootstrapQuery.data || !token) {
+      return;
+    }
+    const mapped = mapLoginUserToAppUser(bootstrapQuery.data);
     if (bootstrapQuery.data.firstAccess) {
       navigate('/definir-senha', { replace: true });
       return;
@@ -50,7 +62,6 @@ export function useLoginPage(): { isRestoringSession: boolean } {
     bootstrapQuery.isSuccess,
     bootstrapQuery.data,
     token,
-    syncSessionFromProfile,
     navigate,
     fromPath,
   ]);

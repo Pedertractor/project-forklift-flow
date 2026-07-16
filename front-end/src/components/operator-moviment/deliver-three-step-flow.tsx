@@ -138,33 +138,33 @@ export function DeliverFlowMachineCubeHighlight({
         </span>
       ) : null}
       <div className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5">
-      {machineName ? (
-        <span className="truncate font-bold uppercase tracking-wide text-brand">
-          {machineName}
-        </span>
-      ) : null}
-      {cube ? (
-        <>
-          {machineName ? (
-            <span className="shrink-0 font-normal text-zinc-400" aria-hidden>
-              -
-            </span>
-          ) : null}
-          <div className="inline-flex items-center gap-1 rounded-lg border border-brand/35 bg-brand/15 px-1.5 py-0.5 font-bold text-brand shadow-sm phone-landscape:px-1 md:gap-1.5 md:px-2 md:py-0.5">
-            <Box
-              strokeWidth={2.75}
-              className={cn(
-                'shrink-0 text-brand',
-                large
-                  ? 'size-3.5 phone-landscape:size-4 md:size-5 lg:size-6 xl:size-7'
-                  : 'size-3.5 phone-landscape:size-4 md:size-5 lg:size-6 xl:size-7',
-              )}
-              aria-hidden
-            />
-            <span className="tracking-widest">{cube}</span>
-          </div>
-        </>
-      ) : null}
+        {machineName ? (
+          <span className="truncate font-bold uppercase tracking-wide text-brand">
+            {machineName}
+          </span>
+        ) : null}
+        {cube ? (
+          <>
+            {machineName ? (
+              <span className="shrink-0 font-normal text-zinc-400" aria-hidden>
+                -
+              </span>
+            ) : null}
+            <div className="inline-flex items-center gap-1 rounded-lg border border-brand/35 bg-brand/15 px-1.5 py-0.5 font-bold text-brand shadow-sm phone-landscape:px-1 md:gap-1.5 md:px-2 md:py-0.5">
+              <Box
+                strokeWidth={2.75}
+                className={cn(
+                  'shrink-0 text-brand',
+                  large
+                    ? 'size-3.5 phone-landscape:size-4 md:size-5 lg:size-6 xl:size-7'
+                    : 'size-3.5 phone-landscape:size-4 md:size-5 lg:size-6 xl:size-7',
+                )}
+                aria-hidden
+              />
+              <span className="tracking-widest">{cube}</span>
+            </div>
+          </>
+        ) : null}
       </div>
       {machineMeta ? (
         <span
@@ -192,19 +192,14 @@ export function DeliverFlowActionFooter({
   return (
     <DeliverFlowCardFooter>
       <div className="grid w-full grid-cols-1 items-center gap-2 phone-landscape:grid-cols-[1fr_auto_1fr] phone-landscape:gap-1 md:grid-cols-[1fr_auto_1fr] md:gap-2">
-        <div
-          className="hidden phone-landscape:block md:block"
-          aria-hidden
-        />
+        <div className="hidden phone-landscape:block md:block" aria-hidden />
         <div className="flex min-w-0 flex-col items-center gap-2 justify-self-center">
           {children}
         </div>
         <div
           className={cn(
             'flex items-center justify-end justify-self-end',
-            isCritical
-              ? 'min-h-0'
-              : 'hidden phone-landscape:block md:block',
+            isCritical ? 'min-h-0' : 'hidden phone-landscape:block md:block',
           )}
         >
           {isCritical ? <DeliverFlowCriticalBadge /> : null}
@@ -564,9 +559,15 @@ function FlowStepIconRing({
         'relative flex shrink-0 items-center justify-center rounded-full bg-white',
         !landscape && size === 'compact' && 'size-12 phone-landscape:size-14',
         !landscape && micro && !fillHeight && 'size-9 phone-landscape:size-11',
-        !landscape && size === 'default' && 'size-14 sm:size-16 lg:size-20 xl:size-24',
+        !landscape &&
+          size === 'default' &&
+          'size-14 sm:size-16 lg:size-20 xl:size-24',
       )}
-      style={landscape ? landscapeRingStyle(stepCount, activityTypography) : undefined}
+      style={
+        landscape
+          ? landscapeRingStyle(stepCount, activityTypography)
+          : undefined
+      }
     >
       <span
         className="absolute inset-0 rounded-full ring-1 ring-zinc-300"
@@ -584,9 +585,15 @@ function FlowStepIconRing({
           'relative z-10 text-zinc-800',
           !landscape && size === 'compact' && 'size-6 phone-landscape:size-7',
           !landscape && micro && !fillHeight && 'size-4 phone-landscape:size-5',
-          !landscape && size === 'default' && 'size-7 sm:size-8 lg:size-10 xl:size-12',
+          !landscape &&
+            size === 'default' &&
+            'size-7 sm:size-8 lg:size-10 xl:size-12',
         )}
-        style={landscape ? landscapeIconStyle(stepCount, activityTypography) : undefined}
+        style={
+          landscape
+            ? landscapeIconStyle(stepCount, activityTypography)
+            : undefined
+        }
         strokeWidth={1.5}
         aria-hidden
       />
@@ -627,17 +634,34 @@ function FlowStepColumn({
           size === 'compact' && !fillHeight && 'gap-1.5',
           !micro && !landscape && size !== 'compact' && 'gap-2',
         )}
-        style={landscape ? landscapeGapStyle(stepCount, activityTypography) : undefined}
+        style={
+          landscape
+            ? landscapeGapStyle(stepCount, activityTypography)
+            : undefined
+        }
       >
         <span
           className={cn(
             'bg-zinc-900 font-bold text-white',
-            !landscape && 'flex shrink-0 items-center justify-center rounded-full',
-            !landscape && micro && !fillHeight && 'flex size-4 text-[10px] phone-landscape:size-5 phone-landscape:text-xs',
-            !landscape && size === 'compact' && !fillHeight && 'flex size-6 text-xs phone-landscape:size-7 phone-landscape:text-sm',
-            !landscape && size === 'default' && 'flex size-6 text-xs lg:size-8 lg:text-base xl:size-9 xl:text-lg',
+            !landscape &&
+              'flex shrink-0 items-center justify-center rounded-full',
+            !landscape &&
+              micro &&
+              !fillHeight &&
+              'flex size-4 text-[10px] phone-landscape:size-5 phone-landscape:text-xs',
+            !landscape &&
+              size === 'compact' &&
+              !fillHeight &&
+              'flex size-6 text-xs phone-landscape:size-7 phone-landscape:text-sm',
+            !landscape &&
+              size === 'default' &&
+              'flex size-6 text-xs lg:size-8 lg:text-base xl:size-9 xl:text-lg',
           )}
-          style={landscape ? landscapeBadgeStyle(stepCount, activityTypography) : undefined}
+          style={
+            landscape
+              ? landscapeBadgeStyle(stepCount, activityTypography)
+              : undefined
+          }
         >
           {step.stepNumber}
         </span>
@@ -654,11 +678,20 @@ function FlowStepColumn({
           className={cn(
             'm-0 w-full px-0.5 text-center font-semibold leading-tight wrap-break-word text-zinc-800',
             landscape && 'line-clamp-4',
-            micro && !fillHeight && 'line-clamp-4 text-xs leading-snug phone-landscape:text-base',
-            size === 'compact' && !fillHeight && 'text-xs leading-snug phone-landscape:text-base phone-landscape:leading-snug',
-            size === 'default' && 'px-1 text-xs leading-snug sm:text-sm lg:text-lg xl:text-xl',
+            micro &&
+              !fillHeight &&
+              'line-clamp-4 text-xs leading-snug phone-landscape:text-base',
+            size === 'compact' &&
+              !fillHeight &&
+              'text-xs leading-snug phone-landscape:text-base phone-landscape:leading-snug',
+            size === 'default' &&
+              'px-1 text-xs leading-snug sm:text-sm lg:text-lg xl:text-xl',
           )}
-          style={landscape ? landscapeLabelStyle(stepCount, activityTypography) : undefined}
+          style={
+            landscape
+              ? landscapeLabelStyle(stepCount, activityTypography)
+              : undefined
+          }
         >
           {step.label}
         </p>
@@ -670,16 +703,27 @@ function FlowStepColumn({
                 !landscape && micro && !fillHeight && 'size-3',
                 !landscape && !micro && 'size-4 lg:size-5 xl:size-6',
               )}
-              style={landscape ? landscapeCubeIconStyle(stepCount, activityTypography) : undefined}
+              style={
+                landscape
+                  ? landscapeCubeIconStyle(stepCount, activityTypography)
+                  : undefined
+              }
               aria-hidden
             />
             <span
               className={cn(
                 'font-bold tracking-widest text-brand',
-                !landscape && micro && !fillHeight && 'text-xs phone-landscape:text-sm',
+                !landscape &&
+                  micro &&
+                  !fillHeight &&
+                  'text-xs phone-landscape:text-sm',
                 !landscape && !micro && 'text-xl lg:text-2xl xl:text-3xl',
               )}
-              style={landscape ? landscapeCubeTextStyle(stepCount, activityTypography) : undefined}
+              style={
+                landscape
+                  ? landscapeCubeTextStyle(stepCount, activityTypography)
+                  : undefined
+              }
             >
               {cube}
             </span>

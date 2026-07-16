@@ -7,10 +7,21 @@ export type SetSessionPayload =
   | { token: string; user: User; requiresPasswordChange: boolean }
   | { token: null; user: null };
 
-interface PersistedSession {
-  token: string;
-  user: User;
-  requiresPasswordChange?: boolean;
+/** Persiste só o JWT (string pura). Formatos antigos com `user` são migrados. */
+function writeToken(token: string): void {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, token);
+}
+
+function clearStoredToken(): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 function migrateSessionStorageToLocalStorage(): void {
@@ -27,35 +38,45 @@ function migrateSessionStorageToLocalStorage(): void {
   }
 }
 
-function readPersisted(): {
-  token: string | null;
-  user: User | null;
-  requiresPasswordChange: boolean;
-} {
+function parseStoredToken(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+  // Formato novo: só o JWT
+  if (!trimmed.startsWith('{')) {
+    return trimmed;
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as { token?: unknown };
+    if (typeof parsed.token === 'string' && parsed.token.length > 0) {
+      // Migra legado `{ token, user, ... }` → só o token
+      writeToken(parsed.token);
+      return parsed.token;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function readPersistedToken(): string | null {
   if (typeof localStorage === 'undefined') {
-    return { token: null, user: null, requiresPasswordChange: false };
+    return null;
   }
   migrateSessionStorageToLocalStorage();
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    return { token: null, user: null, requiresPasswordChange: false };
+    return null;
   }
-  try {
-    const parsed = JSON.parse(raw) as Partial<PersistedSession>;
-    if (typeof parsed.token === 'string' && parsed.user && typeof parsed.user.id === 'string') {
-      return {
-        token: parsed.token,
-        user: parsed.user as User,
-        requiresPasswordChange: parsed.requiresPasswordChange === true,
-      };
-    }
-  } catch {
+  const token = parseStoredToken(raw);
+  if (!token) {
     localStorage.removeItem(STORAGE_KEY);
   }
-  return { token: null, user: null, requiresPasswordChange: false };
+  return token;
 }
 
-const initial = readPersisted();
+const initialToken = readPersistedToken();
 
 interface AuthState {
   user: User | null;
@@ -75,28 +96,16 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: initial.user,
-  token: initial.token,
-  requiresPasswordChange: initial.requiresPasswordChange,
+  user: null,
+  token: initialToken,
+  requiresPasswordChange: false,
   setSession: (payload) => {
     if (payload.token && payload.user) {
       const { token, user, requiresPasswordChange } = payload;
-      if (typeof localStorage !== 'undefined') {
-        const toSave: PersistedSession = {
-          token,
-          user,
-          ...(requiresPasswordChange ? { requiresPasswordChange: true } : {}),
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-      }
+      writeToken(token);
       set({ token, user, requiresPasswordChange });
     } else {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.removeItem(STORAGE_KEY);
-      }
+      clearStoredToken();
       set({ user: null, token: null, requiresPasswordChange: false });
     }
   },
@@ -106,23 +115,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!token) {
       return;
     }
-    if (typeof localStorage !== 'undefined') {
-      const toSave: PersistedSession = {
-        token,
-        user,
-        ...(requiresPasswordChange ? { requiresPasswordChange: true } : {}),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-    }
+    writeToken(token);
     set({ user, requiresPasswordChange, token });
   },
   logout: () => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem(STORAGE_KEY);
-    }
+    clearStoredToken();
     set({ user: null, token: null, requiresPasswordChange: false });
   },
 }));
