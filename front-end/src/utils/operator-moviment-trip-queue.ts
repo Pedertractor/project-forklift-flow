@@ -119,3 +119,16 @@ export function pickTopMainTripQueueItem(
 ): MainTripQueueItem | null {
   return items[0] ?? null;
 }
+
+/** Chave estável da sugestão exibida (detectar troca / nova atividade). */
+export function mainTripQueueItemAlertKey(item: MainTripQueueItem): string {
+  if (item.displayKind === 'combined') {
+    return `trip:${item.combined.tripSuggestion.id}`;
+  }
+  if (item.displayKind === 'deliver') {
+    const id =
+      item.deliver.deliverTask?.id ?? item.deliver.requestId;
+    return `deliver:${id}`;
+  }
+  return `pickup:${item.pickup.pickupTask.id}`;
+}

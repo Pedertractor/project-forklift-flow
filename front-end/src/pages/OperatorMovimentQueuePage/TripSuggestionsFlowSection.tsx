@@ -32,12 +32,16 @@ import { formatReplenishmentMovementCubeDisplay } from '@/constants/operator-mac
 import { isCriticalPriority } from '@/utils/operator-moviment-display';
 import {
   buildMainTripQueueItems,
+  mainTripQueueItemAlertKey,
   pickTopMainTripQueueItem,
   type MainTripQueueItem,
 } from '@/utils/operator-moviment-trip-queue';
 
 import { ArrowDownLeft, ArrowUpRight, Check, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import AccordionLoader from '@/components/accordionLoader/accordion-loader';
+import { subscribeOperatorMovimentNewTaskArrival } from '@/lib/operator-moviment-new-task-arrival';
+import { cn } from '@/lib/utils';
 
 function resolveMovementCubeDisplay(
   deliverTask: OperatorPickupTaskQueueItem | null | undefined,
@@ -625,6 +629,16 @@ export function TripSuggestionsFlowSection({
 
   onAcceptStandaloneDeliver,
 }: TripSuggestionsFlowSectionProps) {
+  const [emphasizeArrival, setEmphasizeArrival] = useState(false);
+  const [arrivalAnimKey, setArrivalAnimKey] = useState(0);
+
+  useEffect(() => {
+    return subscribeOperatorMovimentNewTaskArrival(() => {
+      setArrivalAnimKey((k) => k + 1);
+      setEmphasizeArrival(true);
+    });
+  }, []);
+
   if (tripQuery.isError) {
     return (
       <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800 md:px-4 md:py-3">
@@ -697,9 +711,11 @@ export function TripSuggestionsFlowSection({
     return null;
   }
 
+  const topKey = mainTripQueueItemAlertKey(topSuggestion);
+
   return (
     <section
-      className="mt-4 min-w-0 space-y-3 phone-landscape:mt-0 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:space-y-0 md:mt-8 md:space-y-4"
+      className="mt-4 min-w-0 space-y-3 overflow-visible phone-landscape:mt-0 phone-landscape:flex phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:flex-col phone-landscape:space-y-0 md:mt-8 md:space-y-4"
       aria-labelledby="trip-suggestions-heading"
     >
       {!bound ? (
@@ -708,17 +724,34 @@ export function TripSuggestionsFlowSection({
         </p>
       ) : null}
 
-      <div className="flex min-w-0 flex-col gap-4 phone-landscape:min-h-0 phone-landscape:flex-1 md:gap-5">
-        {renderMainTripQueueItem(topSuggestion, {
-          bound,
-          busy,
-          pendingTripSuggestionId,
-          pendingStandalonePickupTaskId,
-          pendingStandaloneDeliverKey,
-          onAcceptTrip,
-          onAcceptStandalonePickup,
-          onAcceptStandaloneDeliver,
-        })}
+      <div className="flex min-w-0 flex-col gap-4 overflow-visible phone-landscape:min-h-0 phone-landscape:flex-1 md:gap-5">
+        <div
+          key={`${topKey}-${arrivalAnimKey}`}
+          className={cn(
+            'min-w-0 overflow-visible',
+            emphasizeArrival && 'animate-new-task-card-pop',
+          )}
+          onAnimationEnd={(event) => {
+            if (event.target !== event.currentTarget) {
+              return;
+            }
+            if (!String(event.animationName).includes('new-task-card-pop')) {
+              return;
+            }
+            setEmphasizeArrival(false);
+          }}
+        >
+          {renderMainTripQueueItem(topSuggestion, {
+            bound,
+            busy,
+            pendingTripSuggestionId,
+            pendingStandalonePickupTaskId,
+            pendingStandaloneDeliverKey,
+            onAcceptTrip,
+            onAcceptStandalonePickup,
+            onAcceptStandaloneDeliver,
+          })}
+        </div>
       </div>
     </section>
   );

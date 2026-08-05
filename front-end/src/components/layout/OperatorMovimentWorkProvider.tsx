@@ -65,6 +65,7 @@ import {
 } from '@/types/role.types';
 import type { IsOperatingMode } from '@/types/operator-moviment-pallet.types';
 import type { OperatorMovimentWsEvent } from '@/types/operator-moviment-ws.types';
+import { useOperatorMovimentNewTaskAlert } from '@/hooks/useOperatorMovimentNewTaskAlert';
 import { countOpenMovimentTasksForOperator } from '@/utils/operator-moviment-work';
 import { replenishmentMovimentTypesForOperatingMode } from '@/utils/operator-moviment-role';
 
@@ -218,6 +219,15 @@ export function OperatorMovimentWorkProvider({
       countOpenMovimentTasksForOperator(myTasksQuery.data ?? [], user?.id),
     [myTasksQuery.data, user?.id],
   );
+
+  useOperatorMovimentNewTaskAlert({
+    enabled: realtimeEnabled && isMovimentOperator,
+    canAcceptTasks:
+      Boolean(operatingMode) &&
+      myPalletQuery.isSuccess &&
+      myPalletQuery.data !== null,
+    hasAcceptedWork: incompleteTaskCount > 0,
+  });
 
   const refreshRealtimeData = useCallback(async () => {
     await resyncRealtimeOperatorQueries(queryClient);

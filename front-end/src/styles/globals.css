@@ -66,8 +66,44 @@ body {
   animation: step-connector-flow 2.8s linear infinite;
 }
 
-/* Mantém um pulso suave mesmo com “reduzir movimento” no SO (TV / chão de fábrica). */
+/* Nova tarefa na fila do transporte — entrada suave (estilo app de entrega). */
+@keyframes new-task-card-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgb(0 95 184 / 0);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgb(0 95 184 / 0.18);
+  }
+  70% {
+    transform: scale(0.985);
+    box-shadow: 0 0 0 2px rgb(0 95 184 / 0.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+}
+
+.animate-new-task-card-pop {
+  animation: new-task-card-pop 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center center;
+  will-change: transform, opacity, box-shadow;
+  border-radius: 0.75rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .animate-new-task-card-pop {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Mantém um pulso suave mesmo com “reduzir movimento” no SO (TV / chão de fábrica). */
   .animate-step-connector-flow {
     animation: step-connector-flow 4s linear infinite;
   }

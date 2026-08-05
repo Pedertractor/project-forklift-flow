@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import { ptBR } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
@@ -59,9 +66,7 @@ export function DashboardDateRangePicker({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const today = useMemo(() => normalizeDashboardDate(new Date()), []);
   const selectedRange = useMemo(() => datesToRange(dates), [dates]);
-  const [month, setMonth] = useState<Date>(
-    () => selectedRange?.from ?? today,
-  );
+  const [month, setMonth] = useState<Date>(() => selectedRange?.from ?? today);
 
   useEffect(() => {
     if (!open) {
@@ -86,7 +91,8 @@ export function DashboardDateRangePicker({
     date > currentMonthStart ? currentMonthStart : date;
 
   const monthOptions = useMemo(() => {
-    const maxMonth = month.getFullYear() === currentYear ? today.getMonth() : 11;
+    const maxMonth =
+      month.getFullYear() === currentYear ? today.getMonth() : 11;
     return Array.from({ length: maxMonth + 1 }, (_, index) => {
       const label = new Date(2000, index, 1)
         .toLocaleString('pt-BR', { month: 'short' })
